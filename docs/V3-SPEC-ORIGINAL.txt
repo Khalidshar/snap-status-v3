@@ -12,7 +12,7 @@ Snap Bot V2 + Status Bot V2
 مدد الفيديو وحدود الحجم الحالية للمنصتين	تُراجع من مصادر المنصات وقت التنفيذ ولا تُثبَّت من الذاكرة
 1. الهدف والاستقلال التشغيلي
 Snap Bot V2: Telegram واجهة تحكم واستلام. الفيديو مصمم لمعايير Snapchat (9:16). النشر على Snapchat يدوي (قرار صريح).
-Status Bot V2: WhatsApp واجهة تحكم. الفيديو مصمم لحالة WhatsApp. النشر عبر Outbox Worker معزول.
+Status Bot V2: WhatsApp فقط للتحكم والاستلام والتنبيهات. الفيديو مصمم لحالة WhatsApp. يبدأ بالنشر اليدوي ثم النشر عبر Outbox Worker معزول وفق بوابات الجاهزية.
 الاستقلال التشغيلي: لكل منصة Deployment، Secrets، Database، Cache، Storage، Logs، Workflows، Monitoring مستقلة. تعطل إحداهما لا يؤثر على الأخرى.
 2. الكود المشترك
 التوصية: Monorepo بوحدات نشر مستقلة
@@ -63,7 +63,7 @@ QUALITY GATE ── FAIL ─► REPAIR (ضمن ميزانية زمنية)
    ▼
 DELIVERY / OUTBOX
    ├─► Telegram Delivery ─► (نشر يدوي) Snapchat
-   └─► Outbox Worker ─► WhatsApp Status  |  Manual Fallback عبر Telegram
+   └─► WhatsApp Manual Mode / Outbox Worker ─► WhatsApp Status
 ملاحظة ترتيب: الوكلاء يعملون على المحتوى بعد جلبه من المصادر أو معه حسب سلوكهم الحالي. يُوثَّق الترتيب الفعلي في Agent Registry (المرحلة 0) ولا يُفترض.
 4. الأمان والصلاحيات (كان مفقوداً)
 Allowlist للمستخدمين: أي أمر من Telegram/WhatsApp يُرفض ما لم يكن المرسل ضمن قائمة معرّفات مصرّح بها.
@@ -167,7 +167,7 @@ WhatsApp Status Publisher
 Adapter معزول خلف واجهة StatusPublisher.publish(video) قابلة للاستبدال.
 رقم مخصص للنشر (لا رقمك الأساسي).
 Health Check للجلسة قبل كل نشر، وRate Limit ذاتي متحفظ.
-تصحيح جوهري: قناة Manual Fallback يجب أن تكون Telegram (قناة مستقلة). في النسخة السابقة كان البديل "دردشة واتساب"، وإن كانت جلسة واتساب معطلة فذلك البديل يتعطل معها.
+قرار المالك: Status يعمل عبر WhatsApp فقط، بما فيه Manual Mode والتنبيهات. لا قناة Telegram احتياطية لمسار Status.
 Manual Mode يعمل من اليوم الأول ويُقاس عليه معيار الجاهزية.
 Telegram Delivery (Snap Bot)
 فيديو + تنبيهات + حالة المهام. حدود حجم ملفات Telegram تُتحقق من الوثائق الحالية عند التنفيذ.
@@ -190,7 +190,7 @@ Data Layer يبدأ بـSQLite (مع WAL) وقابل للانتقال لـPostgr
 16. Observability
 Structured Logs، Job Timeline، AgentRun، Source Health، Network Errors، Render Metrics، QA Results، Repair Attempts، Delivery Status.
 مؤشرات نجاح قابلة للقياس: نسبة نجاح المهام، زمن المهمة (p50/p95)، نسبة استخدام Fallback، نسبة FAIL في QA، حالة كل مزود.
-تنبيهات إلى Telegram عند: فشل متكرر، فتح Circuit Breaker، امتلاء القرص، انقطاع جلسة واتساب، ارتفاع زمن المهام.
+قناة التنبيهات: Telegram لـSnap وWhatsApp فقط لـStatus. تُسجّل الأحداث عند: فشل متكرر، فتح Circuit Breaker، امتلاء القرص، انقطاع جلسة واتساب، ارتفاع زمن المهام.
 أمر حالة (/status) يعرض صحة المكونات.
 17. الاختبارات و CI/CD
 سريعة (كل Commit): Static/Lint، Unit، Contract Tests للنواة، Agents (Golden مقارنة)، Religious Integrity، Network Failure (Mocks: timeout, DNS, 404, 429, 500, empty, corrupted, slow)، Secret Scan.
@@ -212,7 +212,7 @@ snap-bot وstatus-bot الحاليان لا يُلمسان حتى نجاح V2: �
 6	Design (3 مزودين + Failover + Rotation)	الفشل المتعمد لمزود لا يوقف المهمة
 7	تقوية QA وRepair بناءً على الأعطال الفعلية	تحسّن نسبة النجاح مقيساً
 8	Scheduler على نفس Pipeline	تطابق النتائج يدوي/مجدول
-9	Status Bot V2: إعادة استخدام النواة، Manual Mode أولاً عبر Telegram، ثم Outbox Worker	Manual Mode يعمل بثبات
+9	Status Bot V2: إعادة استخدام النواة، Manual Mode أولاً عبر WhatsApp، ثم Outbox Worker	Manual Mode يعمل بثبات
 10	Shadow Mode: عينة ~15% بمفاتيح/Quotas منفصلة، دون نشر	مقارنة Old vs V2 ضمن العتبات
 11	Controlled Live Test (عدد محدود)	لا مشاكل جودة/نشر مكرر
 12	Production	بعد نجاح ما سبق، مع Rollback جاهز
@@ -227,7 +227,7 @@ snap-bot وstatus-bot الحاليان لا يُلمسان حتى نجاح V2: �
 ✓ RTL والصوت وFFmpeg مستقرة (صورة حاوية مثبّتة)
 ✓ Quality Gate بمعايير رقمية، Repair بميزانيات زمنية، Replay يعمل
 ✓ Idempotency: لا نشر مكرر (مُختبَر بمحاكاة إعادة المحاولة)
-✓ Outbox: انتهاء الصلاحية (EXPIRED) وManual Fallback عبر Telegram يعملان
+✓ Outbox: انتهاء الصلاحية (EXPIRED) وManual Mode عبر WhatsApp يعملان لمسار Status
 ✓ Retention/GC يعمل ولا يحذف ملفاً قيد الانتظار
 ✓ Logs وJob tracking وتنبيهات
 ✓ اختبارات سريعة وثقيلة وE2E ناجحة
@@ -235,7 +235,7 @@ snap-bot وstatus-bot الحاليان لا يُلمسان حتى نجاح V2: �
 21. المبادئ غير القابلة للتفاوض
 الوكلاء ثابتون أثناء الترحيل، وبعده يتغيرون عبر البوابة المشروطة فقط.
 المنصتان مستقلتان تشغيلياً (Deployment/Secrets/DB/Storage)، تتشاركان النواة تحت حوكمة عقود.
-Snap: النشر النهائي يدوي. Status: Outbox + Manual Fallback عبر قناة مستقلة (Telegram).
+Snap: Telegram للتحكم والاستلام والنشر النهائي على Snapchat يدوي. Status: WhatsApp فقط للتحكم والاستلام والتنبيهات وManual Mode، ثم Outbox معزول.
 النص الديني: يُتحقق منه ضد مرجع مستقل ثم يُقفل، ولا يمر لأي AI.
 كل اتصال خارجي عبر Network Core، مع إنفاذ فعلي (Egress Proxy) لا اتفاق فقط.
 FFmpeg بلا شبكة بإنفاذ الحاوية.
