@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+run/
+data/
+renders/
+voices/
+*.sqlite3
+*.sqlite3-*
