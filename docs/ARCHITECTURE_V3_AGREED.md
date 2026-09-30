@@ -1,0 +1,251 @@
+المخطط المعياري الجذري (V3 – النسخة المحصّنة)
+Snap Bot V2 + Status Bot V2
+هذه النسخة تدمج أفضل ما في النسختين السابقتين (الشريحة الرأسية، الحزمة المشتركة، Outbox، Retention، الإصلاح محدد المهلة)، وتعالج الثغرات التي ظهرت في مراجعة النسخة الأخيرة، وتعيد ما حُذف منها دون مبرر (Idempotency، الأمان، Observability، الاختبارات، الجاهزية).
+0. افتراضات يجب تأكيدها قبل البدء
+لا تُبنى معمارية على افتراضات غير مؤكدة. هذه قرارات مفتوحة:
+القرار	الوضع
+لغة البرمجة الحالية	تُكتشف في المرحلة 0 (الأمثلة هنا لا تفترض لغة)
+بيئة التشغيل (VPS / Actions / هجين)	تُحسم بقرار صريح، الافتراض هنا: خدمة مستمرة على VPS
+هيكل المستودعات	الموصى به: Monorepo (القسم 2)
+مزودو التصميم الثلاثة	تُكتشف أسماؤهم من الكود الحالي
+طريقة نشر WhatsApp Status	غير رسمية → مخاطرة مقبولة بشروط (القسم 12)
+مدد الفيديو وحدود الحجم الحالية للمنصتين	تُراجع من مصادر المنصات وقت التنفيذ ولا تُثبَّت من الذاكرة
+1. الهدف والاستقلال التشغيلي
+Snap Bot V2: Telegram واجهة تحكم واستلام. الفيديو مصمم لمعايير Snapchat (9:16). النشر على Snapchat يدوي (قرار صريح).
+Status Bot V2: WhatsApp واجهة تحكم. الفيديو مصمم لحالة WhatsApp. النشر عبر Outbox Worker معزول.
+الاستقلال التشغيلي: لكل منصة Deployment، Secrets، Database، Cache، Storage، Logs، Workflows، Monitoring مستقلة. تعطل إحداهما لا يؤثر على الأخرى.
+2. الكود المشترك
+التوصية: Monorepo بوحدات نشر مستقلة
+platform/
+├── packages/studio-core/     # المشترك
+├── apps/snap-bot/            # Deployment مستقل + Secrets + DB مستقلة
+└── apps/status-bot/          # Deployment مستقل + Secrets + DB مستقلة
+يحقق مشاركة الكود بلا تكلفة نشر حزم وإصدارات (مناسب لمطوّر أو فريق صغير).
+الاستقلال يتحقق بالنشر لا بالمستودع: كل تطبيق يُبنى ويُنشر منفصلاً، وتغيير في apps/status-bot لا يعيد نشر snap-bot.
+بديل: مستودعان + حزمة مثبّتة الإصدار (Semantic Versioning) إن كان الفريق منفصلاً.
+قواعد حوكمة النواة (تمنع أن يكسر تعديل واحد المنصتين معاً):
+Contract Tests: اختبارات عقود لكل واجهة عامة في النواة تُشغَّل ضد التطبيقين قبل الدمج.
+تغيير يمس religious/ أو renderer/ يستلزم تشغيل اختبارات المنصتين كاملة.
+تطبيق يُرقّى إلى نسخة النواة الجديدة على حدة (Canary أولاً على Snap Bot).
+تغييرات كاسرة تحتاج Deprecation Cycle.
+محتويات النواة:
+studio-core/
+├── network/     (HTTP, Retry, Backoff, Circuit Breaker, Cache, Egress Policy)
+├── renderer/    (FFmpeg Adapter, Scenes, Audio Mixer, RTL/Arabic Shaping)
+├── religious/   (Sacred Lock, Reference Verification)
+├── quality/     (Quality Gate Framework, Golden Tests)
+├── repair/      (Time-Budgeted Repair Engine)
+├── storage/     (Retention & GC)
+├── jobs/        (Job Schema, Queue, State Machine)
+├── delivery/    (Outbox, Idempotency)
+└── observability/ (Structured Events, Metrics)
+3. المعمارية العليا
+INPUT (Telegram/WhatsApp/Scheduler/System Event)
+   ▼
+COMMAND GATEWAY  (مصادقة + تحقق + إنشاء Job Request)
+   ▼
+JOB MANAGER  (Job ID + Priority + State Machine + Idempotency Key)
+   ▼
+ORCHESTRATOR  (يدير المراحل فقط)
+   ▼
+AGENTS 🔒 (عبر AgentAdapter)
+   ▼
+CONTENT ENGINE → SOURCES ENGINE → NETWORK CORE
+   ▼
+CONTENT CONTRACT (Schema Validation)
+   ▼
+MEDIA ENGINE | AUDIO ENGINE | DESIGN ENGINE
+   ▼
+RENDERER (حاوية بلا شبكة)
+   ▼
+QUALITY GATE ── FAIL ─► REPAIR (ضمن ميزانية زمنية)
+   │ PASS
+   ▼
+DELIVERY / OUTBOX
+   ├─► Telegram Delivery ─► (نشر يدوي) Snapchat
+   └─► Outbox Worker ─► WhatsApp Status  |  Manual Fallback عبر Telegram
+ملاحظة ترتيب: الوكلاء يعملون على المحتوى بعد جلبه من المصادر أو معه حسب سلوكهم الحالي. يُوثَّق الترتيب الفعلي في Agent Registry (المرحلة 0) ولا يُفترض.
+4. الأمان والصلاحيات (كان مفقوداً)
+Allowlist للمستخدمين: أي أمر من Telegram/WhatsApp يُرفض ما لم يكن المرسل ضمن قائمة معرّفات مصرّح بها.
+Rate Limit للأوامر وحد لعدد المهام المتزامنة لكل مستخدم.
+Secrets: عبر Environment/Secret Manager فقط، مع Secret Scanning في CI وفي Pre-commit، وصلاحيات دنيا لكل Token.
+Rotation: خطة لتدوير الـTokens عند الاشتباه بتسرب.
+لا تُسجَّل الأسرار في Logs (Redaction تلقائي).
+حدود الموارد: سقف لعدد عمليات Render المتزامنة (مبدئياً 1–2 حسب CPU/RAM)، مع Queue تنتظر بدل الانهيار.
+5. الوكلاء 🔒 و AgentAdapter
+أثناء الترحيل: ممنوع حذف/إعادة تسمية/دمج/تغيير اختصاص/استبدال أي وكيل.
+AgentAdapter يوفّر:
+تسجيل AgentRun (وقت، نتيجة، أخطاء، مدة) دون تعديل الوكيل.
+حقن NetworkClient الموحد حيث يسمح كود الوكيل.
+تنبيه واقعي (ثغرة في النسخة السابقة): الـAdapter وحده لا يضمن أن الوكيل لن يفتح اتصال HTTP مباشراً. لذلك:
+Egress Proxy / Firewall: كل حركة خارجة من حاوية التطبيق تمر عبر Proxy بقائمة مسموحات (Allowlist) وتسجيل. أي اتصال خارج القائمة يُحظر ويُنبَّه عنه.
+في المرحلة 0 يُجرد كل استدعاء شبكة مباشر داخل كود الوكلاء ويُوثَّق.
+إن لزم تعديل الوكيل لتمرير الشبكة، يُعامل ذلك تغييراً عبر البوابة المشروطة.
+بوابة التغيير المشروطة (بعد الاستقرار): موافقة صريحة + Golden Test (مقارنة مخرجات على بيانات ثابتة) + Adapter للرجوع الفوري.
+Agent Registry (المرحلة 0): ID، Name، Role، Input، Output، Dependencies، Policies، الموضع في Pipeline، السلوك الحالي مع أمثلة مسجلة.
+6. Content Engine و Content Contract
+أنواع المحتوى: أخبار (سعودي، عالمي، عاجل، اقتصاد، تقنية، رياضة…)، ديني (قرآن، أذكار، دعاء، تفسير، تأملات)، طقس، فعاليات، معلومات.
+ContentPackage مع تحقق Schema صارم قبل مغادرة الطبقة: id, type, title, body, language, source, source_url, sacred, verified, media_requirements, audio_requirements, design_profile, destination, content_hash, expires_at, metadata.
+expires_at جديد: صلاحية المحتوى (الأخبار العاجلة تنتهي قريباً)، وتستخدمها الـOutbox لمنع نشر محتوى قديم.
+7. Religious Core 🔒 (مصحّح الترتيب والتحقق)
+الترتيب الصحيح (كان القفل قبل التحقق في النسخة السابقة، وهذا خطأ):
+Trusted Source → Fetch
+   ▼
+Verification ضد مرجع مستقل مخزّن ومُجزَّأ (Hash)
+   ▼
+Text Integrity Check
+   ▼
+Sacred Lock 🔒 (LOCKED_TEXT = TRUE) ← بعد نجاح التحقق فقط
+   ▼
+Audio / Design / Render
+   ▼
+Post-Render Verification
+نقاط جوهرية:
+المرجع مستقل: Hash المقارنة يُحسب من نسخة مرجعية مخزّنة عندك (مثل مجمع الملك فهد أو Tanzil، مُحمّلة وموثّقة في المستودع). حساب Hash للنص المسحوب ومقارنته بنفسه لا يثبت شيئاً.
+التحقق بعد الرندر: التأكد أن النص الذي يظهر في الفيديو هو النص المقفل (مثلاً عبر مقارنة النص المُمرَّر للـRenderer بنفس الـHash، وعبر Golden Screenshots للشكل).
+Golden Screenshots هشّة عبر إصدارات FFmpeg والخطوط، لذلك: تثبيت إصدار FFmpeg والخطوط داخل صورة حاوية موحدة، واعتماد عتبة تسامح (Tolerance) بدل مطابقة بكسل بكسل، وتحديث اللقطات المرجعية بإجراء موثّق فقط.
+الخطوط القرآنية المعتمدة مدمجة محلياً.
+لا AI على النص المقفل. الذكاء الاصطناعي يعمل على العنوان/المقدمة/الشرح فقط حين تسمح سياسة المحتوى.
+مراجعة بشرية لعينة من المحتوى الديني في مرحلتي Shadow وLive المحدود (الأتمتة لا تغني عن ذلك).
+8. Sources و Network Core
+Sources Registry مركزي: source_id, category, endpoint, priority, timeout, retry_policy, rate_limit, health, last_success, last_failure, fallback_sources.
+سياسات مبدئية (تُضبط في Config):
+Timeout: اتصال 10 ث، قراءة 30 ث (ملفات كبيرة: 120 ث).
+Retry: حتى 3 محاولات، Backoff أُسّي مع Jitter (1s, 2s, 4s).
+Circuit Breaker: يُفتح بعد 5 إخفاقات متتالية، تبريد 5 دقائق، ثم Half-Open.
+Cache: TTL حسب النوع.
+Response Validator لكل مصدر (بنية الاستجابة، الحجم، النوع).
+ترخيص المحتوى: الاطلاع على شروط استخدام مصادر الصور/الفيديو/الأخبار المستخدمة، وتسجيل مصدر كل Asset في الـManifest لأغراض المراجعة.
+9. Media / Audio / Design
+Media Engine: بحث، اختيار مزود، تنزيل، تحقق (دقة، نسبة أبعاد، تلف، تكرار)، Cache، Fallback. الناتج MediaAsset.
+Audio Engine: تلاوات، أذكار، TTS، خلفية، تحقق، مدة، Normalize، Trim، Fallback.
+الـRenderer لا يحمّل شيئاً من الإنترنت.
+Design Engine: الوكلاء المصممون الحاليون 🔒، Design Director، Rotation (ذاكرة آخر قالب/تخطيط/خلفية/خط/حركة)، Templates، Brand، RTL، Arabic Typography، Safe Areas، Platform Profiles.
+مزودو التصميم الثلاثة: Provider A → B → C → Local Design Engine. الأسماء من الكود الحالي، والـTokens في Secrets فقط.
+Platform Profiles: Snap (9:16، Safe Areas، مدة، ترميز، Branding) وStatus (9:16، Safe Areas، مدة، ترميز، Branding). القيم تُؤكد من متطلبات المنصات وقت التنفيذ.
+10. Renderer (معزول فعلياً)
+العزل بالإنفاذ لا بالاتفاق: يعمل FFmpeg داخل حاوية بلا شبكة (network none أو ما يعادلها) وليس مجرد التزام برمجي.
+كل مهمة في Workspace مستقل: renders/JOB_ID/{input, media, audio, design, temp, output, manifest.json}.
+المدخلات: محتوى/وسائط/صوت/تصميم مُتحقَّق منها فقط.
+Manifest يسجل كل Asset ومصدره ونسخ الأدوات المستخدمة (قابلية إعادة الإنتاج).
+11. Quality Gate و Repair
+Quality Gate
+فحوصات: Content، Arabic، Religious Integrity، Source، Design، Media، Audio، Render، Resolution، Duration، File Integrity، Platform. النتيجة PASS / WARN / FAIL، وFAIL يمنع النشر.
+الفحص	FAIL إذا (قيم مبدئية)
+الدقة	غير الدقة المعتمدة في Profile
+المدة	خارج نطاق Profile المنصة
+الحجم	فوق حد المنصة
+الصوت	صمت كامل / خارج نطاق التطبيع
+الملف	فشل ffprobe أو Frames تالفة
+النص الديني	عدم تطابق Hash
+العربية	تقطيع حروف / RTL خاطئ / تجاوز Safe Area
+WARN مسموح بالنشر مع تسجيل (مثل التسليم بقالب مُبسَّط).
+Repair Engine (ميزانية زمنية واقعية)
+تصحيح على النسخة السابقة: سقف 90 ثانية للمهمة كلها غير واقعي لأن الرندر وTTS والتنزيل قد تستغرق أكثر من ذلك. لذلك تُفصل الميزانيات:
+المستوى	ميزانية المهمة الكاملة (مبدئية)
+CRITICAL (عاجل)	~3 دقائق
+HIGH / NORMAL	~10 دقائق
+BACKGROUND	~20 دقيقة
+ميزانية لكل مرحلة (تنزيل، تصميم، صوت، رندر) وحد أقصى لعدد المحاولات.
+مستويات الإصلاح:
+R1 – Retry مع Backoff للأعطال العابرة (حتى محاولتين).
+R2 – تبديل المصدر/المزود (Media, Audio, Design A→B→C).
+R3 – Local Design / قالب مُبسَّط (Degraded Mode): ينتج مخرجاً صالحاً بجودة أقل، مع WARN.
+R4 – إعادة Render مرة واحدة بملف تعريف أخف.
+R5 – Dead-Letter Queue + تنبيه: تُحفظ المهمة بكامل سياقها، ويُرسل تنبيه، ويمكن إعادة تشغيلها بأمر (Replay) لاحقاً. الفشل ليس نهاية بل حالة قابلة للاستئناف.
+12. التسليم و Outbox (مع الثغرات المصححة)
+Idempotency (كان محذوفاً وهو ضروري مع Outbox)
+كل تسليم له delivery_id, job_id, content_hash, destination, state. قبل النشر: هل سُلّم أو نُشر هذا الـcontent_hash لهذه الوجهة؟ نعم ← إيقاف. مع قفل/Lease يمنع عاملين من النشر في آن واحد.
+حالات الـOutbox
+READY_TO_PUBLISH → PUBLISHING → PUBLISHED
+                        │
+                        ├─► RETRY_SCHEDULED (Backoff)
+                        ├─► EXPIRED (تجاوز expires_at، لا يُنشر تلقائياً)
+                        └─► MANUAL_SENT (سُلّم يدوياً) → MANUAL_CONFIRMED
+WhatsApp Status Publisher
+الواقع: لا API رسمي؛ الطريقة غير الرسمية تحمل خطر حظر الرقم وانقطاع الجلسة، وقد تخالف شروط الخدمة. تُقبل المخاطرة بوعي أو يُكتفى بالوضع اليدوي.
+Adapter معزول خلف واجهة StatusPublisher.publish(video) قابلة للاستبدال.
+رقم مخصص للنشر (لا رقمك الأساسي).
+Health Check للجلسة قبل كل نشر، وRate Limit ذاتي متحفظ.
+تصحيح جوهري: قناة Manual Fallback يجب أن تكون Telegram (قناة مستقلة). في النسخة السابقة كان البديل "دردشة واتساب"، وإن كانت جلسة واتساب معطلة فذلك البديل يتعطل معها.
+Manual Mode يعمل من اليوم الأول ويُقاس عليه معيار الجاهزية.
+Telegram Delivery (Snap Bot)
+فيديو + تنبيهات + حالة المهام. حدود حجم ملفات Telegram تُتحقق من الوثائق الحالية عند التنفيذ.
+13. التخزين ودورة الحياة (مصحّح)
+مشكلة في النسخة السابقة: حذف input/ وtemp/ فور اجتياز الفحص، مع مدة احتفاظ 24 ساعة، يتعارض مع Outbox (فيديو قد ينتظر نشراً) ومع Replay/Repair.
+السياسة المصححة:
+temp/: يُحذف فور نجاح الرندر (فقط).
+input/ وmedia/ وaudio/: تبقى حتى الوصول لحالة نهائية (PUBLISHED / MANUAL_CONFIRMED / EXPIRED / FAILED-archived) + مهلة قصيرة (مبدئياً 24 ساعة) لإتاحة Repair/Replay.
+output/: يبقى حتى الحالة النهائية + 24 ساعة (حتى 7 أيام كحد أقصى).
+GC حسب المساحة: عند بلوغ عتبة امتلاء (مبدئياً 80%) يبدأ حذف أقدم الملفات ذات الحالات النهائية أولاً، وتنبيه عند 90%.
+Manifest والسجلات الوصفية تبقى أطول (خفيفة الحجم).
+نسخ احتياطي دوري لقاعدة البيانات (Jobs, Deliveries, Idempotency).
+14. المجدول والطابور
+المجدول لا يحتوي منطق محتوى: Trigger → Create Job → Queue، ونفس Pipeline للأوامر اليدوية.
+أولويات: CRITICAL / HIGH / NORMAL / BACKGROUND، مع تجويع منخفض الأولوية محمي (Aging) كي لا تتأخر المهام العادية للأبد.
+State Machine للـJob: QUEUED → RUNNING → (RESEARCHING/PROCESSING/DOWNLOADING/DESIGNING/RENDERING/VALIDATING/REPAIRING/DELIVERING) → COMPLETED | FAILED | CANCELLED | EXPIRED.
+15. البيانات والإعدادات
+Data Layer يبدأ بـSQLite (مع WAL) وقابل للانتقال لـPostgreSQL عبر طبقة Repository. جداول: jobs, commands, content, agent_runs, sources, source_health, assets, designs, renders, qa_results, repairs, deliveries, failures, metrics.
+كل الأرقام في هذا المخطط تعيش في config/ لا في الكود. فصل Configuration عن Business Logic.
+16. Observability
+Structured Logs، Job Timeline، AgentRun، Source Health، Network Errors، Render Metrics، QA Results، Repair Attempts، Delivery Status.
+مؤشرات نجاح قابلة للقياس: نسبة نجاح المهام، زمن المهمة (p50/p95)، نسبة استخدام Fallback، نسبة FAIL في QA، حالة كل مزود.
+تنبيهات إلى Telegram عند: فشل متكرر، فتح Circuit Breaker، امتلاء القرص، انقطاع جلسة واتساب، ارتفاع زمن المهام.
+أمر حالة (/status) يعرض صحة المكونات.
+17. الاختبارات و CI/CD
+سريعة (كل Commit): Static/Lint، Unit، Contract Tests للنواة، Agents (Golden مقارنة)، Religious Integrity، Network Failure (Mocks: timeout, DNS, 404, 429, 500, empty, corrupted, slow)، Secret Scan.
+ثقيلة (ليلياً/قبل الإصدار): Render حقيقي (FFmpeg، خطوط، RTL، صوت، ترميز)، Integration، E2E بـMock للـTelegram/WhatsApp (دون نشر حقيقي)، Golden Screenshots.
+اختبارات ديني صارمة: لا إعادة صياغة، لا ترجمة، لا حذف/دمج، مطابقة Hash المرجع، لا تمرير لأي Rewriter بعد القفل، سلامة العرض البصري.
+CI/CD: فشل أي مرحلة = إيقاف. مع Rollback موثّق لكل Deployment.
+18. سياسة الترحيل وعدم الإضرار بالحالي
+Module by Module: KEEP / REFACTOR / WRAP / REPLACE / DO NOT MIGRATE. لا نسخ للمشروع القديم كاملاً.
+snap-bot وstatus-bot الحاليان لا يُلمسان حتى نجاح V2: لا تعطيل، لا نقل Secrets قسراً، لا تغيير Workflows أو Scheduler.
+خطة رجوع (Rollback) موثقة وفترة تشغيل متوازٍ قبل إيقاف القديم.
+19. خطة التنفيذ مع معايير خروج لكل مرحلة
+#	المرحلة	معيار الخروج
+0	Discovery: Agent Registry، مصادر، مزودو التصميم، جرد استدعاءات الشبكة المباشرة، أسماء Secrets، FFmpeg pipelines، قرارات القسم 0	مستند مراجَع وموافَق عليه
+1	Foundation: Config، Jobs، Queue، Gateway (مع Allowlist)، Logging، Storage، DB، Egress Proxy	Job تجريبي يمر بكل الحالات
+2	Vertical Slice على Snap Bot: أمر واحد ← نوع محتوى واحد ← مصدر + بديل ← فيديو ← QA أساسي ← Telegram	فيديو حقيقي يصل خلال أسابيع
+3	ربط الوكلاء عبر Adapter + AgentRun	Golden Tests ناجحة
+4	توسيع المحتوى + Religious Core كاملاً	اختبارات الدين واللقطات المرجعية ناجحة
+5	Media & Audio كطبقات مستقلة	اختبارات الشبكة ناجحة
+6	Design (3 مزودين + Failover + Rotation)	الفشل المتعمد لمزود لا يوقف المهمة
+7	تقوية QA وRepair بناءً على الأعطال الفعلية	تحسّن نسبة النجاح مقيساً
+8	Scheduler على نفس Pipeline	تطابق النتائج يدوي/مجدول
+9	Status Bot V2: إعادة استخدام النواة، Manual Mode أولاً عبر Telegram، ثم Outbox Worker	Manual Mode يعمل بثبات
+10	Shadow Mode: عينة ~15% بمفاتيح/Quotas منفصلة، دون نشر	مقارنة Old vs V2 ضمن العتبات
+11	Controlled Live Test (عدد محدود)	لا مشاكل جودة/نشر مكرر
+12	Production	بعد نجاح ما سبق، مع Rollback جاهز
+مبدأ: الطبقات المتقدمة تُضاف عند ثبوت حاجة فعلية، لا استباقياً.
+20. معايير الجاهزية للإنتاج
+✓ الأوامر والمجدول بنفس Pipeline
+✓ Allowlist والأمان يعملان
+✓ الوكلاء تعمل (Golden Tests) ولا اتصال شبكة خارج Egress Policy
+✓ المحتوى الديني: مرجع مستقل + Hash + سلامة بصرية + مراجعة بشرية لعينة
+✓ Network fallback وCache وCircuit Breaker يعملان
+✓ المزودون الثلاثة + Local Fallback يعملان
+✓ RTL والصوت وFFmpeg مستقرة (صورة حاوية مثبّتة)
+✓ Quality Gate بمعايير رقمية، Repair بميزانيات زمنية، Replay يعمل
+✓ Idempotency: لا نشر مكرر (مُختبَر بمحاكاة إعادة المحاولة)
+✓ Outbox: انتهاء الصلاحية (EXPIRED) وManual Fallback عبر Telegram يعملان
+✓ Retention/GC يعمل ولا يحذف ملفاً قيد الانتظار
+✓ Logs وJob tracking وتنبيهات
+✓ اختبارات سريعة وثقيلة وE2E ناجحة
+✓ Shadow ناجح، Live المحدود ناجح، Rollback مُجرَّب
+21. المبادئ غير القابلة للتفاوض
+الوكلاء ثابتون أثناء الترحيل، وبعده يتغيرون عبر البوابة المشروطة فقط.
+المنصتان مستقلتان تشغيلياً (Deployment/Secrets/DB/Storage)، تتشاركان النواة تحت حوكمة عقود.
+Snap: النشر النهائي يدوي. Status: Outbox + Manual Fallback عبر قناة مستقلة (Telegram).
+النص الديني: يُتحقق منه ضد مرجع مستقل ثم يُقفل، ولا يمر لأي AI.
+كل اتصال خارجي عبر Network Core، مع إنفاذ فعلي (Egress Proxy) لا اتفاق فقط.
+FFmpeg بلا شبكة بإنفاذ الحاوية.
+فشل مزود واحد لا يسقط المهمة، والفشل النهائي يُحفظ قابلاً لإعادة التشغيل.
+المجدول والأوامر اليدوية نفس Pipeline.
+لا نشر قبل Quality Gate، ولا نشر مكرر (Idempotency)، ولا نشر محتوى منتهي الصلاحية.
+لا Secrets في Git، ولا أمر بلا مصادقة.
+لكل عملية Job ID وتتبع كامل.
+لا مساس بالمشروعين الحاليين أثناء البناء.
+التنفيذ تدريجي بمعايير خروج، والأرقام في Config قابلة للضبط بعد القياس الفعلي.
+القرارات المفتوحة (القسم 0) تُحسم بقرار صريح قبل كتابة الكود.
+الخلاصة
+استوديوهان آليان مستقلان تشغيلياً على نواة موثوقة واحدة: يعرفان مكان الفشل، ويجرّبان البدائل ضمن ميزانيات زمنية واقعية، ويتحققان من الجودة والنزاهة الدينية، ولا ينشران مكرراً ولا متأخراً ولا بلا تصريح، ويبنيان خطوة بخطوة بمعيار خروج واضح لكل مرحلة.
