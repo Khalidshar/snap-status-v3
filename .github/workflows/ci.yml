@@ -1,0 +1,51 @@
+name: V3 CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v3-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test runner
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Compile
+        run: python -m compileall -q packages apps tests
+      - name: Tests
+        run: pytest -q
+      - name: Guard against committed runtime secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -nE '(TG_TOKEN|WA_TOKEN|OPENAI_KEY|GEMINI_KEY|NIM_KEY|PEXELS_KEY|PIXABAY_KEY|COVERR_KEY)=[^$<{[:space:]]+' -- ':!docs/*' ':!*.example' ; then
+            echo 'Potential hard-coded secret detected.'
+            exit 1
+          fi
+
+  architecture-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Legacy repositories are references only
+        run: |
+          test -f docs/DISCOVERY.md
+          test -f config/defaults.toml
+          test -d packages/studio-core/studio_core
+      - name: Auto publishing remains disabled by default
+        run: grep -q '^whatsapp_auto_publish = false$' config/defaults.toml
