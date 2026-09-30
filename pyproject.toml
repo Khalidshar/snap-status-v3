@@ -1,0 +1,8 @@
+[project]
+name = "snap-status-v3"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["packages/studio-core", "apps/snap-bot", "apps/status-bot"]
+testpaths = ["tests"]
