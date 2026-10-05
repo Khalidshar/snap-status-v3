@@ -3,7 +3,7 @@ from enum import Enum
 
 
 class Verdict(str, Enum):
-    PASS = "PASS"
+    PASS = "PASS"  # noqa: S105
     WARN = "WARN"
     FAIL = "FAIL"
 

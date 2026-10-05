@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from hashlib import sha256
 from time import monotonic
-from typing import Any, Callable
+from typing import Any
 
 
 def _hash(value: Any) -> str:
@@ -30,10 +31,14 @@ class AgentAdapter:
         input_hash = _hash((args, kwargs))
         try:
             result = self.runner(*args, **kwargs)
-            record = AgentRun(self.agent_id, input_hash, _hash(result), int((monotonic()-started)*1000), True)
+            record = AgentRun(
+                self.agent_id, input_hash, _hash(result), int((monotonic() - started) * 1000), True
+            )
             return result, record
         except Exception as exc:
-            record = AgentRun(self.agent_id, input_hash, "", int((monotonic()-started)*1000), False, str(exc))
+            record = AgentRun(
+                self.agent_id, input_hash, "", int((monotonic() - started) * 1000), False, str(exc)
+            )
             raise AgentExecutionError(record) from exc
 
 

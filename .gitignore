@@ -13,3 +13,10 @@ renders/
 voices/
 *.sqlite3
 *.sqlite3-*
+dist/
+reports/
+.coverage
+.coverage.*
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

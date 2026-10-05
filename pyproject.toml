@@ -1,8 +1,59 @@
 [project]
 name = "snap-status-v3"
 version = "0.1.0"
+description = "Workspace root for Snap Bot V2, Status Bot V2 and the shared studio-core."
 requires-python = ">=3.11"
+dependencies = ["studio-core", "snap-bot", "status-bot"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.16",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/studio-core", "apps/snap-bot", "apps/status-bot"]
+
+[tool.uv.sources]
+studio-core = { workspace = true }
+snap-bot = { workspace = true }
+status-bot = { workspace = true }
 
 [tool.pytest.ini_options]
-pythonpath = ["packages/studio-core", "apps/snap-bot", "apps/status-bot"]
-testpaths = ["tests"]
+testpaths = ["tests", "packages/studio-core/tests", "apps/snap-bot/tests", "apps/status-bot/tests"]
+addopts = ["--import-mode=importlib", "--strict-markers", "-ra"]
+
+[tool.coverage.run]
+branch = true
+source = ["studio_core", "snap_bot", "status_bot"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "S", "RUF"]
+# str+Enum is kept on purpose: StrEnum changes str() output of persisted states.
+ignore = ["UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"]
+"tests/**" = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["studio_core", "snap_bot", "status_bot"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["studio_core", "snap_bot", "status_bot"]

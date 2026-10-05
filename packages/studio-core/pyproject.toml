@@ -1,0 +1,13 @@
+[project]
+name = "studio-core"
+version = "0.1.0"
+description = "Shared core for Snap Bot V2 and Status Bot V2."
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["studio_core"]
