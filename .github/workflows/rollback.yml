@@ -1,0 +1,42 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        type: choice
+        options: [snap-bot, status-bot]
+      environment:
+        type: choice
+        options: [production, staging]
+      tag:
+        description: Image tag to restore (empty = <environment>-previous)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cd-rollback-${{ inputs.app }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Rollback ${{ inputs.app }} (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: ${{ inputs.app }}-${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - env:
+          TAG: ${{ inputs.tag }}
+        run: scripts/rollback.sh "${{ inputs.app }}" "${{ inputs.environment }}" ${TAG:+"$TAG"}

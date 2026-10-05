@@ -1,0 +1,31 @@
+name: Run bot (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        required: true
+      command:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  run:
+    name: ${{ inputs.app }} ${{ inputs.command }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.app }}-production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: scripts/run.sh "${{ inputs.app }}" production "${{ inputs.command }}"

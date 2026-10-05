@@ -1,0 +1,26 @@
+name: Run Snap Bot
+
+# Runtime entrypoint for the deployed :production image. No schedule on purpose:
+# snap_scheduler_enabled stays false until its readiness gate passes (docs/DECISIONS.md).
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        type: choice
+        options: [healthcheck, dry-run]
+        default: healthcheck
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: run-snap-bot
+  cancel-in-progress: false
+
+jobs:
+  run:
+    uses: ./.github/workflows/_run-bot.yml
+    with:
+      app: snap-bot
+      command: ${{ inputs.command }}
