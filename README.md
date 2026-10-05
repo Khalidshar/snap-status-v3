@@ -1,5 +1,11 @@
 # Snap Bot V2 + Status Bot V2 — V3
 
+> **تنبيه — هيكل أولي متوقف.** هذا المستودع مسودة سبتمبر 2026 قبل اعتماد [ADR-001](https://github.com/Khalidshar/snap-bot-v2/blob/main/docs/ADR-001-foundation.md)، الذي فصل البناء إلى مستودعين خاصين مستقلين:
+> - [`Khalidshar/snap-bot-v2`](https://github.com/Khalidshar/snap-bot-v2) — مصدر النواة `studio-core` (الإصدار الحالي 0.7.0) وتطبيق Snap.
+> - [`Khalidshar/status-bot-v2`](https://github.com/Khalidshar/status-bot-v2) — تطبيق Status، يستهلك Wheel النواة مثبّتًا بـSHA-256.
+>
+> لا تُضف تطويرًا جديدًا هنا. يبقى المستودع مرجعًا للمخطط المعتمد في `docs/ARCHITECTURE_V3_AGREED.md`. التشغيل المؤقت على GitHub Actions والنقل إلى VPS موثقان في `docs/VPS-Migration.md` داخل `snap-bot-v2`.
+
 مشروع جديد وفق المخطط المعياري الجذري المحصّن الذي قدّمه المالك.
 
 ## القرارات المعتمدة
