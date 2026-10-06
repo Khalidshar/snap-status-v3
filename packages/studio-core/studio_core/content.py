@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from hashlib import sha256
+from typing import Any
 
 
 def text_hash(text: str) -> str:
@@ -21,7 +22,7 @@ class ContentPackage:
     verified: bool = False
     locked: bool = False
     expires_at: datetime | None = None
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def content_hash(self) -> str:

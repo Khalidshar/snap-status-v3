@@ -18,18 +18,30 @@
 - الوكلاء القدامى تُحفظ اختصاصاتهم وأسماؤهم أثناء الترحيل وتُربط عبر Adapters.
 - النص الديني يُتحقق منه ضد مرجع مستقل ثم يُقفل، قبل التصميم والرندر والفحص البصري.
 
-## الهيكل الأولي
+## الهيكل
 
 ```text
-packages/studio-core/
-apps/snap-bot/
-apps/status-bot/
-config/
+packages/studio-core/   # النواة المشتركة (حزمة studio-core)
+apps/snap-bot/          # حزمة snap_bot + اختباراتها
+apps/status-bot/        # حزمة status_bot + اختباراتها
+config/                 # إعدادات غير سرية وKill switches
+docker/Dockerfile       # صورة لكل تطبيق (--build-arg APP=...)
+scripts/                # أتمتة البناء والاختبار والنشر والرجوع
+.github/workflows/      # CI وCD وRollback وتشغيل كل بوت
 docs/
 ```
 
-هذه نقطة تأسيس وتوثيق؛ لم تُنفذ مراحل البناء في هذا المستودع بعد.
-لا يحتوي المستودع على التعديلات التجريبية السابقة في نسخة العمل المحلية.
+## التطوير والتشغيل
+
+```bash
+make bootstrap   # uv sync + pre-commit
+make lint test   # الفحوص والاختبارات
+make images      # صور snap-bot وstatus-bot
+make ci          # خط CI كاملًا محليًا
+```
+
+- [المراجعة التقنية وخطة إعادة الهيكلة](docs/ARCHITECTURE-REVIEW.md)
+- [خط CI/CD والنشر والرجوع](docs/CI-CD.md)
 
 ## خطة التنفيذ المعتمدة
 

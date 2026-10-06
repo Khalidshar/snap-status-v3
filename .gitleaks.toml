@@ -1,0 +1,15 @@
+title = "snap-status-v3 secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "studio-bot-secret-assignment"
+description = "Hard-coded value assigned to a known bot secret variable"
+regex = '''(?:TG_TOKEN|TG_CHAT|WA_TOKEN|OPENAI_KEY|GEMINI_KEY|NIM_KEY|PEXELS_KEY|PIXABAY_KEY|COVERR_KEY)\s*[=:]\s*["']?([^\s"'$<{]{8,})'''
+secretGroup = 1
+keywords = ["tg_token", "tg_chat", "wa_token", "openai_key", "gemini_key", "nim_key", "pexels_key", "pixabay_key", "coverr_key"]
+
+[allowlist]
+description = "Documentation lists secret names only"
+paths = ['''^docs/''', '''\.example$''']

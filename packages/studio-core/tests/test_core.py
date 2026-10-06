@@ -6,7 +6,9 @@ from studio_core.jobs import Job, JobStatus
 
 
 def test_sacred_content_locks_only_after_reference_match():
-    item = ContentPackage("1", "quran", "آية", "نص موثّق", "ar", "reference", "local", "snap", sacred=True)
+    item = ContentPackage(
+        "1", "quran", "آية", "نص موثّق", "ar", "reference", "local", "snap", sacred=True
+    )
     item.sacred_lock(text_hash("نص موثّق"))
     assert item.verified and item.locked
     with pytest.raises(RuntimeError):
@@ -14,7 +16,9 @@ def test_sacred_content_locks_only_after_reference_match():
 
 
 def test_sacred_mismatch_fails_closed():
-    item = ContentPackage("1", "quran", "آية", "نص", "ar", "reference", "local", "status", sacred=True)
+    item = ContentPackage(
+        "1", "quran", "آية", "نص", "ar", "reference", "local", "status", sacred=True
+    )
     with pytest.raises(ValueError):
         item.sacred_lock(text_hash("نص آخر"))
 
