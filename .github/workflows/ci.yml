@@ -66,6 +66,7 @@ jobs:
           name: test-reports-py${{ matrix.python }}
           path: reports/
           if-no-files-found: ignore
+          retention-days: 3
 
   secret-scan:
     name: Secret scan

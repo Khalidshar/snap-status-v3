@@ -1,9 +1,8 @@
 name: CD
 
+# Manual only until a module graduates from the lab (docs/GRADUATION.md).
+# Automatic image pushes count against the shared Actions/Packages storage quota.
 on:
-  push:
-    branches: [main]
-    tags: ["snap-bot-v*", "status-bot-v*"]
   workflow_dispatch:
     inputs:
       app:
