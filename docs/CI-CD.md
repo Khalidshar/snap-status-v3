@@ -23,7 +23,7 @@ flowchart LR
 | Workflow | المشغّل | الوظيفة |
 | --- | --- | --- |
 | `ci.yml` | كل PR، يدويًا، أو يُستدعى من CD | Lint وType check واختبارات على 3.11/3.12 وفحص أسرار وفحص Workflows، وبناء صورة كل تطبيق متأثر واختبارها دون شبكة. الـJob `CI passed` هو الفحص المطلوب للدمج |
-| `cd.yml` | دفع إلى `main` أو Tag أو يدويًا | يعيد تشغيل CI كبوابة، ثم ينشر صور التطبيقات المتأثرة إلى GHCR، ثم Staging تلقائيًا، ثم Production عند Tag أو بالاختيار اليدوي |
+| `cd.yml` | يدويًا فقط حاليًا (الدفع وTags معطلان حتى التخرّج؛ انظر `GRADUATION.md`) | يعيد تشغيل CI كبوابة، ثم ينشر صور التطبيقات المتأثرة إلى GHCR، ثم Staging تلقائيًا، ثم Production عند Tag أو بالاختيار اليدوي |
 | `rollback.yml` | يدويًا | يعيد بيئة تطبيق إلى Tag محدد أو إلى `<env>-previous` |
 | `run-snap-bot.yml` / `run-status-bot.yml` | يدويًا | يشغّل أمرًا من صورة `:production` لكل بوت، بشكل مستقل. بلا `schedule` لأن Kill switch المجدول ما زال `false` |
 
@@ -46,7 +46,7 @@ flowchart LR
 ## سير الإصدار
 
 ```bash
-# 1) PR → CI → دمج إلى main → نشر تلقائي إلى staging للتطبيقات المتأثرة
+# 1) (معطل حتى التخرّج) PR → CI → دمج إلى main → نشر تلقائي إلى staging للتطبيقات المتأثرة
 # 2) إصدار تطبيق واحد إلى الإنتاج:
 git tag snap-bot-v0.1.0 && git push origin snap-bot-v0.1.0
 #    → CI → publish → staging → (موافقة) production → GitHub Release
