@@ -1,0 +1,31 @@
+app = "snap-bot-v2"
+mode = "foundation-test"
+data_root = "../.state"
+
+[gateway]
+commands = ["demo"]
+rate_window = 60
+rate_limit = 10
+max_active_per_actor = 3
+signature_skew_seconds = 60
+[gateway.owners]
+scheduler = ["foundation-test-owner"]
+
+[jobs]
+lease_seconds = 30
+aging_seconds = 60
+max_running = 1
+[jobs.budgets]
+CRITICAL = 180
+HIGH = 600
+NORMAL = 600
+BACKGROUND = 1200
+
+[storage]
+retention_seconds = 86400
+
+[network]
+socket = "egress.sock"
+hosts = ["core.telegram.org"]
+timeout_seconds = 15
+max_bytes = 2097152
