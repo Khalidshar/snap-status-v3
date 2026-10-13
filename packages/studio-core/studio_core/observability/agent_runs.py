@@ -11,11 +11,15 @@ import hashlib
 import json
 import math
 import re
+import sqlite3
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from studio_core.jobs import LeaseLost
+from studio_core.jobs.repository import Repository
 from studio_core.observability.agent_inventory import APPLICATIONS, ROLE_IDS
 
 
@@ -31,7 +35,7 @@ class AgentBudgetExceeded(TimeoutError):
     pass
 
 
-def encoded(value):
+def encoded(value: Any) -> bytes:
     try:
         raw = json.dumps(
             value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
@@ -43,11 +47,11 @@ def encoded(value):
     return raw
 
 
-def digest(value):
+def digest(value: Any) -> str:
     return hashlib.sha256(encoded(value)).hexdigest()
 
 
-def initialize(db):
+def initialize(db: sqlite3.Connection) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS agent_runs(
         app TEXT NOT NULL, job_id TEXT NOT NULL REFERENCES jobs(id),
         attempt INTEGER NOT NULL, role TEXT NOT NULL, run_id TEXT NOT NULL,
@@ -68,7 +72,7 @@ class AgentContract:
     dependencies: tuple[str, ...] = ()
     budget_seconds: float = 30
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if (
             self.app not in APPLICATIONS
             or self.role not in ROLE_IDS
@@ -94,7 +98,14 @@ class AgentContract:
             raise AgentRejected("AGENT_BUDGET_INVALID")
 
 
-def _scope(repo, db, job, token, attempt, contract):
+def _scope(
+    repo: Repository,
+    db: sqlite3.Connection,
+    job: str,
+    token: str,
+    attempt: int,
+    contract: AgentContract,
+) -> dict[str, Any]:
     owned = repo.assert_owner(job, token, attempt=attempt, db=db)
     if db.execute("SELECT 1 FROM jobs WHERE app != ? LIMIT 1", (contract.app,)).fetchone():
         raise AgentRejected("AGENT_DATABASE_SCOPE_INVALID")
@@ -108,7 +119,18 @@ def _scope(repo, db, job, token, attempt, contract):
     return owned
 
 
-def _finish(repo, job, token, attempt, contract, run, started, status, output_sha=None, code=None):
+def _finish(
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    contract: AgentContract,
+    run: str,
+    started: float,
+    status: str,
+    output_sha: str | None = None,
+    code: str | None = None,
+) -> None:
     duration = max(0, int((time.monotonic() - started) * 1000))
     with repo.owned_transaction(job, token, attempt=attempt) as db:
         _scope(repo, db, job, token, attempt, contract)
@@ -161,18 +183,18 @@ def _finish(repo, job, token, attempt, contract, run, started, status, output_sh
 
 
 def run_agent(
-    repo,
-    job,
-    token,
-    attempt,
-    contract,
-    payload,
-    callback,
-    validate_input,
-    validate_output,
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    contract: AgentContract,
+    payload: Any,
+    callback: Callable[[], Any],
+    validate_input: Callable[..., Any],
+    validate_output: Callable[..., Any],
     *,
-    bind_dependency=True,
-):
+    bind_dependency: bool = True,
+) -> Any:
     """One owned invocation per role/attempt; validators must return True.
 
     Successful dependency hashes bind the input by default. Multiple-dependency

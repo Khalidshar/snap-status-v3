@@ -14,20 +14,22 @@ import sqlite3
 import tempfile
 import time
 import uuid
+from collections.abc import Sequence
 from contextlib import closing
 from pathlib import Path
+from typing import Any
 
 from studio_core.observability.agent_inventory import APPLICATIONS
 
 
-def _path(value):
+def _path(value: str | Path) -> Path:
     path = Path(value).absolute()
     if any(part.is_symlink() for part in (path, *path.parents)):
         raise ValueError("Symlink backup paths are forbidden")
     return path
 
 
-def _private_directory(value):
+def _private_directory(value: str | Path) -> Path:
     path = _path(value)
     path.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not path.is_dir() or path.stat().st_mode & 0o077:
@@ -35,11 +37,11 @@ def _private_directory(value):
     return path
 
 
-def _readonly(path):
+def _readonly(path: Path) -> sqlite3.Connection:
     return sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=10)
 
 
-def _check(db, app):
+def _check(db: sqlite3.Connection, app: str) -> dict[str, int]:
     if db.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
         raise ValueError("Snapshot integrity failed")
     if db.execute("PRAGMA foreign_key_check").fetchall():
@@ -58,7 +60,7 @@ def _check(db, app):
     }
 
 
-def _sync(path):
+def _sync(path: str | Path) -> None:
     descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     try:
         os.fsync(descriptor)
@@ -66,7 +68,15 @@ def _sync(path):
         os.close(descriptor)
 
 
-def create_snapshot(database, backup_root, app, revision, *, now=None, timeout_seconds=30):
+def create_snapshot(
+    database: str | Path,
+    backup_root: str | Path,
+    app: str,
+    revision: str,
+    *,
+    now: float | None = None,
+    timeout_seconds: float = 30,
+) -> Path:
     """Capture committed WAL state without constructing a mutable Repository."""
     if app not in APPLICATIONS:
         raise ValueError("Unknown application")
@@ -83,7 +93,7 @@ def create_snapshot(database, backup_root, app, revision, *, now=None, timeout_s
         raise ValueError("Invalid snapshot timeout")
     deadline = time.monotonic() + timeout_seconds
 
-    def progress(*args):
+    def progress(*args: Any) -> None:
         if time.monotonic() >= deadline:
             raise TimeoutError("Snapshot time budget exceeded")
 
@@ -126,7 +136,7 @@ def create_snapshot(database, backup_root, app, revision, *, now=None, timeout_s
         raise
 
 
-def probe_restore(snapshot, app, scratch_root):
+def probe_restore(snapshot: str | Path, app: str, scratch_root: str | Path) -> dict[str, Any]:
     """Verify a disposable restored copy; never overwrite or replay live state."""
     if app not in APPLICATIONS:
         raise ValueError("Unknown application")
@@ -208,7 +218,7 @@ def probe_restore(snapshot, app, scratch_root):
     }
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> int:
     import argparse
 
     from studio_core.config import Config

@@ -8,10 +8,13 @@ Every participant must use this lock; it is not an OS sandbox.
 
 import math
 import re
+import sqlite3
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 
+from studio_core.jobs.repository import Repository
 from studio_core.observability.agent_inventory import APPLICATIONS
 
 
@@ -23,7 +26,7 @@ class ComponentOwnershipLost(RuntimeError):
     pass
 
 
-def initialize(db):
+def initialize(db: sqlite3.Connection) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS component_locks(
         app TEXT NOT NULL, component TEXT NOT NULL, token TEXT NOT NULL,
         purpose TEXT NOT NULL, acquired_at REAL NOT NULL, deadline REAL NOT NULL,
@@ -39,7 +42,7 @@ class ComponentLease:
 
 
 class ComponentLocks:
-    def __init__(self, repo):
+    def __init__(self, repo: Repository) -> None:
         if repo.config.app not in APPLICATIONS:
             raise ValueError("COMPONENT_APP_INVALID")
         self.repo = repo
@@ -49,7 +52,7 @@ class ComponentLocks:
             ).fetchone():
                 raise ValueError("COMPONENT_DATABASE_SCOPE_INVALID")
 
-    def acquire(self, component, purpose, seconds=30):
+    def acquire(self, component: str, purpose: str, seconds: float = 30) -> ComponentLease:
         if (
             not isinstance(component, str)
             or not re.fullmatch("[a-z][a-z0-9_.-]{0,63}", component)
@@ -74,7 +77,7 @@ class ComponentLocks:
             )
             return lease
 
-    def assert_holder(self, lease):
+    def assert_holder(self, lease: ComponentLease) -> None:
         if not isinstance(lease, ComponentLease) or lease.app != self.repo.config.app:
             raise ComponentOwnershipLost("COMPONENT_OWNER_INVALID")
         with self.repo.connect() as db:
@@ -85,7 +88,7 @@ class ComponentLocks:
         if not row or row["token"] != lease.token or row["deadline"] <= self.repo.clock():
             raise ComponentOwnershipLost("COMPONENT_OWNER_EXPIRED_OR_LOST")
 
-    def release(self, lease):
+    def release(self, lease: ComponentLease) -> None:
         # A returning holder can attest it is done even after its deadline.
         # The token is never exposed by the monitor and is never reassigned.
         if not isinstance(lease, ComponentLease) or lease.app != self.repo.config.app:
@@ -99,7 +102,7 @@ class ComponentLocks:
                 raise ComponentOwnershipLost("COMPONENT_OWNER_LOST")
 
     @contextmanager
-    def hold(self, component, purpose, seconds=30):
+    def hold(self, component: str, purpose: str, seconds: float = 30) -> Iterator[ComponentLease]:
         lease = self.acquire(component, purpose, seconds)
         try:
             self.assert_holder(lease)

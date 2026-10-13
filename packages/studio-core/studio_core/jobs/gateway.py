@@ -3,8 +3,12 @@ import hmac
 import math
 import re
 import time
+from collections.abc import Callable
+from typing import Any
 
+from studio_core.config import Config
 from studio_core.jobs import PRIORITIES, canonical
+from studio_core.jobs.repository import Repository
 
 
 class Unauthorized(PermissionError):
@@ -12,17 +16,23 @@ class Unauthorized(PermissionError):
 
 
 class CommandGateway:
-    def __init__(self, config, repository, secret, clock=time.time):
+    def __init__(
+        self,
+        config: Config,
+        repository: Repository,
+        secret: str,
+        clock: Callable[[], float] = time.time,
+    ) -> None:
         if len(secret) < 32:
             raise ValueError("Gateway signing secret too short")
         self.config, self.repository, self.secret, self.clock = config, repository, secret, clock
 
-    def signature(self, body, timestamp):
+    def signature(self, body: Any, timestamp: float) -> str:
         return hmac.new(
             self.secret.encode(), (str(timestamp) + "." + canonical(body)).encode(), hashlib.sha256
         ).hexdigest()
 
-    def accept(self, body, timestamp, signature):
+    def accept(self, body: Any, timestamp: float, signature: str) -> tuple[dict[str, Any], bool]:
         now = self.clock()
         if (
             type(timestamp) not in (int, float)

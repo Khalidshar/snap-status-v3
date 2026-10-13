@@ -6,6 +6,9 @@ import http.client
 import json
 import socket
 from dataclasses import dataclass
+from pathlib import Path
+
+from studio_core.config import Config
 
 
 class NetworkError(RuntimeError):
@@ -13,11 +16,11 @@ class NetworkError(RuntimeError):
 
 
 class UnixHTTPConnection(http.client.HTTPConnection):
-    def __init__(self, path, timeout):
+    def __init__(self, path: str | Path, timeout: float) -> None:
         super().__init__("localhost", timeout=timeout)
         self.path = str(path)
 
-    def connect(self):
+    def connect(self) -> None:
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.sock.settimeout(self.timeout)
         self.sock.connect(self.path)
@@ -32,10 +35,10 @@ class NetworkResponse:
 
 
 class NetworkClient:
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
         self.config = config
 
-    def get(self, url):
+    def get(self, url: str) -> NetworkResponse:
         request = json.dumps({"url": url}).encode()
         connection = UnixHTTPConnection(self.config.proxy_socket, self.config.network_timeout + 2)
         try:

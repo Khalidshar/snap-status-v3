@@ -11,9 +11,12 @@ import socketserver
 import ssl
 import stat
 import threading
+from collections.abc import Callable, Iterable
 from http.server import BaseHTTPRequestHandler
+from typing import Any
 from urllib.parse import urlsplit
 
+from studio_core.config import Config
 from studio_core.observability import json_line
 
 
@@ -21,7 +24,9 @@ class PolicyDenied(ValueError):
     pass
 
 
-def validate_target(url, hosts, resolver=socket.getaddrinfo):
+def validate_target(
+    url: str, hosts: Iterable[str], resolver: Callable[..., Any] = socket.getaddrinfo
+) -> tuple[str, str, str]:
     if not isinstance(url, str) or len(url) > 2048 or any(ord(c) < 33 for c in url):
         raise PolicyDenied("INVALID_URL")
     try:
@@ -37,7 +42,7 @@ def validate_target(url, hosts, resolver=socket.getaddrinfo):
         or parsed.fragment
     ):
         raise PolicyDenied("HTTPS_ONLY")
-    if host not in hosts:
+    if host is None or host not in hosts:
         raise PolicyDenied("HOST_NOT_ALLOWED")
     records = resolver(host, 443, type=socket.SOCK_STREAM)
     addresses = sorted({record[4][0] for record in records})
@@ -48,20 +53,22 @@ def validate_target(url, hosts, resolver=socket.getaddrinfo):
 
 
 class PinnedHTTPSConnection(http.client.HTTPSConnection):
-    def __init__(self, host, address, timeout):
+    def __init__(self, host: str, address: str, timeout: float) -> None:
         super().__init__(host, port=443, timeout=timeout, context=ssl.create_default_context())
         self.address = address
 
-    def connect(self):
+    def connect(self) -> None:
         sock = socket.create_connection((self.address, 443), self.timeout)
         try:
-            self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+            self.sock = self._context.wrap_socket(  # type: ignore[attr-defined]
+                sock, server_hostname=self.host
+            )
         except BaseException:
             sock.close()
             raise
 
 
-def fetch_https(url, config):
+def fetch_https(url: str, config: Config) -> dict[str, Any]:
     host, address, path = validate_target(url, config.network_hosts)
     connection = PinnedHTTPSConnection(host, address, config.network_timeout)
     try:
@@ -87,15 +94,16 @@ def fetch_https(url, config):
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.0"
+    server: "EgressServer"
 
-    def setup(self):
+    def setup(self) -> None:
         self.request.settimeout(self.server.config.network_timeout)
         super().setup()
 
-    def log_message(self, *args):
+    def log_message(self, *args: Any) -> None:
         pass
 
-    def reply(self, status, value):
+    def reply(self, status: int, value: Any) -> None:
         body = json.dumps(value).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -103,7 +111,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         try:
             if self.path != "/fetch" or self.headers.get("Transfer-Encoding"):
                 raise PolicyDenied("INVALID_RPC")
@@ -137,7 +145,9 @@ class Handler(BaseHTTPRequestHandler):
 class EgressServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
     daemon_threads = True
 
-    def __init__(self, config, fetcher=fetch_https):
+    def __init__(
+        self, config: Config, fetcher: Callable[[str, Config], dict[str, Any]] = fetch_https
+    ) -> None:
         self.config, self.fetcher = config, fetcher
         self.slots = threading.BoundedSemaphore(2)
         config.proxy_socket.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -149,7 +159,7 @@ class EgressServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
         super().__init__(str(config.proxy_socket), Handler)
         config.proxy_socket.chmod(0o660)
 
-    def process_request(self, request, client_address):
+    def process_request(self, request: Any, client_address: Any) -> None:
         if not self.slots.acquire(blocking=False):
             self.shutdown_request(request)
             return
@@ -159,7 +169,7 @@ class EgressServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
             self.slots.release()
             raise
 
-    def process_request_thread(self, request, client_address):
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
         try:
             super().process_request_thread(request, client_address)
         finally:

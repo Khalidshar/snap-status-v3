@@ -112,6 +112,25 @@ class FoundationTests(unittest.TestCase):
             self.gateway.accept({}, self.clock(), "0" * 64)
         self.assertIsNone(self.repo.claim())
 
+    def test_forged_signature_from_allowed_owner_does_not_enqueue(self):
+        # Every field is valid except the signature: only the HMAC check can refuse it.
+        body = {
+            "channel": "scheduler",
+            "actor": "owner",
+            "event_id": "e",
+            "command": "demo",
+            "priority": "NORMAL",
+        }
+        valid = self.gateway.signature(body, self.clock())
+        for forged in ("0" * 64, valid[:-1] + ("0" if valid[-1] != "0" else "1"), valid.upper()):
+            with (
+                self.subTest(forged=forged[:8]),
+                self.assertRaisesRegex(Unauthorized, "Invalid signature"),
+            ):
+                self.gateway.accept(body, self.clock(), forged)
+        self.assertIsNone(self.repo.claim())
+        self.assertTrue(self.gateway.accept(body, self.clock(), valid)[1])
+
     def test_old_signature_rejected(self):
         body = {"channel": "scheduler", "actor": "owner", "event_id": "e", "command": "demo"}
         with self.assertRaises(Unauthorized):
@@ -263,6 +282,20 @@ class FoundationTests(unittest.TestCase):
         self.clock.advance(2)
         self.assertEqual(storage.gc(self.repo), [job["id"]])
         self.assertTrue((storage.metadata / (job["id"] + ".json")).exists())
+
+    def test_gc_keeps_assets_when_delivery_evidence_appears_after_terminal_mark(self):
+        # mark_artifacts_terminal refuses pending deliveries; GC must hold the same line
+        # for a delivery row that appears afterwards (late or unknown send evidence).
+        job, _ = self.submit()
+        self.complete(self.repo.claim())
+        storage = Storage(self.config)
+        root = storage.workspace(job["id"])
+        self.repo.mark_artifacts_terminal(job["id"], "PUBLISHED")
+        with self.repo.transaction() as db:
+            db.execute("INSERT INTO deliveries VALUES('late',?,'PUBLISHING')", (job["id"],))
+        self.clock.advance(86401)
+        self.assertEqual(storage.gc(self.repo), [])
+        self.assertTrue(root.exists())
 
     def test_workspace_rejects_traversal_and_symlink(self):
         storage = Storage(self.config)

@@ -8,6 +8,7 @@ import sys
 import time
 import uuid
 from pathlib import Path
+from typing import Any, cast
 
 from studio_core import __version__
 from studio_core.config import Config
@@ -19,7 +20,7 @@ from studio_core.observability import Redactor
 from studio_core.storage import Storage
 
 
-def demo(config, secret):
+def demo(config: Config, secret: str) -> dict[str, Any]:
     repository = Repository(config, Redactor([secret]))
     gateway = CommandGateway(config, repository, secret)
     body = {
@@ -74,7 +75,7 @@ def demo(config, secret):
         "app": config.app,
         "core_version": __version__,
         "job_id": job["id"],
-        "state": repository.get(job["id"])["state"],
+        "state": cast(dict[str, Any], repository.get(job["id"]))["state"],
         "timeline": [
             e["event"] if e["event"] != "job.state" else json.loads(e["details"])["state"]
             for e in repository.timeline(job["id"])
@@ -85,7 +86,7 @@ def demo(config, secret):
     }
 
 
-def probe(config):
+def probe(config: Config) -> dict[str, Any]:
     denied = {}
     for name, family, kind in [
         ("ipv4_tcp", socket.AF_INET, socket.SOCK_STREAM),
@@ -123,7 +124,7 @@ def probe(config):
     return result
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("action", choices=["proxy", "demo", "probe"])
