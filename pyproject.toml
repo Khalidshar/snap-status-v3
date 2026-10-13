@@ -49,6 +49,9 @@ ignore = ["UP042"]
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101"]
 "tests/**" = ["S101"]
+# SQL schema and statements stay byte-identical to the verified lab core: the
+# schema text is persisted in the sqlite_master of every existing database.
+"packages/studio-core/studio_core/jobs/repository.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["studio_core", "snap_bot", "status_bot"]
