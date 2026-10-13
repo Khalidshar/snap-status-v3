@@ -47,7 +47,7 @@ class Storage:
                 if os.path.exists(name):
                     os.unlink(name)
 
-    def gc(self, repository: Repository) -> list[str]:
+    def gc(self, repository: "Repository") -> list[str]:
         cutoff = repository.clock() - self.config.retention_seconds
         deleted = []
         with repository.transaction() as db:
