@@ -60,8 +60,10 @@ jobs:
           enable-cache: true
       - run: uv sync --all-packages
       - run: scripts/test.sh all
+      # Reports are a convenience: a full storage quota must not fail passing tests.
       - if: always()
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: test-reports-py${{ matrix.python }}
           path: reports/
