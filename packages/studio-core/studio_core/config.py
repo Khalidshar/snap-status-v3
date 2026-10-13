@@ -72,7 +72,7 @@ class Config:
     network_user_agent: str = "studio-core/0.2"
 
     @classmethod
-    def load(cls, path: Path):
+    def load(cls, path: Path) -> "Config":
         d = tomllib.loads(path.read_text(encoding="utf-8"))
         app = d["app"]
         if app not in {"snap-bot-v2", "status-bot-v2"}:

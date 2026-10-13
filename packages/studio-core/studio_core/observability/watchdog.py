@@ -5,13 +5,15 @@ import json
 import math
 import sqlite3
 import time
+from collections.abc import Sequence
 from contextlib import closing
 from pathlib import Path
+from typing import Any
 
 from studio_core.observability.agent_inventory import APPLICATIONS, ROLE_IDS
 
 
-def inspect_runtime(database, app, *, now=None):
+def inspect_runtime(database: str | Path, app: str, *, now: float | None = None) -> dict[str, Any]:
     now = time.time() if now is None else now
     if app not in APPLICATIONS or type(now) not in (int, float) or not math.isfinite(now):
         raise ValueError("WATCHDOG_REQUEST_INVALID")
@@ -125,7 +127,7 @@ def inspect_runtime(database, app, *, now=None):
         }
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True, type=Path)
     parser.add_argument("--app", required=True, choices=APPLICATIONS)

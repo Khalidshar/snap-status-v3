@@ -4,8 +4,12 @@ import json
 import sqlite3
 import time
 import uuid
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from pathlib import Path
+from typing import Any
 
+from studio_core.config import Config
 from studio_core.observability import Redactor
 
 PRIORITIES = {"CRITICAL": 3, "HIGH": 2, "NORMAL": 1, "BACKGROUND": 0}
@@ -40,12 +44,17 @@ class GatewayLimit(RuntimeError):
     pass
 
 
-def canonical(value):
+def canonical(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
 class Repository:
-    def __init__(self, config, redactor=None, clock=time.time):
+    def __init__(
+        self,
+        config: Config,
+        redactor: Redactor | None = None,
+        clock: Callable[[], float] = time.time,
+    ) -> None:
         self.config, self.redactor, self.clock = config, redactor or Redactor(), clock
         config.data_root.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.path = config.data_root / "jobs.sqlite"
@@ -72,7 +81,7 @@ class Repository:
         self.path.chmod(0o600)
 
     @contextmanager
-    def connect(self):
+    def connect(self) -> Iterator[sqlite3.Connection]:
         db = sqlite3.connect(self.path, timeout=10, isolation_level=None)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys=ON")
@@ -84,7 +93,7 @@ class Repository:
             db.close()
 
     @contextmanager
-    def transaction(self):
+    def transaction(self) -> Iterator[sqlite3.Connection]:
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             try:
@@ -95,13 +104,21 @@ class Repository:
             else:
                 db.commit()
 
-    def event(self, db, job_id, event, details):
+    def event(self, db: sqlite3.Connection, job_id: str | None, event: str, details: Any) -> None:
         db.execute(
             "INSERT INTO events(job_id,at,event,details) VALUES(?,?,?,?)",
             (job_id, self.clock(), event, canonical(self.redactor.clean(details))),
         )
 
-    def enqueue(self, key, actor_hash, command, priority, input_hash, expires_at):
+    def enqueue(
+        self,
+        key: str,
+        actor_hash: str,
+        command: str,
+        priority: str,
+        input_hash: str,
+        expires_at: float,
+    ) -> tuple[dict[str, Any], bool]:
         now = self.clock()
         if expires_at <= now:
             raise ValueError("Expired request")
@@ -148,7 +165,7 @@ class Repository:
             self.event(db, job_id, "job.queued", {"command": command, "priority": priority})
             return dict(db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()), True
 
-    def claim(self, job_id=None):
+    def claim(self, job_id: str | None = None) -> dict[str, Any] | None:
         now = self.clock()
         with self.transaction() as db:
             # A verified ACK may arrive after a previous sweep declared UNKNOWN.
@@ -209,7 +226,7 @@ class Repository:
                 "('COMPLETED','FAILED','CANCELLED','EXPIRED','DELIVERING') AND "
                 "lease_until<=?))"
             )
-            parameters = [now]
+            parameters: list[Any] = [now]
             if job_id is not None:
                 query += " AND id=?"
                 parameters.append(job_id)
@@ -259,7 +276,7 @@ class Repository:
             claimed.update(attempt=attempt, recovered_from=recovered_from)
             return claimed
 
-    def reconcile_delivery(self, job_id, *, db=None):
+    def reconcile_delivery(self, job_id: str, *, db: sqlite3.Connection | None = None) -> bool:
         if db is None:
             with self.transaction() as connection:
                 return self.reconcile_delivery(job_id, db=connection)
@@ -283,7 +300,14 @@ class Repository:
         self.event(db, job_id, "job.delivery_confirmed_recovered", {})
         return True
 
-    def assert_owner(self, job_id, token, *, attempt=None, db=None):
+    def assert_owner(
+        self,
+        job_id: str,
+        token: str,
+        *,
+        attempt: int | None = None,
+        db: sqlite3.Connection | None = None,
+    ) -> dict[str, Any]:
         if db is None:
             with self.transaction() as connection:
                 return self.assert_owner(job_id, token, attempt=attempt, db=connection)
@@ -307,7 +331,9 @@ class Repository:
         return owned
 
     @contextmanager
-    def owned_transaction(self, job_id, token, *, attempt=None, max_seconds=0.25):
+    def owned_transaction(
+        self, job_id: str, token: str, *, attempt: int | None = None, max_seconds: float = 0.25
+    ) -> Iterator[sqlite3.Connection]:
         # Keep claim() blocked until the protected local resource commit ends.
         # Callers must not perform network effects or long computations here.
         if not isinstance(max_seconds, (int, float)) or not 0 < max_seconds <= 1:
@@ -323,7 +349,9 @@ class Repository:
             finally:
                 db.set_progress_handler(None, 0)
 
-    def record_stage(self, job_id, token, attempt, stage, sha256, relative_path):
+    def record_stage(
+        self, job_id: str, token: str, attempt: int, stage: str, sha256: str, relative_path: str
+    ) -> None:
         import re
         from pathlib import PurePosixPath
 
@@ -388,7 +416,9 @@ class Repository:
                 db, job_id, "stage.recorded", {"stage": stage, "attempt": attempt, "sha256": sha256}
             )
 
-    def stage_result(self, job_id, stage, *, token=None, attempt=None):
+    def stage_result(
+        self, job_id: str, stage: str, *, token: str | None = None, attempt: int | None = None
+    ) -> dict[str, Any] | None:
         if token is not None:
             with self.owned_transaction(job_id, token, attempt=attempt) as db:
                 return self._stage_result(db, job_id, stage)
@@ -397,7 +427,9 @@ class Repository:
         with self.connect() as db:
             return self._stage_result(db, job_id, stage)
 
-    def _stage_result(self, db, job_id, stage):
+    def _stage_result(
+        self, db: sqlite3.Connection, job_id: str, stage: str
+    ) -> dict[str, Any] | None:
         if not db.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='stage_results'"
         ).fetchone():
@@ -407,7 +439,9 @@ class Repository:
         ).fetchone()
         return dict(row) if row else None
 
-    def verify_stage(self, job_id, stage, root, *, token, attempt):
+    def verify_stage(
+        self, job_id: str, stage: str, root: Path | str, *, token: str, attempt: int
+    ) -> dict[str, Any] | None:
         import os
         import stat
         from pathlib import Path
@@ -444,7 +478,15 @@ class Repository:
         self.assert_owner(job_id, token, attempt=attempt)
         return receipt
 
-    def transition(self, job_id, token, state, details=None, *, db=None):
+    def transition(
+        self,
+        job_id: str,
+        token: str,
+        state: str,
+        details: dict[str, Any] | None = None,
+        *,
+        db: sqlite3.Connection | None = None,
+    ) -> None:
         if db is None:
             with self.transaction() as connection:
                 return self.transition(job_id, token, state, details, db=connection)
@@ -468,12 +510,12 @@ class Repository:
         )
         self.event(db, job_id, "job.state", {"state": state, **(details or {})})
 
-    def get(self, job_id):
+    def get(self, job_id: str) -> dict[str, Any] | None:
         with self.connect() as db:
             j = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
             return dict(j) if j else None
 
-    def heartbeat(self, job_id, token):
+    def heartbeat(self, job_id: str, token: str) -> None:
         now = self.clock()
         with self.transaction() as db:
             result = db.execute(
@@ -493,11 +535,11 @@ class Repository:
                 raise LeaseLost("Stale or missing lease")
 
     @staticmethod
-    def get_deadline(db, job_id):
+    def get_deadline(db: sqlite3.Connection, job_id: str) -> float:
         row = db.execute("SELECT expires_at FROM jobs WHERE id=?", (job_id,)).fetchone()
         return row[0] if row else 0
 
-    def timeline(self, job_id):
+    def timeline(self, job_id: str) -> list[dict[str, Any]]:
         with self.connect() as db:
             return [
                 dict(x)
@@ -506,7 +548,7 @@ class Repository:
                 )
             ]
 
-    def mark_artifacts_terminal(self, job_id, reason):
+    def mark_artifacts_terminal(self, job_id: str, reason: str) -> None:
         if reason not in {"PUBLISHED", "MANUAL_CONFIRMED", "EXPIRED", "FAILED_ARCHIVED"}:
             raise ValueError("Unsafe retention state")
         with self.transaction() as db:
@@ -527,7 +569,7 @@ class Repository:
                 (self.clock(), reason, job_id),
             )
 
-    def backup(self, destination):
+    def backup(self, destination: Path) -> None:
         with self.connect() as source, sqlite3.connect(destination) as target:
             source.backup(target)
         destination.chmod(0o600)

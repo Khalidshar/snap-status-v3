@@ -7,6 +7,7 @@ Acceptance remains NOT_VERIFIED until independent acceptance is implemented.
 import hashlib
 import json
 import re
+from typing import Any
 
 APPLICATIONS = ("snap-bot-v2", "status-bot-v2")
 ROLE_IDS = (
@@ -31,7 +32,7 @@ ROLE_IDS = (
 )
 
 
-def inventory(registry, application, revision, bindings):
+def inventory(registry: Any, application: str, revision: str, bindings: Any) -> dict[str, Any]:
     """Project allowlisted installation metadata into eighteen isolated rows.
 
     No raw payloads, runtime outcomes, credentials or arbitrary fields are copied.

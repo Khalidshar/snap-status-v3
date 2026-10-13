@@ -3,15 +3,22 @@ import os
 import re
 import shutil
 import tempfile
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from studio_core.config import Config
+
+if TYPE_CHECKING:
+    from studio_core.jobs.repository import Repository
 
 
 class Storage:
-    def __init__(self, config):
+    def __init__(self, config: Config) -> None:
         self.config = config
         self.root = config.data_root / "renders"
         self.metadata = config.data_root / "manifests"
 
-    def workspace(self, job_id):
+    def workspace(self, job_id: str) -> Path:
         if not re.fullmatch("[0-9a-f]{32}", job_id):
             raise ValueError("Invalid job path")
         root = self.root / job_id
@@ -24,7 +31,7 @@ class Storage:
             path.mkdir(parents=True, exist_ok=True, mode=0o700)
         return root
 
-    def manifest(self, job_id, value):
+    def manifest(self, job_id: str, value: Any) -> None:
         root = self.workspace(job_id)
         self.metadata.mkdir(parents=True, exist_ok=True, mode=0o700)
         if self.metadata.is_symlink():
@@ -40,7 +47,7 @@ class Storage:
                 if os.path.exists(name):
                     os.unlink(name)
 
-    def gc(self, repository):
+    def gc(self, repository: Repository) -> list[str]:
         cutoff = repository.clock() - self.config.retention_seconds
         deleted = []
         with repository.transaction() as db:
