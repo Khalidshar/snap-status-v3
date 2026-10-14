@@ -25,10 +25,10 @@
 
 | وحدة المخطط | مصدرها في المختبر | القرار (§18) | الحالة | الدفعة |
 |---|---|---|---|---|
-| `jobs/` | `studio_core/jobs.py`، `gateway.py`، `component_lock.py`، `config.py` | KEEP | مرشّح | 1 |
-| `storage/` | `studio_core/storage.py`، `backup.py` | KEEP | مرشّح | 1 |
-| `observability/` | `studio_core/observability.py`، `runtime_watchdog.py`، `agent_runs.py`، `agent_inventory.py` | KEEP | مرشّح | 1 |
-| `network/` | `studio_core/network.py`، `egress.py` | KEEP + EXTEND | مرشّح (ينقصه Retry/Backoff/Circuit Breaker/Cache، §8) | 1 ثم 2 |
+| `jobs/` | `studio_core/jobs.py`، `gateway.py`، `component_lock.py`، `config.py` | REFACTOR | منقول (مسودة) | 1 |
+| `storage/` | `studio_core/storage.py`، `backup.py` | REFACTOR | منقول (مسودة) | 1 |
+| `observability/` | `studio_core/observability.py`، `runtime_watchdog.py`، `agent_runs.py`، `agent_inventory.py` | REFACTOR | منقول (مسودة) | 1 |
+| `network/` | `studio_core/network.py`، `egress.py` | REFACTOR + EXTEND | منقول (مسودة)؛ ينقصه Retry/Backoff/Circuit Breaker/Cache (§8) | 1 ثم 2 |
 | `delivery/` | `snap_app/telegram_egress.py`، `send_evidence.py`، `send_reconciliation.py`، و`status_app/telegram_egress.py` | REFACTOR (توحيد النسختين) | مختبر | 2 |
 | `renderer/` | `snap_app/render.py`، `render_commit.py`، `fact_layout.py`، `fact_motion.py`، `fact_audio.py`، `font_admission.py`، و`status_app/render.py` | REFACTOR (توحيد النسختين) | مختبر | 2 |
 | `quality/` | `snap_app/content_agents.py`، `render_agents.py`، `final_agent.py`، `owned_contract_adapter.py`، `agent_contract_map.py` | REFACTOR | مرشّح، مع شرط قرار الوكلاء أدناه | 3 |
@@ -51,4 +51,4 @@
 ## سجل النقل
 | التاريخ | الدفعة | الوحدات | طلب الدمج | تحقق السيرفر | موافقة المالك |
 |---|---|---|---|---|---|
-| — | — | — | — | — | — |
+| 2026-10-13 | 1 | jobs، storage، observability، network، config، cli | طلب دمج مسودة (batch1-foundation) | النواة نفسها نجحت على السيرفر ضمن 647/647 في المختبر؛ نسخة v3 تنتظر Codex | موافقة على البدء؛ الدمج ينتظر |

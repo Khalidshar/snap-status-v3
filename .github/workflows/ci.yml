@@ -60,6 +60,9 @@ jobs:
           enable-cache: true
       - run: uv sync --all-packages
       - run: scripts/test.sh all
+      # Deliberate guard deletions: each must be caught by its named test.
+      - if: matrix.python == '3.12'
+        run: uv run --frozen python scripts/check_core_mutations.py
       # Reports are a convenience: a full storage quota must not fail passing tests.
       - if: always()
         uses: actions/upload-artifact@v7
