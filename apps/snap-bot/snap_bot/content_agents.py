@@ -8,7 +8,12 @@ the decision choose_fact already reserved, from the owned database state.
 import hashlib
 import json
 import re
+import sqlite3
 from datetime import UTC, datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from studio_core.jobs import Repository
 
 from .arabic_agent import ABBREVIATIONS
 from .did_you_know import CATALOG, load_facts, reservation_state, rotation_order, validate_content
@@ -22,7 +27,7 @@ class AgentRejected(ValueError):
     """A check agent refused the content; the job must not reach rendering."""
 
 
-def _reservation(db, job):
+def _reservation(db: sqlite3.Connection, job: str) -> Any:
     row = db.execute(
         "SELECT fact_id,body_hash,reserved_at,content_json FROM fact_reservations WHERE job_id=?",
         (job,),
@@ -32,7 +37,7 @@ def _reservation(db, job):
     return row
 
 
-def check_memory(db, job, content):
+def check_memory(db: sqlite3.Connection, job: str, content: dict[str, Any]) -> dict[str, Any]:
     """مراجع التكرار: the fact and its exact wording are outside every protected window."""
     row = _reservation(db, job)
     if json.loads(row["content_json"]) != content:
@@ -46,7 +51,13 @@ def check_memory(db, job, content):
     return {"decision": "PASS", "protected_items": len(blocked) // 2}
 
 
-def check_rotation(db, job, content, *, catalog=None):
+def check_rotation(
+    db: sqlite3.Connection,
+    job: str,
+    content: dict[str, Any],
+    *,
+    catalog: str | Path | None = None,
+) -> dict[str, Any]:
     """التناوب: the category is the first in rotation order that still had an eligible fact."""
     row = _reservation(db, job)
     blocked, last = reservation_state(db, row["reserved_at"], exclude_job=job)
@@ -67,9 +78,9 @@ def check_rotation(db, job, content, *, catalog=None):
     raise AgentRejected("ROTATION_NO_ELIGIBLE_CATEGORY")
 
 
-def proofread(text):
+def proofread(text: str) -> dict[str, Any]:
     """التدقيق: spacing and punctuation hygiene; reports, never edits."""
-    problems = []
+    problems: list[str] = []
     if "  " in text:
         problems.append("DOUBLE_SPACE")
     if re.search(r"\s[" + re.escape(ARABIC_PUNCTUATION) + "]", text):
@@ -85,7 +96,7 @@ def proofread(text):
     return {"decision": "PASS", "checks": ["spacing", "punctuation", "tatweel", "balanced_pairs"]}
 
 
-def translation_requirement(text):
+def translation_requirement(text: str) -> dict[str, Any]:
     """الترجمة: Latin terms must be approved abbreviations; nothing else needs translating."""
     terms = re.findall(r"[A-Za-z][A-Za-z0-9]*(?:\s[A-Z][A-Za-z0-9]*)?", text)
     approved = [
@@ -104,7 +115,9 @@ def translation_requirement(text):
     }
 
 
-def run_check(role, repo, job, token, attempt, content):
+def run_check(
+    role: str, repo: Repository, job: str, token: str, attempt: int, content: dict[str, Any]
+) -> dict[str, Any]:
     """Run one check agent under the current lease; return the content unchanged."""
     if role not in CHECKS:
         raise ValueError("Unknown content agent")

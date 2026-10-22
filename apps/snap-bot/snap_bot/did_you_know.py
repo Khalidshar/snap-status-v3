@@ -4,9 +4,13 @@ import hashlib
 import json
 import math
 import re
+import sqlite3
 from datetime import UTC, date, datetime, timezone
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
+
+from studio_core.jobs import Repository
 
 from .weather import content_hash
 
@@ -42,7 +46,7 @@ class FactsExhausted(ValueError):
     pass
 
 
-def safe_text(value, limit):
+def safe_text(value: object, limit: int) -> None:
     if not isinstance(value, str) or not 1 <= len(value) <= limit or value != value.strip():
         raise ValueError("Invalid fact text")
     if any(
@@ -51,7 +55,7 @@ def safe_text(value, limit):
         raise ValueError("Unsafe fact text")
 
 
-def validate_fact(fact, today):
+def validate_fact(fact: Any, today: date) -> dict[str, Any]:
     if not isinstance(fact, dict) or set(fact) != {
         "id",
         "category",
@@ -86,7 +90,7 @@ def validate_fact(fact, today):
     return fact
 
 
-def load_facts(path=CATALOG, today=None):
+def load_facts(path: str | Path = CATALOG, today: date | None = None) -> list[dict[str, Any]]:
     today = today or datetime.now(UTC).date()
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if data.get("schema") != 1 or data.get("language") != "ar" or data.get("sacred") is not False:
@@ -94,8 +98,8 @@ def load_facts(path=CATALOG, today=None):
     facts = data.get("facts")
     if not isinstance(facts, list) or not facts:
         raise ValueError("Empty catalog")
-    ids = set()
-    texts = set()
+    ids: set[str] = set()
+    texts: set[str] = set()
     for fact in facts:
         validate_fact(fact, today)
         if fact["id"] in ids or fact["text"] in texts:
@@ -105,8 +109,8 @@ def load_facts(path=CATALOG, today=None):
     return facts
 
 
-def make_content(fact, now):
-    value = {
+def make_content(fact: dict[str, Any], now: float) -> dict[str, Any]:
+    value: dict[str, Any] = {
         "type": "did_you_know",
         "sacred": False,
         "language": "ar",
@@ -127,7 +131,7 @@ def make_content(fact, now):
     return value
 
 
-def validate_content(value):
+def validate_content(value: dict[str, Any]) -> dict[str, Any]:
     if value.get("type") != "did_you_know" or value.get("sacred") is not False:
         raise ValueError("Unapproved fact content")
     now = datetime.now(UTC).timestamp()
@@ -146,7 +150,9 @@ def validate_content(value):
     return fact
 
 
-def reservation_state(db, now, *, exclude_job=None):
+def reservation_state(
+    db: sqlite3.Connection, now: float, *, exclude_job: str | None = None
+) -> tuple[set[tuple[str, str]], str | None]:
     """Protected (fact id, body hash) pairs and the last reserved category.
 
     Shared by choose_fact and the independent memory/rotation agents. Confirmed
@@ -163,7 +169,7 @@ def reservation_state(db, now, *, exclude_job=None):
         db.execute("SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'").fetchone()
         is not None
     )
-    blocked = set()
+    blocked: set[tuple[str, str]] = set()
     for row in history:
         evidence = db.execute(
             "SELECT state FROM deliveries WHERE job_id=?", (row["job_id"],)
@@ -189,12 +195,14 @@ def reservation_state(db, now, *, exclude_job=None):
     return blocked, last
 
 
-def rotation_order(last):
+def rotation_order(last: str | None) -> tuple[str, ...]:
     start = (CATEGORIES.index(last) + 1) % len(CATEGORIES) if last in CATEGORIES else 0
     return CATEGORIES[start:] + CATEGORIES[:start]
 
 
-def choose_fact(repo, job, token, attempt, *, catalog=CATALOG):
+def choose_fact(
+    repo: Repository, job: str, token: str, attempt: int, *, catalog: str | Path = CATALOG
+) -> tuple[dict[str, Any], list[Any]]:
     now = repo.clock()
     facts = load_facts(catalog, datetime.fromtimestamp(now, UTC).date())
     with repo.owned_transaction(job, token, attempt=attempt) as db:

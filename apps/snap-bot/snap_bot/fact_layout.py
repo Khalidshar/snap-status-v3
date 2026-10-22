@@ -3,13 +3,15 @@
 import re
 import subprocess
 import textwrap
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from .did_you_know import validate_content
 
 SAFE = (130, 170, 950, 1580)
 
 
-def drawing_text(text):
+def drawing_text(text: str) -> str:
     # drawtext/FriBidi does not reliably keep Arabic combining marks attached.
     # Remove vowel marks and shadda from display only, never stored content.
     visible = "".join(
@@ -18,14 +20,16 @@ def drawing_text(text):
     return re.sub(r"\s+([،؛؟])", r"\1", visible)
 
 
-def display_text(text, role):
+def display_text(text: str, role: str) -> str:
     # drawtext's FriBidi paragraph defaults to LTR. Renderer-owned embedding
     # sets Arabic paragraph direction while preserving Latin/numeric runs.
     # Catalog validation and visible-glyph checks happen before this wrapper.
     return ("\u202b" if role == "arabic" else "\u202a") + text + "\u202c"
 
 
-def fact_labels(content, profile=None):
+def fact_labels(
+    content: dict[str, Any], profile: Mapping[str, Any] | None = None
+) -> list[tuple[str, int, int, str, str]]:
     validate_content(content)
     profile = profile or {}
     line_width = profile.get("fact_line_width", 26)
@@ -58,12 +62,12 @@ def fact_labels(content, profile=None):
     return [(drawing_text(text), size, y, color, role) for text, size, y, color, role in labels]
 
 
-def label_y(label):
+def label_y(label: Sequence[Any]) -> str:
     # Equal baseline grid, independent of each shaped line's ascent/descenders.
     return f"{label[2] + label[1]}-ascent"
 
 
-def card_filters(fps=24):
+def card_filters(fps: int = 24) -> list[str]:
     # Exact RGB endpoint interpolation; the identity uses approved fonts only.
     if type(fps) is not int or not 1 <= fps <= 60:
         raise ValueError("Invalid gradient frame rate")
@@ -77,7 +81,9 @@ def card_filters(fps=24):
     ]
 
 
-def measured_box(pixels, canvas_width=1080, canvas_height=1920):
+def measured_box(
+    pixels: bytes, canvas_width: int = 1080, canvas_height: int = 1920
+) -> dict[str, int]:
     if len(pixels) != canvas_width * canvas_height:
         raise ValueError("Missing shaped-text measurement")
     x = canvas_width
@@ -102,7 +108,7 @@ def measured_box(pixels, canvas_width=1080, canvas_height=1920):
     return {"x": x, "y": y, "width": width, "height": height}
 
 
-def measure_label(profile, filter_value):
+def measure_label(profile: Mapping[str, Any], filter_value: str) -> dict[str, int]:
     # One label on a black canvas, measured from actual pixels, never logs.
     args = [
         profile["ffmpeg"],
