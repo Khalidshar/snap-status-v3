@@ -46,8 +46,9 @@ jobs:
 
   test:
     name: Tests (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Pinned: the Snap render profile requires FFmpeg 6.1.1-3ubuntu5 from Ubuntu 24.04.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -58,8 +59,16 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Real FFmpeg/ffprobe and fonts for the Snap render tests; no publishing or secrets.
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri
       - run: uv sync --all-packages
+      - run: node apps/snap-bot/tests/run_agent_runtime.mjs
       - run: scripts/test.sh all
+        env:
+          MADAR_REQUIRE_REAL_RENDER: "1"
       # Deliberate guard deletions: each must be caught by its named test.
       - if: matrix.python == '3.12'
         run: uv run --frozen python scripts/check_core_mutations.py

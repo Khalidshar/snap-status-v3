@@ -1,0 +1,119 @@
+"""Four deterministic content agents for curated did_you_know facts.
+
+Each agent checks the reserved content and passes it through unchanged. No AI,
+network, rewriting or new selection: memory and rotation independently verify
+the decision choose_fact already reserved, from the owned database state.
+"""
+
+import hashlib
+import json
+import re
+from datetime import UTC, datetime, timezone
+
+from .arabic_agent import ABBREVIATIONS
+from .did_you_know import CATALOG, load_facts, reservation_state, rotation_order, validate_content
+
+RULE_VERSION = "content-agents-v1"
+CHECKS = ("memory", "rotation", "proofreading", "translation")
+ARABIC_PUNCTUATION = "،؛؟.:!"
+
+
+class AgentRejected(ValueError):
+    """A check agent refused the content; the job must not reach rendering."""
+
+
+def _reservation(db, job):
+    row = db.execute(
+        "SELECT fact_id,body_hash,reserved_at,content_json FROM fact_reservations WHERE job_id=?",
+        (job,),
+    ).fetchone()
+    if not row:
+        raise AgentRejected("RESERVATION_MISSING")
+    return row
+
+
+def check_memory(db, job, content):
+    """مراجع التكرار: the fact and its exact wording are outside every protected window."""
+    row = _reservation(db, job)
+    if json.loads(row["content_json"]) != content:
+        raise AgentRejected("MEMORY_CONTENT_NOT_RESERVED")
+    body_hash = hashlib.sha256(content["body"].encode()).hexdigest()
+    if row["fact_id"] != content["fact_id"] or row["body_hash"] != body_hash:
+        raise AgentRejected("MEMORY_RESERVATION_MISMATCH")
+    blocked, _ = reservation_state(db, row["reserved_at"], exclude_job=job)
+    if ("id", content["fact_id"]) in blocked or ("body", body_hash) in blocked:
+        raise AgentRejected("MEMORY_REPEAT")
+    return {"decision": "PASS", "protected_items": len(blocked) // 2}
+
+
+def check_rotation(db, job, content, *, catalog=None):
+    """التناوب: the category is the first in rotation order that still had an eligible fact."""
+    row = _reservation(db, job)
+    blocked, last = reservation_state(db, row["reserved_at"], exclude_job=job)
+    day = datetime.fromtimestamp(row["reserved_at"], UTC).date()
+    facts = load_facts(catalog or CATALOG, day)
+    for category in rotation_order(last):
+        eligible = [
+            fact
+            for fact in facts
+            if fact["category"] == category
+            and ("id", fact["id"]) not in blocked
+            and ("body", hashlib.sha256(fact["text"].encode()).hexdigest()) not in blocked
+        ]
+        if eligible:
+            if content["category"] != category:
+                raise AgentRejected("ROTATION_SKIPPED_CATEGORY")
+            return {"decision": "PASS", "previous": last, "category": category}
+    raise AgentRejected("ROTATION_NO_ELIGIBLE_CATEGORY")
+
+
+def proofread(text):
+    """التدقيق: spacing and punctuation hygiene; reports, never edits."""
+    problems = []
+    if "  " in text:
+        problems.append("DOUBLE_SPACE")
+    if re.search(r"\s[" + re.escape(ARABIC_PUNCTUATION) + "]", text):
+        problems.append("SPACE_BEFORE_PUNCTUATION")
+    if re.search(r"([" + re.escape(ARABIC_PUNCTUATION) + r"])\1", text):
+        problems.append("REPEATED_PUNCTUATION")
+    if "ـ" in text:
+        problems.append("TATWEEL")
+    if text.count("«") != text.count("»") or text.count("(") != text.count(")"):
+        problems.append("UNBALANCED_QUOTES")
+    if problems:
+        raise AgentRejected("PROOFREADING_" + problems[0])
+    return {"decision": "PASS", "checks": ["spacing", "punctuation", "tatweel", "balanced_pairs"]}
+
+
+def translation_requirement(text):
+    """الترجمة: Latin terms must be approved abbreviations; nothing else needs translating."""
+    terms = re.findall(r"[A-Za-z][A-Za-z0-9]*(?:\s[A-Z][A-Za-z0-9]*)?", text)
+    approved = [
+        term for term in ABBREVIATIONS if re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text)
+    ]
+    leftover = re.sub(
+        r"(?<!\w)(?:" + "|".join(re.escape(term) for term in ABBREVIATIONS) + r")(?!\w)", "", text
+    )
+    if re.search(r"[A-Za-z]", leftover):
+        raise AgentRejected("TRANSLATION_REQUIRED")
+    return {
+        "decision": "PASS",
+        "required": False,
+        "approved_terms": approved,
+        "latin_terms_seen": len(terms),
+    }
+
+
+def run_check(role, repo, job, token, attempt, content):
+    """Run one check agent under the current lease; return the content unchanged."""
+    if role not in CHECKS:
+        raise ValueError("Unknown content agent")
+    validate_content(content)
+    if role in ("memory", "rotation"):
+        with repo.owned_transaction(job, token, attempt=attempt) as db:
+            (check_memory if role == "memory" else check_rotation)(db, job, content)
+    elif role == "proofreading":
+        proofread(content["body"])
+    else:
+        translation_requirement(content["body"])
+    return content
