@@ -4,13 +4,15 @@ import hashlib
 import json
 import os
 import stat
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[3]
 MANIFEST_SHA256 = "9c6d55bf81b0928a03c18fc01b1ca3f28c931e64222f3e8774760fba91cf80e0"
 
 
-def verified_file(path):
+def verified_file(path: str | os.PathLike[str]) -> bytes:
     path = Path(path)
     if path.is_symlink():
         raise ValueError("Unsafe font/license path")
@@ -26,7 +28,7 @@ def verified_file(path):
         return source.read()
 
 
-def registry(profile):
+def registry(profile: Mapping[str, Any]) -> tuple[Path, Any]:
     if profile.get("font_manifest_sha256") != MANIFEST_SHA256:
         raise ValueError("Unknown profile font registry")
     path = Path(profile.get("font_manifest", "assets/fonts/manifest.json"))
@@ -42,7 +44,13 @@ def registry(profile):
     return path.parent, value
 
 
-def admit_font(path, expected_sha, profile, *, latin=False):
+def admit_font(
+    path: str | os.PathLike[str],
+    expected_sha: str,
+    profile: Mapping[str, Any],
+    *,
+    latin: bool = False,
+) -> Path:
     root, value = registry(profile)
     path = Path(path)
     if not path.is_absolute():
@@ -63,14 +71,14 @@ def admit_font(path, expected_sha, profile, *, latin=False):
     return path
 
 
-def font_paths(profile):
+def font_paths(profile: Mapping[str, Any]) -> tuple[Path, Path]:
     return (
         admit_font(profile["font"], profile["font_sha256"], profile),
         admit_font(profile["latin_font"], profile["latin_font_sha256"], profile, latin=True),
     )
 
 
-def fallback_fonts(profile):
+def fallback_fonts(profile: Mapping[str, Any]) -> list[Path]:
     result = []
     for file in profile.get("font_fallbacks", []):
         key = file.removeprefix("assets/fonts/")
@@ -80,7 +88,13 @@ def fallback_fonts(profile):
     return result
 
 
-def choose_font(text, preferred, charsets, fallbacks, check):
+def choose_font(
+    text: str,
+    preferred: str,
+    charsets: Mapping[str, Any],
+    fallbacks: Iterable[str],
+    check: Callable[[str, Any], object],
+) -> str:
     for font in dict.fromkeys([preferred, *fallbacks]):
         try:
             check(text, charsets[font])

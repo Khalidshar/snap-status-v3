@@ -80,7 +80,6 @@ module = [
     "snap_bot.editorial_agents",
     "snap_bot.fact_layout",
     "snap_bot.final_agent",
-    "snap_bot.font_admission",
     "snap_bot.maintenance",
     "snap_bot.n1_artifacts",
     "snap_bot.n1_contracts",
@@ -100,11 +99,9 @@ module = [
     "snap_bot.render_commit",
     "snap_bot.schedule_once",
     "snap_bot.send_evidence",
-    "snap_bot.send_reconciliation",
     "snap_bot.server_preview",
     "snap_bot.service",
     "snap_bot.telegram_egress",
-    "snap_bot.weather",
 ]
 ignore_errors = true
 
@@ -113,7 +110,6 @@ ignore_errors = true
 module = [
     "status_bot.actions_preview",
     "status_bot.agents",
-    "status_bot.chat_probe",
     "status_bot.manual_transport",
     "status_bot.owner_review",
     "status_bot.pipeline",
@@ -122,7 +118,6 @@ module = [
     "status_bot.review_service",
     "status_bot.send_diagnostics",
     "status_bot.telegram_egress",
-    "status_bot.weather",
     "status_bot.whatsapp_contract",
     "status_bot.whatsapp_egress",
     "status_bot.whatsapp_outbox",

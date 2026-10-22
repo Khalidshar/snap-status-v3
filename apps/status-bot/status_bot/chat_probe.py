@@ -3,7 +3,9 @@
 import json
 import os
 import re
+from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Any, NoReturn
 
 from studio_core.network.egress import PinnedHTTPSConnection, validate_target
 
@@ -33,12 +35,12 @@ DESCRIPTIONS = {
 }
 
 
-def status_number(value):
+def status_number(value: object) -> int | None:
     return value if type(value) is int and 100 <= value <= 599 else None
 
 
 class ApiRejected(Exception):
-    def __init__(self, status, error_code, classification):
+    def __init__(self, status: object, error_code: object, classification: str) -> None:
         super().__init__("Read-only Telegram request rejected")
         self.status = status_number(status)
         self.error_code = status_number(error_code)
@@ -47,7 +49,7 @@ class ApiRejected(Exception):
         )
 
 
-def readonly_api(token, method, body=b""):
+def readonly_api(token: str, method: str, body: bytes = b"") -> dict[str, Any]:
     platform_policy.reject_status_telegram()
     if method not in READ_METHODS:
         raise ValueError("Only read-only Telegram methods are permitted")
@@ -77,9 +79,11 @@ def readonly_api(token, method, body=b""):
         connection.close()
 
 
-def probe(env, call=readonly_api):
+def probe(
+    env: Mapping[str, str], call: Callable[..., dict[str, Any]] = readonly_api
+) -> dict[str, Any]:
     platform_policy.reject_status_telegram()
-    report = {
+    report: dict[str, Any] = {
         "schema": 1,
         "mode": "READ_ONLY_CHAT_PROBE",
         "passed": False,
@@ -156,7 +160,7 @@ def probe(env, call=readonly_api):
     return report
 
 
-def main():
+def main() -> NoReturn:
     report = probe(os.environ)
     output = Path("outputs/telegram-chat-probe.json")
     output.parent.mkdir(parents=True, exist_ok=True)

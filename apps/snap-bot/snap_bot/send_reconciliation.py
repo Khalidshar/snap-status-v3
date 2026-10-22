@@ -3,21 +3,28 @@
 import hashlib
 import io
 import json
+import os
 import zipfile
+from collections.abc import Callable, Mapping
 from pathlib import Path
+from typing import Any
+
+Json = dict[str, Any]
 
 REPOSITORY = "Khalidshar/snap-bot-v2"
 
 
-def archive_json(artifact, env):
+def archive_json(artifact: Json, env: Mapping[str, str]) -> Json:
     from urllib.parse import urlsplit
     from urllib.request import HTTPRedirectHandler, Request, build_opener
 
     class NoRedirect(HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
+        def redirect_request(self, *args: Any, **kwargs: Any) -> None:
             return None
 
-        def http_error_302(self, request, response, code, message, headers):
+        def http_error_302(
+            self, request: Any, response: Any, code: Any, message: Any, headers: Any
+        ) -> Any:
             return response
 
     opener = build_opener(NoRedirect())
@@ -61,7 +68,7 @@ def archive_json(artifact, env):
     if artifact.get("digest") != "sha256:" + hashlib.sha256(raw).hexdigest():
         raise ValueError("Evidence digest mismatch")
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-        result = {}
+        result: Json = {}
         for item in archive.infolist():
             if item.filename.endswith("/"):
                 continue
@@ -73,7 +80,7 @@ def archive_json(artifact, env):
         return result
 
 
-def bound_intent(artifact, intent, sha):
+def bound_intent(artifact: Json, intent: Json, sha: str) -> bool:
     run = str(artifact.get("workflow_run", {}).get("id", ""))
     return (
         artifact.get("expired") is False
@@ -85,7 +92,7 @@ def bound_intent(artifact, intent, sha):
     )
 
 
-def receipt_allows(receipt, artifact, intent):
+def receipt_allows(receipt: Json, artifact: Json, intent: Json) -> bool:
     return (
         receipt.get("state") == "NOT_SENT_PRE_NETWORK"
         and receipt.get("run_id") == intent["run_id"]
@@ -95,7 +102,7 @@ def receipt_allows(receipt, artifact, intent):
     )
 
 
-def reviewed_allows(entry, artifact, intent, run):
+def reviewed_allows(entry: Json, artifact: Json, intent: Json, run: Json) -> bool:
     run_id = intent["run_id"]
     return (
         entry.get("run_id") == run_id
@@ -120,7 +127,13 @@ def reviewed_allows(entry, artifact, intent, run):
     )
 
 
-def resolve_prior(artifact, env, github_get, entries, reader=archive_json):
+def resolve_prior(
+    artifact: Json,
+    env: Mapping[str, str],
+    github_get: Callable[[str, Mapping[str, str]], Json],
+    entries: list[Json],
+    reader: Callable[[Json, Mapping[str, str]], Json] = archive_json,
+) -> bool:
     sha = artifact["name"].removeprefix("did-you-know-send-attempt-")
     files = reader(artifact, env)
     if set(files) != {"intent.json"}:
@@ -129,7 +142,7 @@ def resolve_prior(artifact, env, github_get, entries, reader=archive_json):
     if not bound_intent(artifact, intent, sha):
         raise ValueError("Intent binding invalid")
     run_id = intent["run_id"]
-    results = []
+    results: list[Json] = []
     for page in range(1, 101):
         batch = github_get(
             "actions/runs/" + run_id + "/artifacts?per_page=100&page=" + str(page), env
@@ -161,8 +174,9 @@ def resolve_prior(artifact, env, github_get, entries, reader=archive_json):
     return reviewed_allows(matches[0], artifact, intent, github_get("actions/runs/" + run_id, env))
 
 
-def load_entries(root):
+def load_entries(root: str | os.PathLike[str]) -> list[Json]:
     data = json.loads((Path(root) / "config/snap/send-reconciliations.json").read_text())
     if data.get("schema") != 1 or not isinstance(data.get("entries"), list):
         raise ValueError("Reconciliation schema invalid")
-    return data["entries"]
+    entries: list[Json] = data["entries"]
+    return entries
