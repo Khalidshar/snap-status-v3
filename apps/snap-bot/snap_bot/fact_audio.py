@@ -2,9 +2,11 @@
 
 import math
 import re
+from collections.abc import Callable
+from typing import Any
 
 
-def ambient_source(duration):
+def ambient_source(duration: float) -> str:
     if (
         not isinstance(duration, (int, float))
         or isinstance(duration, bool)
@@ -28,7 +30,9 @@ def ambient_source(duration):
     )
 
 
-def measure_audio(path, profile, runner, *, phone=False):
+def measure_audio(
+    path: object, profile: dict[str, Any], runner: Callable[..., Any], *, phone: bool = False
+) -> dict[str, float]:
     filters = "highpass=f=300:poles=2,highpass=f=300:poles=2," if phone else ""
     result = runner(
         [

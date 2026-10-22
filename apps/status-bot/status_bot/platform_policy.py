@@ -5,10 +5,12 @@ valid Telegram credentials cannot authorize the wrong application's channel.
 Historical receipt reconciliation remains a separate, network-free operation.
 """
 
+from typing import NoReturn
+
 
 class PlatformSeparationError(ValueError):
     """A fixed, secret-free rejection of a retired cross-platform path."""
 
 
-def reject_status_telegram():
+def reject_status_telegram() -> NoReturn:
     raise PlatformSeparationError("STATUS_TELEGRAM_DISABLED_BY_PLATFORM_POLICY")

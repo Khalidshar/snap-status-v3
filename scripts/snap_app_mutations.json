@@ -1,0 +1,3395 @@
+[
+ {
+  "tool": "actions_preview",
+  "label": "output parent",
+  "test": "test_new_output_directory_creates_missing_parent",
+  "marker": "guard:output-parent",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    output.parent.mkdir(exist_ok=True)\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "output leaf reuse",
+  "test": "test_new_output_directory_rejects_existing_leaf",
+  "marker": "guard:output-no-reuse",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    output.mkdir(mode=0o750)\n",
+    "new": "    output.mkdir(mode=0o750, exist_ok=True)\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "output leaf mode",
+  "test": "test_new_output_directory_creates_missing_parent",
+  "marker": "guard:output-mode",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    output.mkdir(mode=0o750)\n",
+    "new": "    output.mkdir(mode=0o755)\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "intent output preparation",
+  "test": "test_intent_preparation_creates_missing_parent_without_send",
+  "marker": "guard:intent-output-parent",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "        new_output_directory(target)\n",
+    "new": "        pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "VIDEO_SHA format",
+  "test": "test_video_sha_format_rejected_before_github_access",
+  "marker": "guard:preflight-format-VIDEO_SHA",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "        if not re.fullmatch(\"[0-9a-f]{64}\", env.get(key, \"\")):\n            raise ValueError(\"Explicit digest required\")\n",
+    "new": "        pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "CONTENT_HASH format",
+  "test": "test_content_hash_format_rejected_before_github_access",
+  "marker": "guard:preflight-format-CONTENT_HASH",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "        if not re.fullmatch(\"[0-9a-f]{64}\", env.get(key, \"\")):\n            raise ValueError(\"Explicit digest required\")\n",
+    "new": "        pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "SOURCE_RUN format",
+  "test": "test_source_run_format_rejected_before_github_access",
+  "marker": "guard:preflight-format-SOURCE_RUN",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if not re.fullmatch(\"[1-9][0-9]{0,19}\", env.get(\"SOURCE_RUN\", \"\")):\n        raise ValueError(\"Source run required\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "SOURCE_RUN leading zeros",
+  "test": "test_source_run_format_rejected_before_github_access",
+  "marker": "guard:preflight-format-SOURCE_RUN",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if not re.fullmatch(\"[1-9][0-9]{0,19}\", env.get(\"SOURCE_RUN\", \"\")):\n",
+    "new": "    if not re.fullmatch(\"[0-9]{1,20}\", env.get(\"SOURCE_RUN\", \"\")):\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "owner dispatch",
+  "test": "test_authority_and_explicit_approval_are_required",
+  "marker": "guard:authority-GITHUB_ACTOR",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if (\n        env.get(\"GITHUB_ACTOR\", \"\").lower() != OWNER.lower()\n        or env.get(\"GITHUB_TRIGGERING_ACTOR\", \"\").lower() != OWNER.lower()\n    ):\n        raise ValueError(\"Khalid dispatch required\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "explicit HUMAN_FRAME",
+  "test": "test_authority_and_explicit_approval_are_required",
+  "marker": "guard:authority-HUMAN_APPROVAL",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if env.get(\"HUMAN_APPROVAL\") != \"HUMAN_FRAME\":\n        raise ValueError(\"Explicit HUMAN_FRAME required\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "same source commit",
+  "test": "test_source_is_manual_successful_same_commit_recent",
+  "marker": "guard:source-head_sha",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if str(run.get(\"id\")) != env[\"SOURCE_RUN\"] or run.get(\"head_sha\") != env[\"GITHUB_SHA\"]:\n        raise ValueError(\"Source commit/run changed\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "source expiry",
+  "test": "test_source_is_manual_successful_same_commit_recent",
+  "marker": "guard:source-expiry",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if not 0 <= now - created < 3600:\n        raise ValueError(\"Source expired\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "intent history",
+  "test": "test_existing_intent_blocks_even_unknown_or_expired",
+  "marker": "guard:no-repeat-intent",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "        if env is None or not resolve_prior(item, env, github_get, load_entries(ROOT)):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "durable intent",
+  "test": "test_persistent_intent_matches_current_run_and_video",
+  "marker": "guard:durable-intent",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if (\n        str(artifact.get(\"id\")) != env[\"SEND_INTENT_ARTIFACT_ID\"]\n        or artifact.get(\"name\") != \"did-you-know-send-attempt-\" + env[\"VIDEO_SHA\"]\n        or artifact.get(\"expired\") is not False\n        or str(artifact.get(\"workflow_run\", {}).get(\"id\")) != env[\"GITHUB_RUN_ID\"]\n    ):\n        raise ValueError(\"Durable intent binding invalid\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "actual video SHA",
+  "test": "test_actual_video_and_content_bindings",
+  "marker": "guard:exact-VIDEO_SHA",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if (\n        not 0 < len(video) <= 50_000_000\n        or hashlib.sha256(video).hexdigest() != env[\"VIDEO_SHA\"]\n        or result[\"video_sha256\"] != env[\"VIDEO_SHA\"]\n    ):\n        raise ValueError(\"Approved video differs\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "actions_preview",
+  "label": "content SHA",
+  "test": "test_actual_video_and_content_bindings",
+  "marker": "guard:exact-CONTENT_HASH",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "    if (\n        content[\"content_hash\"] != env[\"CONTENT_HASH\"]\n        or result[\"content_hash\"] != env[\"CONTENT_HASH\"]\n    ):\n        raise ValueError(\"Approved content differs\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "registry cardinality",
+  "test": "test_missing_duplicate_and_wrong_application_registry_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "    if len(ids) != 18 or set(ids) != set(ROLE_IDS):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "registry application",
+  "test": "test_missing_duplicate_and_wrong_application_registry_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if \"snap-bot-v2\" not in agent.get(\"applications\", []):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "missing render fields",
+  "test": "test_missing_inputs_rejected_and_valid_catalog_content_accepted",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "            raise ValueError(\"Incomplete render result\")\n",
+    "new": "            return True\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "render QA",
+  "test": "test_render_contract_rejects_missing_qa_wrong_attempt_and_digest",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if not isinstance(payload[\"qa\"], dict) or payload[\"qa\"].get(\"result\") != \"PASS\":\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "artifact attempt",
+  "test": "test_render_contract_rejects_missing_qa_wrong_attempt_and_digest",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if payload[\"artifact\"] != expected:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "receipt path",
+  "test": "test_receipt_matches_attempt_path_and_explicit_columns",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if (\n            payload[\"path\"]\n            != f\"renders/{payload['job_id']}/attempts/{payload['attempt']}/output/did-you-know.mp4\"\n        ):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "attempt isolation",
+  "test": "test_old_attempt_events_do_not_leak_success_or_failure",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if details[\"attempt\"] != attempt:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "stale running",
+  "test": "test_running_becomes_unknown_when_stale",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "            if item[\"status\"] == \"RUNNING\" and now - item[\"at\"] > stale_seconds:\n",
+    "new": "            if item[\"status\"] == \"RUNNING\" and False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "dependency order",
+  "test": "test_dependency_order_and_unbound_run_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if any(latest.get(dep, {}).get(\"status\") != \"SUCCEEDED\" for dep in DEPENDENCIES[role]):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "root incident grouping",
+  "test": "test_failure_groups_dependents_under_one_incident",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "                    incident=upstream[\"incident\"],\n",
+    "new": "                    incident=None,\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "honest output verification",
+  "test": "test_success_never_claims_outputs_verified",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "            \"outputs_verified\": False,\n",
+    "new": "            \"outputs_verified\": True,\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "database app scope",
+  "test": "test_wrong_job_application_and_command_are_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if not job or job[\"app\"] != \"snap-bot-v2\" or job[\"command\"] != \"did_you_know\":\n",
+    "new": "        if not job or False or job[\"command\"] != \"did_you_know\":\n"
+   }
+  ]
+ },
+ {
+  "tool": "agent_contract_map",
+  "label": "database command scope",
+  "test": "test_wrong_job_application_and_command_are_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "        if not job or job[\"app\"] != \"snap-bot-v2\" or job[\"command\"] != \"did_you_know\":\n",
+    "new": "        if not job or job[\"app\"] != \"snap-bot-v2\" or False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "Latin allowlist",
+  "test": "test_unknown_latin_rejected",
+  "marker": "guard:arabic-latin",
+  "hunks": [
+   {
+    "file": "arabic_agent.py",
+    "old": "    if re.search(r\"[A-Za-z]\", remaining):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "Arabic punctuation",
+  "test": "test_ascii_punctuation_rejected_except_grouped_numbers",
+  "marker": "guard:arabic-punctuation",
+  "hunks": [
+   {
+    "file": "arabic_agent.py",
+    "old": "    if any(c in punctuation for c in \",;?\"):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "character fence",
+  "test": "test_foreign_controls_presentation_forms_and_tatweel_rejected",
+  "marker": "guard:arabic-character",
+  "hunks": [
+   {
+    "file": "arabic_agent.py",
+    "old": "        if not (arabic_letter or mark or char in \" 0123456789٠١٢٣٤٥٦٧٨٩،؛؟.:!()«»،٫٬-\"):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "Arabic letters",
+  "test": "test_arabic_letters_required",
+  "marker": "guard:arabic-letters",
+  "hunks": [
+   {
+    "file": "arabic_agent.py",
+    "old": "    if not any(\n        \"\\u0621\" <= c <= \"\\u064a\" and unicodedata.category(c).startswith(\"L\") for c in normalized\n    ):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "mark attachment",
+  "test": "test_orphan_mark_rejected",
+  "marker": "guard:arabic-mark",
+  "hunks": [
+   {
+    "file": "arabic_agent.py",
+    "old": "        if mark and not (\n            previous\n            and (\n                unicodedata.category(previous).startswith(\"L\")\n                or unicodedata.category(previous).startswith(\"M\")\n            )\n        ):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "line bounds",
+  "test": "test_line_limit_rejects_long_unbreakable_word",
+  "marker": "guard:arabic-lines",
+  "hunks": [
+   {
+    "file": "arabic_agent.py",
+    "old": "    if not 1 <= len(lines) <= 5 or any(len(line) > 26 for line in lines):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "word repetition",
+  "test": "test_adjacent_duplicates_normalize_vowel_marks",
+  "marker": "guard:arabic-duplicate",
+  "hunks": [
+   {
+    "file": "arabic_agent.py",
+    "old": "    if any(a.casefold() == b.casefold() for a, b in zip(words, words[1:])):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "check dependency",
+  "test": "test_design_without_arabic_is_blocked",
+  "marker": "guard:arabic-dependency",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "    \"memory\": (\"arabic\",),\n",
+    "new": "    \"memory\": (\"fact_source\",),\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "persisted result",
+  "test": "test_telemetry_failure_preserves_result_and_reconciles_without_replay",
+  "marker": "guard:arabic-persisted",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "                if role == \"arabic\":\n",
+    "new": "                if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "immutable checked content",
+  "test": "test_arabic_output_cannot_rewrite_even_to_another_valid_fact",
+  "marker": "guard:arabic-unchanged",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        if direction == \"output\" and role in PASS_THROUGH and digest(payload) != digest(original):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "delivery proof",
+  "test": "test_missing_or_tampered_arabic_result_blocks_delivery",
+  "marker": "guard:arabic-delivery-proof",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "    arabic_evidence(rows[\"arabic\"], rows[\"fact_source\"][\"output_sha\"], result[\"content_hash\"])\n",
+    "new": "    None\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "durable result before observer",
+  "test": "test_telemetry_failure_preserves_result_and_reconciles_without_replay",
+  "marker": "guard:arabic-durable",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "                    \"UPDATE owned_agent_contracts SET status='SUCCEEDED',output_sha=? WHERE job_id=? AND attempt=? AND role=?\",\n",
+    "new": "                    \"UPDATE owned_agent_contracts SET status=CASE WHEN role='arabic' THEN 'RUNNING' ELSE 'SUCCEEDED' END,output_sha=? WHERE job_id=? AND attempt=? AND role=?\",\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "service binding",
+  "test": "test_language_rejection_never_reaches_render_or_transport",
+  "marker": "guard:arabic-service-binding",
+  "hunks": [
+   {
+    "file": "service.py",
+    "old": "            content = run_stage(\n                repo, job[\"id\"], token, attempt, \"arabic\", content, lambda: check_content(content)\n            )\n",
+    "new": "            pass  # Arabic stage removed\n"
+   }
+  ]
+ },
+ {
+  "tool": "arabic_agent",
+  "label": "reconciliation source lineage",
+  "test": "test_arabic_reconciliation_rechecks_source_lineage",
+  "marker": "guard:arabic-reconcile-lineage",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "            if (\n                not source\n                or source[\"status\"] != \"SUCCEEDED\"\n                or source[\"plan_sha\"] != row[\"plan_sha\"]\n                or source[\"output_sha\"] != row[\"input_sha\"]\n            ):\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "artifact_redirect",
+  "label": "Authorization forwarded",
+  "test": "test_new_two_request_download_has_no_github_headers_and_enforces_digest",
+  "marker": "guard:redirect-no-auth",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "    download = Request(location)\n",
+    "new": "    download = Request(location, headers={\"Authorization\": request.get_header(\"Authorization\")})\n"
+   }
+  ]
+ },
+ {
+  "tool": "artifact_redirect",
+  "label": "GitHub Accept forwarded",
+  "test": "test_new_two_request_download_has_no_github_headers_and_enforces_digest",
+  "marker": "guard:redirect-no-auth",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "    download = Request(location)\n",
+    "new": "    download = Request(location, headers={\"Accept\": request.get_header(\"Accept\")})\n"
+   }
+  ]
+ },
+ {
+  "tool": "artifact_redirect",
+  "label": "digest check removed",
+  "test": "test_new_two_request_download_has_no_github_headers_and_enforces_digest",
+  "marker": "guard:redirect-digest",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "    if artifact.get(\"digest\") != \"sha256:\" + hashlib.sha256(raw).hexdigest():\n        raise ValueError(\"Evidence digest mismatch\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "artifact_redirect",
+  "label": "size check removed",
+  "test": "test_original_archive_size_limit_still_enforced",
+  "marker": "guard:redirect-size",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "    if len(raw) > 2_000_000:\n        raise ValueError(\"Evidence oversized\")\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "old header",
+  "test": "test_identity_has_no_old_studio_header",
+  "marker": "guard:brand-identity",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "        (\"روّق مع خالد\", 50, 210, \"0xD6B26C\", \"arabic\"),\n",
+    "new": "        (\"SNAP STUDIO / V2\", 50, 210, \"0xD6B26C\", \"arabic\"),\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "reversed tag",
+  "test": "test_tag_is_exact_ltr_not_reversed",
+  "marker": "guard:tag-order",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "        (\"@rawwag_khalid\", 38, 290, \"0xD6B26C\", \"latin\"),\n",
+    "new": "        (\"rawwag_khalid@\", 38, 290, \"0xD6B26C\", \"latin\"),\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "LTR embedding",
+  "test": "test_tag_is_exact_ltr_not_reversed",
+  "marker": "guard:tag-ltr",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    return (\"\\u202b\" if role == \"arabic\" else \"\\u202a\") + text + \"\\u202c\"\n",
+    "new": "    return (\"\\u202b\" if role == \"arabic\" else \"\") + text + \"\\u202c\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "equal baseline spacing",
+  "test": "test_every_body_line_uses_equal_baseline_spacing",
+  "marker": "guard:equal-baseline-spacing",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "        (line, body_size, first_y + 115 * i, \"0xF6EEDE\", \"arabic\") for i, line in enumerate(lines)\n",
+    "new": "        (line, body_size, first_y + 115 * i * i, \"0xF6EEDE\", \"arabic\")\n        for i, line in enumerate(lines)\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "ascent compensation",
+  "test": "test_every_body_line_uses_equal_baseline_spacing",
+  "marker": "guard:baseline-anchor",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    return f\"{label[2] + label[1]}-ascent\"\n",
+    "new": "    return str(label[2])\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "gold name",
+  "test": "test_official_palette_and_gradient_are_used",
+  "marker": "guard:brand-gold",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "        (\"روّق مع خالد\", 50, 210, \"0xD6B26C\", \"arabic\"),\n",
+    "new": "        (\"روّق مع خالد\", 50, 210, \"white\", \"arabic\"),\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "cream body",
+  "test": "test_official_palette_and_gradient_are_used",
+  "marker": "guard:body-cream",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "        (line, body_size, first_y + 115 * i, \"0xF6EEDE\", \"arabic\") for i, line in enumerate(lines)\n",
+    "new": "        (line, body_size, first_y + 115 * i, \"white\", \"arabic\") for i, line in enumerate(lines)\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "emerald gradient",
+  "test": "test_official_palette_and_gradient_are_used",
+  "marker": "guard:emerald-gradient",
+  "hunks": [
+   {
+    "file": "fact_motion.py",
+    "old": "    filters[1] = (\n        \"geq=r='257*(11+(6-11)*Y/(H-1))':g='257*(61+(42-61)*Y/(H-1))':b='257*(46+(32-46)*Y/(H-1))'\"\n    )\n",
+    "new": "    filters[1] = \"geq=r='257*11':g='257*(61+(42-61)*Y/(H-1))':b='257*(46+(32-46)*Y/(H-1))'\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "renderer baseline wiring",
+  "test": "test_renderer_uses_baseline_and_palette_helpers",
+  "marker": "guard:render-baseline",
+  "hunks": [
+   {
+    "file": "render.py",
+    "old": "        y = label_y(label) if is_fact else y\n",
+    "new": "        y = y\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "renderer palette wiring",
+  "test": "test_renderer_uses_baseline_and_palette_helpers",
+  "marker": "guard:render-palette",
+  "hunks": [
+   {
+    "file": "render.py",
+    "old": "    filters = card_filters(profile[\"fps\"])\n",
+    "new": "    filters = []\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "renderer fact gradient wiring",
+  "test": "test_renderer_uses_baseline_and_palette_helpers",
+  "marker": "guard:render-fact-gradient",
+  "hunks": [
+   {
+    "file": "render.py",
+    "old": "        filters = background_filters(filters)\n",
+    "new": "        filters = filters\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "card shape validation",
+  "test": "test_background_rejects_changed_card_shape",
+  "marker": "guard:background-shape",
+  "hunks": [
+   {
+    "file": "fact_motion.py",
+    "old": "    if filters != expected or not re.fullmatch(r\"setpts=N/\\(([1-9]|[1-5][0-9]|60)\\*TB\\)\", clock):\n",
+    "new": "    if len(filters) != 6 or not re.fullmatch(r\"setpts=N/\\(([1-9]|[1-5][0-9]|60)\\*TB\\)\", clock):\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "cached gradient",
+  "test": "test_gradient_is_cached_with_explicit_duration",
+  "marker": "guard:gradient-cached",
+  "hunks": [
+   {
+    "file": "fact_motion.py",
+    "old": "        raise ValueError(\"Unexpected card filter shape; background replacement refused\")\n    filters[0] = \"format=gbrp16le\"\n",
+    "new": "        raise ValueError(\"Unexpected card filter shape; background replacement refused\")\n    filters[3] = \"loop=loop=0:size=1:start=0\"\n    filters[0] = \"format=gbrp16le\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "brand_layout",
+  "label": "finite output duration",
+  "test": "test_gradient_is_cached_with_explicit_duration",
+  "marker": "guard:bounded-video-duration",
+  "hunks": [
+   {
+    "file": "render.py",
+    "old": "        \"-t\",\n        str(profile[\"duration_seconds\"]),\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "memory repeat window",
+  "test": "test_memory_rejects_a_fact_still_protected_for_another_job",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "content_agents.py",
+    "old": "    if (\"id\", content[\"fact_id\"]) in blocked or (\"body\", body_hash) in blocked:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "memory bound to reservation",
+  "test": "test_memory_rejects_content_that_is_not_the_reservation",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "content_agents.py",
+    "old": "    if json.loads(row[\"content_json\"]) != content:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "rotation order",
+  "test": "test_rotation_requires_the_next_category",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "content_agents.py",
+    "old": "            if content[\"category\"] != category:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "proofreading spacing",
+  "test": "test_proofreading_rejects_each_problem_without_editing",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "content_agents.py",
+    "old": "    if \"  \" in text:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "translation leftover Latin",
+  "test": "test_translation_allows_only_approved_abbreviations",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "content_agents.py",
+    "old": "    if re.search(r\"[A-Za-z]\", leftover):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "pass-through enforced",
+  "test": "test_check_agent_cannot_rewrite_content",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        if direction == \"output\" and role in PASS_THROUGH and digest(payload) != digest(original):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "design after every check",
+  "test": "test_design_requires_every_check_in_order",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "    \"design\": (\"translation\",),\n",
+    "new": "    \"design\": (\"rotation\",),\n"
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "check rejection is durable",
+  "test": "test_rejected_check_fails_durably_and_design_never_runs",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        if role in PASS_THROUGH and isinstance(error, ValueError) and not problem:\n            raise ContractViolation(\"CONTRACT_CHECK_REJECTED\") from error\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "delivery rechecks chain",
+  "test": "test_delivery_gate_rechecks_every_check_row",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "    check_chain(rows)\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "reconciliation rechecks chain",
+  "test": "test_new_owner_refuses_reconciliation_when_a_check_row_was_tampered",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "            check_chain({**checks, \"fact_source\": dict(source)})\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "content_agent",
+  "label": "execute runs the checks",
+  "test": "test_execute_uses_local_source_and_owned_adoption_without_network_or_send",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "service.py",
+    "old": "            for role in CHECKS:\n",
+    "new": "            for role in ():\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "display-only Arabic marks",
+  "test": "test_drawn_text_omits_marks_without_changing_catalog_or_hash",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    visible = \"\".join(\n        char for char in text if not (0x064B <= ord(char) <= 0x0655 or ord(char) == 0x0670)\n    )\n",
+    "new": "    visible = text\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "extended Arabic marks",
+  "test": "test_drawn_text_omits_marks_without_changing_catalog_or_hash",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    visible = \"\".join(\n        char for char in text if not (0x064B <= ord(char) <= 0x0655 or ord(char) == 0x0670)\n    )\n",
+    "new": "    visible = \"\".join(char for char in text if not (0x064B <= ord(char) <= 0x0652))\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "vertical body centering",
+  "test": "test_body_centered_by_line_count_with_fixed_source_and_footer",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    first_y = round((600 + 1260 - block_height) / 2)\n",
+    "new": "    first_y = 650\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "comparison body font size",
+  "test": "test_amiri_comparison_sizes_and_centering",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    body_size = profile.get(\"fact_body_font_size\", 68)\n",
+    "new": "    body_size = 68\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "comparison title font size",
+  "test": "test_amiri_comparison_sizes_and_centering",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    title_size = profile.get(\"fact_title_font_size\", 96)\n",
+    "new": "    title_size = 96\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "source host allowlist",
+  "test": "test_invalid_source_future_date_and_long_text_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "        or url.hostname not in HOSTS\n",
+    "new": "        or False\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "fact length",
+  "test": "test_invalid_source_future_date_and_long_text_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "    safe_text(fact[\"text\"], 120)\n",
+    "new": "    safe_text(fact[\"text\"], 1000)\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "30-day memory",
+  "test": "test_30_day_boundary_and_exhaustion",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "            if (\"id\", fact[\"id\"]) in blocked or (\"body\", digest) in blocked:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "owned fact selection",
+  "test": "test_lost_owner_cannot_reserve_or_record_event",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "    with repo.owned_transaction(job, token, attempt=attempt) as db:\n",
+    "new": "    with repo.transaction() as db:\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "release failed unused fact",
+  "test": "test_failed_without_delivery_releases_reservation",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "        protected = (\n            ack_at > now - WINDOW_SECONDS\n            if ack_at is not None\n            else bool(evidence) or row[\"state\"] not in {\"FAILED\", \"CANCELLED\", \"EXPIRED\"}\n        )\n",
+    "new": "        protected = ack_at > now - WINDOW_SECONDS if ack_at is not None else bool(evidence) or True\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "category alternation",
+  "test": "test_categories_rotate_and_do_not_start_with_five_space_facts",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "        ordered = [fact for category in rotation for fact in facts if fact[\"category\"] == category]\n",
+    "new": "        ordered = facts\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "safe-area bound",
+  "test": "test_bbox_requires_measurement_and_rejects_overflow",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    if width <= 0 or height <= 0 or x < left or y < top or x + width > right or y + height > bottom:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "content type allowlist",
+  "test": "test_type_allowlist_rejects_unknown",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render.py",
+    "old": "    if content_type not in ALLOWED_CONTENT:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "human preview gate",
+  "test": "test_manual_review_required_before_any_network",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "        if review_mode != \"HUMAN_FRAME\" or result.get(\"safe_area\", {}).get(\"result\") != \"PASS\":\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "window timed from ACK",
+  "test": "test_window_starts_from_ack_not_earlier_reservation",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "            ack_at > now - WINDOW_SECONDS\n",
+    "new": "            row[\"reserved_at\"] > now - WINDOW_SECONDS\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "delivery evidence retains failed fact",
+  "test": "test_unknown_delivery_stays_reserved_after_terminal_failure",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "            else bool(evidence) or row[\"state\"] not in {\"FAILED\", \"CANCELLED\", \"EXPIRED\"}\n",
+    "new": "            else False or row[\"state\"] not in {\"FAILED\", \"CANCELLED\", \"EXPIRED\"}\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "active competing fact reservation",
+  "test": "test_competing_workers_one_fact_only_one_reservation",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "        protected = (\n            ack_at > now - WINDOW_SECONDS\n            if ack_at is not None\n            else bool(evidence) or row[\"state\"] not in {\"FAILED\", \"CANCELLED\", \"EXPIRED\"}\n        )\n",
+    "new": "        protected = ack_at > now - WINDOW_SECONDS if ack_at is not None else bool(evidence) or False\n"
+   }
+  ]
+ },
+ {
+  "tool": "did_you_know",
+  "label": "unknown delivery never replayed",
+  "test": "test_fact_send_timeout_keeps_unknown_and_never_sends_again",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "    if existing:\n",
+    "new": "    if existing and existing[\"delivery\"] != \"DELIVERY_UNKNOWN\":\n"
+   }
+  ]
+ },
+ {
+  "tool": "fact_audio",
+  "label": "fade in",
+  "test": "test_generated_audio_loudness_true_peak_and_fades",
+  "marker": "guard:ambient-fade-in",
+  "hunks": [
+   {
+    "file": "fact_audio.py",
+    "old": "        \"afade=t=in:st=0:d=0.6,\"\n",
+    "new": "        \"\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "fact_audio",
+  "label": "fade out",
+  "test": "test_generated_audio_loudness_true_peak_and_fades",
+  "marker": "guard:ambient-fade-out",
+  "hunks": [
+   {
+    "file": "fact_audio.py",
+    "old": "        f\"afade=t=out:st={duration - 1:g}:d=1,atrim=duration={duration:g}\"\n",
+    "new": "        f\"atrim=duration={duration:g}\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "fact_audio",
+  "label": "excess gain",
+  "test": "test_generated_audio_loudness_true_peak_and_fades",
+  "marker": "guard:ambient-loudness",
+  "hunks": [
+   {
+    "file": "fact_audio.py",
+    "old": "        \"[pad][rain]amix=inputs=2:normalize=0,volume=1.85,lowpass=f=2500:poles=2,\"\n",
+    "new": "        \"[pad][rain]amix=inputs=2:normalize=0,volume=20,lowpass=f=2500:poles=2,\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "fact_audio",
+  "label": "weather audio allowed",
+  "test": "test_weather_rejects_any_audio",
+  "marker": "guard:weather-no-audio",
+  "hunks": [
+   {
+    "file": "render.py",
+    "old": "    if not fact and audios:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "fact_audio",
+  "label": "low octave",
+  "test": "test_phone_simulation_loudness_meets_floor",
+  "marker": "guard:ambient-phone",
+  "hunks": [
+   {
+    "file": "fact_audio.py",
+    "old": "    frequencies = (220, 261.6256, 329.6276, 440, 659.2552)\n",
+    "new": "    frequencies = (110, 130.8128, 164.8138, 220, 329.6276)\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "missing human review",
+  "test": "test_missing_approval_is_durable_blocked",
+  "marker": "guard:final-missing-review",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "    reason = \"HUMAN_FRAME_MISSING\"\n",
+    "new": "    reason = \"HUMAN_FRAME_MATCHED\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review video",
+  "test": "test_review_binding_mismatch_blocks",
+  "marker": "guard:final-review-binding",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "            and review[\"video_sha\"] == render[\"video_sha256\"]\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review content",
+  "test": "test_review_binding_mismatch_blocks",
+  "marker": "guard:final-review-binding",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "            and review[\"content_hash\"] == render[\"content_hash\"]\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review attempt",
+  "test": "test_review_binding_mismatch_blocks",
+  "marker": "guard:final-review-binding",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "            and review[\"attempt\"] == payload[\"attempt\"]\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review chain",
+  "test": "test_review_binding_mismatch_blocks",
+  "marker": "guard:final-review-binding",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "            and review[\"quality_sha\"] == digest(payload[\"evidence\"])\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review HUMAN_FRAME",
+  "test": "test_review_binding_mismatch_blocks",
+  "marker": "guard:final-review-binding",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "            review[\"mode\"] == \"HUMAN_FRAME\"\n            and review[\"job_id\"] == payload[\"job_id\"]\n",
+    "new": "            review[\"job_id\"] == payload[\"job_id\"]\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review expiry decision",
+  "test": "test_review_binding_mismatch_blocks",
+  "marker": "guard:final-review-binding",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "            and 0 <= payload[\"evaluated_at\"] - review[\"reviewed_at\"] <= 86400\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review owner",
+  "test": "test_foreign_reviewer_refused",
+  "marker": "guard:final-reviewer",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "    if reviewer not in repo.config.owners.get(\"telegram\", ()):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "review state",
+  "test": "test_no_review_after_state_changes",
+  "marker": "guard:final-review-state",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "        if state != \"VALIDATING\":\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "delivery final binding",
+  "test": "test_missing_final_cannot_pass_delivery",
+  "marker": "guard:final-delivery-binding",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "    require_final(db, job, epoch, result)\n",
+    "new": "    pass  # removed final gate\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "delivery expiry",
+  "test": "test_review_expires_at_delivery_even_after_approval",
+  "marker": "guard:final-freshness",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "        if not 0 <= now - payload[\"human_approval\"][\"reviewed_at\"] <= 86400:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "durable final success",
+  "test": "test_result_committed_before_telemetry_and_no_send",
+  "marker": "guard:final-durable",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "                \"FAILED\" if problem else \"SUCCEEDED\",\n",
+    "new": "                \"FAILED\" if problem else \"RUNNING\",\n"
+   }
+  ]
+ },
+ {
+  "tool": "final_agent",
+  "label": "current claim attempt",
+  "test": "test_old_attempt_review_cannot_authorize_new_owner",
+  "marker": "guard:final-current-attempt",
+  "hunks": [
+   {
+    "file": "final_agent.py",
+    "old": "        if not claim or json.loads(claim[\"details\"]).get(\"attempt\") != attempt:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "registry content pin",
+  "test": "test_unknown_registry_is_rejected_even_with_self_reported_hash",
+  "marker": "guard:registry-pin",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "    if hashlib.sha256(raw).hexdigest() != MANIFEST_SHA256:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "font digest pin",
+  "test": "test_modified_font_bytes_are_rejected",
+  "marker": "guard:font-byte-pin",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "    if digest != expected_sha:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "unknown fingerprint",
+  "test": "test_unknown_font_is_rejected_even_when_profile_hash_matches",
+  "marker": "guard:unknown-font",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "        raise ValueError(\"Unknown font fingerprint\")\n",
+    "new": "        return path\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "license required",
+  "test": "test_registry_entry_without_license_is_rejected",
+  "marker": "guard:license-required",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "    if not entry.get(\"licenses\"):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "license digest pin",
+  "test": "test_missing_or_tampered_license_is_rejected",
+  "marker": "guard:license-byte-pin",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "        if hashlib.sha256(verified_file(license_path)).hexdigest() != license[\"sha256\"]:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "profile inventory",
+  "test": "test_profile_inventory_cannot_add_unreviewed_hash",
+  "marker": "guard:profile-inventory",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "    if profile.get(\"font_files\") != expected:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "fallback order",
+  "test": "test_fallback_is_explicit_ordered_and_rejects_uncovered_text",
+  "marker": "guard:fallback-order",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "    for font in dict.fromkeys([preferred, *fallbacks]):\n",
+    "new": "    for font in dict.fromkeys([preferred, *reversed(fallbacks)]):\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "fallback coverage",
+  "test": "test_fallback_is_explicit_ordered_and_rejects_uncovered_text",
+  "marker": "guard:fallback-order",
+  "hunks": [
+   {
+    "file": "font_admission.py",
+    "old": "            check(text, charsets[font])\n",
+    "new": "            pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "Kufi line width",
+  "test": "test_default_is_pinned_kufi_bold_and_fallbacks_admitted",
+  "marker": "guard:kufi-line-width",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    lines = textwrap.wrap(\n        content[\"body\"], width=line_width, break_long_words=False, break_on_hyphens=False\n    )\n",
+    "new": "    lines = textwrap.wrap(content[\"body\"], width=26, break_long_words=False, break_on_hyphens=False)\n"
+   }
+  ]
+ },
+ {
+  "tool": "licensed_font",
+  "label": "Arabic punctuation",
+  "test": "test_display_marks_and_punctuation_never_change_source",
+  "marker": "guard:display-arabic-punctuation",
+  "hunks": [
+   {
+    "file": "fact_layout.py",
+    "old": "    return re.sub(r\"\\s+([،؛؟])\", r\"\\1\", visible)\n",
+    "new": "    return visible\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_artifact",
+  "label": "verified buffer hash",
+  "test": "test_hash_mismatch_is_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_artifacts.py",
+    "old": "    if digest(data) != expected:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_artifact",
+  "label": "create-once inode",
+  "test": "test_publication_is_idempotent_without_replacing_inode",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_artifacts.py",
+    "old": "            os.link(name, target)  # no-overwrite publication; same filesystem\n",
+    "new": "            os.replace(name, target)  # no-overwrite publication; same filesystem\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_artifact",
+  "label": "projection rank",
+  "test": "test_published_projection_cannot_regress",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_artifacts.py",
+    "old": "                if RANK[old[\"state\"]] > RANK[state]:\n",
+    "new": "                if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_artifact",
+  "label": "durable ACK",
+  "test": "test_published_projection_requires_linked_durable_ack",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_artifacts.py",
+    "old": "                self._confirmed(db, job, body)\n",
+    "new": "                pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_control",
+  "label": "server-peer",
+  "test": "test_wrong_server_uid_rejected_before_request",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_control.py",
+    "old": "            ipc.authenticate(sock, self.server_uid)\n",
+    "new": "            pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_control",
+  "label": "authority-peer",
+  "test": "test_control_authenticates_before_receiving_any_frame",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_control.py",
+    "old": "        ipc.authenticate(sock, authority_uid)\n",
+    "new": "        pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_control",
+  "label": "control-binding",
+  "test": "test_wrong_app_and_operation_fail_closed",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_control.py",
+    "old": "    if (\n        type(value[\"v\"]) is not int\n        or value[\"v\"] != 1\n        or value[\"app\"] != app\n        or value[\"op\"] != \"control\"\n        or type(value[\"body\"]) is not dict\n    ):\n",
+    "new": "    if type(value[\"v\"]) is not int or value[\"v\"] != 1 or type(value[\"body\"]) is not dict:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_control",
+  "label": "ack-binding",
+  "test": "test_wrong_control_ack_is_not_confirmed",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_coordinator.py",
+    "old": "            if result != {\"gen\": saved[\"gen\"], \"state\": expected}:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_control",
+  "label": "history",
+  "test": "test_legacy_rotated_history_without_link_fails_closed",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_coordinator.py",
+    "old": "                if (\n                    db.execute(\"SELECT COUNT(*) FROM n1_segments\").fetchone()[0] != 1\n                    or segment[\"seq\"] != 0\n                ):\n",
+    "new": "                if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_generation",
+  "label": "unregistered",
+  "test": "test_signed_but_unregistered_generation_cannot_append",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "                raise WriterRefused(\"GENERATION_UNREGISTERED\")\n",
+    "new": "                row = {\"descriptor\": signed, \"state\": \"ACTIVE\"}\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_generation",
+  "label": "sealed",
+  "test": "test_sealed_generation_rejects_even_same_duplicate_intent",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "            if row[\"state\"] != \"ACTIVE\":\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_generation",
+  "label": "descriptor",
+  "test": "test_registry_descriptor_conflict_cannot_redirect_append",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "            if row[\"descriptor\"] != signed:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_generation",
+  "label": "anchor",
+  "test": "test_bad_anchor_refused_without_sealing_parent",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "            if (desc[\"base_seq\"], desc[\"base_digest\"]) not in anchors:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_generation",
+  "label": "fsync",
+  "test": "test_write_fsync_failure_never_returns_registration",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "                os.fsync(stream.fileno())\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "n1_generation",
+  "label": "seal-order",
+  "test": "test_seal_waits_for_admitted_append_then_blocks_late_write",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "        with self.writer.lock(self.authority.path):\n",
+    "new": "        with __import__(\"contextlib\").nullcontext():\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_ipc",
+  "label": "server-peer",
+  "test": "test_unauthorized_client_never_invokes_handler",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_ipc.py",
+    "old": "        authenticate(sock, worker_uid)  # must precede any receive or handler call\n",
+    "new": "        pass  # mutation: omit server peer check\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_ipc",
+  "label": "client-peer",
+  "test": "test_impostor_server_receives_no_envelope_bytes",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_ipc.py",
+    "old": "        authenticate(sock, server_uid)  # must precede sending envelope\n",
+    "new": "        pass  # mutation: omit server identity check\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_ipc",
+  "label": "frame-limit",
+  "test": "test_oversized_header_rejected_before_body_or_handler",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_ipc.py",
+    "old": "    if not 0 < length <= MAX_FRAME:\n",
+    "new": "    if length == 0:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_ipc",
+  "label": "app-binding",
+  "test": "test_application_confusion_rejected_before_handler",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_ipc.py",
+    "old": "    if type(value[\"v\"]) is not int or value[\"v\"] != 1 or value[\"app\"] != app:\n",
+    "new": "    if type(value[\"v\"]) is not int or value[\"v\"] != 1:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_ipc",
+  "label": "duplicate-key",
+  "test": "test_duplicate_json_keys_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_ipc.py",
+    "old": "            object_pairs_hook=pairs,\n",
+    "new": "            object_pairs_hook=dict,\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_ipc",
+  "label": "reply-binding",
+  "test": "test_response_request_binding_is_checked",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_ipc.py",
+    "old": "                or response.get(\"request_id\") != request_id\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "n1_journal",
+  "label": "role separation",
+  "test": "test_requires_three_distinct_nonroot_roles",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_journal_service.py",
+    "old": "        if (\n            0 in (worker_uid, authority_uid, os.geteuid())\n            or len({worker_uid, authority_uid, os.geteuid()}) != 3\n        ):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_journal",
+  "label": "app binding",
+  "test": "test_app_matches_physical_writer",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_journal_service.py",
+    "old": "        if writer.app != app:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_journal",
+  "label": "registered append",
+  "test": "test_uses_registered_writer_not_raw_physical_append",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_journal_service.py",
+    "old": "        self.append = WriterService(append_path, worker_uid, app, IsolatedAppendHandler(registered))\n",
+    "new": "        self.append = WriterService(append_path, worker_uid, app, IsolatedAppendHandler(writer))\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_journal",
+  "label": "separate socket paths",
+  "test": "test_requires_distinct_absolute_paths",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_journal_service.py",
+    "old": "        if (\n            not append_path.is_absolute()\n            or not control_path.is_absolute()\n            or append_path == control_path\n        ):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_journal",
+  "label": "startup cleanup both planes",
+  "test": "test_created_control_socket_removed_when_startup_later_fails",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_journal_service.py",
+    "old": "            for plane in reversed(self.planes):\n",
+    "new": "            for plane in (self.append,):\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_journal",
+  "label": "listener failure propagated",
+  "test": "test_failure_of_either_listener_stops_other_plane",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_journal_service.py",
+    "old": "        if self.failures:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1",
+  "label": "confirm owner",
+  "test": "test_confirm_rejects_old_owner_after_real_claim",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_contracts.py",
+    "old": "        with self.repo.owned_transaction(job, token, attempt=attempt) as db:\n            self.repo.assert_owner(job, token, attempt=attempt, db=db)\n",
+    "new": "        with self.repo.transaction() as db:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1",
+  "label": "begin owner",
+  "test": "test_begin_rejects_old_owner",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_contracts.py",
+    "old": "        with self.repo.owned_transaction(job, token, attempt=attempt) as db:\n            owned = self.repo.assert_owner(job, token, attempt=attempt, db=db)\n",
+    "new": "        with self.repo.transaction() as db:\n            owned = self.repo.get(job)\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1",
+  "label": "full history",
+  "test": "test_full_history_prevents_reclaim_bypass",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_contracts.py",
+    "old": "        if any(s not in {\"QUEUED\", \"RUNNING\", \"RESEARCHING\"} for s in phases):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1",
+  "label": "claim cap",
+  "test": "test_claim_cap_survives_failed_refusal_persistence",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_contracts.py",
+    "old": "        if attempt > 3:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1",
+  "label": "sealed generation",
+  "test": "test_seal_blocks_late_confirmation_and_preserves_lock_independence",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_contracts.py",
+    "old": "            if row[\"state\"] != \"PENDING\" or segment[\"state\"] != \"ACTIVE\":\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1",
+  "label": "current epoch view",
+  "test": "test_current_view_excludes_old_confirmed_attempts",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_contracts.py",
+    "old": "                \"SELECT receipt FROM n1_ledger WHERE job_id=? AND attempt=? AND state='APPENDED' ORDER BY rowid\",\n                (job, epoch),\n",
+    "new": "                \"SELECT receipt FROM n1_ledger WHERE job_id=? AND state='APPENDED' ORDER BY rowid\",\n                (job,),\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_partial_tail",
+  "label": "retention before seal",
+  "test": "test_sigkill_partial_record_rotates_without_adoption_or_truncation",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "            if partial:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_partial_tail",
+  "label": "verified child anchor",
+  "test": "test_unconfirmed_partial_anchor_is_rejected_before_audit_write",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_generations.py",
+    "old": "            if (desc[\"base_seq\"], desc[\"base_digest\"]) not in anchors:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_partial_tail",
+  "label": "strict worker scan",
+  "test": "test_default_scan_stays_strict_after_authority_prefix_inspection",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer.py",
+    "old": "                        return entries\n                    raise WriterRefused(\"PARTIAL_SEGMENT\")\n                try:\n",
+    "new": "                        return entries\n                    return entries\n                try:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_partial_tail",
+  "label": "signed tail receipt",
+  "test": "test_sigkill_partial_record_rotates_without_adoption_or_truncation",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_partial_tail.py",
+    "old": "    receipt = {\"body\": body, \"proof\": mac(writer.key, \"n1.partial-tail.v1\", body)}\n",
+    "new": "    receipt = {\"body\": body, \"proof\": \"0\" * 64}\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_partial_tail",
+  "label": "immutable receipt conflict",
+  "test": "test_conflicting_or_public_audit_is_never_overwritten",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_partial_tail.py",
+    "old": "            if os.read(fd, 4097) != expected:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_partial_tail",
+  "label": "tail receipt directory durability",
+  "test": "test_tail_receipt_fsync_failure_is_not_a_seal_ack",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_partial_tail.py",
+    "old": "        os.replace(name, destination)\n        sync_dir(writer.root)\n    finally:\n",
+    "new": "        os.replace(name, destination)\n    finally:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_partial_tail",
+  "label": "retain original segment",
+  "test": "test_sigkill_partial_record_rotates_without_adoption_or_truncation",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_partial_tail.py",
+    "old": "        os.close(fd)\n    body = {\"version\": 1, **report}\n",
+    "new": "        os.close(fd)\n    os.truncate(segment, report[\"offset\"])\n    body = {\"version\": 1, **report}\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "owned observation",
+  "test": "test_stale_observe_has_no_event_or_callback",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_commit.py",
+    "old": "    def record(status, code=None):\n        with repo.owned_transaction(job, token, attempt=attempt) as db:\n            details = {\n",
+    "new": "    def record(status, code=None):\n        with repo.transaction() as db:\n            details = {\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "attempt input",
+  "test": "test_old_attempt_input_write_does_not_change_new_attempt",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render.py",
+    "old": "    content_path = input_root / job_id / \"attempts\" / str(attempt) / \"input/content.json\"\n",
+    "new": "    content_path = input_root / job_id / \"attempts\" / \"1\" / \"input/content.json\"\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "attempt binding",
+  "test": "test_result_declared_attempt_must_match_owned_attempt",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_commit.py",
+    "old": "    if (\n        result.get(\"attempt\") != attempt\n        or result.get(\"artifact\") != expected\n        or result.get(\"job_id\") != job_id\n        or result.get(\"qa\", {}).get(\"result\") != \"PASS\"\n    ):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "verified video bytes",
+  "test": "test_tampered_spool_cannot_be_adopted",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_commit.py",
+    "old": "    data = verified_bytes(source, result[\"video_sha256\"])\n",
+    "new": "    data = source.read_bytes()\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "fenced adoption",
+  "test": "test_lease_loss_after_staging_blocks_stage_and_rename",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_commit.py",
+    "old": "        with repo.owned_transaction(job_id, token, attempt=attempt) as db:\n",
+    "new": "        with repo.transaction() as db:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "adoption directory durability",
+  "test": "test_directory_fsync_precedes_stage_commit_and_failure_rolls_back",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_commit.py",
+    "old": "            sync_dir(output)\n            sync_dir(output.parent / \"input\")\n",
+    "new": "            None\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "manifest ownership recheck",
+  "test": "test_views_ownership_loss_after_validating_preserves_existing_manifest",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_commit.py",
+    "old": "            repo.assert_owner(job, token, attempt=attempt, db=db)\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "n1_render",
+  "label": "authenticated HTTP peer",
+  "test": "test_real_http_wrong_peer_never_renders",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "service.py",
+    "old": "            if peer != self.server.settings[\"worker_uid\"]:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_segment",
+  "label": "physical presence",
+  "test": "test_foreign_receipt_cannot_be_adopted_without_physical_presence",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_segments.py",
+    "old": "        if receipt not in entries:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_segment",
+  "label": "ledger authority view",
+  "test": "test_real_append_fsync_confirm_and_pending_visibility",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_segments.py",
+    "old": "        receipts = self.ledger.view(job)\n",
+    "new": "        with self.repo.connect() as db:\n            gens = [r[0] for r in db.execute(\"SELECT gen FROM n1_segment_files\")]\n        receipts = [\n            r for gen in gens for r in self.scan(gen) if r[\"envelope\"][\"body\"][\"job_id\"] == job\n        ]\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_segment",
+  "label": "sealed prefix bound",
+  "test": "test_partial_tail_is_retained_and_ignored_after_seal",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_segments.py",
+    "old": "        end = meta[\"seal_seq\"] if meta[\"phase\"] == \"SEALED\" else None\n",
+    "new": "        end = None\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_segment",
+  "label": "durable readiness",
+  "test": "test_crash_after_logical_seal_is_recoverable",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_segments.py",
+    "old": "                    \"INSERT INTO n1_segment_files VALUES(?,'PREPARING',?,?,?,NULL,NULL)\",\n",
+    "new": "                    \"INSERT INTO n1_segment_files VALUES(?,'READY',?,?,?,NULL,NULL)\",\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_service",
+  "label": "credential-acl-binding",
+  "test": "test_acl_for_other_user_or_group_is_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer_service.py",
+    "old": "    return len(set(entries)) == 5 and set(entries) == expected\n",
+    "new": "    return True\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_service",
+  "label": "concurrency",
+  "test": "test_busy_limit_rejects_second_request_before_handler",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer_service.py",
+    "old": "            if len(self._threads) >= self.max_connections:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_service",
+  "label": "rate-limit",
+  "test": "test_rate_limit_counts_admitted_requests",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer_service.py",
+    "old": "            if len(self._times) >= self.rate_limit:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_service",
+  "label": "credential-mode",
+  "test": "test_symlink_and_public_credentials_refused",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer_service.py",
+    "old": "            or not credential_access(fd, meta)\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "n1_service",
+  "label": "credential-size",
+  "test": "test_oversized_credential_and_path_traversal_refused",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer_service.py",
+    "old": "            or not 32 <= meta.st_size <= 4096\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "n1_service",
+  "label": "socket-identity",
+  "test": "test_replacement_path_is_never_deleted_by_shutdown",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer_service.py",
+    "old": "            if (\n                not stat.S_ISSOCK(meta.st_mode)\n                or meta.st_ino != self.inode\n                or meta.st_uid != os.geteuid()\n            ):\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_service",
+  "label": "busy-shutdown",
+  "test": "test_busy_shutdown_retains_socket_until_writer_drains",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer_service.py",
+    "old": "            if left <= 0:\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_writer",
+  "label": "generation-mac",
+  "test": "test_unsigned_generation_rejected_before_any_file",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer.py",
+    "old": "        if not isinstance(signed[\"mac\"], str) or not hmac.compare_digest(\n            mac(self.key, \"n1.file-generation.v1\", body), signed[\"mac\"]\n        ):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_writer",
+  "label": "intent-mac",
+  "test": "test_wrong_intent_mac_is_rejected",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer.py",
+    "old": "        if not isinstance(value[\"mac\"], str) or not hmac.compare_digest(\n            mac(self.key, \"n1.intent.v1\", body), value[\"mac\"]\n        ):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_writer",
+  "label": "expiry",
+  "test": "test_expired_intent_cannot_write",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer.py",
+    "old": "            or self.clock() >= body[\"not_after\"]\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "n1_writer",
+  "label": "append-fsync",
+  "test": "test_fsync_failure_never_returns_receipt_and_retry_syncs_again",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer.py",
+    "old": "                stream.flush()\n                os.fsync(stream.fileno())\n            return receipt\n",
+    "new": "                stream.flush()\n            return receipt\n"
+   }
+  ]
+ },
+ {
+  "tool": "n1_writer",
+  "label": "duplicate-fsync",
+  "test": "test_fsync_failure_never_returns_receipt_and_retry_syncs_again",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "n1_writer.py",
+    "old": "                    os.fsync(fd)\n",
+    "new": "                    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "input owner fence",
+  "test": "test_stale_owner_cannot_create_ledger_or_invoke_callback",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "    problem = None\n    with repo.owned_transaction(job, token, attempt=attempt) as db:\n        scope(repo, db, job)\n",
+    "new": "    problem = None\n    with repo.transaction() as db:\n        scope(repo, db, job)\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "output owner fence",
+  "test": "test_new_owner_reconciles_committed_adoption_without_execution",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        result = callback()\n        with repo.owned_transaction(job, token, attempt=attempt) as db:\n            scope(repo, db, job)\n",
+    "new": "        result = callback()\n        with repo.transaction() as db:\n            scope(repo, db, job)\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "input contract",
+  "test": "test_invalid_input_commits_failure_without_callback",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "            validate(role, \"input\", payload, job, attempt)\n",
+    "new": "            pass  # deleted input guard\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "output contract",
+  "test": "test_invalid_output_blocks_next_stage_and_records_no_success",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "                validate(role, \"output\", value, job, attempt, payload)\n",
+    "new": "                pass  # deleted output guard\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "callback replay guard",
+  "test": "test_completed_callback_is_never_replayed",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        if previous and not (\n            retry_adoption\n            and role == \"quality\"\n            and previous[\"status\"] == \"WAITING_ADOPTION\"\n            and previous[\"input_sha\"] == input_sha\n        ):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "dependency digest",
+  "test": "test_dependency_hash_must_match_not_only_status",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "                if not prior or prior[\"status\"] != \"SUCCEEDED\" or prior[\"output_sha\"] != input_sha:\n",
+    "new": "                if not prior or prior[\"status\"] != \"SUCCEEDED\":\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "durable validated outcome",
+  "test": "test_telemetry_success_failure_preserves_contract_and_no_replay",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "                    \"UPDATE owned_agent_contracts SET status='SUCCEEDED',output_sha=? WHERE job_id=? AND attempt=? AND role=?\",\n",
+    "new": "                    \"UPDATE owned_agent_contracts SET status='RUNNING',output_sha=? WHERE job_id=? AND attempt=? AND role=?\",\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "reconciled video digest",
+  "test": "test_reconcile_tampered_confirmed_video_refused",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        verified_bytes(video, result[\"video_sha256\"])\n",
+    "new": "        pass  # deleted video verification\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "delivery contract status",
+  "test": "test_invalid_input_commits_failure_without_callback",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "    if any(role not in rows or rows[role][\"status\"] != \"SUCCEEDED\" for role in BOUND):\n        raise ContractViolation(\"CONTRACT_DELIVERY_BLOCKED\")\n    if any(row[\"plan_sha\"] != contract_plan()[\"sha256\"] for row in rows.values()):\n",
+    "new": "    if any(role not in rows or rows[role][\"status\"] != \"SUCCEEDED\" for role in BOUND):\n        return\n    if any(row[\"plan_sha\"] != contract_plan()[\"sha256\"] for row in rows.values()):\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "delivery dependency lineage",
+  "test": "test_delivery_requires_adoption_and_full_digest_chain",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        rows[\"fact_source\"][\"output_sha\"] != rows[\"design\"][\"input_sha\"]\n        or rows[\"design\"][\"output_sha\"] != digest(result)\n",
+    "new": "        rows[\"design\"][\"output_sha\"] != digest(result)\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "confirmed ACK supremacy",
+  "test": "test_verified_ack_wins_even_when_contract_is_failed",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "missing ledger fail closed",
+  "test": "test_missing_contract_table_and_empty_job_fail_closed",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "            return\n        raise ContractViolation(\"CONTRACT_DELIVERY_BLOCKED\")\n    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():\n",
+    "new": "            return\n        return\n    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "output failure classification",
+  "test": "test_malformed_source_output_classified_as_output_invalid",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "                    else \"CONTRACT_OUTPUT_INVALID\"\n                    if problem\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "service adapter binding",
+  "test": "test_execute_enforces_three_contracts_and_never_sends",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "service.py",
+    "old": "        fact_contracts = job[\"command\"] == \"did_you_know\"\n",
+    "new": "        fact_contracts = False\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "pre-network delivery gate",
+  "test": "test_failed_quality_contract_stops_deliver_before_any_transport",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "        with repo.connect() as db:\n            require_delivery_contract(db, job_id, result)\n    identity = transport(token, \"getMe\")\n",
+    "new": "        with repo.connect() as db:\n            pass\n    identity = transport(token, \"getMe\")\n"
+   }
+  ]
+ },
+ {
+  "tool": "owned_contract_adapter",
+  "label": "reservation delivery gate",
+  "test": "test_contract_is_rechecked_in_delivery_reservation_transaction",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "        if content.get(\"type\") == \"did_you_know\":\n            require_delivery_contract(db, job_id, result)\n        concurrent = db.execute(\n",
+    "new": "        if content.get(\"type\") == \"did_you_know\":\n            pass\n        concurrent = db.execute(\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "writer category",
+  "test": "test_writer_refuses_incomplete_or_unknown_category",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "    if proposal[\"category\"] not in CATEGORIES:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "writer free identity",
+  "test": "test_writer_takes_the_first_free_identity",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "    free = next((n for n in range(1, 100) if n not in used), None)\n",
+    "new": "    free = max(used) + 1\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "reviewer duplicate",
+  "test": "test_reviewer_rejects_duplicates_and_close_rewordings",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "            if skeleton(fact[\"text\"]) == skeleton(text):\n",
+    "new": "            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "reviewer similar",
+  "test": "test_reviewer_rejects_duplicates_and_close_rewordings",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "            elif (\n                mine\n                and theirs\n                and len(mine & theirs) / min(len(mine), len(theirs)) >= SIMILARITY_LIMIT\n            ):\n",
+    "new": "            elif False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "reviewer source",
+  "test": "test_reviewer_rejects_sources_latin_and_layout",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "        validate_fact(draft, today)\n",
+    "new": "        pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "reviewer layout",
+  "test": "test_reviewer_rejects_sources_latin_and_layout",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "        if not 1 <= len(lines) <= MAX_LINES or any(len(line) > LINE_WIDTH for line in lines):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "fixer round",
+  "test": "test_fixer_corrects_spacing_and_punctuation_only",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "        fixed = fix(draft, decision)\n",
+    "new": "        fixed = None\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "fixer scope",
+  "test": "test_fixer_refuses_problems_that_need_new_words",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "    if decision[\"decision\"] != \"REJECT\" or any(\n        code not in FIXABLE for code in decision[\"problems\"]\n    ):\n",
+    "new": "    if decision[\"decision\"] != \"REJECT\":\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "fixer keeps words",
+  "test": "test_fixer_never_changes_words",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "    if skeleton(text) != skeleton(draft[\"text\"]):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "fixer grouped numbers",
+  "test": "test_fixer_converts_latin_punctuation_but_keeps_grouped_numbers",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "editorial_agents.py",
+    "old": "    text = re.sub(\n        r\"(?<![\\d,])(\\d{1,3}(?:,\\d{3})+)(?![\\d,])\", lambda m: m[1].replace(\",\", \"\\x00\"), text\n    )\n",
+    "new": "    text = re.sub(r\"(?<![\\d,])(\\d{1,3}(?:,\\d{3})+)(?![\\d,])\", lambda m: m[1], text)\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "analyst success rate",
+  "test": "test_analyst_counts_outcomes_and_causes",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "oversight_agents.py",
+    "old": "    good = sum(job[\"state\"] != \"FAILED\" for job in finished)\n",
+    "new": "    good = len(finished)\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "manager rotation",
+  "test": "test_manager_picks_what_choose_fact_would",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "oversight_agents.py",
+    "old": "    category = next((c for c in rotation_order(last) if stock[c] > 0), None)\n",
+    "new": "    category = next((c for c in rotation_order(None) if stock[c] > 0), None)\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "manager repeated failures",
+  "test": "test_manager_holds_after_repeated_failures",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "oversight_agents.py",
+    "old": "    if len(recent) == REPEATED_FAILURES and all(row[\"state\"] == \"FAILED\" for row in recent):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "manager busy",
+  "test": "test_manager_holds_while_a_job_is_active",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "oversight_agents.py",
+    "old": "    if active:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "manager exhausted",
+  "test": "test_manager_holds_when_the_catalog_is_exhausted",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "oversight_agents.py",
+    "old": "    if category is None:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "phase4_agent",
+  "label": "all eighteen bound",
+  "test": "test_eighteen_roles_stay_unaccepted_and_unbound_are_explicit",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "    \"content_repair\": \"maintenance.apply\",\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "process_fault",
+  "label": "committed adoption proof",
+  "test": "test_sigkill_after_fsync_before_db_rejects_uncommitted_adoption",
+  "marker": "guard:kill-uncommitted-adoption",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "            receipt = adoption_receipt(db, job, source_attempt, result)\n",
+    "new": "            receipt = {\n                \"job_id\": job,\n                \"attempt\": source_attempt,\n                \"stage\": \"design\",\n                \"sha256\": result[\"video_sha256\"],\n                \"path\": result[\"artifact\"],\n            }\n"
+   }
+  ]
+ },
+ {
+  "tool": "process_fault",
+  "label": "durable outcome before telemetry",
+  "test": "test_sigkill_after_db_before_telemetry_reconciles_without_render_or_send",
+  "marker": "guard:kill-committed-outcome",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "                    \"UPDATE owned_agent_contracts SET status='SUCCEEDED',output_sha=? WHERE job_id=? AND attempt=? AND role=?\",\n",
+    "new": "                    \"UPDATE owned_agent_contracts SET status=CASE WHEN role='quality' THEN 'RUNNING' ELSE 'SUCCEEDED' END,output_sha=? WHERE job_id=? AND attempt=? AND role=?\",\n"
+   }
+  ]
+ },
+ {
+  "tool": "process_fault",
+  "label": "ENOSPC failure state",
+  "test": "test_enospc_partial_input_fails_and_releases_unused_fact",
+  "marker": "guard:enospc-terminal-failure",
+  "hunks": [
+   {
+    "file": "service.py",
+    "old": "            repo.transition(job[\"id\"], token, \"FAILED\", {\"code\": code})\n",
+    "new": "            pass  # deleted terminal failure transition\n"
+   }
+  ]
+ },
+ {
+  "tool": "process_fault",
+  "label": "ENOSPC unused reservation release",
+  "test": "test_enospc_partial_input_fails_and_releases_unused_fact",
+  "marker": "guard:enospc-reservation-release",
+  "hunks": [
+   {
+    "file": "did_you_know.py",
+    "old": "        protected = (\n            ack_at > now - WINDOW_SECONDS\n            if ack_at is not None\n            else bool(evidence) or row[\"state\"] not in {\"FAILED\", \"CANCELLED\", \"EXPIRED\"}\n        )\n",
+    "new": "        protected = ack_at > now - WINDOW_SECONDS if ack_at is not None else bool(evidence) or True\n"
+   }
+  ]
+ },
+ {
+  "tool": "process_fault",
+  "label": "single socket writer",
+  "test": "test_two_worker_processes_on_real_socket_encode_only_once",
+  "marker": "guard:socket-single-encoder",
+  "hunks": [
+   {
+    "file": "service.py",
+    "old": "    with socketserver.UnixStreamServer(str(path), RenderHandler) as server:\n",
+    "new": "    with socketserver.ThreadingUnixStreamServer(str(path), RenderHandler) as server:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "voice ambient audio",
+  "test": "test_rejects_each_audio_problem",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if qa.get(\"audio\") != \"generated_ambient\":\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "voice loudness range",
+  "test": "test_rejects_each_audio_problem",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if not LOUDNESS_LUFS[0] <= audio[\"integrated_lufs\"] <= LOUDNESS_LUFS[1]:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "voice true peak",
+  "test": "test_rejects_each_audio_problem",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if audio[\"true_peak_dbtp\"] > MAX_TRUE_PEAK_DBTP:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "voice phone loudness",
+  "test": "test_rejects_each_audio_problem",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if audio[\"phone_lufs\"] < MIN_PHONE_LUFS:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media verified digest",
+  "test": "test_rejects_bytes_that_are_not_the_declared_digest",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "        data = verified_bytes(video, result[\"video_sha256\"])\n",
+    "new": "        data = video.read_bytes()\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media no symlink",
+  "test": "test_rejects_a_symlinked_video",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "        if item.is_symlink():\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media size claim",
+  "test": "test_rejects_size_and_profile_claims_that_do_not_match",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if qa.get(\"bytes\") != len(data) or len(data) > profile.get(\"max_bytes\", 0):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media profile claim",
+  "test": "test_rejects_size_and_profile_claims_that_do_not_match",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "        or abs(qa[\"duration\"] - profile[\"duration_seconds\"]) > 0.25\n",
+    "new": "        or False\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media faststart",
+  "test": "test_rejects_a_video_whose_index_follows_its_data",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if boxes.index(\"moov\") > boxes.index(\"mdat\"):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media box bounds",
+  "test": "test_rejects_malformed_or_incomplete_containers",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "        if size < header or offset + size > len(data):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media result record",
+  "test": "test_rejects_a_result_record_that_differs_on_disk",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if not record.is_file() or record.read_bytes() != encoded:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media preview",
+  "test": "test_rejects_a_missing_or_fake_preview",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if not preview.is_file() or preview.read_bytes()[:8] != PNG_SIGNATURE:\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "media font provenance",
+  "test": "test_rejects_foreign_fonts_and_unverified_layout",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if (result.get(\"font_sha256\"), result.get(\"latin_font_sha256\")) != (\n        profile.get(\"font_sha256\"),\n        profile.get(\"latin_font_sha256\"),\n    ):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "judge content lineage",
+  "test": "test_judge_rejects_tampered_earlier_evidence",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "        check_chain(rows)\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "judge render lineage",
+  "test": "test_judge_rejects_tampered_earlier_evidence",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "        if rows[role][\"input_sha\"] != result_sha or rows[role][\"output_sha\"] != result_sha:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "judge complete evidence",
+  "test": "test_judge_rejects_tampered_earlier_evidence",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "render_agents.py",
+    "old": "    if any(role not in rows or rows[role][\"status\"] != \"SUCCEEDED\" for role in earlier):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "render pass-through",
+  "test": "test_render_check_cannot_rewrite_the_result",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "PASS_THROUGH = CONTENT_CHECKS + RENDER_CHECKS\n",
+    "new": "PASS_THROUGH = CONTENT_CHECKS\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "render attempt binding",
+  "test": "test_render_check_refuses_another_attempt_result",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "        if (\n            (role == \"design\" and direction == \"output\")\n            or role == \"quality\"\n            or role in RENDER_CHECKS\n        ):\n",
+    "new": "        if (role == \"design\" and direction == \"output\") or role == \"quality\":\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "quality after judge",
+  "test": "test_quality_requires_every_render_check_in_order",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "agent_contract_map.py",
+    "old": "    \"quality\": (\"judge\",),\n",
+    "new": "    \"quality\": (\"design\",),\n"
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "delivery rechecks render chain",
+  "test": "test_delivery_gate_rechecks_every_render_check_row",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "    render_check_chain(rows, result)\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "reconciliation rechecks render chain",
+  "test": "test_new_owner_refuses_reconciliation_when_a_render_check_row_was_tampered",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "owned_contract_adapter.py",
+    "old": "            render_check_chain(checks, result)\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "render_agent",
+  "label": "execute runs the render checks",
+  "test": "test_execute_uses_local_source_and_owned_adoption_without_network_or_send",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "service.py",
+    "old": "            for role in RENDER_CHECKS:\n",
+    "new": "            for role in ():\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "direct api getMe bypass",
+  "test": "test_deliver_has_no_untracked_network_with_fake_transport",
+  "marker": "guard:untracked-network",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "    identity = transport(token, \"getMe\")\n",
+    "new": "    identity = api(token, \"getMe\")\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "direct api getChat bypass",
+  "test": "test_deliver_has_no_untracked_network_with_fake_transport",
+  "marker": "guard:transport-only-network",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "    owner = transport(token, \"getChat\", json.dumps({\"chat_id\": chat}).encode())\n",
+    "new": "    owner = api(token, \"getChat\", json.dumps({\"chat_id\": chat}).encode())\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "direct api sendVideo bypass",
+  "test": "test_deliver_has_no_untracked_network_with_fake_transport",
+  "marker": "guard:transport-only-network",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "            sent = transport(token, \"sendVideo\", body, kind)\n",
+    "new": "            sent = api(token, \"sendVideo\", body, kind)\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "prior UNKNOWN downgrade",
+  "test": "test_previous_unknown_receipt_cannot_be_downgraded",
+  "marker": "guard:no-downgrade",
+  "hunks": [
+   {
+    "file": "send_evidence.py",
+    "old": "        if prior.get(\"state\") != \"NOT_SENT_PRE_NETWORK\":\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "preflight history removal",
+  "test": "test_preflight_cannot_skip_history",
+  "marker": "guard:preflight-history",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "        history_guard(items, env[\"VIDEO_SHA\"], env)\n",
+    "new": "        pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "history deletion",
+  "test": "test_every_prior_intent_checked",
+  "marker": "guard:all-history",
+  "hunks": [
+   {
+    "file": "actions_preview.py",
+    "old": "        if env is None or not resolve_prior(item, env, github_get, load_entries(ROOT)):\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "UNKNOWN accepted",
+  "test": "test_unknown_and_missing_stay_blocked",
+  "marker": "guard:unknown-blocked",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "        receipt.get(\"state\") == \"NOT_SENT_PRE_NETWORK\"\n",
+    "new": "        receipt.get(\"state\") in (\"NOT_SENT_PRE_NETWORK\", \"UNKNOWN\")\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "receipt run binding",
+  "test": "test_pre_network_requires_all_bindings",
+  "marker": "guard:receipt-binding",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "        and receipt.get(\"run_id\") == intent[\"run_id\"]\n",
+    "new": "        and True\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "reviewed run binding",
+  "test": "test_reviewed_run_and_sha_must_match_api_and_intent",
+  "marker": "guard:reviewed-binding",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "        entry.get(\"run_id\") == run_id\n",
+    "new": "        True\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "reviewed SHA binding",
+  "test": "test_reviewed_run_and_sha_must_match_api_and_intent",
+  "marker": "guard:reviewed-binding",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "        and entry.get(\"video_sha\") == intent[\"video_sha\"]\n",
+    "new": "        and True\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "API run binding",
+  "test": "test_reviewed_run_and_sha_must_match_api_and_intent",
+  "marker": "guard:api-run-binding",
+  "hunks": [
+   {
+    "file": "send_reconciliation.py",
+    "old": "        and str(run.get(\"id\")) == run_id\n",
+    "new": "        and True\n"
+   }
+  ]
+ },
+ {
+  "tool": "send_reconciliation",
+  "label": "network boundary",
+  "test": "test_send_failure_before_and_after_first_request_is_durable",
+  "marker": "guard:network-boundary",
+  "hunks": [
+   {
+    "file": "send_evidence.py",
+    "old": "        # Mark before DNS/TLS/HTTP: even a failed first request remains UNKNOWN.\n        network_started.set(True)\n        return transport(*args, **kwargs)\n",
+    "new": "        # Mark before DNS/TLS/HTTP: even a failed first request remains UNKNOWN.\n        pass\n        return transport(*args, **kwargs)\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "approval",
+  "test": "test_no_approval",
+  "marker": "guard:approval",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "            self.require_approval(record, uid)\n",
+    "new": "            pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "video digest",
+  "test": "test_changed_sha",
+  "marker": "guard:sha",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "        if digest(directory / \"did-you-know.mp4\") != video_sha:\n",
+    "new": "        if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "intent file fsync",
+  "test": "test_intent_fsynced_before_network",
+  "marker": "guard:intent-fsync",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "        stream.flush()\n        os.fsync(stream.fileno())\n    sync_directory(path.parent)\n",
+    "new": "        stream.flush()\n        pass\n    sync_directory(path.parent)\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "intent directory fsync",
+  "test": "test_intent_fsynced_before_network",
+  "marker": "guard:intent-fsync",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "    sync_directory(path.parent)\n",
+    "new": "    pass\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "unknown downgrade",
+  "test": "test_unknown_permanently_blocks",
+  "marker": "guard:unknown",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "                self.append(\"PRE_NETWORK_BLOCKED\" if proven else \"UNKNOWN\", video_sha=video_sha)\n",
+    "new": "                self.append(\"PRE_NETWORK_BLOCKED\", video_sha=video_sha)\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "duplicate",
+  "test": "test_duplicate_rejected",
+  "marker": "guard:duplicate",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)\n    with os.fdopen(fd, \"wb\") as stream:\n        stream.write(canonical(value) + b\"\\n\")\n        stream.flush()\n        os.fsync(stream.fileno())\n    sync_directory(path.parent)\n\n\ndef verify_quality(directory, data, expected_sha):\n    \"\"\"Reuse the existing content, digest and owned quality contracts.\"\"\"\n    import tomllib\n\n    from studio_core.config import Config\n    from studio_core.jobs import Repository\n\n    from .did_you_know import validate_content\n    from .owned_contract_adapter import quality_chain\n\n    if any(p.is_symlink() for p in directory.rglob(\"*\")):\n        raise ValueError(\"Symlink bundle rejected\")\n    if (\n        data.get(\"repository\") != \"Khalidshar/snap-bot-v2\"\n        or data.get(\"delivery\") != \"NOT_ATTEMPTED\"\n        or data.get(\"human_approval\") is not None\n    ):\n        raise ValueError(\"Invalid unapproved preview\")\n    if (\n        not re.fullmatch(\"[0-9a-f]{32}\", data[\"job_id\"])\n        or data[\"attempt\"] != 1\n        or not 0 < time.time() < data[\"expires_at\"]\n    ):\n        raise ValueError(\"Invalid or expired job\")\n    if digest(directory / \"preview.png\") != data[\"preview_sha256\"]:\n        raise ValueError(\"Preview changed\")\n    config = replace(\n        Config.load(ROOT / \"config/snap/did_you_know.toml\"),\n        data_root=directory / \"state\",\n        owners={\"telegram\": (OWNER,)},\n        lease_seconds=3600,\n    )\n    repo = Repository(config)\n    repo.assert_owner(data[\"job_id\"], data[\"lease_token\"], attempt=data[\"attempt\"])\n    root = config.data_root / \"renders\" / data[\"job_id\"]\n    result = json.loads((root / \"output/render-result.json\").read_text())\n    content = json.loads((root / \"input/content.json\").read_text())\n    validate_content(content)\n    env = {\"VIDEO_SHA\": expected_sha, \"CONTENT_HASH\": result[\"content_hash\"]}\n    digest_guard((root / \"output/did-you-know.mp4\").read_bytes(), result, content, env)\n    digest_guard((directory / \"did-you-know.mp4\").read_bytes(), result, content, env)\n    profile = tomllib.loads((ROOT / \"config/snap/did_you_know.toml\").read_text())[\"slice\"][\n        \"profile\"\n    ]\n    if result != data[\"render\"] or result[\"font_sha256\"] != profile[\"font_sha256\"]:\n        raise ValueError(\"Render profile changed\")\n    isolation = result.get(\"network_isolation\", {})\n    if (\n        set(isolation) != {\"ipv4\", \"ipv6\", \"udp\", \"egress_unreachable\"}\n        or not all(isolation.values())\n        or content[\"expires_at\"] <= time.time()\n    ):\n        raise ValueError(\"Isolation or content invalid\")\n    if (\n        result.get(\"safe_area\", {}).get(\"result\") != \"PASS\"\n        or result.get(\"qa\", {}).get(\"result\") != \"PASS\"\n        or result.get(\"glyph_coverage\") != \"PASS\"\n    ):\n        raise ValueError(\"Quality missing\")\n    with repo.connect() as db:\n        if quality_chain(db, data[\"job_id\"], data[\"attempt\"], result) != data[\"quality\"]:\n            raise ValueError(\"Owned quality changed\")\n    return config, repo, data, result\n\n\nclass Runtime:\n    # Alternate root is an internal test seam; CLI always uses STATE.\n    def __init__(self, root=STATE):\n        self.root = safe_path(root)\n\n    @contextmanager\n    def locked(self):\n        import fcntl\n\n        for directory in (self.root, self.root / \"previews\", self.root / \"intents\"):\n            safe_path(directory).mkdir(parents=True, exist_ok=True, mode=0o700)\n        fd = os.open(safe_path(self.root / \"lock\"), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)\n        try:\n            fcntl.flock(fd, fcntl.LOCK_EX)\n            yield\n        finally:\n            os.close(fd)\n\n    def events(self):\n        path = safe_path(self.root / \"events.jsonl\")\n        if not path.exists():\n            return []\n        raw = path.read_bytes()\n        if len(raw) > 32_000_000 or (raw and not raw.endswith(b\"\\n\")):\n            raise ValueError(\"Incomplete ledger\")\n        events, previous = [], \"0\" * 64\n        for line in raw.splitlines():\n            value = json.loads(line)\n            signature = value.pop(\"hash\")\n            if (\n                value[\"seq\"] != len(events) + 1\n                or value[\"previous\"] != previous\n                or hashlib.sha256(canonical(value)).hexdigest() != signature\n            ):\n                raise ValueError(\"Corrupt ledger\")\n            value[\"hash\"] = signature\n            events.append(value)\n            previous = signature\n        return events\n\n    def append(self, kind, **fields):\n        events = self.events()\n        value = dict(\n            fields,\n            kind=kind,\n            time=time.time(),\n            seq=len(events) + 1,\n            previous=events[-1][\"hash\"] if events else \"0\" * 64,\n        )\n        value[\"hash\"] = hashlib.sha256(canonical(value)).hexdigest()\n        path = safe_path(self.root / \"events.jsonl\")\n        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)\n        with os.fdopen(fd, \"ab\") as stream:\n            stream.write(canonical(value) + b\"\\n\")\n            stream.flush()\n            os.fsync(stream.fileno())\n        sync_directory(self.root)\n        return value\n\n    def spent(self, video_sha):\n        return (self.root / \"intents\" / (video_sha + \".json\")).exists() or any(\n            x[\"kind\"] == \"INTENT\" and x.get(\"video_sha\") == video_sha for x in self.events()\n        )\n\n    def render(self):\n        commit, _ = source_info()\n        with self.locked():\n            identifier = uuid.uuid4().hex\n            directory = self.root / \"previews\" / identifier\n            data = render_bundle(directory, {\"run_id\": identifier, \"head_sha\": commit})\n            video_sha = sha(data[\"render\"][\"video_sha256\"])\n            if any(\n                x[\"kind\"] == \"RENDERED\" and x.get(\"video_sha\") == video_sha for x in self.events()\n            ):\n                raise ValueError(\"SHA already rendered\")\n            evidence = {\n                \"preview_id\": identifier,\n                \"video_sha\": video_sha,\n                \"content_hash\": data[\"render\"][\"content_hash\"],\n                \"commit\": commit,\n                \"bundle_sha\": digest(directory / \"preview.json\"),\n            }\n            exclusive_json(directory / \"evidence.json\", evidence)\n            self.append(\"RENDERED\", **evidence, evidence_sha=digest(directory / \"evidence.json\"))\n            return evidence\n\n    def verify(self, video_sha):\n        sha(video_sha)\n        commit, _ = source_info()\n        records = [\n            x for x in self.events() if x[\"kind\"] == \"RENDERED\" and x.get(\"video_sha\") == video_sha\n        ]\n        if len(records) != 1:\n            raise ValueError(\"Unique rendered evidence required\")\n        record = records[0]\n        if not re.fullmatch(\"[0-9a-f]{32}\", record[\"preview_id\"]):\n            raise ValueError(\"Invalid preview ID\")\n        directory = safe_path(self.root / \"previews\" / record[\"preview_id\"])\n        if any(p.is_symlink() for p in directory.rglob(\"*\")):\n            raise ValueError(\"Symlink bundle rejected\")\n        if digest(directory / \"did-you-know.mp4\") != video_sha:\n            raise ValueError(\"Video SHA changed\")\n        if (\n            digest(directory / \"evidence.json\") != record[\"evidence_sha\"]\n            or digest(directory / \"preview.json\") != record[\"bundle_sha\"]\n            or record[\"commit\"] != commit\n        ):\n            raise ValueError(\"Evidence or release changed\")\n        data = json.loads((directory / \"preview.json\").read_text())\n        if (\n            data[\"head_sha\"] != commit\n            or data[\"run_id\"] != record[\"preview_id\"]\n            or data[\"render\"][\"content_hash\"] != record[\"content_hash\"]\n        ):\n            raise ValueError(\"Provenance changed\")\n        return directory, record, verify_quality(directory, data, video_sha)\n\n    def approve(self, video_sha):\n        _, uid = source_info()\n        actor = owner_actor(uid)\n        with self.locked():\n            directory, record, (_, repo, data, result) = self.verify(video_sha)\n            if self.spent(video_sha) or any(\n                x[\"kind\"] == \"HUMAN_FRAME\" and x.get(\"video_sha\") == video_sha\n                for x in self.events()\n            ):\n                raise ValueError(\"Approval cannot replace prior decision\")\n            from .final_agent import evaluate_final, record_human_frame\n\n            record_human_frame(\n                repo, data[\"job_id\"], data[\"lease_token\"], data[\"attempt\"], result, reviewer=OWNER\n            )\n            if (\n                evaluate_final(repo, data[\"job_id\"], data[\"lease_token\"], data[\"attempt\"], result)[\n                    \"delivery_decision\"\n                ]\n                != \"APPROVED\"\n            ):\n                raise ValueError(\"Final blocked\")\n            return self.append(\n                \"HUMAN_FRAME\",\n                video_sha=video_sha,\n                owner_uid=actor,\n                preview_id=record[\"preview_id\"],\n                content_hash=record[\"content_hash\"],\n                commit=record[\"commit\"],\n                evidence_sha=record[\"evidence_sha\"],\n            )\n\n    def require_approval(self, record, uid):\n        keys = (\"video_sha\", \"preview_id\", \"content_hash\", \"commit\", \"evidence_sha\")\n        if not any(\n            x[\"kind\"] == \"HUMAN_FRAME\"\n            and x.get(\"owner_uid\") == uid\n            and all(x.get(k) == record[k] for k in keys)\n            for x in self.events()\n        ):\n            raise ValueError(\"Matching HUMAN_FRAME required\")\n\n    def send(self, video_sha, transport=None):\n        sha(video_sha)\n        _, uid = source_info()\n        with self.locked():\n            if self.spent(video_sha):\n",
+    "new": "    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)\n    with os.fdopen(fd, \"wb\") as stream:\n        stream.write(canonical(value) + b\"\\n\")\n        stream.flush()\n        os.fsync(stream.fileno())\n    sync_directory(path.parent)\n\n\ndef verify_quality(directory, data, expected_sha):\n    \"\"\"Reuse the existing content, digest and owned quality contracts.\"\"\"\n    import tomllib\n\n    from studio_core.config import Config\n    from studio_core.jobs import Repository\n\n    from .did_you_know import validate_content\n    from .owned_contract_adapter import quality_chain\n\n    if any(p.is_symlink() for p in directory.rglob(\"*\")):\n        raise ValueError(\"Symlink bundle rejected\")\n    if (\n        data.get(\"repository\") != \"Khalidshar/snap-bot-v2\"\n        or data.get(\"delivery\") != \"NOT_ATTEMPTED\"\n        or data.get(\"human_approval\") is not None\n    ):\n        raise ValueError(\"Invalid unapproved preview\")\n    if (\n        not re.fullmatch(\"[0-9a-f]{32}\", data[\"job_id\"])\n        or data[\"attempt\"] != 1\n        or not 0 < time.time() < data[\"expires_at\"]\n    ):\n        raise ValueError(\"Invalid or expired job\")\n    if digest(directory / \"preview.png\") != data[\"preview_sha256\"]:\n        raise ValueError(\"Preview changed\")\n    config = replace(\n        Config.load(ROOT / \"config/snap/did_you_know.toml\"),\n        data_root=directory / \"state\",\n        owners={\"telegram\": (OWNER,)},\n        lease_seconds=3600,\n    )\n    repo = Repository(config)\n    repo.assert_owner(data[\"job_id\"], data[\"lease_token\"], attempt=data[\"attempt\"])\n    root = config.data_root / \"renders\" / data[\"job_id\"]\n    result = json.loads((root / \"output/render-result.json\").read_text())\n    content = json.loads((root / \"input/content.json\").read_text())\n    validate_content(content)\n    env = {\"VIDEO_SHA\": expected_sha, \"CONTENT_HASH\": result[\"content_hash\"]}\n    digest_guard((root / \"output/did-you-know.mp4\").read_bytes(), result, content, env)\n    digest_guard((directory / \"did-you-know.mp4\").read_bytes(), result, content, env)\n    profile = tomllib.loads((ROOT / \"config/snap/did_you_know.toml\").read_text())[\"slice\"][\n        \"profile\"\n    ]\n    if result != data[\"render\"] or result[\"font_sha256\"] != profile[\"font_sha256\"]:\n        raise ValueError(\"Render profile changed\")\n    isolation = result.get(\"network_isolation\", {})\n    if (\n        set(isolation) != {\"ipv4\", \"ipv6\", \"udp\", \"egress_unreachable\"}\n        or not all(isolation.values())\n        or content[\"expires_at\"] <= time.time()\n    ):\n        raise ValueError(\"Isolation or content invalid\")\n    if (\n        result.get(\"safe_area\", {}).get(\"result\") != \"PASS\"\n        or result.get(\"qa\", {}).get(\"result\") != \"PASS\"\n        or result.get(\"glyph_coverage\") != \"PASS\"\n    ):\n        raise ValueError(\"Quality missing\")\n    with repo.connect() as db:\n        if quality_chain(db, data[\"job_id\"], data[\"attempt\"], result) != data[\"quality\"]:\n            raise ValueError(\"Owned quality changed\")\n    return config, repo, data, result\n\n\nclass Runtime:\n    # Alternate root is an internal test seam; CLI always uses STATE.\n    def __init__(self, root=STATE):\n        self.root = safe_path(root)\n\n    @contextmanager\n    def locked(self):\n        import fcntl\n\n        for directory in (self.root, self.root / \"previews\", self.root / \"intents\"):\n            safe_path(directory).mkdir(parents=True, exist_ok=True, mode=0o700)\n        fd = os.open(safe_path(self.root / \"lock\"), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)\n        try:\n            fcntl.flock(fd, fcntl.LOCK_EX)\n            yield\n        finally:\n            os.close(fd)\n\n    def events(self):\n        path = safe_path(self.root / \"events.jsonl\")\n        if not path.exists():\n            return []\n        raw = path.read_bytes()\n        if len(raw) > 32_000_000 or (raw and not raw.endswith(b\"\\n\")):\n            raise ValueError(\"Incomplete ledger\")\n        events, previous = [], \"0\" * 64\n        for line in raw.splitlines():\n            value = json.loads(line)\n            signature = value.pop(\"hash\")\n            if (\n                value[\"seq\"] != len(events) + 1\n                or value[\"previous\"] != previous\n                or hashlib.sha256(canonical(value)).hexdigest() != signature\n            ):\n                raise ValueError(\"Corrupt ledger\")\n            value[\"hash\"] = signature\n            events.append(value)\n            previous = signature\n        return events\n\n    def append(self, kind, **fields):\n        events = self.events()\n        value = dict(\n            fields,\n            kind=kind,\n            time=time.time(),\n            seq=len(events) + 1,\n            previous=events[-1][\"hash\"] if events else \"0\" * 64,\n        )\n        value[\"hash\"] = hashlib.sha256(canonical(value)).hexdigest()\n        path = safe_path(self.root / \"events.jsonl\")\n        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)\n        with os.fdopen(fd, \"ab\") as stream:\n            stream.write(canonical(value) + b\"\\n\")\n            stream.flush()\n            os.fsync(stream.fileno())\n        sync_directory(self.root)\n        return value\n\n    def spent(self, video_sha):\n        return (self.root / \"intents\" / (video_sha + \".json\")).exists() or any(\n            x[\"kind\"] == \"INTENT\" and x.get(\"video_sha\") == video_sha for x in self.events()\n        )\n\n    def render(self):\n        commit, _ = source_info()\n        with self.locked():\n            identifier = uuid.uuid4().hex\n            directory = self.root / \"previews\" / identifier\n            data = render_bundle(directory, {\"run_id\": identifier, \"head_sha\": commit})\n            video_sha = sha(data[\"render\"][\"video_sha256\"])\n            if any(\n                x[\"kind\"] == \"RENDERED\" and x.get(\"video_sha\") == video_sha for x in self.events()\n            ):\n                raise ValueError(\"SHA already rendered\")\n            evidence = {\n                \"preview_id\": identifier,\n                \"video_sha\": video_sha,\n                \"content_hash\": data[\"render\"][\"content_hash\"],\n                \"commit\": commit,\n                \"bundle_sha\": digest(directory / \"preview.json\"),\n            }\n            exclusive_json(directory / \"evidence.json\", evidence)\n            self.append(\"RENDERED\", **evidence, evidence_sha=digest(directory / \"evidence.json\"))\n            return evidence\n\n    def verify(self, video_sha):\n        sha(video_sha)\n        commit, _ = source_info()\n        records = [\n            x for x in self.events() if x[\"kind\"] == \"RENDERED\" and x.get(\"video_sha\") == video_sha\n        ]\n        if len(records) != 1:\n            raise ValueError(\"Unique rendered evidence required\")\n        record = records[0]\n        if not re.fullmatch(\"[0-9a-f]{32}\", record[\"preview_id\"]):\n            raise ValueError(\"Invalid preview ID\")\n        directory = safe_path(self.root / \"previews\" / record[\"preview_id\"])\n        if any(p.is_symlink() for p in directory.rglob(\"*\")):\n            raise ValueError(\"Symlink bundle rejected\")\n        if digest(directory / \"did-you-know.mp4\") != video_sha:\n            raise ValueError(\"Video SHA changed\")\n        if (\n            digest(directory / \"evidence.json\") != record[\"evidence_sha\"]\n            or digest(directory / \"preview.json\") != record[\"bundle_sha\"]\n            or record[\"commit\"] != commit\n        ):\n            raise ValueError(\"Evidence or release changed\")\n        data = json.loads((directory / \"preview.json\").read_text())\n        if (\n            data[\"head_sha\"] != commit\n            or data[\"run_id\"] != record[\"preview_id\"]\n            or data[\"render\"][\"content_hash\"] != record[\"content_hash\"]\n        ):\n            raise ValueError(\"Provenance changed\")\n        return directory, record, verify_quality(directory, data, video_sha)\n\n    def approve(self, video_sha):\n        _, uid = source_info()\n        actor = owner_actor(uid)\n        with self.locked():\n            directory, record, (_, repo, data, result) = self.verify(video_sha)\n            if self.spent(video_sha) or any(\n                x[\"kind\"] == \"HUMAN_FRAME\" and x.get(\"video_sha\") == video_sha\n                for x in self.events()\n            ):\n                raise ValueError(\"Approval cannot replace prior decision\")\n            from .final_agent import evaluate_final, record_human_frame\n\n            record_human_frame(\n                repo, data[\"job_id\"], data[\"lease_token\"], data[\"attempt\"], result, reviewer=OWNER\n            )\n            if (\n                evaluate_final(repo, data[\"job_id\"], data[\"lease_token\"], data[\"attempt\"], result)[\n                    \"delivery_decision\"\n                ]\n                != \"APPROVED\"\n            ):\n                raise ValueError(\"Final blocked\")\n            return self.append(\n                \"HUMAN_FRAME\",\n                video_sha=video_sha,\n                owner_uid=actor,\n                preview_id=record[\"preview_id\"],\n                content_hash=record[\"content_hash\"],\n                commit=record[\"commit\"],\n                evidence_sha=record[\"evidence_sha\"],\n            )\n\n    def require_approval(self, record, uid):\n        keys = (\"video_sha\", \"preview_id\", \"content_hash\", \"commit\", \"evidence_sha\")\n        if not any(\n            x[\"kind\"] == \"HUMAN_FRAME\"\n            and x.get(\"owner_uid\") == uid\n            and all(x.get(k) == record[k] for k in keys)\n            for x in self.events()\n        ):\n            raise ValueError(\"Matching HUMAN_FRAME required\")\n\n    def send(self, video_sha, transport=None):\n        sha(video_sha)\n        _, uid = source_info()\n        with self.locked():\n            if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "owner authority",
+  "test": "test_owner_uid_required",
+  "marker": "guard:owner",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "    if os.geteuid() != 0 or raw != str(uid):\n",
+    "new": "    if False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "ledger hash",
+  "test": "test_corrupt_ledger",
+  "marker": "guard:ledger-hash",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "            if (\n                value[\"seq\"] != len(events) + 1\n                or value[\"previous\"] != previous\n                or hashlib.sha256(canonical(value)).hexdigest() != signature\n            ):\n",
+    "new": "            if value[\"seq\"] != len(events) + 1 or value[\"previous\"] != previous or False:\n"
+   }
+  ]
+ }
+]

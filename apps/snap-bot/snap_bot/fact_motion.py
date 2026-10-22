@@ -2,12 +2,13 @@
 
 import math
 import re
+from collections.abc import Iterable
 
 READING_SECONDS = 1.5
 SLIDE_PIXELS = 20
 
 
-def background_filters(filters):
+def background_filters(filters: Iterable[str]) -> list[str]:
     # Interpolate before 8-bit quantization, then diffuse the rounding error.
     # Grain is generated once before loop caching, never on text or per frame.
     filters = list(filters)
@@ -34,7 +35,7 @@ def background_filters(filters):
     return filters
 
 
-def reveal_windows(label_count, duration):
+def reveal_windows(label_count: int, duration: float) -> list[tuple[float, float]]:
     body_count = label_count - 5
     if not 1 <= body_count <= 5 or not 8 <= duration <= 12:
         raise ValueError("Invalid fact motion profile")
@@ -47,7 +48,7 @@ def reveal_windows(label_count, duration):
     return windows
 
 
-def label_filter(filter_value, window):
+def label_filter(filter_value: str, window: tuple[float, float]) -> str:
     start, end = window
     progress = f"clip((t-{start:g})/{end - start:g},0,1)"
     # Begin above the final baseline so the footer never slides below SAFE.
@@ -55,12 +56,12 @@ def label_filter(filter_value, window):
     return prefix + f":y='{baseline}-{SLIDE_PIXELS}*(1-{progress})':alpha='{progress}'"
 
 
-def glow_position(t, duration):
+def glow_position(t: float, duration: float) -> tuple[float, float]:
     clock = min(max(t, 0), duration - READING_SECONDS)
     return (240 + 30 * math.sin(clock / 30), 450 + 20 * math.sin(clock / 30))
 
 
-def glow_filter(fps, duration):
+def glow_filter(fps: int, duration: float) -> str:
     # A continuous radial falloff reaches zero at the tile edge. Spatial
     # stochastic rounding avoids concentric 8-bit alpha rings; its coordinate
     # hash is fixed, so cached alpha does not flicker or disturb the final hold.

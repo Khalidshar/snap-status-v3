@@ -20,13 +20,13 @@ REJECTION_CLASSES = frozenset(
 )
 
 
-def safe_classification(value):
+def safe_classification(value: object) -> str:
     if isinstance(value, str) and value in REJECTION_CLASSES:
         return value
     return UNKNOWN_REJECTION
 
 
-def classify_rejection(status, error_code, description):
+def classify_rejection(status: object, error_code: object, description: object) -> str:
     """Only exact descriptions paired with matching numeric codes are recognized."""
     if (
         type(status) is not int

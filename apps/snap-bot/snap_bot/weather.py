@@ -2,6 +2,7 @@ import hashlib
 import json
 import math
 from datetime import UTC, datetime, timezone
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from studio_core.jobs import canonical
@@ -12,7 +13,7 @@ class SourceInvalid(ValueError):
     pass
 
 
-def content_hash(content):
+def content_hash(content: dict[str, Any]) -> str:
     return hashlib.sha256(
         canonical(
             {
@@ -24,13 +25,15 @@ def content_hash(content):
     ).hexdigest()
 
 
-def numeric(value, low, high):
+def numeric(value: float, low: float, high: float) -> float:
     if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
         raise SourceInvalid("Invalid weather value")
     return round(value, 1)
 
 
-def parse(source, raw, city, now, ttl):
+def parse(
+    source: dict[str, Any], raw: str | bytes, city: str, now: float, ttl: float
+) -> dict[str, Any]:
     try:
         value = json.loads(raw)
         if source["id"] == "open-meteo":
@@ -64,7 +67,7 @@ def parse(source, raw, city, now, ttl):
     except (KeyError, TypeError, json.JSONDecodeError, IndexError, ValueError) as exc:
         raise SourceInvalid("Weather response rejected") from None
     body = f"الحرارة {temperature:.1f} درجة مئوية\nالرياح {wind:.1f} كم في الساعة"
-    content = {
+    content: dict[str, Any] = {
         "type": "weather",
         "title": "طقس " + city,
         "body": body,
@@ -84,8 +87,10 @@ def parse(source, raw, city, now, ttl):
     return content
 
 
-def fetch_weather(client, settings, now):
-    failures = []
+def fetch_weather(
+    client: Any, settings: dict[str, Any], now: float
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
+    failures: list[dict[str, str]] = []
     for source in settings["sources"]:
         try:
             response = client.get(source["url"])

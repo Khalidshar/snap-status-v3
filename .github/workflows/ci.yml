@@ -82,6 +82,27 @@ jobs:
           if-no-files-found: ignore
           retention-days: 3
 
+  app-mutations:
+    name: App guard mutations
+    # Same pinned runner and media stack as the tests: render guards need real FFmpeg.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri
+      - run: uv sync --all-packages
+      # Deliberate Snap guard deletions (ported lab tools): each must fail its named test.
+      - run: uv run --frozen python scripts/check_app_mutations.py --jobs 4
+        env:
+          MADAR_REQUIRE_REAL_RENDER: "1"
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
@@ -132,7 +153,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [changes, lint, test, secret-scan, workflow-lint, build]
+    needs: [changes, lint, test, app-mutations, secret-scan, workflow-lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

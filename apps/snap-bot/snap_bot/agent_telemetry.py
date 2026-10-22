@@ -5,7 +5,13 @@ import re
 import subprocess
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any, TypeVar
+
+from studio_core.config import Config
+
+T = TypeVar("T")
 
 NODE_EXECUTABLE = "/usr/bin/node"
 
@@ -18,7 +24,7 @@ class TelemetryReconciliationRequired(TelemetryUnavailable):
     code = "TELEMETRY_RECONCILIATION_REQUIRED"
 
 
-def _record(config, event):
+def _record(config: Config, event: dict[str, Any]) -> None:
     if not re.fullmatch(r"[A-Za-z0-9_.-]{1,120}", event["job"]):
         raise TelemetryUnavailable("Invalid event identity")
     script = Path(__file__).parent / "madar" / "record.mjs"
@@ -46,7 +52,7 @@ def _record(config, event):
         raise TelemetryUnavailable("Agent telemetry unavailable") from None
 
 
-def observe(config, agent, job, callback):
+def observe(config: Config, agent: str, job: str, callback: Callable[[], T]) -> T:
     event = {"agent": agent, "job": job, "run": uuid.uuid4().hex}
     _record(config, {**event, "status": "RUNNING"})
     started = time.monotonic()
