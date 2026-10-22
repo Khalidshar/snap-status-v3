@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "entries": [
+    {
+      "run_id": "37241260343",
+      "video_sha": "93b549fb80625eb7b8a571e06b487a898851416fffc47c372c447786efdd1aea",
+      "intent_artifact_id": "11316967508",
+      "intent_sha256": "6128c2b02642e84d52f8004a809bcb0debce645f4956ecf583c23bdc1b5bcad6",
+      "reason": "empty TG_TEST credentials; preflight stopped before network",
+      "log_url": "https://github.com/Khalidshar/snap-bot-v2/actions/runs/37241260343/job/111550278182#step:10:1"
+    }
+  ]
+}
