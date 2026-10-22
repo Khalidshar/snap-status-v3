@@ -14,7 +14,10 @@ import struct
 import sys
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
+from types import FrameType
+from typing import Any, cast
 
 from . import n1_ipc as ipc
 from .n1_writer import IsolatedAppendHandler, PhysicalWriter
@@ -24,7 +27,7 @@ class ServiceRefused(RuntimeError):
     pass
 
 
-def credential_access(fd, meta):
+def credential_access(fd: int, meta: os.stat_result) -> bool:
     if not meta.st_mode & 0o077:
         return True
     # systemd 255 grants a named UID read ACL; its mask appears as group bits.
@@ -49,7 +52,7 @@ def credential_access(fd, meta):
     return len(set(entries)) == 5 and set(entries) == expected
 
 
-def credential(name):
+def credential(name: object) -> bytes:
     if not isinstance(name, str) or not re.fullmatch("[A-Za-z0-9_-]{1,64}", name):
         raise ServiceRefused("CREDENTIAL_NAME")
     directory = os.environ.get("CREDENTIALS_DIRECTORY")
@@ -80,16 +83,16 @@ def credential(name):
 class WriterService:
     def __init__(
         self,
-        path,
-        worker_uid,
-        app,
-        handler,
+        path: str | os.PathLike[str],
+        worker_uid: int,
+        app: str,
+        handler: Callable[[Any], Any],
         *,
-        max_connections=1,
-        rate_limit=20,
-        rate_window=60,
-        network_timeout=2,
-    ):
+        max_connections: int = 1,
+        rate_limit: int = 20,
+        rate_window: float = 60,
+        network_timeout: float = 2,
+    ) -> None:
         self.path = Path(path)
         self.worker_uid = ipc.uid(worker_uid)
         ipc.identity(app, "service")
@@ -108,11 +111,11 @@ class WriterService:
         self.rate_limit = rate_limit
         self.rate_window = rate_window
         self.network_timeout = network_timeout
-        self.listener = None
-        self.inode = None
+        self.listener: socket.socket | None = None
+        self.inode: int | None = None
         self._lock = threading.Lock()
-        self._threads = set()
-        self._times = collections.deque()
+        self._threads: set[threading.Thread] = set()
+        self._times: collections.deque[float] = collections.deque()
         self.stats = {
             "admitted": 0,
             "peer_rejected": 0,
@@ -121,7 +124,7 @@ class WriterService:
             "protocol_errors": 0,
         }
 
-    def start(self):
+    def start(self) -> None:
         parent = self.path.parent
         if not self.path.is_absolute() or parent.is_symlink():
             raise ServiceRefused("SOCKET_DIRECTORY")
@@ -147,7 +150,7 @@ class WriterService:
             raise
         self.listener = listener
 
-    def _serve(self, conn):
+    def _serve(self, conn: socket.socket) -> None:
         try:
             ipc.serve_connection(
                 conn,
@@ -165,9 +168,9 @@ class WriterService:
             with self._lock:
                 self._threads.discard(threading.current_thread())
 
-    def accept_one(self):
+    def accept_one(self) -> None:
         try:
-            conn, _ = self.listener.accept()
+            conn, _ = cast(socket.socket, self.listener).accept()
         except TimeoutError:
             return
         try:
@@ -194,13 +197,13 @@ class WriterService:
             self._threads.add(thread)
         thread.start()
 
-    def run(self, stop):
+    def run(self, stop: threading.Event) -> None:
         if self.listener is None:
             raise ServiceRefused("SERVICE_NOT_STARTED")
         while not stop.is_set():
             self.accept_one()
 
-    def shutdown(self, timeout=5):
+    def shutdown(self, timeout: float = 5) -> None:
         if not 0 <= timeout <= 30:
             raise ValueError("Invalid shutdown timeout")
         if self.listener:
@@ -229,7 +232,7 @@ class WriterService:
             self.inode = None
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--enable-service", action="store_true", required=True)
     parser.add_argument("--app", required=True)
@@ -243,7 +246,7 @@ def main():
     service = WriterService(args.socket, args.worker_uid, args.app, IsolatedAppendHandler(writer))
     stop = threading.Event()
 
-    def terminate(signum, frame):
+    def terminate(signum: int, frame: FrameType | None) -> None:
         stop.set()
 
     signal.signal(signal.SIGTERM, terminate)

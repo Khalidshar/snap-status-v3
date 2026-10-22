@@ -6,7 +6,11 @@ import json
 import os
 import tempfile
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
+
+from studio_core.jobs import Repository
 
 from .n1_artifacts import projection_lock, sync_directory
 from .n1_contracts import Ledger, Refused, canonical, sha
@@ -19,7 +23,7 @@ class SegmentCorrupt(RuntimeError):
 class JournalSegments:
     LIMIT = 2_000_000
 
-    def __init__(self, repo, key, root):
+    def __init__(self, repo: Repository, key: bytes, root: str | os.PathLike[str]) -> None:
         self.repo = repo
         self.ledger = Ledger(repo, key)
         self.root = Path(root)
@@ -41,7 +45,7 @@ class JournalSegments:
                 )
         self.recover()
 
-    def metadata(self, gen):
+    def metadata(self, gen: str) -> dict[str, Any]:
         with self.repo.connect() as db:
             row = db.execute(
                 "SELECT f.*,s.state FROM n1_segment_files f JOIN n1_segments s USING(gen) WHERE gen=?",
@@ -51,12 +55,12 @@ class JournalSegments:
                 raise Refused("UNKNOWN_PHYSICAL_SEGMENT")
             return dict(row)
 
-    def path(self, gen):
+    def path(self, gen: str) -> Path:
         if len(gen) != 32 or any(c not in "0123456789abcdef" for c in gen):
             raise ValueError("Invalid generation")
         return self.root / ("events-" + gen + ".jsonl")
 
-    def header(self, meta):
+    def header(self, meta: dict[str, Any]) -> dict[str, Any]:
         return {
             "type": "segment",
             "app": self.repo.config.app,
@@ -66,7 +70,7 @@ class JournalSegments:
             "base_digest": meta["base_digest"],
         }
 
-    def _prepare(self, gen, failpoint=None):
+    def _prepare(self, gen: str, failpoint: Callable[[str], object] | None = None) -> None:
         meta = self.metadata(gen)
         path = self.path(gen)
         header = (canonical(self.header(meta)) + "\n").encode()
@@ -97,7 +101,7 @@ class JournalSegments:
             if os.path.exists(name):
                 os.unlink(name)
 
-    def recover(self):
+    def recover(self) -> None:
         with self.repo.connect() as db:
             pending = [
                 r[0] for r in db.execute("SELECT gen FROM n1_segment_files WHERE phase='PREPARING'")
@@ -106,20 +110,29 @@ class JournalSegments:
             self._prepare(gen)
         # Never delete lock files, truncate tails, or infer process death from timeout.
 
-    def begin(self, job, token, attempt, agent, status, event_id, payload_sha):
+    def begin(
+        self,
+        job: str,
+        token: str,
+        attempt: int,
+        agent: str,
+        status: str,
+        event_id: str,
+        payload_sha: str,
+    ) -> dict[str, Any]:
         envelope = self.ledger.begin(job, token, attempt, agent, status, event_id, payload_sha)
         meta = self.metadata(envelope["body"]["gen"])
         if meta["phase"] != "READY" or meta["state"] != "ACTIVE":
             raise Refused("SEGMENT_NOT_READY")
         return envelope
 
-    def scan(self, gen):
+    def scan(self, gen: str) -> list[dict[str, Any]]:
         """Verify confirmed sealed prefix only; retain and ignore any trailing orphan bytes."""
         meta = self.metadata(gen)
         path = self.path(gen)
         if path.is_symlink():
             raise SegmentCorrupt("Symlink segment")
-        entries = []
+        entries: list[dict[str, Any]] = []
         seq = meta["base_seq"]
         previous = meta["base_digest"]
         end = meta["seal_seq"] if meta["phase"] == "SEALED" else None
@@ -168,7 +181,13 @@ class JournalSegments:
             raise SegmentCorrupt("Missing sealed prefix")
         return entries
 
-    def append(self, envelope, *, before_write=None, after_fsync=None):
+    def append(
+        self,
+        envelope: dict[str, Any],
+        *,
+        before_write: Callable[[], object] | None = None,
+        after_fsync: Callable[[], object] | None = None,
+    ) -> dict[str, Any]:
         """Real append+fsync outside DB locks. Callbacks are deterministic test barriers."""
         body = envelope["body"]
         gen = body["gen"]
@@ -209,7 +228,9 @@ class JournalSegments:
                 after_fsync()
             return receipt
 
-    def confirm(self, job, token, attempt, receipt):
+    def confirm(
+        self, job: str, token: str, attempt: int, receipt: dict[str, Any]
+    ) -> dict[str, Any]:
         # Authenticate physical presence before short DB adoption; a concurrent seal
         # still fences the ledger confirmation in its DB transaction.
         gen = receipt["envelope"]["body"]["gen"]
@@ -218,9 +239,9 @@ class JournalSegments:
             raise Refused("RECEIPT_NOT_IN_CONFIRMED_PREFIX")
         return self.ledger.confirm(job, token, attempt, receipt)
 
-    def accepted(self, job):
+    def accepted(self, job: str) -> list[Any]:
         receipts = self.ledger.view(job)
-        cache = {}
+        cache: dict[str, list[dict[str, Any]]] = {}
         for receipt in receipts:
             gen = receipt["envelope"]["body"]["gen"]
             if gen not in cache:
@@ -229,7 +250,7 @@ class JournalSegments:
                 raise SegmentCorrupt("Ledger/physical receipt mismatch")
         return receipts
 
-    def seal(self, gen, *, failpoint=None):
+    def seal(self, gen: str, *, failpoint: Callable[[str], object] | None = None) -> str:
         """Logical freeze and child generation PREPARING are one DB-only commit."""
         with self.repo.transaction() as db:
             old = db.execute("SELECT * FROM n1_segments WHERE gen=?", (gen,)).fetchone()
@@ -242,7 +263,7 @@ class JournalSegments:
                 ).fetchone()
                 if not child:
                     raise Refused("MISSING_GENERATION_CHILD")
-                new = child["gen"]
+                new: str = child["gen"]
             else:
                 new = uuid.uuid4().hex
                 db.execute("UPDATE n1_segments SET state='SEALED' WHERE gen=?", (gen,))
