@@ -7,11 +7,18 @@ import re
 import sqlite3
 import time
 from pathlib import Path
+from typing import Any
 
 from studio_core import delivery
 
 # Shared receipt layer (core 0.11.0); re-exported for callers and tests.
-from studio_core.delivery import DeliveryConfirmed, atomic_json, receipt_metadata, remember_review
+from studio_core.config import Config
+from studio_core.delivery import (
+    DeliveryConfirmed,
+    receipt_metadata,
+    remember_review,
+)
+from studio_core.delivery import atomic_json as atomic_json
 from studio_core.jobs import LeaseLost, Repository
 from studio_core.network.egress import PinnedHTTPSConnection, validate_target
 from studio_core.storage import Storage
@@ -33,7 +40,7 @@ from .weather import content_hash
 EXPECTED_BOT = "khalid_snap_v2_test_bot"
 
 
-def api(token, method, body=b"", content_type="application/json"):
+def api(token: str, method: str, body: bytes = b"", content_type: str = "application/json") -> Any:
     platform_policy.reject_status_telegram()
     if method not in {"getMe", "getChat", "sendVideo"}:
         raise ValueError("Unsupported Telegram method")
@@ -59,13 +66,13 @@ def api(token, method, body=b"", content_type="application/json"):
         connection.close()
 
 
-def multipart(chat, video):
+def multipart(chat: str, video: bytes) -> tuple[bytes, str]:
     return delivery.multipart(
         chat, video, "اختبار Status V2 — فيديو تجريبي؛ ليس نشراً لحالة واتساب", "weather.mp4"
     )
 
 
-def reconcile_evidence_sweep(config, after="", limit=100):
+def reconcile_evidence_sweep(config: Config, after: str = "", limit: int = 100) -> dict[str, Any]:
     return delivery.reconcile_evidence_sweep(
         config,
         after,
@@ -75,13 +82,17 @@ def reconcile_evidence_sweep(config, after="", limit=100):
     )
 
 
-def reconcile_published(config, job_id, video_sha, review_mode=None):
+def reconcile_published(
+    config: Config, job_id: str, video_sha: str, review_mode: str | None = None
+) -> dict[str, Any]:
     return delivery.reconcile_published(
         config, job_id, video_sha, review_mode, bot=EXPECTED_BOT, manifest_state="COMPLETED"
     )
 
 
-def confirmed_result(config, job_id, digest, review_mode):
+def confirmed_result(
+    config: Config, job_id: str, digest: str, review_mode: str | None
+) -> dict[str, Any]:
     stage("LOCAL_FINALIZATION")
     try:
         return reconcile_published(config, job_id, digest, review_mode)
@@ -90,7 +101,14 @@ def confirmed_result(config, job_id, digest, review_mode):
         raise DeliveryConfirmed(job_id, digest, review_mode) from cause
 
 
-def deliver(config, job_id, reviewed_sha, transport=api, lease_token=None, review_mode=None):
+def deliver(
+    config: Config,
+    job_id: str,
+    reviewed_sha: str,
+    transport: Any = api,
+    lease_token: str | None = None,
+    review_mode: str | None = None,
+) -> Any:
     platform_policy.reject_status_telegram()
     with operation():
         try:
@@ -101,7 +119,14 @@ def deliver(config, job_id, reviewed_sha, transport=api, lease_token=None, revie
             raise
 
 
-def _deliver(config, job_id, reviewed_sha, transport, lease_token, review_mode):
+def _deliver(
+    config: Config,
+    job_id: str,
+    reviewed_sha: str,
+    transport: Any,
+    lease_token: str | None,
+    review_mode: str | None,
+) -> Any:
     platform_policy.reject_status_telegram()
     stage("CREDENTIAL_VALIDATION")
     if config.app != "status-bot-v2":
@@ -173,7 +198,7 @@ def _deliver(config, job_id, reviewed_sha, transport, lease_token, review_mode):
                 changed_artifact = True
             else:
                 changed_artifact = False
-            existing = {
+            existing: dict[str, Any] | None = {
                 "delivery": old["state"],
                 "message_id": old["message_id"],
                 "replayed": False,
@@ -301,7 +326,7 @@ def _deliver(config, job_id, reviewed_sha, transport, lease_token, review_mode):
 
         stop = threading.Event()
 
-        def renew():
+        def renew() -> None:
             while not stop.wait(config.lease_seconds / 3):
                 try:
                     repo.heartbeat(job_id, lease)

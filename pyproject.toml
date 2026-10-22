@@ -93,7 +93,5 @@ ignore_errors = true
 module = [
     "status_bot.actions_preview",
     "status_bot.manual_transport",
-    "status_bot.send_diagnostics",
-    "status_bot.telegram_egress",
 ]
 ignore_errors = true
