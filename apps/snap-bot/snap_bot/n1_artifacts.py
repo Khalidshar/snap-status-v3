@@ -6,12 +6,17 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import stat
 import tempfile
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
-from studio_core.jobs import canonical
+from studio_core.jobs import Repository, canonical
+
+StrPath = str | os.PathLike[str]
 
 
 class EvidenceConflict(RuntimeError):
@@ -26,11 +31,11 @@ MAX_VIDEO = 50_000_000
 RANK = {"AWAITING": 0, "UNKNOWN": 1, "PUBLISHED": 2}
 
 
-def digest(data):
+def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def verified_bytes(path, expected):
+def verified_bytes(path: StrPath, expected: str) -> bytes:
     """Consume the SAME verified byte buffer; do not reopen source for upload."""
     if not re.fullmatch("[0-9a-f]{64}", expected):
         raise ValueError("Invalid SHA")
@@ -55,7 +60,7 @@ def verified_bytes(path, expected):
     return data
 
 
-def published_path(root, job, attempt, sha):
+def published_path(root: StrPath, job: str, attempt: int, sha: str) -> Path:
     if (
         not re.fullmatch("[0-9a-f]{32}", job)
         or type(attempt) is not int
@@ -77,7 +82,7 @@ def published_path(root, job, attempt, sha):
     return destination
 
 
-def sync_directory(path):
+def sync_directory(path: StrPath) -> None:
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     try:
         os.fsync(fd)
@@ -85,7 +90,7 @@ def sync_directory(path):
         os.close(fd)
 
 
-def publish_snapshot(root, job, attempt, data, expected):
+def publish_snapshot(root: StrPath, job: str, attempt: int, data: bytes, expected: str) -> Path:
     """New inode, create-once publication. Not an OS account-isolation guarantee."""
     if not isinstance(data, bytes) or not 0 < len(data) <= MAX_VIDEO or digest(data) != expected:
         raise ValueError("Unverified publication bytes")
@@ -114,7 +119,7 @@ def publish_snapshot(root, job, attempt, data, expected):
 
 
 @contextmanager
-def projection_lock(destination):
+def projection_lock(destination: StrPath) -> Iterator[None]:
     # Cross-process serialization in the isolated Linux publisher fixture.
     import fcntl
 
@@ -133,14 +138,14 @@ def projection_lock(destination):
 class Projections:
     """SQLite projection authority; files are rebuildable, monotonically ranked views."""
 
-    def __init__(self, repo):
+    def __init__(self, repo: Repository) -> None:
         self.repo = repo
         with repo.transaction() as db:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS n1_projections(job_id TEXT PRIMARY KEY,state TEXT NOT NULL,revision INTEGER NOT NULL,body TEXT NOT NULL)"
             )
 
-    def _confirmed(self, db, job, body):
+    def _confirmed(self, db: sqlite3.Connection, job: str, body: dict[str, Any]) -> None:
         tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if "telegram_outbox" not in tables:
             raise Unconfirmed("Missing durable ACK")
@@ -164,7 +169,15 @@ class Projections:
         if not row or not link:
             raise Unconfirmed("Unverified durable ACK")
 
-    def advance(self, job, state, body, *, token=None, attempt=None):
+    def advance(
+        self,
+        job: str,
+        state: str,
+        body: dict[str, Any],
+        *,
+        token: str | None = None,
+        attempt: int | None = None,
+    ) -> Any:
         if state not in RANK or body.get("job_id") != job or body.get("state") != state:
             raise ValueError("Invalid projection")
         if set(body) - {"job_id", "state", "video_sha256", "message_id", "review_mode"}:
@@ -174,7 +187,8 @@ class Projections:
             if state == "PUBLISHED":
                 self._confirmed(db, job, body)
             else:
-                self.repo.assert_owner(job, token, attempt=attempt, db=db)
+                # Lab behaviour kept: a missing token reaches the owner check and is refused there.
+                self.repo.assert_owner(job, token, attempt=attempt, db=db)  # type: ignore[arg-type]
             old = db.execute("SELECT * FROM n1_projections WHERE job_id=?", (job,)).fetchone()
             if old:
                 if RANK[old["state"]] > RANK[state]:
@@ -190,12 +204,14 @@ class Projections:
             )
             return body
 
-    def read(self, job):
+    def read(self, job: str) -> Any:
         with self.repo.connect() as db:
             row = db.execute("SELECT body FROM n1_projections WHERE job_id=?", (job,)).fetchone()
             return json.loads(row["body"]) if row else None
 
-    def materialize(self, job, destination, *, before_replace=None):
+    def materialize(
+        self, job: str, destination: StrPath, *, before_replace: Callable[[], object] | None = None
+    ) -> Any:
         """No DB lock during filesystem work. Failure leaves DB truth for retry."""
         with projection_lock(destination):
             body = self.read(job)

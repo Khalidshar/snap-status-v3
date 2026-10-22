@@ -11,7 +11,9 @@ import socket
 import struct
 import sys
 import time
+from collections.abc import Callable, Iterable
 from pathlib import Path
+from typing import Any
 
 MAX_FRAME = 65536
 
@@ -36,13 +38,13 @@ class RpcRefused(RuntimeError):
     pass
 
 
-def uid(value):
+def uid(value: object) -> int:
     if type(value) is not int or not 0 <= value <= 0xFFFFFFFF:
         raise ValueError("Invalid expected UID")
     return value
 
 
-def authenticate(sock, expected_uid):
+def authenticate(sock: socket.socket, expected_uid: object) -> tuple[int, int, int]:
     expected_uid = uid(expected_uid)
     if sys.platform != "linux" or not hasattr(socket, "SO_PEERCRED"):
         raise PeerDenied("PEER_CREDENTIALS_UNAVAILABLE")
@@ -54,7 +56,7 @@ def authenticate(sock, expected_uid):
     return pid, peer_uid, gid
 
 
-def budget(timeout):
+def budget(timeout: float) -> float:
     if (
         isinstance(timeout, bool)
         or not isinstance(timeout, (int, float))
@@ -65,15 +67,15 @@ def budget(timeout):
     return time.monotonic() + timeout
 
 
-def remaining(sock, deadline):
+def remaining(sock: socket.socket, deadline: float) -> None:
     left = deadline - time.monotonic()
     if left <= 0:
         raise TimeoutError("IPC_DEADLINE")
     sock.settimeout(left)
 
 
-def exact(sock, count, deadline):
-    parts = []
+def exact(sock: socket.socket, count: int, deadline: float) -> bytes:
+    parts: list[bytes] = []
     total = 0
     while total < count:
         remaining(sock, deadline)
@@ -85,8 +87,8 @@ def exact(sock, count, deadline):
     return b"".join(parts)
 
 
-def pairs(values):
-    result = {}
+def pairs(values: Iterable[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for key, value in values:
         if key in result:
             raise ProtocolError("DUPLICATE_JSON_KEY")
@@ -94,7 +96,7 @@ def pairs(values):
     return result
 
 
-def encode(value):
+def encode(value: object) -> bytes:
     try:
         data = json.dumps(value, allow_nan=False, separators=(",", ":"), ensure_ascii=True).encode()
     except (TypeError, ValueError, RecursionError):
@@ -104,7 +106,7 @@ def encode(value):
     return struct.pack("!I", len(data)) + data
 
 
-def receive(sock, deadline):
+def receive(sock: socket.socket, deadline: float) -> Any:
     length = struct.unpack("!I", exact(sock, 4, deadline))[0]
     if not 0 < length <= MAX_FRAME:
         raise ProtocolError("FRAME_TOO_LARGE")
@@ -119,20 +121,20 @@ def receive(sock, deadline):
         raise ProtocolError("INVALID_JSON") from None
 
 
-def send(sock, value, deadline):
+def send(sock: socket.socket, value: object, deadline: float) -> None:
     data = encode(value)
     remaining(sock, deadline)
     sock.sendall(data)
 
 
-def identity(app, request_id):
+def identity(app: object, request_id: object) -> None:
     if not isinstance(app, str) or not re.fullmatch("[a-z0-9-]{1,64}", app):
         raise ProtocolError("INVALID_APP")
     if not isinstance(request_id, str) or not re.fullmatch("[A-Za-z0-9_-]{1,64}", request_id):
         raise ProtocolError("INVALID_REQUEST_ID")
 
 
-def request(value, app):
+def request(value: Any, app: str) -> dict[str, Any]:
     if type(value) is not dict or set(value) != {"v", "app", "request_id", "op", "body"}:
         raise ProtocolError("REQUEST_SCHEMA")
     identity(value["app"], value["request_id"])
@@ -143,7 +145,14 @@ def request(value, app):
     return value
 
 
-def serve_connection(sock, *, worker_uid, app, handler, timeout=2):
+def serve_connection(
+    sock: socket.socket,
+    *,
+    worker_uid: int,
+    app: str,
+    handler: Callable[[Any], Any],
+    timeout: float = 2,
+) -> None:
     """Caller owns accepting/listener lifecycle; unauthorized peers are closed unread."""
     deadline = budget(timeout)
     with sock:
@@ -159,7 +168,15 @@ def serve_connection(sock, *, worker_uid, app, handler, timeout=2):
         send(sock, response, deadline)
 
 
-def call(path, *, server_uid, app, request_id, envelope, timeout=2):
+def call(
+    path: str | os.PathLike[str],
+    *,
+    server_uid: int,
+    app: str,
+    request_id: str,
+    envelope: Any,
+    timeout: float = 2,
+) -> Any:
     """Connect failure is unavailable; any failure after sending may be committed."""
     uid(server_uid)
     identity(app, request_id)
@@ -213,10 +230,10 @@ def call(path, *, server_uid, app, request_id, envelope, timeout=2):
 class SegmentAppendHandler:
     """Reference seam for JournalSegments; not the final DB-isolated writer service."""
 
-    def __init__(self, segments):
+    def __init__(self, segments: Any) -> None:
         self.segments = segments
 
-    def __call__(self, envelope):
+    def __call__(self, envelope: Any) -> Any:
         if type(envelope) is not dict or set(envelope) != {"body", "mac"}:
             raise ProtocolError("ENVELOPE_SCHEMA")
         body = envelope["body"]
