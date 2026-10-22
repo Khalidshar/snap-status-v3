@@ -75,7 +75,6 @@ module = [
     "snap_bot.agent_contract_map",
     "snap_bot.command_transport",
     "snap_bot.command_worker",
-    "snap_bot.editorial_agents",
     "snap_bot.final_agent",
     "snap_bot.maintenance",
     "snap_bot.oversight_agents",
@@ -104,9 +103,7 @@ module = [
     "status_bot.review_service",
     "status_bot.send_diagnostics",
     "status_bot.telegram_egress",
-    "status_bot.whatsapp_contract",
     "status_bot.whatsapp_egress",
     "status_bot.whatsapp_outbox",
-    "status_bot.whatsapp_watchdog",
 ]
 ignore_errors = true

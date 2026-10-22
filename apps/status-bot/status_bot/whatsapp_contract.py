@@ -9,33 +9,35 @@ import hmac
 import json
 import math
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import Any
 
 
 class DeliveryBlocked(ValueError):
     pass
 
 
-def require(condition, code):
+def require(condition: object, code: str) -> None:
     if not condition:
         raise DeliveryBlocked(code)
 
 
-def json_bytes(value):
+def json_bytes(value: object) -> bytes:
     return json.dumps(
         value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode()
 
 
-def sha(value):
+def sha(value: object) -> str:
     return hashlib.sha256(json_bytes(value)).hexdigest()
 
 
-def parse_json(raw, limit=1048576):
+def parse_json(raw: Any, limit: int = 1048576) -> Any:
     require(type(raw) is bytes and 0 < len(raw) <= limit, "WA_INVALID_JSON")
 
-    def pairs(items):
-        result = {}
+    def pairs(items: Iterable[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
         for key, value in items:
             require(key not in result, "WA_DUPLICATE_JSON_KEY")
             result[key] = value
@@ -49,11 +51,11 @@ def parse_json(raw, limit=1048576):
         raise DeliveryBlocked("WA_INVALID_JSON") from None
 
 
-def finite(value):
+def finite(value: Any) -> bool:
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def identifier(value, pattern):
+def identifier(value: object, pattern: str) -> bool:
     return isinstance(value, str) and re.fullmatch(pattern, value) is not None
 
 
@@ -66,7 +68,7 @@ class DeliveryIdentity:
     gate_key: bytes = field(repr=False)
     webhook_key: bytes = field(repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         require(
             all(
                 identifier(v, "[1-9][0-9]{4,29}")
@@ -84,19 +86,19 @@ class DeliveryIdentity:
             "WA_KEYS_INVALID",
         )
 
-    def tag(self, purpose, value):
+    def tag(self, purpose: str, value: str) -> str:
         return hmac.new(
             self.gate_key, ("status-bot-v2/" + purpose + "/" + value).encode(), hashlib.sha256
         ).hexdigest()
 
     @property
-    def binding(self):
+    def binding(self) -> str:
         return self.tag(
             "identity", self.business_account + "/" + self.phone_number + "/" + self.recipient
         )
 
 
-def sign_review(review, key):
+def sign_review(review: object, key: bytes) -> str:
     """Call only from an authenticated human-review controller, never a renderer."""
     require(type(key) is bytes and len(key) >= 32, "WA_KEYS_INVALID")
     return hmac.new(
@@ -104,7 +106,7 @@ def sign_review(review, key):
     ).hexdigest()
 
 
-def validate_review(review, signature, identity, now):
+def validate_review(review: Any, signature: Any, identity: DeliveryIdentity, now: object) -> None:
     require(
         isinstance(review, dict)
         and set(review)
@@ -158,7 +160,7 @@ class ApiResponse:
     body: bytes = field(repr=False)
 
 
-def response_id(response, phase, recipient):
+def response_id(response: Any, phase: str, recipient: str) -> Any:
     require(
         isinstance(response, ApiResponse)
         and type(response.status) is int
