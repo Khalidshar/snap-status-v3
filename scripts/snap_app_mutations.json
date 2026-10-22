@@ -2061,8 +2061,8 @@
   "hunks": [
    {
     "file": "render_commit.py",
-    "old": "    def record(status, code=None):\n        with repo.owned_transaction(job, token, attempt=attempt) as db:\n            details = {\n",
-    "new": "    def record(status, code=None):\n        with repo.transaction() as db:\n            details = {\n"
+    "old": "    def record(status: str, code: str | None = None) -> None:\n        with repo.owned_transaction(job, token, attempt=attempt) as db:\n            details = {\n",
+    "new": "    def record(status: str, code: str | None = None) -> None:\n        with repo.transaction() as db:\n            details = {\n"
    }
   ]
  },
