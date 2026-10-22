@@ -4,7 +4,9 @@ import hashlib
 import json
 import time
 from pathlib import Path
+from typing import Any
 
+from studio_core.config import Config
 from studio_core.jobs import Repository, canonical
 from studio_core.jobs.component_lock import ComponentLocks
 
@@ -15,7 +17,9 @@ from studio_core.storage import Storage
 from .weather import content_hash as calculate_content_hash
 
 
-def render(config, settings, job_id, content_hash):
+def render(
+    config: Config, settings: dict[str, Any], job_id: str, content_hash: str
+) -> dict[str, Any]:
     if config.app != "status-bot-v2":
         raise ValueError("STATUS_SCOPE_INVALID")
     repo = Repository(config)
@@ -34,7 +38,15 @@ def render(config, settings, job_id, content_hash):
         )
 
 
-def _render(config, settings, job_id, content_hash, repo, token, attempt):
+def _render(
+    config: Config,
+    settings: dict[str, Any],
+    job_id: str,
+    content_hash: str,
+    repo: Repository,
+    token: str,
+    attempt: int,
+) -> dict[str, Any]:
     isolation = proof(settings["egress_socket"])
     root = Storage(config).workspace(job_id)
     content_path = root / "input/content.json"
@@ -174,7 +186,7 @@ def _render(config, settings, job_id, content_hash, repo, token, attempt):
     return result
 
 
-def validate(path, profile):
+def validate(path: Path, profile: dict[str, Any]) -> dict[str, Any]:
     value = json.loads(
         run(
             [

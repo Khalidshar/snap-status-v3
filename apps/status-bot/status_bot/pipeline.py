@@ -6,7 +6,9 @@ import os
 import re
 import stat
 import time
+from typing import Any
 
+from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.jobs.component_lock import ComponentLocks
 from studio_core.jobs.gateway import CommandGateway
@@ -17,7 +19,15 @@ from .agents import arabic_output, contract, source_output, source_request, weat
 from .weather import content_hash, fetch_weather
 
 
-def prepare(config, settings, client, secret, event_id, *, synthetic=False):
+def prepare(
+    config: Config,
+    settings: dict[str, Any],
+    client: Any,
+    secret: str,
+    event_id: str,
+    *,
+    synthetic: bool = False,
+) -> dict[str, Any]:
     if config.app != "status-bot-v2" or type(synthetic) is not bool:
         raise ValueError("STATUS_SCOPE_INVALID")
     repo = Repository(config)
@@ -46,7 +56,7 @@ def prepare(config, settings, client, secret, event_id, *, synthetic=False):
         root = Storage(config).workspace(job["id"])
         repo.transition(job["id"], token, "RESEARCHING")
 
-        def fetch():
+        def fetch() -> dict[str, Any]:
             content, failures = fetch_weather(client, settings, now)
             if synthetic:
                 content.update(
@@ -118,7 +128,9 @@ def prepare(config, settings, client, secret, event_id, *, synthetic=False):
             locks.release(lease)
 
 
-def record_validation(config, prepared, result):
+def record_validation(
+    config: Config, prepared: dict[str, Any], result: dict[str, Any]
+) -> dict[str, Any]:
     if config.app != "status-bot-v2":
         raise ValueError("STATUS_SCOPE_INVALID")
     locks = ComponentLocks(Repository(config))
@@ -126,7 +138,9 @@ def record_validation(config, prepared, result):
         return _record_validation(config, prepared, result)
 
 
-def _record_validation(config, prepared, result):
+def _record_validation(
+    config: Config, prepared: dict[str, Any], result: dict[str, Any]
+) -> dict[str, Any]:
     if config.app != "status-bot-v2":
         raise ValueError("STATUS_SCOPE_INVALID")
     claim = prepared["claim"]
@@ -136,7 +150,7 @@ def _record_validation(config, prepared, result):
     root = Storage(config).workspace(job)
     payload = {"source_payload": prepared["source_payload"], "render": result}
 
-    def valid_input(value):
+    def valid_input(value: Any) -> bool:
         source, render = value["source_payload"], value["render"]
         if (
             not weather_payload(source)
@@ -194,7 +208,7 @@ def _record_validation(config, prepared, result):
             return False
         return True
 
-    def accept():
+    def accept() -> dict[str, Any]:
         return {
             "job_id": job,
             "attempt": attempt,

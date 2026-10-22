@@ -94,11 +94,8 @@ ignore_errors = true
 # Untyped Status modules graduated as-is; each leaves this list when it is typed (GRADUATION.md).
 module = [
     "status_bot.actions_preview",
-    "status_bot.agents",
     "status_bot.manual_transport",
     "status_bot.owner_review",
-    "status_bot.pipeline",
-    "status_bot.render",
     "status_bot.review_http",
     "status_bot.review_service",
     "status_bot.send_diagnostics",
