@@ -1,17 +1,20 @@
 """Authenticated authority-only control seam; not enabled by existing CLI/bots."""
 
+import os
 import socket
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from . import n1_ipc as ipc
 from .n1_writer_service import WriterService
 
 
 class ControlHandler:
-    def __init__(self, authority):
+    def __init__(self, authority: Any) -> None:
         self.authority = authority
 
-    def __call__(self, body):
+    def __call__(self, body: Any) -> dict[str, Any]:
         if type(body) is not dict:
             raise ipc.ProtocolError("CONTROL_SCHEMA")
         if set(body) == {"action", "descriptor"} and body["action"] == "register":
@@ -25,7 +28,7 @@ class ControlHandler:
         return {"gen": gen, "state": state}
 
 
-def request(value, app):
+def request(value: Any, app: str) -> dict[str, Any]:
     if type(value) is not dict or set(value) != {"v", "app", "request_id", "op", "body"}:
         raise ipc.ProtocolError("CONTROL_SCHEMA")
     ipc.identity(value["app"], value["request_id"])
@@ -40,7 +43,13 @@ def request(value, app):
     return value
 
 
-def serve(sock, authority_uid, app, handler, timeout=2):
+def serve(
+    sock: socket.socket,
+    authority_uid: int,
+    app: str,
+    handler: Callable[[Any], Any],
+    timeout: float = 2,
+) -> None:
     deadline = ipc.budget(timeout)
     with sock:
         ipc.authenticate(sock, authority_uid)
@@ -54,10 +63,17 @@ def serve(sock, authority_uid, app, handler, timeout=2):
 
 
 class ControlService(WriterService):
-    def __init__(self, path, authority_uid, app, handler, **kwargs):
+    def __init__(
+        self,
+        path: str | os.PathLike[str],
+        authority_uid: int,
+        app: str,
+        handler: Callable[[Any], Any],
+        **kwargs: Any,
+    ) -> None:
         super().__init__(path, authority_uid, app, handler, **kwargs)
 
-    def _serve(self, conn):
+    def _serve(self, conn: socket.socket) -> None:
         try:
             serve(conn, self.worker_uid, self.app, self.handler, self.network_timeout)
         except Exception:
@@ -70,7 +86,9 @@ class ControlService(WriterService):
 
 
 class ControlClient:
-    def __init__(self, path, server_uid, app, timeout=2):
+    def __init__(
+        self, path: str | os.PathLike[str], server_uid: int, app: str, timeout: float = 2
+    ) -> None:
         self.path = Path(path)
         self.server_uid = ipc.uid(server_uid)
         self.app = app
@@ -78,7 +96,7 @@ class ControlClient:
         if not self.path.is_absolute():
             raise ValueError("Absolute control socket required")
 
-    def call(self, body, request_id):
+    def call(self, body: Any, request_id: str) -> Any:
         ipc.identity(self.app, request_id)
         deadline = ipc.budget(self.timeout)
         wire = ipc.encode(
@@ -123,13 +141,13 @@ class ControlClient:
             except (OSError, ipc.ProtocolError):
                 raise ipc.RpcUncertain("CONTROL_OUTCOME_UNKNOWN") from None
 
-    def register(self, descriptor):
+    def register(self, descriptor: Any) -> Any:
         return self.call(
             {"action": "register", "descriptor": descriptor},
             "register_" + descriptor["body"]["gen"],
         )
 
-    def seal(self, parent, descriptor):
+    def seal(self, parent: Any, descriptor: Any) -> Any:
         return self.call(
             {"action": "seal", "parent": parent, "descriptor": descriptor},
             "seal_" + descriptor["body"]["gen"],
