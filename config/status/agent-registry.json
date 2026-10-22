@@ -1,0 +1,243 @@
+{
+    "application_instances":  36,
+    "schema_version":  1,
+    "note":  "العدد متطلبات معتمدة؛ لا يثبت وجود 36 خدمة أو تشغيل الوكلاء في V2.",
+    "agents_per_application":  18,
+    "shared_role_definitions":  18,
+    "agents":  [
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "manager",
+                       "name":  "مدير المحتوى",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "اختيار المحتوى وتوجيه المهمة",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "memory",
+                       "name":  "مراجع التكرار",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "استبعاد الموضوع المكرر",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "writer",
+                       "name":  "كاتب المحتوى",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "صياغة المسودة من المصدر",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "reviewer",
+                       "name":  "المراجع",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "مراجعة المسودة قبل الرندر",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "fixer",
+                       "name":  "مصلح المسودة",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "إصلاح النص بعد رفضه",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "quality",
+                       "name":  "ضبط الجودة",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "فحوص الملف والرندر",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "judge",
+                       "name":  "المقيّم",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "تقييم النتيجة النهائية",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "analyst",
+                       "name":  "محلل الأداء",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "تحليل إحصاءات المالك",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "translation",
+                       "name":  "الترجمة",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "كشف النص الذي يحتاج ترجمة",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "arabic",
+                       "name":  "العربية",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "فحص اللغة العربية",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "proofreading",
+                       "name":  "التدقيق",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "فحص الأخطاء اللغوية",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "design",
+                       "name":  "الإخراج",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "فحص التصميم والهوية",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "rotation",
+                       "name":  "التناوب",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "تنويع القالب وفق الذاكرة",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "fact_source",
+                       "name":  "المصادر",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "فحص المصدر والتوثيق",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "media_verification",
+                       "name":  "الوسائط",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "فحص أصول الصور والفيديو",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "voice",
+                       "name":  "الصوت",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "فحص الصوت المطلوب",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "final",
+                       "name":  "الجودة النهائية",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "قرار حجب أو قبول التسليم",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   },
+                   {
+                       "adapter_status":  "NOT_IMPLEMENTED",
+                       "state_isolated_per_application":  true,
+                       "execution_policy":  "WHEN_APPLICABLE",
+                       "id":  "content_repair",
+                       "name":  "الإصلاح",
+                       "applications":  [
+                                            "snap-bot-v2",
+                                            "status-bot-v2"
+                                        ],
+                       "role":  "إصلاح الأعطال وإعادة اختبار المرحلة",
+                       "acceptance_status":  "NOT_VERIFIED"
+                   }
+               ]
+}
