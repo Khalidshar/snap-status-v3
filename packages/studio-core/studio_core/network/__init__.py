@@ -1,4 +1,5 @@
-"""Network: the worker-side client over a Unix socket and the isolated egress proxy."""
+"""Network: the worker-side client over a Unix socket, the isolated egress proxy,
+and retry/circuit-breaker/cache resilience around the client (§8)."""
 
 from studio_core.network.client import (
     NetworkClient,
@@ -6,5 +7,22 @@ from studio_core.network.client import (
     NetworkResponse,
     UnixHTTPConnection,
 )
+from studio_core.network.resilience import (
+    CircuitBreaker,
+    ResilientClient,
+    RetryPolicy,
+    TTLCache,
+    transient,
+)
 
-__all__ = ["NetworkClient", "NetworkError", "NetworkResponse", "UnixHTTPConnection"]
+__all__ = [
+    "CircuitBreaker",
+    "NetworkClient",
+    "NetworkError",
+    "NetworkResponse",
+    "ResilientClient",
+    "RetryPolicy",
+    "TTLCache",
+    "UnixHTTPConnection",
+    "transient",
+]
