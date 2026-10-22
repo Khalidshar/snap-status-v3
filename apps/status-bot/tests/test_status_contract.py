@@ -98,7 +98,9 @@ class StatusContract(unittest.TestCase):
         source = Path(egress.__file__).read_text(encoding="utf-8")
         self.assertNotIn("def atomic_json(", source, "guard:no-local-delivery-copy")
         # Status records the terminal state in its manifest when repairing evidence.
-        self.assertIn("manifest_state='COMPLETED'", source, "guard:status-manifest-state")
+        self.assertIn(
+            "manifest_state='COMPLETED'", source.replace('"', "'"), "guard:status-manifest-state"
+        )
 
 
 if __name__ == "__main__":
