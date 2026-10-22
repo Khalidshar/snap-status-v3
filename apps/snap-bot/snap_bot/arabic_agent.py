@@ -3,6 +3,7 @@
 import re
 import textwrap
 import unicodedata
+from typing import Any
 
 RULE_VERSION = "arabic-local-v1"
 ABBREVIATIONS = ("E Ink", "IPv6", "IPv4", "CERN", "GPS", "NFC", "QR")
@@ -15,7 +16,7 @@ CHECKS = (
 )
 
 
-def check_text(text):
+def check_text(text: object) -> dict[str, Any]:
     if not isinstance(text, str) or not text or len(text) > 120 or text != text.strip():
         raise ValueError("ARABIC_TEXT_INVALID")
     # Inspect NFC, without modifying catalog/content bytes or their hashes.
@@ -63,7 +64,7 @@ def check_text(text):
     }
 
 
-def inspect_content(content):
+def inspect_content(content: object) -> dict[str, Any]:
     if (
         not isinstance(content, dict)
         or content.get("type") != "did_you_know"
@@ -73,6 +74,6 @@ def inspect_content(content):
     return check_text(content.get("body"))
 
 
-def check_content(content):
+def check_content(content: dict[str, Any]) -> dict[str, Any]:
     inspect_content(content)
     return dict(content)
