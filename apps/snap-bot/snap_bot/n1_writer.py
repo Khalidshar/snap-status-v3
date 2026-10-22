@@ -17,7 +17,7 @@ import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 Json = dict[str, Any]
 
@@ -320,8 +320,12 @@ class PhysicalWriter:
             return receipt
 
 
+class Appender(Protocol):
+    def append(self, signed: Any, envelope: Any) -> Json: ...
+
+
 class IsolatedAppendHandler:
-    def __init__(self, writer: PhysicalWriter) -> None:
+    def __init__(self, writer: Appender) -> None:
         self.writer = writer
 
     def __call__(self, request: Any) -> Json:

@@ -3,14 +3,16 @@ Existing worker/renderer/delivery services do not enable this module.
 """
 
 import json
+import sqlite3
 import uuid
+from typing import Any
 
-from .n1_contracts import Refused, canonical
+from .n1_contracts import Ledger, Refused, canonical
 from .n1_writer import generation
 
 
 class JournalCoordinator:
-    def __init__(self, ledger, control):
+    def __init__(self, ledger: Ledger, control: Any) -> None:
         self.ledger = ledger
         self.repo = ledger.repo
         self.control = control
@@ -19,7 +21,7 @@ class JournalCoordinator:
                 "CREATE TABLE IF NOT EXISTS n1_control(gen TEXT PRIMARY KEY,parent TEXT,descriptor TEXT NOT NULL,confirmed INTEGER NOT NULL CHECK(confirmed IN (0,1)))"
             )
 
-    def _prepare(self, db, segment, parent):
+    def _prepare(self, db: sqlite3.Connection, segment: Any, parent: str | None) -> Any:
         desc = generation(
             {
                 "type": "segment",
@@ -36,7 +38,7 @@ class JournalCoordinator:
         )
         return db.execute("SELECT * FROM n1_control WHERE gen=?", (segment["gen"],)).fetchone()
 
-    def ensure_current(self, job, token, attempt):
+    def ensure_current(self, job: str, token: str, attempt: int) -> Any:
         with self.repo.owned_transaction(job, token, attempt=attempt) as db:
             segment = db.execute("SELECT * FROM n1_segments WHERE state='ACTIVE'").fetchone()
             if not segment:
@@ -70,7 +72,7 @@ class JournalCoordinator:
                 )
         return desc
 
-    def rotate(self, job, token, attempt):
+    def rotate(self, job: str, token: str, attempt: int) -> Any:
         current = self.ensure_current(job, token, attempt)
         with self.repo.owned_transaction(job, token, attempt=attempt) as db:
             old = db.execute("SELECT * FROM n1_segments WHERE state='ACTIVE'").fetchone()
@@ -90,7 +92,16 @@ class JournalCoordinator:
         # If this fails/loses its reply, ensure_current retries the same stored child.
         return self.ensure_current(job, token, attempt)
 
-    def begin(self, job, token, attempt, agent, status, event_id, payload_sha):
+    def begin(
+        self,
+        job: str,
+        token: str,
+        attempt: int,
+        agent: str,
+        status: str,
+        event_id: str,
+        payload_sha: str,
+    ) -> dict[str, Any]:
         desc = self.ensure_current(job, token, attempt)
         envelope = self.ledger.begin(job, token, attempt, agent, status, event_id, payload_sha)
         if envelope["body"]["gen"] != desc["body"]["gen"]:

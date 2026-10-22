@@ -7,6 +7,7 @@ import signal
 import threading
 import time
 from pathlib import Path
+from types import FrameType
 
 from . import n1_ipc as ipc
 from .n1_control import ControlHandler, ControlService
@@ -16,7 +17,15 @@ from .n1_writer_service import ServiceRefused, WriterService, credential
 
 
 class JournalService:
-    def __init__(self, append_path, control_path, worker_uid, authority_uid, writer, app):
+    def __init__(
+        self,
+        append_path: str | os.PathLike[str],
+        control_path: str | os.PathLike[str],
+        worker_uid: int,
+        authority_uid: int,
+        writer: PhysicalWriter,
+        app: str,
+    ) -> None:
         worker_uid = ipc.uid(worker_uid)
         authority_uid = ipc.uid(authority_uid)
         if (
@@ -40,19 +49,19 @@ class JournalService:
             control_path, authority_uid, app, ControlHandler(registered.authority)
         )
         self.planes = (self.append, self.control)
-        self.threads = []
-        self.failures = []
+        self.threads: list[threading.Thread] = []
+        self.failures: list[bool] = []
         self.lock = threading.Lock()
         self.started = False
 
-    def start(self):
+    def start(self) -> None:
         if self.started:
             raise ServiceRefused("JOURNAL_ALREADY_STARTED")
         try:
             for plane in self.planes:
                 plane.start()
         except Exception:
-            errors = []
+            errors: list[bool] = []
             for plane in reversed(self.planes):
                 try:
                     plane.shutdown()
@@ -63,7 +72,7 @@ class JournalService:
             raise
         self.started = True
 
-    def _listen(self, plane, stop):
+    def _listen(self, plane: WriterService, stop: threading.Event) -> None:
         try:
             plane.run(stop)
         except Exception:
@@ -76,7 +85,7 @@ class JournalService:
                     self.failures.append(True)
                 stop.set()
 
-    def run(self, stop):
+    def run(self, stop: threading.Event) -> None:
         if not self.started:
             raise ServiceRefused("JOURNAL_NOT_STARTED")
         if self.threads:
@@ -93,7 +102,7 @@ class JournalService:
         if self.failures:
             raise ServiceRefused("JOURNAL_PLANE_FAILED")
 
-    def shutdown(self, timeout=5):
+    def shutdown(self, timeout: float = 5) -> None:
         if not 0 <= timeout <= 30:
             raise ValueError("Invalid shutdown timeout")
         deadline = time.monotonic() + timeout
@@ -101,7 +110,7 @@ class JournalService:
             thread.join(max(0, deadline - time.monotonic()))
         if any(thread.is_alive() for thread in self.threads):
             raise ServiceRefused("JOURNAL_LISTENER_BUSY")
-        errors = []
+        errors: list[bool] = []
         for plane in reversed(self.planes):
             try:
                 plane.shutdown(max(0, deadline - time.monotonic()))
@@ -112,7 +121,7 @@ class JournalService:
         self.started = False
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--enable-journal", action="store_true", required=True)
     parser.add_argument("--app", required=True)
@@ -134,7 +143,7 @@ def main():
     )
     stop = threading.Event()
 
-    def terminate(signum, frame):
+    def terminate(signum: int, frame: FrameType | None) -> None:
         stop.set()
 
     signal.signal(signal.SIGTERM, terminate)

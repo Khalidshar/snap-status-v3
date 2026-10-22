@@ -7,20 +7,22 @@ import json
 import os
 import stat
 import tempfile
+from collections.abc import Iterable
+from typing import Any
 
 from .n1_partial_tail import retain
-from .n1_writer import WriterRefused, canonical, sync_dir
+from .n1_writer import PhysicalWriter, WriterRefused, canonical, sync_dir
 
 
 class GenerationAuthority:
     LIMIT = 1_000_000
     CAP = 1024
 
-    def __init__(self, writer):
+    def __init__(self, writer: PhysicalWriter) -> None:
         self.writer = writer
         self.path = writer.root / "generations.json"
 
-    def load(self):
+    def load(self) -> Any:
         try:
             fd = os.open(self.path, os.O_RDONLY | os.O_NOFOLLOW)
         except FileNotFoundError:
@@ -37,8 +39,8 @@ class GenerationAuthority:
                 raise WriterRefused("REGISTRY_FILE")
             raw = stream.read(self.LIMIT + 1)
 
-        def unique(pairs):
-            result = {}
+        def unique(pairs: Iterable[tuple[str, Any]]) -> dict[str, Any]:
+            result: dict[str, Any] = {}
             for key, value in pairs:
                 if key in result:
                     raise ValueError("duplicate")
@@ -77,7 +79,7 @@ class GenerationAuthority:
             raise WriterRefused("REGISTRY_CORRUPT") from None
         return state
 
-    def save(self, state):
+    def save(self, state: Any) -> None:
         raw = (canonical(state) + "\n").encode()
         if len(raw) > self.LIMIT:
             raise WriterRefused("REGISTRY_LIMIT")
@@ -93,7 +95,7 @@ class GenerationAuthority:
             if os.path.exists(name):
                 os.unlink(name)
 
-    def durable_existing(self):
+    def durable_existing(self) -> None:
         fd = os.open(self.path, os.O_RDONLY | os.O_NOFOLLOW)
         try:
             os.fsync(fd)
@@ -101,7 +103,7 @@ class GenerationAuthority:
             os.close(fd)
         sync_dir(self.writer.root)
 
-    def register(self, signed):
+    def register(self, signed: Any) -> Any:
         desc = self.writer.descriptor(signed)
         if desc["parent"] is not None:
             raise WriterRefused("REGISTER_ROOT_ONLY")
@@ -122,7 +124,7 @@ class GenerationAuthority:
             self.save(state)
             return "ACTIVE"
 
-    def seal(self, parent, child):
+    def seal(self, parent: Any, child: Any) -> str:
         desc = self.writer.descriptor(child)
         if desc["parent"] != parent:
             raise WriterRefused("SEAL_PARENT")
@@ -144,7 +146,7 @@ class GenerationAuthority:
                 raise WriterRefused("REGISTRY_CAP")
             header = self.writer.descriptor(old["descriptor"])
             path = self.writer.path(header)
-            partial = []
+            partial: list[dict[str, Any]] = []
             entries = self.writer.scan(path, header, partial_tail=partial) if path.exists() else []
             anchors = {(header["base_seq"], header["base_digest"])}
             anchors.update((entry["envelope"]["body"]["seq"], entry["digest"]) for entry in entries)
@@ -161,11 +163,11 @@ class GenerationAuthority:
 
 
 class RegisteredWriter:
-    def __init__(self, writer):
+    def __init__(self, writer: PhysicalWriter) -> None:
         self.writer = writer
         self.authority = GenerationAuthority(writer)
 
-    def append(self, signed, envelope):
+    def append(self, signed: Any, envelope: Any) -> dict[str, Any]:
         desc = self.writer.descriptor(signed)
         # One registry lock spans admission through fsync; sealing cannot overtake append.
         with self.writer.lock(self.authority.path):
