@@ -14,38 +14,42 @@ import re
 import stat
 import tempfile
 import time
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any, cast
+
+Json = dict[str, Any]
 
 
 class WriterRefused(RuntimeError):
     pass
 
 
-def canonical(value):
+def canonical(value: object) -> str:
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False
     )
 
 
-def sha(value):
+def sha(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def mac(key, domain, value):
+def mac(key: bytes, domain: str, value: object) -> str:
     return hmac.new(key, (domain + "\n" + canonical(value)).encode(), hashlib.sha256).hexdigest()
 
 
-def hexadecimal(value, size):
+def hexadecimal(value: object, size: int) -> bool:
     return isinstance(value, str) and re.fullmatch("[0-9a-f]{" + str(size) + "}", value) is not None
 
 
-def generation(body, key):
+def generation(body: Json, key: bytes) -> Json:
     """Authority-side signing helper; does not read DB or journal files."""
     return {"body": body, "mac": mac(key, "n1.file-generation.v1", body)}
 
 
-def sync_dir(path):
+def sync_dir(path: str | os.PathLike[str]) -> None:
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         os.fsync(fd)
@@ -56,7 +60,13 @@ def sync_dir(path):
 class PhysicalWriter:
     LIMIT = 2_000_000
 
-    def __init__(self, root, key, app, clock=time.time):
+    def __init__(
+        self,
+        root: str | os.PathLike[str],
+        key: bytes,
+        app: str,
+        clock: Callable[[], float] = time.time,
+    ) -> None:
         if not isinstance(key, bytes) or len(key) < 32:
             raise ValueError("Writer key too short")
         if not isinstance(app, str) or not re.fullmatch("[a-z0-9-]{1,64}", app):
@@ -72,7 +82,7 @@ class PhysicalWriter:
         if not stat.S_ISDIR(meta.st_mode) or meta.st_uid != os.geteuid() or meta.st_mode & 0o077:
             raise WriterRefused("UNSAFE_JOURNAL_ROOT")
 
-    def descriptor(self, signed):
+    def descriptor(self, signed: Any) -> Json:
         if type(signed) is not dict or set(signed) != {"body", "mac"}:
             raise WriterRefused("GENERATION_SCHEMA")
         body = signed["body"]
@@ -105,7 +115,7 @@ class PhysicalWriter:
             raise WriterRefused("GENERATION_MAC")
         return body
 
-    def envelope(self, value, header):
+    def envelope(self, value: Any, header: Json) -> Json:
         if type(value) is not dict or set(value) != {"body", "mac"}:
             raise WriterRefused("INTENT_SCHEMA")
         body = value["body"]
@@ -159,11 +169,12 @@ class PhysicalWriter:
             raise WriterRefused("INTENT_EXPIRED")
         return body
 
-    def path(self, header):
-        return self.root / ("events-" + header["gen"] + ".jsonl")
+    def path(self, header: Json) -> Path:
+        segment: Path = self.root / ("events-" + header["gen"] + ".jsonl")
+        return segment
 
     @contextmanager
-    def lock(self, path):
+    def lock(self, path: Path) -> Iterator[None]:
         fd = os.open(str(path) + ".lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
         try:
             meta = os.fstat(fd)
@@ -174,7 +185,7 @@ class PhysicalWriter:
         finally:
             os.close(fd)
 
-    def prepare(self, path, header):
+    def prepare(self, path: Path, header: Json) -> None:
         fd, name = tempfile.mkstemp(dir=self.root, prefix=".generation-")
         try:
             with os.fdopen(fd, "wb") as stream:
@@ -190,7 +201,9 @@ class PhysicalWriter:
             if os.path.exists(name):
                 os.unlink(name)
 
-    def scan(self, path, header, *, partial_tail=None):
+    def scan(
+        self, path: Path, header: Json, *, partial_tail: list[Json] | None = None
+    ) -> list[Json]:
         if partial_tail is not None and (type(partial_tail) is not list or partial_tail):
             raise ValueError("Empty partial-tail report list required")
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
@@ -198,13 +211,13 @@ class PhysicalWriter:
             meta = os.fstat(stream.fileno())
             if not stat.S_ISREG(meta.st_mode) or meta.st_nlink != 1 or meta.st_size > self.LIMIT:
                 raise WriterRefused("UNSAFE_SEGMENT")
-            entries = []
+            entries: list[Json] = []
             seq = header["base_seq"]
             previous = header["base_digest"]
             file_hash = hashlib.sha256()
 
-            def report(kind, offset, raw):
-                partial_tail.append(
+            def report(kind: str, offset: int, raw: bytes) -> None:
+                cast(list[Json], partial_tail).append(
                     {
                         "app": self.app,
                         "gen": header["gen"],
@@ -269,7 +282,7 @@ class PhysicalWriter:
                 previous = receipt["digest"]
             return entries
 
-    def append(self, signed, envelope):
+    def append(self, signed: Any, envelope: Any) -> Json:
         header = self.descriptor(signed)
         body = self.envelope(envelope, header)
         path = self.path(header)
@@ -308,10 +321,10 @@ class PhysicalWriter:
 
 
 class IsolatedAppendHandler:
-    def __init__(self, writer):
+    def __init__(self, writer: PhysicalWriter) -> None:
         self.writer = writer
 
-    def __call__(self, request):
+    def __call__(self, request: Any) -> Json:
         if type(request) is not dict or set(request) != {"generation", "envelope"}:
             raise WriterRefused("APPEND_SCHEMA")
         return self.writer.append(request["generation"], request["envelope"])

@@ -4,11 +4,12 @@ import hashlib
 import os
 import stat
 import tempfile
+from typing import Any
 
-from .n1_writer import WriterRefused, canonical, mac, sync_dir
+from .n1_writer import PhysicalWriter, WriterRefused, canonical, mac, sync_dir
 
 
-def retain(writer, header, report):
+def retain(writer: PhysicalWriter, header: dict[str, Any], report: Any) -> dict[str, Any]:
     fields = {
         "app",
         "gen",
@@ -65,7 +66,7 @@ def retain(writer, header, report):
     try:
         fd = os.open(destination, os.O_RDONLY | os.O_NOFOLLOW)
     except FileNotFoundError:
-        fd = None
+        fd = None  # type: ignore[assignment]  # lab shape kept; narrowed just below
     if fd is not None:
         try:
             meta = os.fstat(fd)
