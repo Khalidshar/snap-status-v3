@@ -7,7 +7,9 @@ bytes is recorded, but is deliberately not represented as proof of watching.
 import hashlib
 import hmac
 import secrets
+import sqlite3
 from dataclasses import dataclass, field
+from typing import Any
 from urllib.parse import urlsplit
 
 from .whatsapp_contract import (
@@ -28,7 +30,7 @@ class OwnerConfig:
     login_secret: bytes = field(repr=False)
     session_key: bytes = field(repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         parsed = urlsplit(self.origin)
         require(
             parsed.scheme == "https"
@@ -54,7 +56,7 @@ class OwnerConfig:
 
 
 class OwnerReview:
-    def __init__(self, outbox, config):
+    def __init__(self, outbox: Any, config: OwnerConfig) -> None:
         self.outbox, self.repo, self.config = outbox, outbox.repo, config
         require(
             len(
@@ -84,7 +86,7 @@ class OwnerReview:
                   UNIQUE(job_id,attempt));
             """)
 
-    def tag(self, purpose, value):
+    def tag(self, purpose: str, value: str) -> str:
         return hmac.new(
             self.config.session_key,
             (
@@ -100,7 +102,7 @@ class OwnerReview:
             hashlib.sha256,
         ).hexdigest()
 
-    def login(self, owner, secret):
+    def login(self, owner: object, secret: object) -> str:
         # Fixed single-owner bucket is durable and cannot be bypassed by changing
         # usernames, spoofing proxy/IP headers, or restarting the HTTP process.
         supplied = secret if type(secret) is bytes and len(secret) <= 4096 else b""
@@ -138,7 +140,7 @@ class OwnerReview:
         require(accepted, "REVIEW_LOGIN_DENIED")
         return cookie
 
-    def session(self, cookie, db=None):
+    def session(self, cookie: Any, db: sqlite3.Connection | None = None) -> str:
         require(identifier(cookie, "[0-9a-f]{64}"), "REVIEW_SESSION_DENIED")
         if db is None:
             with self.repo.connect() as connection:
@@ -149,11 +151,11 @@ class OwnerReview:
         require(row is not None and row[0] > self.repo.clock(), "REVIEW_SESSION_DENIED")
         return tag
 
-    def csrf(self, cookie):
+    def csrf(self, cookie: Any) -> str:
         self.session(cookie)
         return self.tag("csrf", cookie)
 
-    def authorize(self, cookie, csrf, db=None):
+    def authorize(self, cookie: Any, csrf: Any, db: sqlite3.Connection | None = None) -> str:
         tag = self.session(cookie, db)
         require(
             identifier(csrf, "[0-9a-f]{64}")
@@ -162,13 +164,13 @@ class OwnerReview:
         )
         return tag
 
-    def logout(self, cookie, csrf):
+    def logout(self, cookie: Any, csrf: Any) -> None:
         with self.repo.transaction() as db:
             tag = self.authorize(cookie, csrf, db)
             db.execute("DELETE FROM owner_sessions WHERE tag=?", (tag,))
         # Logout expires the session, not an already committed delivery approval.
 
-    def pending(self, cookie):
+    def pending(self, cookie: Any) -> list[dict[str, Any]]:
         with self.repo.connect() as db:
             self.session(cookie, db)
             rows = db.execute(
@@ -180,7 +182,7 @@ class OwnerReview:
             ).fetchall()
         return [dict(r) for r in rows]
 
-    def _owned(self, job_id):
+    def _owned(self, job_id: Any) -> Any:
         require(identifier(job_id, "[0-9a-f]{32}"), "REVIEW_JOB_INVALID")
         job = self.repo.get(job_id)
         require(
@@ -191,7 +193,7 @@ class OwnerReview:
         require(owned["state"] == "VALIDATING", "REVIEW_JOB_UNAVAILABLE")
         return owned
 
-    def open(self, cookie, csrf, job_id):
+    def open(self, cookie: Any, csrf: Any, job_id: Any) -> Any:
         tag = self.authorize(cookie, csrf)
         owned = self._owned(job_id)
         manifest, _ = self.outbox.bundle(job_id, owned["attempt"])
@@ -254,7 +256,7 @@ class OwnerReview:
             )
         return ticket
 
-    def _ticket(self, cookie, ticket, db):
+    def _ticket(self, cookie: Any, ticket: Any, db: sqlite3.Connection) -> dict[str, Any]:
         tag = self.session(cookie, db)
         require(identifier(ticket, "[0-9a-f]{32}"), "REVIEW_TICKET_INVALID")
         row = db.execute(
@@ -267,7 +269,7 @@ class OwnerReview:
         require(row["identity_binding"] == self.outbox.identity.binding, "REVIEW_IDENTITY_CHANGED")
         return dict(row)
 
-    def view(self, cookie, ticket):
+    def view(self, cookie: Any, ticket: Any) -> tuple[dict[str, Any], Any, Any, Any]:
         with self.repo.connect() as db:
             row = self._ticket(cookie, ticket, db)
         owned = self._owned(row["job_id"])
@@ -281,7 +283,7 @@ class OwnerReview:
         )
         return row, owned, manifest, video
 
-    def media(self, cookie, ticket):
+    def media(self, cookie: Any, ticket: Any) -> Any:
         row, owned, _, video = self.view(cookie, ticket)
         with self.repo.owned_transaction(
             row["job_id"], owned["lease_token"], attempt=row["attempt"]
@@ -294,7 +296,9 @@ class OwnerReview:
             db.execute("UPDATE owner_reviews SET media_served=1 WHERE id=?", (ticket,))
         return video
 
-    def decide(self, cookie, csrf, ticket, decision, watched=False):
+    def decide(
+        self, cookie: Any, csrf: Any, ticket: Any, decision: Any, watched: object = False
+    ) -> Any:
         self.authorize(cookie, csrf)
         require(decision in ("approve", "reject"), "REVIEW_DECISION_INVALID")
         row, owned, manifest, _ = self.view(cookie, ticket)
@@ -333,7 +337,7 @@ class OwnerReview:
             "nonce": secrets.token_hex(16),
         }
 
-        def commit(db, current, item, material):
+        def commit(db: sqlite3.Connection, current: Any, item: Any, material: Any) -> None:
             self.authorize(cookie, csrf, db)
             latest = self._ticket(cookie, ticket, db)
             require(
@@ -362,7 +366,7 @@ class OwnerReview:
             approval_commit=commit,
         )
 
-    def approved_material(self, outbox_id):
+    def approved_material(self, outbox_id: Any) -> tuple[Any, str]:
         """Trusted local assembly only. No HTTP export or implicit dispatch."""
         receipt = self.outbox.receipt(outbox_id)
         require(receipt["state"] == "PREPARED", "REVIEW_GRANT_UNAVAILABLE")
