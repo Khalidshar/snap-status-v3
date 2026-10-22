@@ -7,16 +7,21 @@ Only signed account/recipient-bound webhooks establish recipient delivery.
 import hashlib
 import hmac
 import os
+import sqlite3
 import stat
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
+from studio_core.jobs import Repository
 from studio_core.observability.agent_runs import digest
 
 from .agents import PLAN_SHA
 from .weather import content_hash
 from .whatsapp_contract import (
     DeliveryBlocked,
+    DeliveryIdentity,
     finite,
     identifier,
     parse_json,
@@ -29,11 +34,11 @@ from .whatsapp_contract import (
 MAX_VIDEO = 16000000
 
 
-def read_bound(root, relative, limit):
+def read_bound(root: str | os.PathLike[str], relative: str, limit: int) -> bytes:
     """Open every directory via dir_fd/O_NOFOLLOW; never create on a read."""
     parts = Path(relative).parts
     require(parts and not Path(relative).is_absolute() and ".." not in parts, "WA_ARTIFACT_INVALID")
-    descriptor = None
+    descriptor: int | None = None
     try:
         # Absolute data root itself must also contain no symlink components.
         absolute = Path(root).absolute()
@@ -65,7 +70,7 @@ def read_bound(root, relative, limit):
 
 
 class WhatsAppOutbox:
-    def __init__(self, repository, identity):
+    def __init__(self, repository: Repository, identity: DeliveryIdentity) -> None:
         require(repository.config.app == "status-bot-v2", "WA_APP_SCOPE_INVALID")
         self.repo, self.identity = repository, identity
         with self.repo.transaction() as db:
@@ -86,7 +91,7 @@ class WhatsAppOutbox:
                   PRIMARY KEY(message_tag,state));
             """)
 
-    def scope(self, db):
+    def scope(self, db: sqlite3.Connection) -> None:
         require(
             not db.execute(
                 "SELECT 1 FROM jobs WHERE app != ? LIMIT 1", ("status-bot-v2",)
@@ -94,7 +99,7 @@ class WhatsAppOutbox:
             "WA_DATABASE_SCOPE_INVALID",
         )
 
-    def bundle(self, job_id, attempt):
+    def bundle(self, job_id: Any, attempt: Any) -> tuple[Any, bytes]:
         require(
             identifier(job_id, "[0-9a-f]{32}") and type(attempt) is int and attempt > 0,
             "WA_JOB_INVALID",
@@ -177,7 +182,16 @@ class WhatsAppOutbox:
         )
         return manifest, video
 
-    def prepare(self, job_id, token, attempt, review, signature, *, approval_commit=None):
+    def prepare(
+        self,
+        job_id: str,
+        token: str,
+        attempt: int,
+        review: Any,
+        signature: Any,
+        *,
+        approval_commit: Callable[..., object] | None = None,
+    ) -> dict[str, Any]:
         validate_review(review, signature, self.identity, self.repo.clock())
         manifest, _ = self.bundle(job_id, attempt)
         require(
@@ -234,7 +248,7 @@ class WhatsAppOutbox:
             self.repo.event(db, job_id, "whatsapp.prepared", {"outbox_id": outbox_id})
         return self.receipt(outbox_id)
 
-    def receipt(self, outbox_id):
+    def receipt(self, outbox_id: Any) -> dict[str, Any]:
         require(identifier(outbox_id, "[0-9a-f]{32}"), "WA_OUTBOX_INVALID")
         with self.repo.connect() as db:
             row = db.execute(
@@ -263,7 +277,7 @@ class WhatsAppOutbox:
             "automatic_retry": False,
         }
 
-    def _window(self, db):
+    def _window(self, db: sqlite3.Connection) -> None:
         row = db.execute(
             "SELECT last_inbound_at FROM whatsapp_windows WHERE identity_binding=?",
             (self.identity.binding,),
@@ -272,7 +286,7 @@ class WhatsAppOutbox:
             row is not None and 0 <= self.repo.clock() - row[0] < 86400, "WA_SERVICE_WINDOW_CLOSED"
         )
 
-    def begin(self, outbox_id, token, review, signature):
+    def begin(self, outbox_id: Any, token: str, review: Any, signature: Any) -> bytes:
         validate_review(review, signature, self.identity, self.repo.clock())
         receipt = self.receipt(outbox_id)
         manifest, video = self.bundle(receipt["job_id"], receipt["attempt"])
@@ -299,7 +313,7 @@ class WhatsAppOutbox:
         # Immutable verified bytes, never pass a path to the transport.
         return video
 
-    def send_intent(self, outbox_id, token):
+    def send_intent(self, outbox_id: Any, token: str) -> Any:
         receipt = self.receipt(outbox_id)
         with self.repo.owned_transaction(
             receipt["job_id"], token, attempt=receipt["attempt"]
@@ -318,7 +332,7 @@ class WhatsAppOutbox:
             db.execute("UPDATE deliveries SET state='WA_SEND_INTENT' WHERE id=?", (outbox_id,))
             self.repo.event(db, row["job_id"], "whatsapp.send_intent", {"outbox_id": outbox_id})
 
-    def accept(self, outbox_id, response):
+    def accept(self, outbox_id: Any, response: Any) -> dict[str, Any]:
         message = response_id(response, "send", self.identity.recipient)
         with self.repo.transaction() as db:
             self.scope(db)
@@ -345,7 +359,7 @@ class WhatsAppOutbox:
             self._settle(db, outbox_id)
         return self.receipt(outbox_id)
 
-    def fail(self, outbox_id, phase, error):
+    def fail(self, outbox_id: Any, phase: str, error: Any) -> None:
         # No raw exception/reply, and no retry state, even after known rejection.
         known = isinstance(error, DeliveryBlocked) and identifier(
             str(error), "WA_API_REJECTED_[0-9]{1,7}"
@@ -375,7 +389,7 @@ class WhatsAppOutbox:
                 {"outbox_id": outbox_id, "code": code},
             )
 
-    def _settle(self, db, outbox_id):
+    def _settle(self, db: sqlite3.Connection, outbox_id: str) -> None:
         row = db.execute("SELECT * FROM whatsapp_outbox WHERE id=?", (outbox_id,)).fetchone()
         if row["state"] not in ("API_ACCEPTED", "SENT", "DELIVERED", "READ", "FAILED_REMOTE"):
             return
@@ -430,7 +444,7 @@ class WhatsAppOutbox:
                 )
         # Never use PUBLISHED: recipient ACK is not publishing a WhatsApp Status.
 
-    def webhook(self, raw, signature):
+    def webhook(self, raw: Any, signature: Any) -> dict[str, Any]:
         require(
             type(raw) is bytes
             and 0 < len(raw) <= 1048576
@@ -448,8 +462,8 @@ class WhatsAppOutbox:
             "WA_WEBHOOK_INVALID",
         )
         now = self.repo.clock()
-        inbound = []
-        receipts = []
+        inbound: list[Any] = []
+        receipts: list[Any] = []
         for entry in value["entry"]:
             require(
                 isinstance(entry, dict)

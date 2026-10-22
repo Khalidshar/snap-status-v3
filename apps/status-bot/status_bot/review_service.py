@@ -3,7 +3,9 @@
 import argparse
 import os
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from studio_core.config import Config
 from studio_core.jobs import Repository
@@ -14,10 +16,15 @@ from .whatsapp_contract import DeliveryIdentity, parse_json, require
 from .whatsapp_outbox import WhatsAppOutbox, read_bound
 
 
-def assemble(mode, config_path, settings_path, environment):
+def assemble(
+    mode: str,
+    config_path: str | os.PathLike[str],
+    settings_path: str | os.PathLike[str],
+    environment: Mapping[str, str],
+) -> Endpoint:
     """Called only after explicit activation. Environment is never printed."""
 
-    def secret(name):
+    def secret(name: str) -> Any:
         value = environment.get(name)
         require(type(value) is str and 0 < len(value) <= 4096, "REVIEW_ENV_MISSING")
         return value
@@ -71,7 +78,7 @@ def assemble(mode, config_path, settings_path, environment):
     return Endpoint("webhook", outbox, webhook_config)
 
 
-def main(argv=None, environment=None):
+def main(argv: Sequence[str] | None = None, environment: Mapping[str, str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Private Status owner review or separate WhatsApp receipts listener"
     )
@@ -82,7 +89,7 @@ def main(argv=None, environment=None):
     parser.add_argument("--proxy-uid", required=True, type=int)
     parser.add_argument("--enable-listener", action="store_true")
     args = parser.parse_args(argv)
-    server = None
+    server: PrivateServer | None = None
     try:
         require(args.enable_listener, "HTTP_SERVICE_DISABLED")
         endpoint = assemble(

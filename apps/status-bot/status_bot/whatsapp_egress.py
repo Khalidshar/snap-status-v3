@@ -8,6 +8,7 @@ retries a POST. Tokens and raw Graph replies stay inside the transport boundary.
 
 import uuid
 from dataclasses import dataclass, field
+from typing import Any
 
 from studio_core.jobs.component_lock import ComponentLocks
 from studio_core.network.egress import PinnedHTTPSConnection, validate_target
@@ -30,7 +31,7 @@ class GraphCredentials:
     recipient: str = field(repr=False)
     token: str = field(repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         require(
             identifier(self.version, "v[1-9][0-9]{0,2}\\.0")
             and identifier(self.phone_number, "[1-9][0-9]{4,29}")
@@ -42,7 +43,9 @@ class GraphCredentials:
         )
 
 
-def graph_post(credentials, endpoint, body, content_type, timeout=30):
+def graph_post(
+    credentials: GraphCredentials, endpoint: str, body: bytes, content_type: str, timeout: int = 30
+) -> ApiResponse:
     """Single bounded POST. Version is explicitly pinned, never inferred/latest."""
     require(
         endpoint in ("media", "messages")
@@ -60,7 +63,7 @@ def graph_post(credentials, endpoint, body, content_type, timeout=30):
         + "/"
         + endpoint
     )
-    connection = None
+    connection: PinnedHTTPSConnection | None = None
     try:
         host, address, path = validate_target(url, ("graph.facebook.com",))
         connection = PinnedHTTPSConnection(host, address, timeout)
@@ -91,12 +94,12 @@ def graph_post(credentials, endpoint, body, content_type, timeout=30):
 
 
 class GraphTransport:
-    def __init__(self, credentials, *, enabled=False):
+    def __init__(self, credentials: GraphCredentials, *, enabled: object = False) -> None:
         require(enabled is True, "WA_LIVE_TRANSPORT_DISABLED")
         require(isinstance(credentials, GraphCredentials), "WA_CREDENTIALS_INVALID")
         self.credentials = credentials
 
-    def upload_video(self, video):
+    def upload_video(self, video: bytes) -> ApiResponse:
         require(type(video) is bytes and 0 < len(video) <= MAX_VIDEO, "WA_VIDEO_SIZE_INVALID")
         boundary = "statusv2" + uuid.uuid4().hex
         while boundary.encode() in video:
@@ -119,7 +122,7 @@ class GraphTransport:
             self.credentials, "media", body, "multipart/form-data; boundary=" + boundary
         )
 
-    def send_video(self, media_id):
+    def send_video(self, media_id: Any) -> ApiResponse:
         require(identifier(media_id, "[1-9][0-9]{0,29}"), "WA_MEDIA_INVALID")
         payload = {
             "messaging_product": "whatsapp",
@@ -139,7 +142,7 @@ class DeliveryWorker:
     Injected transports support offline contract tests, not live delivery evidence.
     """
 
-    def __init__(self, outbox, transport, *, enabled=False):
+    def __init__(self, outbox: Any, transport: Any, *, enabled: object = False) -> None:
         require(enabled is True, "WA_DELIVERY_WORKER_DISABLED")
         require(
             transport.credentials.phone_number == outbox.identity.phone_number
@@ -148,7 +151,7 @@ class DeliveryWorker:
         )
         self.outbox, self.transport = outbox, transport
 
-    def deliver(self, outbox_id, token, review, signature):
+    def deliver(self, outbox_id: Any, token: str, review: Any, signature: Any) -> Any:
         locks = ComponentLocks(self.outbox.repo)
         lease = locks.acquire("whatsapp-delivery", "USE", 120)
         started = False
