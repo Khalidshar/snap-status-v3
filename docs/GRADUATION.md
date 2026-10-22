@@ -32,7 +32,7 @@
 | `delivery/` | طبقة الأدلة: `studio_core/delivery.py` في المختبر 0.11.0. الإرسال (`api` و`deliver`) و`send_evidence.py` و`send_reconciliation.py` ما زالت في التطبيقين | REFACTOR (توحيد النسختين) | الأدلة: منقولة (مسودة، الدفعة 3). الإرسال: مختبر (الدفعة 3، الخطوة 2) | 3 |
 | `renderer/` | الأدوات المشتركة: `studio_core/renderer.py` في المختبر 0.10.0 (`run` و`ensure_glyphs` و`proof` والكتابة الذرية للمحاولات). تخطيطات كل تطبيق (`fact_layout` و`fact_motion` و`fact_audio` والطقس) تبقى في تطبيقها | REFACTOR (توحيد النسختين) | الأدوات المشتركة: منقولة (مسودة، الدفعة 2). التخطيطات: مع التطبيقين | 2 |
 | `quality/` | `snap_app/content_agents.py`، `render_agents.py`، `final_agent.py`، `owned_contract_adapter.py`، `agent_contract_map.py` | REFACTOR | مرشّح، مع شرط قرار الوكلاء أدناه | 3 |
-| `repair/` | `snap_app/maintenance.py`، `adoption_pending.py` | REFACTOR (ينقصه R2 إلى R4 وDLQ/Replay، §11) | مرشّح | 3 |
+| `repair/` | `snap_app/maintenance.py`، `adoption_pending.py` | REFACTOR (ينقصه R2 إلى R4 وDLQ/Replay، §11) | منقول (مسودة، الدفعة 4): المحرك والانتظار. واجهة سطر الأوامر تبقى مع التطبيق | 4 |
 | `religious/` | لا يوجد في V2. المرجع في V1: `religious_sources.py` و`quran_source.py` | WRAP (§7) | **لم يُبنَ** | 4 |
 | سجل التشغيل N1 | `snap_app/n1_*.py` (12 ملفًا) | قرار مفتوح: إضافة على المخطط، يُنظر هل تدخل `observability/` | مرشّح | — |
 
@@ -53,4 +53,5 @@
 |---|---|---|---|---|---|
 | 2026-10-13 | 1 | jobs، storage، observability، network، config، cli | طلب دمج مسودة (batch1-foundation) | النواة نفسها نجحت على السيرفر ضمن 647/647 في المختبر؛ نسخة v3 تنتظر Codex | موافقة على البدء؛ الدمج ينتظر |
 | 2026-10-21 | 2 | `renderer/` (الأدوات المشتركة)، `network/resilience.py` | #5، مدموج (`64773d1`) | نجح: 670/670 على khalid-bots بالمصدر نفسه (V2 `964b2bb`، 22 أكتوبر) | موافقة صريحة، 22 أكتوبر |
-| 2026-10-22 | 3 | `delivery/evidence.py` (أدلة التسليم) | طلب دمج مسودة (batch3-delivery) | نجح: 670/670 على khalid-bots (V2 `964b2bb` يحمل النواة 0.11.0 نفسها) | موافقة على البدء؛ الدمج ينتظر |
+| 2026-10-22 | 3 | `delivery/evidence.py` (أدلة التسليم) | #6، مدموج (`be6257b`) | نجح: 670/670 على khalid-bots (V2 `964b2bb` يحمل النواة 0.11.0 نفسها) | موافقة صريحة، 22 أكتوبر |
+| 2026-10-22 | 4 | `repair/` (الصيانة وانتظار الاعتماد) | طلب دمج مسودة (batch4-repair) | نجح: 670/670 على khalid-bots (V2 `964b2bb` يحمل `maintenance.py` و`adoption_pending.py` نفسيهما) | موافقة على المتابعة؛ الدمج ينتظر |

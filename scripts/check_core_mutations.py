@@ -1,4 +1,4 @@
-"""Guard deletions for the batch 1, 2 and 3 core, each in an isolated temporary source copy.
+"""Guard deletions for the batch 1 to 4 core, each in an isolated temporary source copy.
 
 Every case removes one protective line. The named test must then fail; a
 mutation that the suite does not detect means the guard is untested.
@@ -370,6 +370,131 @@ CASES = [
         "not 1 <= limit <= 100",
         "not 0 <= limit <= 1000",
         "test_sweep_repairs_misaligned_skips_collected_and_bounds_limit",
+    ),
+    (
+        "repair: unknown delivery forbidden",
+        "repair/maintenance.py",
+        '    if code == "DELIVERY_UNKNOWN":',
+        "    if False:",
+        "test_red_line_never_resend_any_delivery_evidence",
+    ),
+    (
+        "repair: deliveries evidence",
+        "repair/maintenance.py",
+        '    if db.execute("SELECT 1 FROM deliveries WHERE job_id=? LIMIT 1", (job_id'
+        ",)).fetchone():",
+        "    if False:",
+        "test_red_line_never_resend_any_delivery_evidence",
+    ),
+    (
+        "repair: outbox evidence",
+        "repair/maintenance.py",
+        '        _table(db, "telegram_outbox")\n',
+        "        False\n",
+        "test_red_line_never_resend_any_delivery_evidence",
+    ),
+    (
+        "repair: delivery event evidence",
+        "repair/maintenance.py",
+        "event LIKE '%deliver%'",
+        "event LIKE 'never-matches'",
+        "test_red_line_never_resend_any_delivery_evidence",
+    ),
+    (
+        "repair: automatic delivery commands",
+        "repair/maintenance.py",
+        '    elif job["command"] not in REPAIRABLE_COMMANDS:',
+        "    elif False:",
+        "test_automatic_delivery_commands_go_to_the_owner",
+    ),
+    (
+        "repair: unknown failure codes",
+        "repair/maintenance.py",
+        "    elif code not in RETRYABLE_CODES:",
+        "    elif False:",
+        "test_unknown_failures_go_to_the_owner",
+    ),
+    (
+        "repair: lineage budget",
+        "repair/maintenance.py",
+        "    elif depth >= MAX_REPAIRS_PER_LINEAGE:",
+        "    elif False:",
+        "test_lineage_budget_stops_endless_retries",
+    ),
+    (
+        "repair: daily budget",
+        "repair/maintenance.py",
+        "    elif budget_used >= MAX_REPAIRS_PER_DAY:",
+        "    elif False:",
+        "test_daily_budget_caps_repairs",
+    ),
+    (
+        "repair: action-time recheck",
+        "repair/maintenance.py",
+        '            or delivery_evidence(db, job["id"])\n',
+        "",
+        "test_red_line_rechecked_at_the_moment_of_action",
+    ),
+    (
+        "repair: once per failed job",
+        "repair/maintenance.py",
+        "        if done:",
+        "        if False:",
+        "test_repair_is_idempotent",
+    ),
+    (
+        "repair: runner never delivers",
+        "repair/maintenance.py",
+        '        raise RuntimeError("MAINTENANCE_RUNNER_DELIVERED")',
+        "        pass",
+        "test_runner_that_delivers_is_stopped",
+    ),
+    (
+        "repair: foreign plan refused",
+        "repair/maintenance.py",
+        '        raise ValueError("MAINTENANCE_PLAN_INVALID")',
+        "        pass",
+        "test_foreign_plan_is_refused",
+    ),
+    (
+        "repair: runtime delivery uncertainty",
+        "repair/maintenance.py",
+        'forbidden = incident.get("delivery_uncertain") or incident.get("kind") == "D'
+        'ELIVERY_UNKNOWN"',
+        "forbidden = False",
+        "test_runtime_incidents_are_reported_and_delivery_uncertainty_forbidden",
+    ),
+    (
+        "repair: lookback window",
+        "repair/maintenance.py",
+        "(now - LOOKBACK_SECONDS,),",
+        "(now - 10 * LOOKBACK_SECONDS,),",
+        "test_old_failures_are_outside_the_lookback",
+    ),
+    (
+        "adoption: delivery evidence untouched",
+        "repair/adoption.py",
+        "            if db.execute(\n"
+        '                "SELECT 1 FROM deliveries WHERE job_id=? LIMIT 1", (row["job'
+        '_id"],)\n'
+        "            ).fetchone():\n"
+        "                continue\n",
+        "",
+        "test_adoption_wait_with_delivery_evidence_is_left_to_reconciliation",
+    ),
+    (
+        "adoption: stale owner refused",
+        "repair/adoption.py",
+        '            raise LeaseLost("Pending marker owner changed")',
+        "            pass",
+        "test_pending_marker_refuses_a_stale_owner",
+    ),
+    (
+        "adoption: expiry batch bound",
+        "repair/adoption.py",
+        "not 1 <= limit <= 100",
+        "not 0 <= limit <= 1000",
+        "test_pending_marker_refuses_a_stale_owner",
     ),
 ]
 
