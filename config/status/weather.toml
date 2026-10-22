@@ -1,0 +1,63 @@
+app = "status-bot-v2"
+mode = "foundation-test"
+data_root = "../.status-weather-state"
+
+[gateway]
+commands = ["weather"]
+rate_window = 60
+rate_limit = 2
+max_active_per_actor = 1
+signature_skew_seconds = 60
+[gateway.owners]
+scheduler = ["foundation-test-owner"]
+
+[jobs]
+lease_seconds = 600
+aging_seconds = 60
+max_running = 1
+[jobs.budgets]
+CRITICAL = 180
+HIGH = 600
+NORMAL = 600
+BACKGROUND = 1200
+[storage]
+retention_seconds = 86400
+[network]
+socket = "egress.sock"
+hosts = ["api.open-meteo.com", "api.met.no"]
+user_agent = "StatusStudioV2/0.2 github.com/Khalidshar"
+timeout_seconds = 15
+max_bytes = 1048576
+
+[slice]
+city = "الرياض"
+ttl_seconds = 3600
+egress_socket = "/run/studio-v2-status-weather/egress.sock"
+[[slice.sources]]
+id = "open-meteo"
+url = "https://api.open-meteo.com/v1/forecast?latitude=24.7136&longitude=46.6753&current=temperature_2m,wind_speed_10m&timezone=Asia%2FRiyadh"
+license = "https://creativecommons.org/licenses/by/4.0/"
+attribution = "Open-Meteo / CC BY 4.0"
+[[slice.sources]]
+id = "met-no"
+url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=24.7136&lon=46.6753"
+license = "https://creativecommons.org/licenses/by/4.0/"
+attribution = "MET Norway / CC BY 4.0"
+
+[slice.profile]
+width = 1080
+height = 1920
+fps = 24
+duration_seconds = 8
+max_bytes = 16000000
+crf = 25
+preset = "ultrafast"
+timeout_seconds = 240
+ffmpeg = "/usr/bin/ffmpeg"
+ffprobe = "/usr/bin/ffprobe"
+ffmpeg_version = "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers"
+font = "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf"
+font_sha256 = "504d7407d86875acf7d04dfaa0fd7524d0b8797723bc4aa18022f29db25b0b6e"
+latin_font = "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
+latin_font_sha256 = "350badd6ab6a58e7fd7a0ea2ae0c10174941a08e1cd06b3c6010e10b3d5ae319"
+fc_query = "/usr/bin/fc-query"
