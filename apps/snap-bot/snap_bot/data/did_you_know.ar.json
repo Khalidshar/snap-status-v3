@@ -1,0 +1,248 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": false,
+  "facts": [
+    {
+      "id": "dyk-01",
+      "category": "space",
+      "text": "يستغرق دوران الزهرة حول نفسه نحو 243 يومًا أرضيًا، بينما يستغرق دورانه حول الشمس نحو 225 يومًا.",
+      "source": "NASA",
+      "source_url": "https://science.nasa.gov/venus/facts/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-02",
+      "category": "space",
+      "text": "زحل هو الكوكب الوحيد في مجموعتنا الشمسية الذي تقل كثافته المتوسطة عن كثافة الماء.",
+      "source": "NASA",
+      "source_url": "https://science.nasa.gov/saturn/facts/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-03",
+      "category": "space",
+      "text": "يأتي اللون الأحمر للمريخ من تأكسد الحديد في الصخور والغبار على سطحه.",
+      "source": "NASA",
+      "source_url": "https://science.nasa.gov/mars/facts/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-04",
+      "category": "space",
+      "text": "نرى الوجه نفسه تقريبًا من القمر لأن دورانه حول نفسه يتزامن مع دورانه حول الأرض.",
+      "source": "NASA",
+      "source_url": "https://science.nasa.gov/moon/facts/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-05",
+      "category": "space",
+      "text": "الشمس ليست جسمًا صلبًا؛ تتكوّن أساسًا من البلازما، وهي غاز تتفكك فيه الذرات إلى جسيمات مشحونة.",
+      "source": "NASA",
+      "source_url": "https://science.nasa.gov/sun/facts/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-14",
+      "category": "animals",
+      "text": "البطريق طائر لا يطير؛ فجسمه مهيأ للسباحة بدلًا من الطيران.",
+      "source": "Smithsonian",
+      "source_url": "https://howthingsfly.si.edu/ask-an-explainer/i-know-birds-can-fly-why-not-penguins",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-07",
+      "category": "body",
+      "text": "لو مددنا الحمض النووي في خلية بشرية جسدية ذات نواة، لبلغ طوله نحو مترين.",
+      "source": "NHGRI",
+      "source_url": "https://www.genome.gov/about-genomics/fact-sheets/Chromosomes-Fact-Sheet",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-08",
+      "category": "technology",
+      "text": "ابتكر تيم بيرنرز لي شبكة الويب في CERN عام 1989، لتسهيل تبادل المعلومات بين العلماء.",
+      "source": "CERN",
+      "source_url": "https://home.cern/science/computing/birth-web",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-09",
+      "category": "technology",
+      "text": "تتكوّن عناوين IPv6 من 128 بت، مما يوفر مساحة عناوين أوسع بكثير من IPv4.",
+      "source": "RFC 4291",
+      "source_url": "https://www.rfc-editor.org/rfc/rfc4291",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-10",
+      "category": "technology",
+      "text": "تُعرّف الثانية عبر 9,192,631,770 دورة من إشعاع مرتبط بانتقال محدد في ذرة السيزيوم 133.",
+      "source": "NIST",
+      "source_url": "https://www.nist.gov/si-redefinition/second-introduction",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-06",
+      "category": "animals",
+      "text": "للأخطبوط ثلاثة قلوب: قلبان يضخان الدم إلى الخياشيم، والثالث يضخه إلى بقية الجسم.",
+      "source": "Smithsonian",
+      "source_url": "https://ocean.si.edu/ocean-life/invertebrates/octopuses-squids-and-relatives",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-11",
+      "category": "animals",
+      "text": "الخفافيش هي الثدييات الوحيدة القادرة على الطيران الحقيقي.",
+      "source": "Smithsonian",
+      "source_url": "https://www.si.edu/spotlight/bats/batfacts",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-13",
+      "category": "animals",
+      "text": "تستخدم نحلات العسل رقصة خاصة لإخبار زميلاتها باتجاه مصدر الغذاء والمسافة إليه.",
+      "source": "بحث علمي / PubMed",
+      "source_url": "https://pubmed.ncbi.nlm.nih.gov/18652388/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-12",
+      "category": "animals",
+      "text": "تتذوق الفراشات بأقدامها، وتساعدها هذه الحاسة على اختيار النباتات المناسبة لوضع البيض.",
+      "source": "Smithsonian",
+      "source_url": "https://www.si.edu/object/silgoi_68308",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-15",
+      "category": "animals",
+      "text": "الدلافين ثدييات تتنفس الهواء بالرئتين، لذلك تصعد إلى سطح الماء للتنفس.",
+      "source": "NOAA",
+      "source_url": "https://oceanservice.noaa.gov/facts/dolphin.html",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-16",
+      "category": "body",
+      "text": "العظام نسيج حي يتجدد باستمرار؛ يزيل الجسم أجزاء من العظم القديم ويكوّن عظمًا جديدًا.",
+      "source": "NIAMS",
+      "source_url": "https://www.niams.nih.gov/health-topics/what-bone",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-17",
+      "category": "body",
+      "text": "الجلد أكبر أعضاء الجسم، ويشكّل حاجزًا يحميه من الجراثيم وفقدان الماء.",
+      "source": "NIH",
+      "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK20361/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-18",
+      "category": "body",
+      "text": "تتحكم القزحية، وهي الجزء الملوّن من العين، في كمية الضوء التي تدخل عبر بؤبؤ العين.",
+      "source": "NEI",
+      "source_url": "https://www.nei.nih.gov/eye-health-information/healthy-vision/how-eyes-work",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-19",
+      "category": "body",
+      "text": "يساعد الجهاز الدهليزي في الأذن الداخلية على حفظ توازن الجسم أثناء السكون والحركة.",
+      "source": "NIDCD",
+      "source_url": "https://www.nidcd.nih.gov/research/extramural/balance-program",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-20",
+      "category": "body",
+      "text": "تنشّط جزيئات الروائح خلايا متخصصة داخل الأنف، فترسل إشارات إلى الدماغ لتمييز الرائحة.",
+      "source": "NIDCD",
+      "source_url": "https://www.nidcd.nih.gov/news/multimedia/journey-of-smell-to-brain-text-version",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-21",
+      "category": "geography",
+      "text": "الربع الخالي من أكبر البحار الرملية المتصلة في العالم.",
+      "source": "UNESCO",
+      "source_url": "https://whc.unesco.org/en/list/1699/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-22",
+      "category": "geography",
+      "text": "تقع محمية عروق بني معارض على الطرف الغربي للربع الخالي في السعودية.",
+      "source": "UNESCO",
+      "source_url": "https://whc.unesco.org/en/list/1699/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-23",
+      "category": "geography",
+      "text": "تجمع واحة الأحساء في شرق السعودية بين بساتين النخيل والعيون وقنوات المياه.",
+      "source": "UNESCO",
+      "source_url": "https://whc.unesco.org/en/list/1563/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-24",
+      "category": "geography",
+      "text": "يضم وادي رم في الأردن جبالًا من الحجر الرملي وأقواسًا صخرية طبيعية.",
+      "source": "UNESCO",
+      "source_url": "https://whc.unesco.org/en/list/1377/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-25",
+      "category": "geography",
+      "text": "تضم سقطرى نباتات متوطنة لا تنمو طبيعيًا في أي مكان آخر بالعالم.",
+      "source": "UNESCO",
+      "source_url": "https://whc.unesco.org/en/list/1263/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-26",
+      "category": "technology",
+      "text": "يعتمد نظام GPS على زمن وصول إشارات الأقمار الصناعية لحساب موقعك.",
+      "source": "GPS.gov",
+      "source_url": "https://www.gps.gov/trilateration",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-27",
+      "category": "technology",
+      "text": "قد يظل رمز QR قابلًا للقراءة رغم تلف جزء منه، بفضل تقنية تصحيح الأخطاء.",
+      "source": "DENSO WAVE",
+      "source_url": "https://www.qrcode.com/en/about/error_correction.html",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-28",
+      "category": "technology",
+      "text": "تتيح تقنية NFC تبادل البيانات عند تقريب الأجهزة، وتُستخدم في الدفع اللاتلامسي.",
+      "source": "NFC Forum",
+      "source_url": "https://nfc-forum.org/learn/what-nfc-does/",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-29",
+      "category": "technology",
+      "text": "تحتفظ شاشة الحبر الإلكتروني E Ink بالصورة الثابتة حتى بعد فصل الطاقة عن الشاشة.",
+      "source": "E Ink",
+      "source_url": "https://www.eink.com/tech/detail/Benefits",
+      "verified_at": "2026-10-03"
+    },
+    {
+      "id": "dyk-30",
+      "category": "technology",
+      "text": "ينقل البلوتوث البيانات بموجات الراديو في نطاق 2.4 جيجاهرتز، مثل اتصال الهاتف بالسماعة.",
+      "source": "Bluetooth SIG",
+      "source_url": "https://www.bluetooth.com/learn-about-bluetooth/key-attributes/range/",
+      "verified_at": "2026-10-03"
+    }
+  ]
+}
+

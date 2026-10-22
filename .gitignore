@@ -9,6 +9,8 @@ __pycache__/
 node_modules/
 run/
 data/
+# The reviewed fact catalog is source, not runtime data.
+!apps/snap-bot/snap_bot/data/
 renders/
 voices/
 *.sqlite3
