@@ -1,4 +1,4 @@
-"""Guard deletions for the batch 1 and 2 core, each in an isolated temporary source copy.
+"""Guard deletions for the batch 1, 2 and 3 core, each in an isolated temporary source copy.
 
 Every case removes one protective line. The named test must then fail; a
 mutation that the suite does not detect means the guard is untested.
@@ -300,6 +300,76 @@ CASES = [
         "        if not stat.S_ISREG(meta.st_mode) or not 0 < meta.st_size <= 50_000_000:",
         "        if False:",
         "test_file_sha256_refuses_empty_and_non_regular_files",
+    ),
+    (
+        "receipt directory fsync",
+        "delivery/evidence.py",
+        "            os.fsync(directory)\n",
+        "            pass\n",
+        "test_atomic_json_fsyncs_the_directory_after_the_rename",
+    ),
+    (
+        "partial receipt cleanup",
+        "delivery/evidence.py",
+        "        if os.path.exists(name):\n            os.unlink(name)\n",
+        "        pass\n",
+        "test_atomic_json_failure_leaves_no_partial_receipt",
+    ),
+    (
+        "first review mode durable",
+        "delivery/evidence.py",
+        "INSERT OR IGNORE INTO telegram_receipt_metadata",
+        "INSERT OR REPLACE INTO telegram_receipt_metadata",
+        "test_first_review_mode_wins",
+    ),
+    (
+        "durable ACK required",
+        "delivery/evidence.py",
+        ' or not isinstance(row["message_id"], int):',
+        ":",
+        "test_missing_ack_is_refused",
+    ),
+    (
+        "status manifest state",
+        "delivery/evidence.py",
+        "    if manifest_state is not None:\n        manifest.update(state=manifest_state)\n",
+        "",
+        "test_manifest_state_is_written_only_when_asked",
+    ),
+    (
+        "collected workspace not recreated",
+        "delivery/evidence.py",
+        "        if not root.exists():\n            skipped += 1\n            continue\n",
+        "",
+        "test_sweep_repairs_misaligned_skips_collected_and_bounds_limit",
+    ),
+    (
+        "sweep repairs misaligned",
+        "delivery/evidence.py",
+        '        if not _aligned(config, repo, root, row["id"], row["video_sha"], bot):',
+        "        if False:",
+        "test_sweep_repairs_misaligned_skips_collected_and_bounds_limit",
+    ),
+    (
+        "aligned evidence left alone",
+        "delivery/evidence.py",
+        '        if not _aligned(config, repo, root, row["id"], row["video_sha"], bot):',
+        "        if True:",
+        "test_sweep_repairs_misaligned_skips_collected_and_bounds_limit",
+    ),
+    (
+        "sweep pending count",
+        "delivery/evidence.py",
+        "            except Exception:\n                pending += 1\n",
+        "            except Exception:\n                pass\n",
+        "test_sweep_counts_a_failed_repair_as_pending",
+    ),
+    (
+        "sweep limit bound",
+        "delivery/evidence.py",
+        "not 1 <= limit <= 100",
+        "not 0 <= limit <= 1000",
+        "test_sweep_repairs_misaligned_skips_collected_and_bounds_limit",
     ),
 ]
 

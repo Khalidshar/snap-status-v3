@@ -29,7 +29,7 @@
 | `storage/` | `studio_core/storage.py`، `backup.py` | REFACTOR | منقول (مسودة) | 1 |
 | `observability/` | `studio_core/observability.py`، `runtime_watchdog.py`، `agent_runs.py`، `agent_inventory.py` | REFACTOR | منقول (مسودة) | 1 |
 | `network/` | `studio_core/network.py`، `egress.py`، `resilience.py` | REFACTOR + EXTEND | منقول. أُضيف `resilience.py` (Retry/Backoff/Circuit Breaker/Cache، §8) في الدفعة 2 (مسودة) | 1 ثم 2 |
-| `delivery/` | `snap_app/telegram_egress.py`، `send_evidence.py`، `send_reconciliation.py`، و`status_app/telegram_egress.py` | REFACTOR (توحيد النسختين) | مختبر | 3 |
+| `delivery/` | طبقة الأدلة: `studio_core/delivery.py` في المختبر 0.11.0. الإرسال (`api` و`deliver`) و`send_evidence.py` و`send_reconciliation.py` ما زالت في التطبيقين | REFACTOR (توحيد النسختين) | الأدلة: منقولة (مسودة، الدفعة 3). الإرسال: مختبر (الدفعة 3، الخطوة 2) | 3 |
 | `renderer/` | الأدوات المشتركة: `studio_core/renderer.py` في المختبر 0.10.0 (`run` و`ensure_glyphs` و`proof` والكتابة الذرية للمحاولات). تخطيطات كل تطبيق (`fact_layout` و`fact_motion` و`fact_audio` والطقس) تبقى في تطبيقها | REFACTOR (توحيد النسختين) | الأدوات المشتركة: منقولة (مسودة، الدفعة 2). التخطيطات: مع التطبيقين | 2 |
 | `quality/` | `snap_app/content_agents.py`، `render_agents.py`، `final_agent.py`، `owned_contract_adapter.py`، `agent_contract_map.py` | REFACTOR | مرشّح، مع شرط قرار الوكلاء أدناه | 3 |
 | `repair/` | `snap_app/maintenance.py`، `adoption_pending.py` | REFACTOR (ينقصه R2 إلى R4 وDLQ/Replay، §11) | مرشّح | 3 |
@@ -52,4 +52,5 @@
 | التاريخ | الدفعة | الوحدات | طلب الدمج | تحقق السيرفر | موافقة المالك |
 |---|---|---|---|---|---|
 | 2026-10-13 | 1 | jobs، storage، observability، network، config، cli | طلب دمج مسودة (batch1-foundation) | النواة نفسها نجحت على السيرفر ضمن 647/647 في المختبر؛ نسخة v3 تنتظر Codex | موافقة على البدء؛ الدمج ينتظر |
-| 2026-10-21 | 2 | `renderer/` (الأدوات المشتركة)، `network/resilience.py` | طلب دمج مسودة (batch2-renderer-network) | المختبر: CI أخضر، و656/659 محليًا. السيرفر متوقف بقرار المالك، فيُفحص عند النشر | تنتظر |
+| 2026-10-21 | 2 | `renderer/` (الأدوات المشتركة)، `network/resilience.py` | #5، مدموج (`64773d1`) | نجح: 670/670 على khalid-bots بالمصدر نفسه (V2 `964b2bb`، 22 أكتوبر) | موافقة صريحة، 22 أكتوبر |
+| 2026-10-22 | 3 | `delivery/evidence.py` (أدلة التسليم) | طلب دمج مسودة (batch3-delivery) | نجح: 670/670 على khalid-bots (V2 `964b2bb` يحمل النواة 0.11.0 نفسها) | موافقة على البدء؛ الدمج ينتظر |

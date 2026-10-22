@@ -1,3 +1,5 @@
+"""Skeleton outbox model from the original v3 scaffold, kept for its tests and callers."""
+
 from dataclasses import dataclass
 from enum import Enum
 
