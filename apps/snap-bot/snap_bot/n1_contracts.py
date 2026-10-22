@@ -7,30 +7,33 @@ import hmac
 import json
 import re
 import uuid
+from typing import Any
 
-from studio_core.jobs import LeaseLost
+from studio_core.jobs import LeaseLost, Repository
 
 
 class Refused(RuntimeError):
     pass
 
 
-def canonical(value):
+def canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
-def sha(value):
+def sha(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def recovery_gate(repo, job, token, attempt, *, enabled=False):
+def recovery_gate(
+    repo: Repository, job: str, token: str, attempt: int, *, enabled: bool = False
+) -> bool:
     """Read the entire authoritative history in the same owner transaction."""
     with repo.owned_transaction(job, token, attempt=attempt) as db:
         rows = db.execute(
             "SELECT event,details FROM events WHERE job_id=? ORDER BY id", (job,)
         ).fetchall()
-        claims = []
-        phases = []
+        claims: list[dict[str, Any]] = []
+        phases: list[str] = []
         try:
             for row in rows:
                 details = json.loads(row["details"])
@@ -87,7 +90,7 @@ def recovery_gate(repo, job, token, attempt, *, enabled=False):
 class Ledger:
     """Application-local SQLite authority model. No append/fsync under a DB lock."""
 
-    def __init__(self, repo, key):
+    def __init__(self, repo: Repository, key: bytes) -> None:
         if not isinstance(key, bytes) or len(key) < 32:
             raise ValueError("Synthetic key too short")
         self.repo, self.key = repo, key
@@ -112,12 +115,21 @@ class Ledger:
                         (uuid.uuid4().hex, "0" * 64),
                     )
 
-    def mac(self, domain, value):
+    def mac(self, domain: str, value: object) -> str:
         return hmac.new(
             self.key, (domain + "\n" + canonical(value)).encode(), hashlib.sha256
         ).hexdigest()
 
-    def begin(self, job, token, attempt, agent, status, event_id, payload_sha):
+    def begin(
+        self,
+        job: str,
+        token: str,
+        attempt: int,
+        agent: str,
+        status: str,
+        event_id: str,
+        payload_sha: str,
+    ) -> dict[str, Any]:
         if agent not in {"fact_source", "design", "quality"} or status not in {
             "RUNNING",
             "SUCCEEDED",
@@ -180,7 +192,7 @@ class Ledger:
             )
             return {"body": body, "mac": mac}
 
-    def simulated_writer_receipt(self, envelope):
+    def simulated_writer_receipt(self, envelope: dict[str, Any]) -> dict[str, Any]:
         """Test model only; Linux broker must actually append+fsync before replying."""
         if set(envelope) != {"body", "mac"} or not hmac.compare_digest(
             self.mac("n1.intent.v1", envelope["body"]), envelope["mac"]
@@ -189,11 +201,16 @@ class Ledger:
         body = envelope["body"]
         if self.repo.clock() >= body["not_after"]:
             raise Refused("INTENT_EXPIRED")
-        receipt = {"envelope": envelope, "digest": sha(body["prev"] + "\n" + canonical(envelope))}
+        receipt: dict[str, Any] = {
+            "envelope": envelope,
+            "digest": sha(body["prev"] + "\n" + canonical(envelope)),
+        }
         receipt["proof"] = self.mac("n1.receipt.v1", receipt)
         return receipt
 
-    def confirm(self, job, token, attempt, receipt):
+    def confirm(
+        self, job: str, token: str, attempt: int, receipt: dict[str, Any]
+    ) -> dict[str, Any]:
         if set(receipt) != {"envelope", "digest", "proof"}:
             raise Refused("RECEIPT_INVALID")
         unsigned = {k: receipt[k] for k in ("envelope", "digest")}
@@ -240,7 +257,7 @@ class Ledger:
             )
             return receipt
 
-    def seal(self, gen):
+    def seal(self, gen: str) -> str | None:
         """Atomic logical fencing. This does not delete locks or prove a writer dead."""
         with self.repo.transaction() as db:
             segment = db.execute("SELECT * FROM n1_segments WHERE gen=?", (gen,)).fetchone()
@@ -260,7 +277,7 @@ class Ledger:
             )
             return new
 
-    def view(self, job):
+    def view(self, job: str) -> list[Any]:
         with self.repo.connect() as db:
             db.execute("BEGIN")
             epoch = db.execute(

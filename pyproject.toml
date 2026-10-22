@@ -81,8 +81,6 @@ module = [
     "snap_bot.fact_layout",
     "snap_bot.final_agent",
     "snap_bot.maintenance",
-    "snap_bot.n1_artifacts",
-    "snap_bot.n1_contracts",
     "snap_bot.n1_control",
     "snap_bot.n1_coordinator",
     "snap_bot.n1_generations",
