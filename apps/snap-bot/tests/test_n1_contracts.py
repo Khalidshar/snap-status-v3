@@ -1,5 +1,4 @@
 import copy
-import json
 import tempfile
 import threading
 import unittest

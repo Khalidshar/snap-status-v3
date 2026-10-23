@@ -2,7 +2,6 @@
 
 import errno
 import json
-import os
 import select
 import shutil
 import signal

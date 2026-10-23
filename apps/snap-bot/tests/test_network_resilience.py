@@ -49,7 +49,7 @@ class ResilienceTests(unittest.TestCase):
         self.breakers = {}
         self.cache = TTLCache(clock=self.clock)
 
-    def client(self, *script, cache_ttl=0, retry=RetryPolicy()):
+    def client(self, *script, cache_ttl=0, retry=RetryPolicy()):  # noqa: B008  # frozen policy
         fake = FakeClient(*script)
         resilient = ResilientClient(
             fake,
@@ -143,7 +143,7 @@ class ResilienceTests(unittest.TestCase):
         self.assertEqual(breaker.state, "CLOSED", "guard:trial-success-closes")
 
     def test_final_errors_and_success_do_not_trip_the_breaker(self):
-        fake, client = self.client(*[NetworkError("HOST_NOT_ALLOWED")] * 6)
+        _fake, client = self.client(*[NetworkError("HOST_NOT_ALLOWED")] * 6)
         for _ in range(6):
             with self.assertRaises(NetworkError):
                 client.get("https://a.example/x")

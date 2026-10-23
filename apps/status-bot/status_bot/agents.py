@@ -3,6 +3,7 @@
 import math
 import re
 import time
+from typing import Any
 
 from studio_core.observability.agent_runs import AgentContract, digest
 
@@ -21,14 +22,14 @@ PLAN_SHA = digest(
 )
 
 
-def contract(role, budget=25):
+def contract(role: str, budget: int = 25) -> AgentContract:
     dependencies = {"fact_source": (), "arabic": ("fact_source",), "quality": ("arabic",)}
     return AgentContract(
         "status-bot-v2", "weather", role, "1.0.0", PLAN_SHA, dependencies[role], budget
     )
 
 
-def source_request(value):
+def source_request(value: Any) -> bool:
     return (
         isinstance(value, dict)
         and set(value) == {"command", "synthetic"}
@@ -37,7 +38,7 @@ def source_request(value):
     )
 
 
-def weather_payload(value):
+def weather_payload(value: Any) -> bool:
     if not isinstance(value, dict) or set(value) != {"content", "failures"}:
         return False
     content = value["content"]
@@ -67,23 +68,23 @@ def weather_payload(value):
     ):
         return False
     for key, low, high in (("temperature_c", -90, 65), ("wind_kmh", 0, 500)):
-        number = content.get(key)
+        number: Any = content.get(key)
         if (
             type(number) not in (int, float)
             or not math.isfinite(number)
             or not low <= number <= high
         ):
             return False
-    expiry = content.get("expires_at")
+    expiry: Any = content.get("expires_at")
     return type(expiry) in (int, float) and math.isfinite(expiry) and expiry > time.time()
 
 
-def source_output(value, request):
+def source_output(value: Any, request: Any) -> bool:
     return weather_payload(value) and (
         not request["synthetic"] or value["content"]["source"] == "synthetic-fixture"
     )
 
 
-def arabic_output(value, original):
+def arabic_output(value: Any, original: Any) -> bool:
     # Check the weather labels without rewriting or asserting full proofreading.
     return weather_payload(value) and digest(value) == digest(original)

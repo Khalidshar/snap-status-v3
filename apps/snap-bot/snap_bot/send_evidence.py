@@ -1,15 +1,17 @@
 """Conservative network boundary and durable, secret-free failure evidence."""
 
+from collections.abc import Callable
 from contextvars import ContextVar
 from functools import wraps
 from pathlib import Path
+from typing import Any
 
-network_started = ContextVar("telegram_network_started", default=False)
+network_started: ContextVar[bool] = ContextVar("telegram_network_started", default=False)
 
 
-def tracked_transport(transport):
+def tracked_transport(transport: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(transport)
-    def call(*args, **kwargs):
+    def call(*args: Any, **kwargs: Any) -> Any:
         # Mark before DNS/TLS/HTTP: even a failed first request remains UNKNOWN.
         network_started.set(True)
         return transport(*args, **kwargs)
@@ -17,7 +19,15 @@ def tracked_transport(transport):
     return call
 
 
-def failure_receipt(path, *, run_id, video_sha, intent_id=None, content_hash=None, reason):
+def failure_receipt(
+    path: str | Path,
+    *,
+    run_id: object,
+    video_sha: Any,
+    intent_id: object = None,
+    content_hash: Any = None,
+    reason: str,
+) -> Any:
     from .telegram_egress import atomic_json
 
     value = {
@@ -56,11 +66,17 @@ def failure_receipt(path, *, run_id, video_sha, intent_id=None, content_hash=Non
     return value
 
 
-def delivery_evidence(function):
+def delivery_evidence(function: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(function)
     def guarded(
-        config, job_id, reviewed_sha, transport=None, lease_token=None, review_mode=None, **kwargs
-    ):
+        config: Any,
+        job_id: str,
+        reviewed_sha: str,
+        transport: Any = None,
+        lease_token: str | None = None,
+        review_mode: str | None = None,
+        **kwargs: Any,
+    ) -> Any:
         from studio_core.storage import Storage
 
         from .telegram_egress import api

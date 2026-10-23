@@ -2,11 +2,14 @@
 
 import hashlib
 import json
+import sqlite3
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
-from studio_core.jobs import LeaseLost
+from studio_core.jobs import LeaseLost, Repository
 
 from .agent_contract_map import (
     BOUND,
@@ -27,7 +30,7 @@ class ContractReconciliationRequired(RuntimeError):
     pass
 
 
-def digest(value):
+def digest(value: object) -> str:
     return hashlib.sha256(
         json.dumps(
             value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
@@ -35,7 +38,7 @@ def digest(value):
     ).hexdigest()
 
 
-def initialize(db):
+def initialize(db: sqlite3.Connection) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS owned_agent_contracts(
       job_id TEXT NOT NULL,attempt INTEGER NOT NULL,role TEXT NOT NULL,
       run TEXT NOT NULL,plan_sha TEXT NOT NULL,input_sha TEXT NOT NULL,
@@ -47,7 +50,7 @@ def initialize(db):
         db.execute("ALTER TABLE owned_agent_contracts ADD COLUMN output_json TEXT")
 
 
-def scope(repo, db, job):
+def scope(repo: Repository, db: sqlite3.Connection, job: str) -> None:
     row = db.execute("SELECT app,command FROM jobs WHERE id=?", (job,)).fetchone()
     if (
         repo.config.app != "snap-bot-v2"
@@ -58,10 +61,12 @@ def scope(repo, db, job):
         raise ContractViolation("CONTRACT_SCOPE_INVALID")
 
 
-def validate(role, direction, payload, job, attempt, original=None):
+def validate(
+    role: str, direction: str, payload: Any, job: str, attempt: int, original: Any = None
+) -> Any:
     try:
         validate_payload(role, direction, payload)
-        if (
+        if (  # noqa: SIM102  # kept as reviewed
             (role == "design" and direction == "output")
             or role == "quality"
             or role in RENDER_CHECKS
@@ -89,7 +94,7 @@ def validate(role, direction, payload, job, attempt, original=None):
         raise ContractViolation("CONTRACT_" + direction.upper() + "_INVALID") from cause
 
 
-def output_payload(role, result):
+def output_payload(role: str, result: Any) -> Any:
     if role == "fact_source":
         if not isinstance(result, tuple) or len(result) != 2 or not isinstance(result[1], list):
             raise ContractViolation("CONTRACT_OUTPUT_INVALID")
@@ -97,7 +102,17 @@ def output_payload(role, result):
     return result
 
 
-def telemetry(repo, job, token, attempt, role, run, status, started, code=None):
+def telemetry(
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    role: str,
+    run: str,
+    status: str,
+    started: float,
+    code: str | None = None,
+) -> None:
     with repo.owned_transaction(job, token, attempt=attempt) as db:
         details = {
             "agent": role,
@@ -112,8 +127,17 @@ def telemetry(repo, job, token, attempt, role, run, status, started, code=None):
 
 
 def run_stage(
-    repo, job, token, attempt, role, payload, callback, *, retry_adoption=False, retryable_errors=()
-):
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    role: str,
+    payload: Any,
+    callback: Callable[[], Any],
+    *,
+    retry_adoption: bool = False,
+    retryable_errors: tuple[type[BaseException], ...] = (),
+) -> Any:
     if role not in BOUND:
         raise ContractViolation("CONTRACT_ROLE_INVALID")
     run = uuid.uuid4().hex
@@ -229,9 +253,9 @@ def run_stage(
                     role,
                 ),
             )
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             telemetry(repo, job, token, attempt, role, run, "FAILED", started, "STAGE_FAILED")
-        except Exception:
+        except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
             pass  # The durable contract failure, not logging, blocks delivery.
         if role == "arabic" and isinstance(error, ValueError) and not problem:
             raise ContractViolation("CONTRACT_ARABIC_REJECTED") from error
@@ -248,7 +272,7 @@ def run_stage(
     return result
 
 
-def contract_status(repo, job, attempt, role):
+def contract_status(repo: Repository, job: str, attempt: int, role: str) -> Any:
     with repo.connect() as db:
         if not db.execute(
             "SELECT 1 FROM sqlite_master WHERE name='owned_agent_contracts'"
@@ -261,7 +285,7 @@ def contract_status(repo, job, attempt, role):
         return row["status"] if row else None
 
 
-def arabic_evidence(row, content_sha, content_hash=None):
+def arabic_evidence(row: Any, content_sha: str, content_hash: str | None = None) -> Any:
     from .arabic_agent import inspect_content
     from .did_you_know import load_facts, make_content
 
@@ -292,7 +316,7 @@ def arabic_evidence(row, content_sha, content_hash=None):
         raise ContractViolation("CONTRACT_ARABIC_EVIDENCE_INVALID") from cause
 
 
-def check_chain(rows):
+def check_chain(rows: Any) -> Any:
     """Every content check agent succeeded on the exact source content and passed it through."""
     content_sha = rows["fact_source"]["output_sha"]
     for role in CONTENT_CHECKS:
@@ -306,7 +330,7 @@ def check_chain(rows):
             raise ContractViolation("CONTRACT_CHECK_CHAIN_INVALID")
 
 
-def render_check_chain(rows, result):
+def render_check_chain(rows: Any, result: Any) -> Any:
     """Every render check agent succeeded on the exact render result and passed it through."""
     result_sha = digest(result)
     for role in RENDER_CHECKS:
@@ -320,7 +344,7 @@ def render_check_chain(rows, result):
             raise ContractViolation("CONTRACT_RENDER_CHECK_CHAIN_INVALID")
 
 
-def adoption_receipt(db, job, attempt, result):
+def adoption_receipt(db: sqlite3.Connection, job: str, attempt: int, result: Any) -> Any:
     if not db.execute("SELECT 1 FROM sqlite_master WHERE name='stage_results'").fetchone():
         raise ContractViolation("CONTRACT_ADOPTION_UNCONFIRMED")
     rows = {
@@ -344,8 +368,16 @@ def adoption_receipt(db, job, attempt, result):
 
 
 def reconcile_stage(
-    repo, job, token, current_attempt, role, source_attempt, *, settings=None, result=None
-):
+    repo: Repository,
+    job: str,
+    token: str,
+    current_attempt: int,
+    role: str,
+    source_attempt: int,
+    *,
+    settings: Any = None,
+    result: Any = None,
+) -> dict[str, Any]:
     """Explicit ledger reconciliation only. Never callback, render, adopt or send.
 
     RUNNING quality can be resolved from an already committed stage receipt and
@@ -512,7 +544,7 @@ def reconcile_stage(
     }
 
 
-def legacy_preview_at_creation(db, job):
+def legacy_preview_at_creation(db: sqlite3.Connection, job: str) -> bool:
     """Only an explicit policy on the original creation event is legacy evidence.
 
     No runtime path writes this policy or backfills existing jobs. A missing
@@ -549,7 +581,7 @@ def legacy_preview_at_creation(db, job):
     )
 
 
-def require_delivery_contract(db, job, result):
+def require_delivery_contract(db: sqlite3.Connection, job: str, result: Any) -> None:
     """Fail closed without contracts unless creation explicitly designated legacy.
     An ACK is authoritative even if subsequent telemetry or contracts are broken.
     """
@@ -565,7 +597,7 @@ def require_delivery_contract(db, job, result):
         if legacy_preview_at_creation(db, job):
             return
         raise ContractViolation("CONTRACT_DELIVERY_BLOCKED")
-    if db.execute("SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'").fetchone():
+    if db.execute("SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'").fetchone():  # noqa: SIM102  # kept as reviewed
         if db.execute(
             "SELECT 1 FROM telegram_outbox o JOIN deliveries d ON d.job_id=? AND d.state='PUBLISHED' AND d.id IN (o.video_sha,o.video_sha||':'||?) WHERE o.video_sha=? AND o.state='PUBLISHED' AND typeof(o.message_id)='integer'",
             (job, job, result["video_sha256"]),
@@ -577,7 +609,7 @@ def require_delivery_contract(db, job, result):
     require_final(db, job, epoch, result)
 
 
-def quality_chain(db, job, epoch, result):
+def quality_chain(db: sqlite3.Connection, job: str, epoch: int, result: Any) -> dict[str, Any]:
     rows = {
         r["role"]: dict(r)
         for r in db.execute(

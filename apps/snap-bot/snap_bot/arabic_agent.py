@@ -1,5 +1,6 @@
 """Deterministic Arabic fact checks. No rewriting, network or AI service."""
 
+import itertools
 import re
 import textwrap
 import unicodedata
@@ -54,7 +55,7 @@ def check_text(text: object) -> dict[str, Any]:
         raise ValueError("ARABIC_LINE_LIMIT")
     plain = "".join(c for c in normalized if not (0x064B <= ord(c) <= 0x0655 or ord(c) == 0x0670))
     words = re.findall(r"[\u0621-\u063a\u0641-\u064a]+|[A-Za-z]+", plain)
-    if any(a.casefold() == b.casefold() for a, b in zip(words, words[1:])):
+    if any(a.casefold() == b.casefold() for a, b in itertools.pairwise(words)):
         raise ValueError("ARABIC_DUPLICATE_WORD")
     return {
         "version": RULE_VERSION,

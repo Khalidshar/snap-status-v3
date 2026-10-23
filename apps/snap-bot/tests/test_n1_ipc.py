@@ -1,4 +1,3 @@
-import json
 import os
 import socket
 import struct
@@ -265,7 +264,7 @@ class IPC(unittest.TestCase):
         return repo, job, owner, journal, envelope
 
     def test_lost_reply_after_real_fsync_preserves_unconfirmed_evidence(self):
-        repo, job, owner, journal, envelope = self.segment_fixture()
+        _repo, job, _owner, journal, envelope = self.segment_fixture()
 
         def raw(client):
             value = ipc.receive(client, ipc.budget(0.5))
@@ -337,7 +336,7 @@ class IPC(unittest.TestCase):
         self.assertEqual(journal.scan(envelope["body"]["gen"]), [])
 
     def test_sealed_envelope_is_refused_over_ipc(self):
-        repo, job, owner, journal, envelope = self.segment_fixture()
+        _repo, job, _owner, journal, envelope = self.segment_fixture()
         journal.seal(envelope["body"]["gen"])
         self.listener(handler=ipc.SegmentAppendHandler(journal))
         with self.assertRaises(ipc.RpcRefused):

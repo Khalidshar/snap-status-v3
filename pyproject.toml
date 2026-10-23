@@ -45,6 +45,8 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "S", "RUF"]
 # str+Enum is kept on purpose: StrEnum changes str() output of persisted states.
 ignore = ["UP042"]
+# Arabic text is the product: its letters and digits are intended, not look-alikes.
+allowed-confusables = ["ا", "ه", "٠", "١", "٥", "٧", "٫"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101"]
@@ -53,12 +55,16 @@ ignore = ["UP042"]
 # schema text is persisted in the sqlite_master of every existing database.
 "packages/studio-core/studio_core/jobs/repository.py" = ["E501"]
 
-# Snap app graduated from the lab as-is (behaviour proven by its 550 lab tests).
-# Debt, paid down module by module like the core: see docs/GRADUATION.md.
-"apps/snap-bot/snap_bot/*.py" = ["E501", "F401", "SIM105", "RUF001", "B904", "S110", "S603", "SIM102", "B905", "RUF005", "E731", "S607", "S310", "F841", "S608", "E402", "RUF059", "RUF007"]
-"apps/snap-bot/tests/*.py" = ["SIM117", "F401", "E501", "B023", "RUF059", "RUF001", "S603", "S608", "B905", "B017", "E731", "S106", "F841", "S607", "RUF007", "RUF005", "B008", "S311", "S101"]
-"apps/status-bot/status_bot/*.py" = ["E501", "SIM105", "F401", "S110", "RUF001", "SIM103", "B904", "RUF059", "F841", "B905"]
-"apps/status-bot/tests/*.py" = ["RUF059", "SIM117", "F401", "B023", "B017", "S106", "S105", "S608", "E501", "F841", "S101"]
+# App source keeps only E501: its SQL statements stay byte-identical (CREATE text is
+# persisted in sqlite_master) and its CSS/HTML strings are not worth splitting.
+# Test files keep security rules that do not apply to fixtures (asserts, fake credentials,
+# seeded randomness, fixed-argv subprocesses, constant test SQL) and four readability
+# rules: nested with blocks scope each assertRaises, closures run inside their own loop
+# iteration, fixture literals are long, and fault injection asserts broad exceptions.
+"apps/snap-bot/snap_bot/*.py" = ["E501"]
+"apps/snap-bot/tests/*.py" = ["S101", "S105", "S106", "S311", "S603", "S607", "S608", "SIM117", "B023", "E501", "B017"]
+"apps/status-bot/status_bot/*.py" = ["E501"]
+"apps/status-bot/tests/*.py" = ["S101", "S105", "S106", "S311", "S603", "S607", "S608", "SIM117", "B023", "E501", "B017"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["studio_core", "snap_bot", "status_bot"]
@@ -67,46 +73,3 @@ known-first-party = ["studio_core", "snap_bot", "status_bot"]
 python_version = "3.11"
 strict = true
 packages = ["studio_core", "snap_bot", "status_bot"]
-
-[[tool.mypy.overrides]]
-# Untyped Snap modules graduated as-is; each leaves this list when it is typed (GRADUATION.md).
-module = [
-    "snap_bot.actions_preview",
-    "snap_bot.agent_contract_map",
-    "snap_bot.command_transport",
-    "snap_bot.command_worker",
-    "snap_bot.editorial_agents",
-    "snap_bot.final_agent",
-    "snap_bot.maintenance",
-    "snap_bot.oversight_agents",
-    "snap_bot.owned_contract_adapter",
-    "snap_bot.render",
-    "snap_bot.render_agents",
-    "snap_bot.render_commit",
-    "snap_bot.schedule_once",
-    "snap_bot.send_evidence",
-    "snap_bot.server_preview",
-    "snap_bot.service",
-    "snap_bot.telegram_egress",
-]
-ignore_errors = true
-
-[[tool.mypy.overrides]]
-# Untyped Status modules graduated as-is; each leaves this list when it is typed (GRADUATION.md).
-module = [
-    "status_bot.actions_preview",
-    "status_bot.agents",
-    "status_bot.manual_transport",
-    "status_bot.owner_review",
-    "status_bot.pipeline",
-    "status_bot.render",
-    "status_bot.review_http",
-    "status_bot.review_service",
-    "status_bot.send_diagnostics",
-    "status_bot.telegram_egress",
-    "status_bot.whatsapp_contract",
-    "status_bot.whatsapp_egress",
-    "status_bot.whatsapp_outbox",
-    "status_bot.whatsapp_watchdog",
-]
-ignore_errors = true

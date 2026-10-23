@@ -6,7 +6,7 @@ from unittest.mock import patch
 import test_owned_contract_adapter as fixtures
 
 from snap_bot.agent_contract_map import validate_payload
-from snap_bot.final_agent import decide, evaluate_final, record_human_frame, require_final
+from snap_bot.final_agent import evaluate_final, record_human_frame, require_final
 from snap_bot.owned_contract_adapter import (
     ContractReconciliationRequired,
     ContractViolation,

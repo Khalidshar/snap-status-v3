@@ -17,8 +17,10 @@ import tempfile
 import time
 import tomllib
 import uuid
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 REPOSITORY = "Khalidshar/snap-bot-v2"
@@ -27,7 +29,7 @@ RENDER_WORKFLOW = ".github/workflows/did-you-know-manual.yml"
 ARTIFACT = "madar-did-you-know-test"
 
 
-def approval_guard(env):
+def approval_guard(env: Mapping[str, str]) -> None:
     if env.get("GITHUB_REPOSITORY") != REPOSITORY:
         raise ValueError("Wrong repository")
     if (
@@ -49,7 +51,7 @@ def approval_guard(env):
         raise ValueError("Source run required")
 
 
-def source_guard(run, env, now=None):
+def source_guard(run: Any, env: Mapping[str, str], now: float | None = None) -> None:
     now = time.time() if now is None else now
     if (
         run.get("event") != "workflow_dispatch"
@@ -68,7 +70,7 @@ def source_guard(run, env, now=None):
         raise ValueError("Source expired")
 
 
-def history_guard(artifacts, video_sha, env=None):
+def history_guard(artifacts: Any, video_sha: str, env: Mapping[str, str] | None = None) -> None:
     from .send_reconciliation import load_entries, resolve_prior
 
     name = "did-you-know-send-attempt-" + video_sha
@@ -79,7 +81,7 @@ def history_guard(artifacts, video_sha, env=None):
             raise ValueError("Prior send intent exists; unknown outcomes never retry")
 
 
-def intent_guard(env, artifact):
+def intent_guard(env: Mapping[str, str], artifact: Any) -> None:
     if not re.fullmatch("[1-9][0-9]*", env.get("SEND_INTENT_ARTIFACT_ID", "")):
         raise ValueError("Durable intent ID missing")
     if (
@@ -91,7 +93,7 @@ def intent_guard(env, artifact):
         raise ValueError("Durable intent binding invalid")
 
 
-def github_get(path, env):
+def github_get(path: str, env: Mapping[str, str]) -> Any:
     from urllib.request import Request, urlopen
 
     token = env.get("GITHUB_TOKEN", "")
@@ -105,14 +107,14 @@ def github_get(path, env):
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
-    with urlopen(request, timeout=30) as response:
+    with urlopen(request, timeout=30) as response:  # noqa: S310  # fixed https URL
         raw = response.read(4_000_001)
     if len(raw) > 4_000_000:
         raise ValueError("GitHub response too large")
     return json.loads(raw)
 
 
-def preflight(env):
+def preflight(env: Mapping[str, str]) -> None:
     approval_guard(env)
     source_guard(github_get("actions/runs/" + env["SOURCE_RUN"], env), env)
     current = github_get("actions/runs/" + env["GITHUB_RUN_ID"], env)
@@ -130,12 +132,12 @@ def preflight(env):
     raise ValueError("History scan incomplete")
 
 
-def new_output_directory(output):
+def new_output_directory(output: Path) -> None:
     output.parent.mkdir(exist_ok=True)
     output.mkdir(mode=0o750)
 
 
-def render_bundle(output, provenance):
+def render_bundle(output: Path, provenance: Any) -> Any:
     """Actual owned pipeline, renderer systemd sandbox and SQLite backup."""
     from studio_core.config import Config
     from studio_core.jobs import Repository
@@ -197,7 +199,7 @@ def render_bundle(output, provenance):
             "priority": "NORMAL",
         }
         job, _ = gateway.accept(command, now, gateway.signature(command, now))
-        claim = repo.claim(job_id=job["id"])
+        claim: Any = repo.claim(job_id=job["id"])
         unit = "madar-manual-render-" + uuid.uuid4().hex
         properties = [
             "User=" + str(os.getuid()),
@@ -223,7 +225,7 @@ def render_bundle(output, provenance):
             "renderer",
         ]
         try:
-            subprocess.run(args, check=True, capture_output=True, text=True, timeout=30)
+            subprocess.run(args, check=True, capture_output=True, text=True, timeout=30)  # noqa: S603  # fixed argv, no shell
             deadline = time.monotonic() + 20
             while not Path(settings["render_socket"]).exists():
                 if time.monotonic() > deadline:
@@ -261,7 +263,7 @@ def render_bundle(output, provenance):
                 "lease_token": claim["lease_token"],
                 "render": render,
                 "expires_at": min(
-                    repo.get(job["id"])["expires_at"],
+                    repo.get(job["id"])["expires_at"],  # type: ignore[index]
                     json.loads((root / "input/content.json").read_text(encoding="utf-8"))[
                         "expires_at"
                     ],
@@ -277,12 +279,14 @@ def render_bundle(output, provenance):
             )
             return metadata
         finally:
-            subprocess.run(
-                ["sudo", "-n", "systemctl", "stop", unit], capture_output=True, timeout=30
+            subprocess.run(  # noqa: S603  # fixed argv, no shell
+                ["sudo", "-n", "systemctl", "stop", unit],  # noqa: S607  # pinned system tool
+                capture_output=True,
+                timeout=30,
             )
 
 
-def digest_guard(video, result, content, env):
+def digest_guard(video: bytes, result: Any, content: Any, env: Mapping[str, str]) -> None:
     if (
         not 0 < len(video) <= 50_000_000
         or hashlib.sha256(video).hexdigest() != env["VIDEO_SHA"]
@@ -296,7 +300,7 @@ def digest_guard(video, result, content, env):
         raise ValueError("Approved content differs")
 
 
-def verify_bundle(directory, env):
+def verify_bundle(directory: str | Path, env: Mapping[str, str]) -> tuple[Any, Any, Any, Any]:
     approval_guard(env)
     from studio_core.config import Config
     from studio_core.jobs import Repository
@@ -366,7 +370,7 @@ def verify_bundle(directory, env):
     return config, repo, data, result
 
 
-def _send_bundle(directory, env):
+def _send_bundle(directory: str | Path, env: Mapping[str, str]) -> dict[str, Any]:
     # Workflow uploaded a persistent send-intent artifact before this command.
     # A timeout/cancel leaves it, so subsequent runs fail before Telegram.
     approval_guard(env)
@@ -398,7 +402,7 @@ def _send_bundle(directory, env):
     return proof
 
 
-def send_bundle(directory, env):
+def send_bundle(directory: str | Path, env: Mapping[str, str]) -> dict[str, Any]:
     from .send_evidence import failure_receipt, network_started
 
     reset = network_started.set(False)
@@ -419,7 +423,7 @@ def send_bundle(directory, env):
         network_started.reset(reset)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["render", "preflight", "intent", "send"])
     parser.add_argument("--output", type=Path, default=Path("outputs/manual-preview"))
@@ -460,7 +464,7 @@ def main():
             print(
                 "TEST_SEND_BLOCKED_OR_UNKNOWN; inspect durable intent and receipt", file=sys.stderr
             )
-            raise SystemExit(1)
+            raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

@@ -15,7 +15,6 @@ from snap_bot.owned_contract_adapter import (
     ContractReconciliationRequired,
     ContractViolation,
     contract_status,
-    digest,
     initialize,
     reconcile_stage,
     require_delivery_contract,
@@ -274,9 +273,8 @@ class OwnedContractAdapterTests(unittest.TestCase):
             require_delivery_contract(db, self.job, self.result)
         with self.assertRaises(ContractViolation):
             self.stage("fact_source", {}, lambda: None)
-        with self.repo.connect() as db:
-            with self.assertRaises(ContractViolation):
-                require_delivery_contract(db, self.job, self.result)
+        with self.repo.connect() as db, self.assertRaises(ContractViolation):
+            require_delivery_contract(db, self.job, self.result)
 
     def test_malformed_or_wrong_creation_policy_cannot_exempt(self):
         values = [
@@ -466,9 +464,8 @@ class OwnedContractAdapterTests(unittest.TestCase):
         with self.assertRaises(ContractViolation):
             self.stage("quality", self.result, lambda: {**self.receipt, "sha256": "a" * 64})
         self.assertEqual(self.status("quality"), "FAILED")
-        with self.repo.connect() as db:
-            with self.assertRaises(ContractViolation):
-                require_delivery_contract(db, self.job, self.result)
+        with self.repo.connect() as db, self.assertRaises(ContractViolation):
+            require_delivery_contract(db, self.job, self.result)
 
     def test_delivery_requires_adoption_and_full_digest_chain(self):
         self.adopted()
@@ -816,18 +813,21 @@ class AdapterServiceTests(unittest.TestCase):
         self.assertEqual(output["state"], "VALIDATING")
         self.assertEqual(self.render_calls, 1)
         sha = output["render"]["video_sha256"]
-        with patch(
-            "snap_bot.telegram_egress.Storage.manifest", side_effect=OSError("synthetic receipt")
+        with (
+            patch(
+                "snap_bot.telegram_egress.Storage.manifest",
+                side_effect=OSError("synthetic receipt"),
+            ),
+            self.assertRaises(DeliveryConfirmed),
         ):
-            with self.assertRaises(DeliveryConfirmed):
-                deliver(
-                    f.config,
-                    f.job,
-                    sha,
-                    self.transport,
-                    lease_token=f.owner["lease_token"],
-                    review_mode="HUMAN_FRAME",
-                )
+            deliver(
+                f.config,
+                f.job,
+                sha,
+                self.transport,
+                lease_token=f.owner["lease_token"],
+                review_mode="HUMAN_FRAME",
+            )
         with f.repo.transaction() as db:
             db.execute("UPDATE owned_agent_contracts SET status='FAILED' WHERE job_id=?", (f.job,))
         proof = deliver(f.config, f.job, sha, self.transport, review_mode="HUMAN_FRAME")

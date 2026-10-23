@@ -17,7 +17,7 @@ def ambient_source(duration: float) -> str:
     frequencies = (220, 261.6256, 329.6276, 440, 659.2552)
     tones = "+".join(
         f"{weight:g}*sin(2*PI*{frequency:g}*t)"
-        for weight, frequency in zip((0.65, 0.6, 0.7, 0.65, 0.2), frequencies)
+        for weight, frequency in zip((0.65, 0.6, 0.7, 0.65, 0.2), frequencies, strict=True)
     )
     pad = f"0.06*({tones})*(0.96+0.04*sin(2*PI*t/40))"
     return (

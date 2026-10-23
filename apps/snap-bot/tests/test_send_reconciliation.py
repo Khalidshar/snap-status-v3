@@ -1,4 +1,3 @@
-import copy
 import hashlib
 import json
 import os
@@ -9,7 +8,7 @@ from unittest.mock import patch
 
 from snap_bot import actions_preview as actions
 from snap_bot import send_reconciliation as rec
-from snap_bot.send_evidence import delivery_evidence, network_started, tracked_transport
+from snap_bot.send_evidence import network_started, tracked_transport
 
 SHA = "a" * 64
 INTENT = {
@@ -122,22 +121,22 @@ class ReconciliationTests(unittest.TestCase):
             "expired": False,
             "workflow_run": {"id": 7},
         }
-        reader = lambda artifact, env: (
+        reader = lambda artifact, env: (  # noqa: E731
             {"intent.json": INTENT}
             if artifact["id"] == 9
             else {"manual-preview/receipt.json": {**RECEIPT, "state": "UNKNOWN"}}
         )
-        api = lambda path, env: {"artifacts": [result]} if "artifacts?" in path else RUN
+        api = lambda path, env: {"artifacts": [result]} if "artifacts?" in path else RUN  # noqa: E731
         self.assertFalse(
             rec.resolve_prior(ART, {}, api, [ENTRY], reader), "guard:unknown-reconciliation"
         )
 
     def test_reviewed_entry_checked_through_api(self):
-        api = lambda path, env: {"artifacts": []} if "artifacts?" in path else RUN
+        api = lambda path, env: {"artifacts": []} if "artifacts?" in path else RUN  # noqa: E731
         self.assertTrue(
             rec.resolve_prior(ART, {}, api, [ENTRY], lambda *args: {"intent.json": INTENT})
         )
-        bad = lambda path, env: {"artifacts": []} if "artifacts?" in path else {**RUN, "id": 8}
+        bad = lambda path, env: {"artifacts": []} if "artifacts?" in path else {**RUN, "id": 8}  # noqa: E731
         self.assertFalse(
             rec.resolve_prior(ART, {}, bad, [ENTRY], lambda *args: {"intent.json": INTENT}),
             "guard:api-run-binding",

@@ -4,26 +4,36 @@ import hashlib
 import json
 import os
 import re
-import socket
-import subprocess
 import time
 import uuid
 from pathlib import Path
+from typing import Any
 
+from studio_core.config import Config
 from studio_core.jobs import canonical
 
 # Shared with the Status application through the core; re-exported for existing callers.
 from studio_core.renderer import (
     attempt_workspace,
-    cleanup_attempt_temps,
     ensure_glyphs,
-    file_sha256,
     proof,
     publish_once,
     run,
-    sync_dir,
-    verify_once,
-    write_once,
+)
+from studio_core.renderer import (
+    cleanup_attempt_temps as cleanup_attempt_temps,
+)
+from studio_core.renderer import (
+    file_sha256 as file_sha256,
+)
+from studio_core.renderer import (
+    sync_dir as sync_dir,
+)
+from studio_core.renderer import (
+    verify_once as verify_once,
+)
+from studio_core.renderer import (
+    write_once as write_once,
 )
 
 from .did_you_know import validate_content
@@ -36,13 +46,15 @@ from .weather import content_hash as calculate_content_hash
 ALLOWED_CONTENT = {"weather", "did_you_know"}
 
 
-def video_filename(content_type):
+def video_filename(content_type: object) -> str:
     if content_type not in ALLOWED_CONTENT:
         raise ValueError("Unsupported render content type")
     return "weather.mp4" if content_type == "weather" else "did-you-know.mp4"
 
 
-def render(config, settings, job_id, content_hash, attempt):
+def render(
+    config: Config, settings: dict[str, Any], job_id: str, content_hash: str, attempt: int
+) -> dict[str, Any]:
     # DB-free renderer. Ownership and DB adoption belong to the worker.
     if not re.fullmatch("[0-9a-f]{32}", job_id) or type(attempt) is not int or attempt < 1:
         raise ValueError("Invalid render identity")
@@ -125,7 +137,7 @@ def render(config, settings, job_id, content_hash, attempt):
             sort_keys=True,
         ).encode(),
     )
-    labels = (
+    labels: list[tuple[Any, ...]] = (
         []
         if is_fact
         else [
@@ -150,6 +162,8 @@ def render(config, settings, job_id, content_hash, attempt):
     if is_fact:
         filters = background_filters(filters)
         filters.append(glow_filter(profile["fps"], profile["duration_seconds"]))
+    y: int | str
+    label_font: Path
     for index, label in enumerate(labels):
         text, size, y, color = label[:4]
         if len(text) > 110 or any(ord(c) < 32 for c in text):
@@ -293,7 +307,7 @@ def render(config, settings, job_id, content_hash, attempt):
     return result
 
 
-def validate(path, profile, *, fact=False):
+def validate(path: Path, profile: dict[str, Any], *, fact: bool = False) -> dict[str, Any]:
     value = json.loads(
         run(
             [

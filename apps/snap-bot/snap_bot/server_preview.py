@@ -13,9 +13,11 @@ import subprocess
 import sys
 import time
 import uuid
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
@@ -28,7 +30,7 @@ STATE = Path("/var/lib/madar/snap")
 RENDER_WORK = Path("/var/lib/madar/render-work")
 
 
-def render_bundle(output, provenance):
+def render_bundle(output: Path, provenance: Any) -> Any:
     """Keep the existing renderer non-root even when the controller is root."""
     if os.geteuid() != 0:
         return shared_render_bundle(output, provenance)
@@ -72,7 +74,7 @@ def render_bundle(output, provenance):
             str(bundle),
             json.dumps(provenance),
         ]
-        subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=330, check=True)
+        subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=330, check=True)  # noqa: S603  # fixed argv, no shell
         if Path(output).exists() or any(path.is_symlink() for path in bundle.rglob("*")):
             raise ValueError("Unsafe renderer output")
         # The controller owns the completed snapshot before Repository adjusts DB permissions.
@@ -85,21 +87,21 @@ def render_bundle(output, provenance):
         return data
 
 
-def sha(value):
+def sha(value: object) -> str:
     if not isinstance(value, str) or not re.fullmatch("[0-9a-f]{64}", value):
         raise ValueError("Exact video SHA required")
     return value
 
 
-def digest(path):
+def digest(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def canonical(value):
+def canonical(value: object) -> bytes:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
 
 
-def source_info():
+def source_info() -> tuple[str, int]:
     manifest = ROOT / "madar-release.json"
     if manifest.exists():
         if manifest.is_symlink() or manifest.stat().st_uid != 0 or manifest.stat().st_mode & 0o022:
@@ -108,7 +110,9 @@ def source_info():
         commit, uid = data["commit"], data["owner_uid"]
     else:
         commit = subprocess.check_output(
-            ["git", "--no-optional-locks", "rev-parse", "HEAD"], cwd=ROOT, text=True
+            ["git", "--no-optional-locks", "rev-parse", "HEAD"],  # noqa: S607  # pinned system tool
+            cwd=ROOT,
+            text=True,
         ).strip()
         uid = pwd.getpwnam("ubuntu").pw_uid
     if not re.fullmatch("[0-9a-f]{40}", commit) or type(uid) is not int or uid <= 0:
@@ -116,14 +120,14 @@ def source_info():
     return commit, uid
 
 
-def owner_actor(uid):
+def owner_actor(uid: int) -> int:
     raw = os.environ.get("SUDO_UID", "")
     if os.geteuid() != 0 or raw != str(uid):
         raise ValueError("Owner sudo session required")
     return uid
 
 
-def safe_path(path):
+def safe_path(path: str | Path) -> Path:
     path = Path(path)
     for item in (path, *path.parents):
         if item.is_symlink():
@@ -131,7 +135,7 @@ def safe_path(path):
     return path
 
 
-def sync_directory(path):
+def sync_directory(path: str | Path) -> None:
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(fd)
@@ -139,7 +143,7 @@ def sync_directory(path):
         os.close(fd)
 
 
-def exclusive_json(path, value):
+def exclusive_json(path: Path, value: object) -> None:
     safe_path(path)
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, "wb") as stream:
@@ -149,7 +153,7 @@ def exclusive_json(path, value):
     sync_directory(path.parent)
 
 
-def verify_quality(directory, data, expected_sha):
+def verify_quality(directory: Path, data: Any, expected_sha: str) -> Any:
     """Reuse the existing content, digest and owned quality contracts."""
     import tomllib
 
@@ -216,11 +220,11 @@ def verify_quality(directory, data, expected_sha):
 
 class Runtime:
     # Alternate root is an internal test seam; CLI always uses STATE.
-    def __init__(self, root=STATE):
+    def __init__(self, root: str | Path = STATE) -> None:
         self.root = safe_path(root)
 
     @contextmanager
-    def locked(self):
+    def locked(self) -> Iterator[None]:
         import fcntl
 
         for directory in (self.root, self.root / "previews", self.root / "intents"):
@@ -232,14 +236,15 @@ class Runtime:
         finally:
             os.close(fd)
 
-    def events(self):
+    def events(self) -> list[dict[str, Any]]:
         path = safe_path(self.root / "events.jsonl")
         if not path.exists():
             return []
         raw = path.read_bytes()
         if len(raw) > 32_000_000 or (raw and not raw.endswith(b"\n")):
             raise ValueError("Incomplete ledger")
-        events, previous = [], "0" * 64
+        events: list[dict[str, Any]] = []
+        previous = "0" * 64
         for line in raw.splitlines():
             value = json.loads(line)
             signature = value.pop("hash")
@@ -254,7 +259,7 @@ class Runtime:
             previous = signature
         return events
 
-    def append(self, kind, **fields):
+    def append(self, kind: str, **fields: Any) -> dict[str, Any]:
         events = self.events()
         value = dict(
             fields,
@@ -273,12 +278,12 @@ class Runtime:
         sync_directory(self.root)
         return value
 
-    def spent(self, video_sha):
+    def spent(self, video_sha: str) -> bool:
         return (self.root / "intents" / (video_sha + ".json")).exists() or any(
             x["kind"] == "INTENT" and x.get("video_sha") == video_sha for x in self.events()
         )
 
-    def render(self):
+    def render(self) -> Any:
         commit, _ = source_info()
         with self.locked():
             identifier = uuid.uuid4().hex
@@ -300,7 +305,7 @@ class Runtime:
             self.append("RENDERED", **evidence, evidence_sha=digest(directory / "evidence.json"))
             return evidence
 
-    def verify(self, video_sha):
+    def verify(self, video_sha: str) -> Any:
         sha(video_sha)
         commit, _ = source_info()
         records = [
@@ -331,11 +336,11 @@ class Runtime:
             raise ValueError("Provenance changed")
         return directory, record, verify_quality(directory, data, video_sha)
 
-    def approve(self, video_sha):
+    def approve(self, video_sha: str) -> Any:
         _, uid = source_info()
         actor = owner_actor(uid)
         with self.locked():
-            directory, record, (_, repo, data, result) = self.verify(video_sha)
+            _directory, record, (_, repo, data, result) = self.verify(video_sha)
             if self.spent(video_sha) or any(
                 x["kind"] == "HUMAN_FRAME" and x.get("video_sha") == video_sha
                 for x in self.events()
@@ -363,7 +368,7 @@ class Runtime:
                 evidence_sha=record["evidence_sha"],
             )
 
-    def require_approval(self, record, uid):
+    def require_approval(self, record: Any, uid: int) -> Any:
         keys = ("video_sha", "preview_id", "content_hash", "commit", "evidence_sha")
         if not any(
             x["kind"] == "HUMAN_FRAME"
@@ -373,7 +378,7 @@ class Runtime:
         ):
             raise ValueError("Matching HUMAN_FRAME required")
 
-    def send(self, video_sha, transport=None):
+    def send(self, video_sha: str, transport: Any = None) -> Any:
         sha(video_sha)
         _, uid = source_info()
         with self.locked():
@@ -424,7 +429,7 @@ class Runtime:
                 network_started.reset(reset)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=("render", "approve", "send"))
     parser.add_argument("--video-sha")

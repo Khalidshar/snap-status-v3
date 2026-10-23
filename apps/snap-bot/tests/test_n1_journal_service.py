@@ -1,7 +1,6 @@
 import os
 import tempfile
 import threading
-import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -84,13 +83,15 @@ class JournalLifecycle(unittest.TestCase):
             )
             service.start()
             stop = threading.Event()
-            with patch.object(
-                getattr(service, which),
-                "run",
-                side_effect=OSError("synthetic secret must not appear"),
+            with (
+                patch.object(
+                    getattr(service, which),
+                    "run",
+                    side_effect=OSError("synthetic secret must not appear"),
+                ),
+                self.assertRaisesRegex(ServiceRefused, "^JOURNAL_PLANE_FAILED$"),
             ):
-                with self.assertRaisesRegex(ServiceRefused, "^JOURNAL_PLANE_FAILED$"):
-                    service.run(stop)
+                service.run(stop)
             self.assertTrue(stop.is_set())
             service.shutdown(3)
 

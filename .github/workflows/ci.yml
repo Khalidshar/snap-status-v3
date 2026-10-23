@@ -103,6 +103,22 @@ jobs:
         env:
           MADAR_REQUIRE_REAL_RENDER: "1"
 
+  status-render:
+    name: Status real render
+    # Disposable root runner with systemd: a real no-Internet FFmpeg render of synthetic
+    # weather, which must stay ineligible for WhatsApp. No credentials, no sending.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
+      - run: uv sync --all-packages
+      - run: sudo -n "$(uv run --frozen python -c 'import sys; print(sys.executable)')" scripts/check_status_weather_render.py
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
@@ -153,7 +169,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [changes, lint, test, app-mutations, secret-scan, workflow-lint, build]
+    needs: [changes, lint, test, app-mutations, status-render, secret-scan, workflow-lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

@@ -6,9 +6,10 @@ import os
 import stat
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 REPO = Path(__file__).resolve().parents[3]
+Font = TypeVar("Font")
 MANIFEST_SHA256 = "9c6d55bf81b0928a03c18fc01b1ca3f28c931e64222f3e8774760fba91cf80e0"
 
 
@@ -90,11 +91,11 @@ def fallback_fonts(profile: Mapping[str, Any]) -> list[Path]:
 
 def choose_font(
     text: str,
-    preferred: str,
-    charsets: Mapping[str, Any],
-    fallbacks: Iterable[str],
+    preferred: Font,
+    charsets: Mapping[Font, Any],
+    fallbacks: Iterable[Font],
     check: Callable[[str, Any], object],
-) -> str:
+) -> Font:
     for font in dict.fromkeys([preferred, *fallbacks]):
         try:
             check(text, charsets[font])

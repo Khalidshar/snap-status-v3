@@ -16,5 +16,5 @@ uv run --frozen python scripts/check_app_mutations.py --jobs 4 [--only TOOL]
 
 ## الباقي (دين موثّق)
 - تطبيق Status ليست له أدوات تخريب في المختبر.
-- تنميط وحدات التطبيقين: 38 وحدة Snap و17 وحدة Status في استثناء mypy.
+- ~~تنميط وحدات التطبيقين~~ سُدِّد (`RESUME-APP-TYPING-20261023.md`).
 - إزالة استثناءات ruff.

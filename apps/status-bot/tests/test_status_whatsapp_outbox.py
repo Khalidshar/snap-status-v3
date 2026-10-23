@@ -26,14 +26,12 @@ from status_bot.whatsapp_contract import (
     response_id,
     sha,
     sign_review,
-    validate_review,
 )
 from status_bot.whatsapp_egress import DeliveryWorker, GraphCredentials, GraphTransport, graph_post
 from status_bot.whatsapp_outbox import WhatsAppOutbox, read_bound
 from studio_core.config import Config
 from studio_core.jobs import LeaseLost, Repository
 from studio_core.jobs.component_lock import ComponentBusy, ComponentLocks
-from studio_core.observability.agent_runs import digest
 from studio_core.storage import Storage
 
 
@@ -139,7 +137,7 @@ class WhatsAppContracts(unittest.TestCase):
         return value, root, manifest, review, signature
 
     def queued(self):
-        value, root, manifest, review, signature = self.fixture()
+        value, root, _manifest, review, signature = self.fixture()
         claim = value["claim"]
         receipt = self.outbox.prepare(
             claim["id"], claim["lease_token"], claim["attempt"], review, signature
@@ -201,7 +199,7 @@ class WhatsAppContracts(unittest.TestCase):
         return DeliveryWorker(self.outbox, self.transport, enabled=True)
 
     def test_prepared_does_not_send_and_keeps_manual_publication_distinct(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, _review, _sig, item = self.queued()
         receipt = self.outbox.receipt(item)
         self.assertEqual(receipt["state"], "PREPARED")
         self.assertFalse(receipt["recipient_delivery_confirmed"])
@@ -231,7 +229,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.assertEqual(self.repo.get(claim["id"])["state"], "DELIVERING")
 
     def test_fake_transport_delivery_cannot_open_untracked_public_network(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         with (
             patch(
@@ -251,7 +249,7 @@ class WhatsAppContracts(unittest.TestCase):
         socket.assert_not_called()
 
     def test_verified_delivery_read_and_out_of_order_receipts_do_not_regress(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.worker().deliver(item, claim["lease_token"], review, sig)
         for status, expected in [
@@ -271,7 +269,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.assertEqual(Storage(self.cfg).gc(self.repo), [])
 
     def test_receipt_before_http_ack_is_buffered_and_applied(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
 
         def send(_):
@@ -293,7 +291,7 @@ class WhatsAppContracts(unittest.TestCase):
         )
 
     def test_failure_or_malformed_ack_freezes_without_second_send(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.transport.send_video.side_effect = TimeoutError("unit token=SECRET recipient=PRIVATE")
         result = self.worker().deliver(item, claim["lease_token"], review, sig)
@@ -305,7 +303,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.assertNotIn("PRIVATE", json.dumps(result))
 
     def test_upload_failure_never_reaches_messages(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.transport.upload_video.return_value = ApiResponse(200, b'{"id":"bad"}')
         receipt = self.worker().deliver(item, claim["lease_token"], review, sig)
@@ -313,7 +311,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_not_called()
 
     def test_known_api_rejection_records_numeric_code_only_and_no_replay(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.transport.send_video.return_value = ApiResponse(
             400, b'{"error":{"code":131047,"message":"SECRET"}}'
@@ -339,7 +337,7 @@ class WhatsAppContracts(unittest.TestCase):
                     response_id(response, "send", self.identity.recipient)
 
     def test_duplicate_preparation_and_concurrent_workers_have_one_effect(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         with self.assertRaisesRegex(DeliveryBlocked, "WA_DUPLICATE_BLOCKED"):
             self.outbox.prepare(claim["id"], claim["lease_token"], claim["attempt"], review, sig)
@@ -365,7 +363,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_called_once()
 
     def test_approval_wrong_key_scope_or_expiry_blocks_before_transport(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, _sig, item = self.queued()
         self.open_window()
         variants = []
         for key, value in [
@@ -392,7 +390,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_not_called()
 
     def test_missing_or_stale_service_window_blocks_before_upload(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         for stale in (False, True):
             if stale:
                 self.outbox.webhook(*self.webhook(inbound=True, timestamp=int(time.time()) - 86401))
@@ -402,7 +400,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.assertEqual(self.outbox.receipt(item)["state"], "PREPARED")
 
     def test_window_or_owner_expiry_during_upload_prevents_message(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
 
         def upload(_):
@@ -416,7 +414,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_not_called()
 
     def test_stale_attempt_blocks_before_transport(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         with self.repo.transaction() as db:
             db.execute("UPDATE jobs SET lease_until=0 WHERE id=?", (claim["id"],))
@@ -428,7 +426,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_not_called()
 
     def test_cancelled_job_cannot_upload_or_send(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.repo.transition(claim["id"], claim["lease_token"], "CANCELLED")
         with self.assertRaises(LeaseLost):
@@ -437,7 +435,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_not_called()
 
     def test_window_closing_during_upload_prevents_messages_post(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
 
         def upload(_):
@@ -453,7 +451,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_not_called()
 
     def test_review_expiring_during_upload_prevents_messages_post(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
 
         def upload(_):
@@ -468,7 +466,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_not_called()
 
     def test_malformed_send_ack_is_unknown_and_signed_unlinked_receipt_cannot_resend(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.transport.send_video.return_value = ApiResponse(200, b'{"messages":[]}')
         self.assertEqual(
@@ -482,7 +480,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_called_once()
 
     def test_confirmed_webhook_can_finish_late_unknown_job_without_new_send(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.worker().deliver(item, claim["lease_token"], review, sig)
         with self.repo.transaction() as db:
@@ -494,7 +492,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.send_video.assert_called_once()
 
     def test_same_content_in_a_different_job_cannot_create_second_delivery(self):
-        value, root, manifest, review, sig = self.fixture()
+        value, _root, _manifest, review, sig = self.fixture()
         claim = value["claim"]
         self.outbox.prepare(claim["id"], claim["lease_token"], 1, review, sig)
         self.repo.transition(claim["id"], claim["lease_token"], "FAILED")
@@ -511,7 +509,7 @@ class WhatsAppContracts(unittest.TestCase):
     def test_backup_preserves_delivery_unknown_and_blocks_replay(self):
         from studio_core.storage.backup import create_snapshot, probe_restore
 
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.transport.send_video.side_effect = TimeoutError("unit fixture timeout")
         self.worker().deliver(item, claim["lease_token"], review, sig)
@@ -531,7 +529,7 @@ class WhatsAppContracts(unittest.TestCase):
     def test_independent_watchdog_observes_unknown_without_mutation_or_secrets(self):
         from status_bot.whatsapp_watchdog import inspect_outbox
 
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.transport.send_video.side_effect = TimeoutError("unit timeout")
         self.worker().deliver(item, claim["lease_token"], review, sig)
@@ -564,7 +562,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.assertFalse(result["outbox_present"])
 
     def test_synthetic_and_sacred_content_are_not_eligible(self):
-        value, root, manifest, review, sig = self.fixture()
+        value, root, manifest, _review, _sig = self.fixture()
         for key, val in [("synthetic_source", True), ("destination", "telegram")]:
             changed = copy.deepcopy(manifest)
             changed[key] = val
@@ -577,7 +575,7 @@ class WhatsAppContracts(unittest.TestCase):
             self.outbox.bundle(value["claim"]["id"], 1)
 
     def test_tampered_render_metadata_cannot_reuse_quality_success(self):
-        value, root, manifest, review, sig = self.fixture()
+        value, root, manifest, _review, _sig = self.fixture()
         manifest["render"]["qa"]["claimed_extra_gate"] = "PASS"
         (root / "output/render-result.json").write_text(json.dumps(manifest["render"]))
         (root / "manifest.json").write_text(json.dumps(manifest))
@@ -598,7 +596,7 @@ class WhatsAppContracts(unittest.TestCase):
             read_bound(self.cfg.data_root, "renders/" + claim["id"] + "/output/weather.mp4", 1000)
 
     def test_maintenance_lock_blocks_worker_before_transport(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         with ComponentLocks(self.repo).hold("whatsapp-delivery", "MAINTENANCE"):
             with self.assertRaises(ComponentBusy):
@@ -606,7 +604,7 @@ class WhatsAppContracts(unittest.TestCase):
         self.transport.upload_video.assert_not_called()
 
     def test_crash_intent_survives_reopen_and_blocks_replay(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.outbox.begin(item, claim["lease_token"], review, sig)
         self.outbox.send_intent(item, claim["lease_token"])
@@ -620,10 +618,10 @@ class WhatsAppContracts(unittest.TestCase):
         self.assertEqual(reopened.receipt(item)["state"], "SEND_INTENT")
 
     def test_unsigned_wrong_account_phone_recipient_and_message_cannot_confirm(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.worker().deliver(item, claim["lease_token"], review, sig)
-        raw, signature = self.webhook(status="delivered")
+        raw, _signature = self.webhook(status="delivered")
         with self.assertRaises(DeliveryBlocked):
             self.outbox.webhook(raw, "sha256=" + "0" * 64)
         for scope in ({"phone": "99999999"}, {"business": "99999998"}):
@@ -646,7 +644,7 @@ class WhatsAppContracts(unittest.TestCase):
             self.outbox.webhook(*self.webhook(inbound=True, timestamp=int(time.time()) + 3600))
 
     def test_secrets_phone_ids_and_raw_response_not_in_ledger_receipt_or_repr(self):
-        claim, root, review, sig, item = self.queued()
+        claim, _root, review, sig, item = self.queued()
         self.open_window()
         self.worker().deliver(item, claim["lease_token"], review, sig)
         self.outbox.webhook(*self.webhook(status="read"))
@@ -733,11 +731,14 @@ class GraphTransportContracts(unittest.TestCase):
         ):
             with self.assertRaisesRegex(DeliveryBlocked, "^WA_TRANSPORT_UNKNOWN$"):
                 graph_post(self.creds, "messages", b"{}", "application/json")
-        with patch(
-            "status_bot.whatsapp_egress.validate_target", side_effect=RuntimeError(self.creds.token)
+        with (
+            patch(
+                "status_bot.whatsapp_egress.validate_target",
+                side_effect=RuntimeError(self.creds.token),
+            ),
+            self.assertRaisesRegex(DeliveryBlocked, "^WA_TRANSPORT_UNKNOWN$"),
         ):
-            with self.assertRaisesRegex(DeliveryBlocked, "^WA_TRANSPORT_UNKNOWN$"):
-                graph_post(self.creds, "messages", b"{}", "application/json")
+            graph_post(self.creds, "messages", b"{}", "application/json")
 
     def test_upload_is_local_bytes_multipart_and_send_has_media_id_no_link(self):
         transport = GraphTransport(self.creds, enabled=True)

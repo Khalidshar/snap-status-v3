@@ -10,8 +10,10 @@ import json
 import re
 import textwrap
 import unicodedata
-from datetime import UTC, datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 from .arabic_agent import check_text
 from .content_agents import AgentRejected, proofread, translation_requirement
@@ -33,21 +35,21 @@ PROPOSAL_KEYS = {"category", "text", "source", "source_url", "verified_at"}
 MARKS = re.compile("[ً-ٰٕ]")
 
 
-def catalog_facts(path=CATALOG):
+def catalog_facts(path: str | Path = CATALOG) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))["facts"]
 
 
-def skeleton(text):
+def skeleton(text: str) -> str:
     """Letters and digits only: what a meaning-preserving fix may never change."""
     plain = MARKS.sub("", unicodedata.normalize("NFC", text)).replace("ـ", "")
     return "".join(c for c in plain if unicodedata.category(c)[0] in "LN")
 
 
-def words(text):
+def words(text: str) -> set[str]:
     return set(re.findall(r"[ء-غف-ي0-9A-Za-z]+", MARKS.sub("", text)))
 
 
-def write(proposal, facts):
+def write(proposal: Any, facts: Sequence[dict[str, Any]]) -> dict[str, Any]:
     """الكاتب: turn an approved source into a catalog-shaped draft; never invents text."""
     if not isinstance(proposal, dict) or set(proposal) != PROPOSAL_KEYS:
         raise AgentRejected("WRITER_PROPOSAL_INCOMPLETE")
@@ -72,10 +74,12 @@ def write(proposal, facts):
     }
 
 
-def review(draft, facts, *, today=None):
+def review(
+    draft: dict[str, Any], facts: Sequence[dict[str, Any]], *, today: date | None = None
+) -> dict[str, Any]:
     """المراجع: every local rule at once, so the fixer and the owner see all problems."""
     today = today or datetime.now(UTC).date()
-    problems = []
+    problems: list[str] = []
     try:
         validate_fact(draft, today)
     except ValueError as error:
@@ -122,7 +126,7 @@ def review(draft, facts, *, today=None):
     }
 
 
-def fix(draft, decision):
+def fix(draft: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any] | None:
     """المصحّح: spacing and punctuation only; refuses when a problem needs words changed."""
     if decision["decision"] != "REJECT" or any(
         code not in FIXABLE for code in decision["problems"]
@@ -141,7 +145,9 @@ def fix(draft, decision):
     return {**draft, "text": text}
 
 
-def propose(proposal, *, catalog=CATALOG, today=None):
+def propose(
+    proposal: Any, *, catalog: str | Path = CATALOG, today: date | None = None
+) -> dict[str, Any]:
     """Writer, reviewer, at most one fixer round, then the reviewer again."""
     facts = catalog_facts(catalog)
     try:
@@ -170,7 +176,7 @@ def propose(proposal, *, catalog=CATALOG, today=None):
     }
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Check a proposed fact; never writes the catalog")
     parser.add_argument("--proposal", type=Path, required=True)
     args = parser.parse_args(argv)

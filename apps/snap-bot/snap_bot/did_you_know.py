@@ -5,7 +5,7 @@ import json
 import math
 import re
 import sqlite3
-from datetime import UTC, date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit

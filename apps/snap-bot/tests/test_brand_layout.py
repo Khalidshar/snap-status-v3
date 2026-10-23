@@ -1,3 +1,4 @@
+import itertools
 import os
 import subprocess
 import tempfile
@@ -47,7 +48,7 @@ class BrandLayoutTests(unittest.TestCase):
                 self.assertEqual(expression, f"{line[2] + line[1]}-ascent", "guard:baseline-anchor")
                 anchors.append(line[2] + line[1])
             self.assertTrue(
-                all(b - a == 115 for a, b in zip(anchors, anchors[1:])),
+                all(b - a == 115 for a, b in itertools.pairwise(anchors)),
                 "guard:equal-baseline-spacing",
             )
             self.assertLessEqual(len(body), 5)
@@ -115,7 +116,7 @@ class BrandLayoutTests(unittest.TestCase):
             background_filters(original)
             self.assertEqual(original, layout.card_filters(fps))
         original = layout.card_filters()
-        invalid = [[], original[:-1], original + ["null"]]
+        invalid = [[], original[:-1], [*original, "null"]]
         for i in range(len(original)):
             changed = original.copy()
             changed[i] += "changed"
@@ -221,7 +222,8 @@ class BrandPixelTests(unittest.TestCase):
                 for c in range(3)
             ]
             self.assertTrue(
-                all(abs(a - b) <= 2 for a, b in zip(actual, expected)), "guard:gradient-pixels"
+                all(abs(a - b) <= 2 for a, b in zip(actual, expected, strict=False)),
+                "guard:gradient-pixels",
             )
 
 

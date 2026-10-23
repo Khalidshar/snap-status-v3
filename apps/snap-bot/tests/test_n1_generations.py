@@ -1,5 +1,3 @@
-import copy
-import json
 import multiprocessing
 import os
 import signal
@@ -12,7 +10,7 @@ from unittest.mock import patch
 
 from n1_spawn_targets import crash_after_durable
 
-from snap_bot.n1_generations import GenerationAuthority, RegisteredWriter
+from snap_bot.n1_generations import RegisteredWriter
 from snap_bot.n1_writer import PhysicalWriter, WriterRefused, generation, mac
 
 

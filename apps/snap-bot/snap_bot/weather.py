@@ -1,7 +1,7 @@
 import hashlib
 import json
 import math
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -64,7 +64,7 @@ def parse(
             raise SourceInvalid("Unsupported provider")
         if abs(issued.timestamp() - now) > ttl:
             raise SourceInvalid("Stale model timestamp")
-    except (KeyError, TypeError, json.JSONDecodeError, IndexError, ValueError) as exc:
+    except (KeyError, TypeError, json.JSONDecodeError, IndexError, ValueError):
         raise SourceInvalid("Weather response rejected") from None
     body = f"الحرارة {temperature:.1f} درجة مئوية\nالرياح {wind:.1f} كم في الساعة"
     content: dict[str, Any] = {

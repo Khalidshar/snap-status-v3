@@ -107,7 +107,7 @@ class Ledger:
             db.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS n1_one_pending ON n1_ledger(gen) WHERE state='PENDING'"
             )
-            if not db.execute("SELECT 1 FROM n1_segments WHERE state='ACTIVE'").fetchone():
+            if not db.execute("SELECT 1 FROM n1_segments WHERE state='ACTIVE'").fetchone():  # noqa: SIM102  # kept as reviewed
                 # Only initial construction creates a segment; rotation is explicit.
                 if not db.execute("SELECT 1 FROM n1_segments").fetchone():
                     db.execute(

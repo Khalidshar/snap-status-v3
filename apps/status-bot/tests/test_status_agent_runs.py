@@ -43,7 +43,7 @@ class StatusAgentRuns(unittest.TestCase):
         return prepared, root, result
 
     def test_three_actual_owned_roles_and_no_acceptance_inference(self):
-        prepared, root, result = self.fixture()
+        prepared, _root, result = self.fixture()
         record_validation(self.cfg, prepared, result)
         repo = Repository(self.cfg)
         with repo.connect() as db:
@@ -109,14 +109,14 @@ class StatusAgentRuns(unittest.TestCase):
             record_validation(self.cfg, prepared, result)
 
     def test_changed_qa_metadata_cannot_replace_the_renderers_record(self):
-        prepared, root, result = self.fixture()
+        prepared, _root, result = self.fixture()
         result["qa"]["claimed_extra_check"] = "PASS"
         with self.assertRaises(AgentRejected):
             record_validation(self.cfg, prepared, result)
         self.assertEqual(Repository(self.cfg).get(prepared["claim"]["id"])["state"], "RENDERING")
 
     def test_maintenance_excludes_real_renderer_before_tools(self):
-        prepared, root, result = self.fixture()
+        prepared, _root, result = self.fixture()
         locks = ComponentLocks(Repository(self.cfg))
         with locks.hold("weather-render", "MAINTENANCE"), patch("status_bot.render.proof") as proof:
             with self.assertRaises(ComponentBusy):
@@ -124,11 +124,10 @@ class StatusAgentRuns(unittest.TestCase):
             proof.assert_not_called()
 
     def test_repair_excludes_quality_before_transition(self):
-        prepared, root, result = self.fixture()
+        prepared, _root, result = self.fixture()
         locks = ComponentLocks(Repository(self.cfg))
-        with locks.hold("weather-render", "REPAIR"):
-            with self.assertRaises(ComponentBusy):
-                record_validation(self.cfg, prepared, result)
+        with locks.hold("weather-render", "REPAIR"), self.assertRaises(ComponentBusy):
+            record_validation(self.cfg, prepared, result)
         self.assertEqual(Repository(self.cfg).get(prepared["claim"]["id"])["state"], "RENDERING")
 
     def test_stale_attempt_cannot_commit_manifest(self):
@@ -155,11 +154,14 @@ class StatusAgentRuns(unittest.TestCase):
         self.assertEqual(repo.get(first["id"])["state"], "QUEUED")
 
     def test_failed_source_keeps_failed_role_and_releases_input_lock(self):
-        with patch(
-            "status_bot.pipeline.fetch_weather", side_effect=SourceInvalid("fixture-source-failure")
+        with (
+            patch(
+                "status_bot.pipeline.fetch_weather",
+                side_effect=SourceInvalid("fixture-source-failure"),
+            ),
+            self.assertRaises(SourceInvalid),
         ):
-            with self.assertRaises(SourceInvalid):
-                prepare(self.cfg, self.settings, FixtureClient(), self.secret, "failed_1")
+            prepare(self.cfg, self.settings, FixtureClient(), self.secret, "failed_1")
         repo = Repository(self.cfg)
         with repo.connect() as db:
             self.assertEqual(
@@ -172,7 +174,7 @@ class StatusAgentRuns(unittest.TestCase):
     def test_non_arabic_or_bidi_labels_fail_before_file_write(self):
         from status_bot.agents import weather_payload
 
-        prepared, root, result = self.fixture()
+        prepared, _root, _result = self.fixture()
         for title in ("English-only title", "طقس\u202eآخر"):
             value = copy.deepcopy(prepared["source_payload"])
             value["content"]["title"] = title

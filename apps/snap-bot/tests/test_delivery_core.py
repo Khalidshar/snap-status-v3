@@ -157,7 +157,7 @@ class ReconcileFromDurableAck(DeliveryTests):
         )
 
     def test_missing_ack_is_refused(self):
-        root = self.publish()
+        _root = self.publish()
         with self.repo.transaction() as db:
             db.execute("UPDATE telegram_outbox SET message_id=NULL")
         with self.assertRaisesRegex(ValueError, "receipt missing", msg="guard:ack-required"):

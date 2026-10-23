@@ -4,7 +4,7 @@ import threading
 import time
 import unittest
 from dataclasses import replace
-from datetime import UTC, date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from snap_bot.did_you_know import (

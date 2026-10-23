@@ -13,6 +13,7 @@ import struct
 from email.parser import BytesParser
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
+from typing import Any
 
 from studio_core.network import UnixHTTPConnection
 
@@ -20,16 +21,19 @@ from . import platform_policy
 from .telegram_egress import EXPECTED_BOT, api, multipart
 
 
-def peer_uid(sock):
-    return struct.unpack("3i", sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))[1]
+def peer_uid(sock: Any) -> int:
+    uid: int = struct.unpack("3i", sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12))[1]
+    return uid
 
 
 class Client:
-    def __init__(self, path, server_uid):
+    def __init__(self, path: str, server_uid: int) -> None:
         self.path = path
         self.server_uid = server_uid
 
-    def telegram(self, ignored_token, method, body=b"", kind="application/json"):
+    def telegram(
+        self, ignored_token: object, method: str, body: bytes = b"", kind: str = "application/json"
+    ) -> Any:
         platform_policy.reject_status_telegram()
         if method not in {"getMe", "getChat", "sendVideo"}:
             raise ValueError("Unsupported method")
@@ -55,17 +59,17 @@ class Client:
             connection.close()
 
 
-def approved_video(body, kind, owner, digest):
+def approved_video(body: bytes, kind: str, owner: str, digest: str) -> tuple[bytes, str]:
     if not re.fullmatch(r"multipart/form-data; boundary=studio[a-f0-9]{32}", kind):
         raise ValueError("Invalid multipart")
-    mail = BytesParser(policy=email.policy.default).parsebytes(
+    mail: Any = BytesParser(policy=email.policy.default).parsebytes(
         ("Content-Type: " + kind + "\r\nMIME-Version: 1.0\r\n\r\n").encode() + body
     )
     parts = list(mail.iter_parts())
     names = [p.get_param("name", header="content-disposition") for p in parts]
     if sorted(names) != sorted(["chat_id", "caption", "supports_streaming", "video"]):
         raise ValueError("Invalid fields")
-    fields = dict(zip(names, parts))
+    fields = dict(zip(names, parts, strict=True))
     if fields["chat_id"].get_payload(decode=True).decode() != owner:
         raise ValueError("Wrong owner")
     video = fields["video"].get_payload(decode=True)
@@ -79,16 +83,18 @@ def approved_video(body, kind, owner, digest):
 
 
 class Handler(BaseHTTPRequestHandler):
-    def setup(self):
+    server: "Transport"
+
+    def setup(self) -> None:
         self.request.settimeout(60)
         if peer_uid(self.request) != self.server.worker_uid:
             raise ValueError("Wrong worker identity")
         super().setup()
 
-    def log_message(self, *args):
+    def log_message(self, *args: Any) -> None:
         pass
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         try:
             size = self.headers.get("Content-Length", "")
             if (
@@ -114,21 +120,23 @@ class Handler(BaseHTTPRequestHandler):
 
 
 class Transport(socketserver.UnixStreamServer):
-    def __init__(self, path, worker_uid, token, owner, digest, caller=api):
+    def __init__(
+        self, path: Path, worker_uid: int, token: str, owner: str, digest: str, caller: Any = api
+    ) -> None:
         platform_policy.reject_status_telegram()
         if not re.fullmatch("[0-9]+", owner) or not re.fullmatch("[a-f0-9]{64}", digest):
             raise ValueError("Invalid pinned acceptance")
-        self.worker_uid = worker_uid
-        self.token = token
-        self.owner = owner
-        self.digest = digest
-        self.caller = caller
+        self.worker_uid: int = worker_uid
+        self.token: str = token
+        self.owner: str = owner
+        self.digest: str = digest
+        self.caller: Any = caller
         if path.exists() or path.is_symlink():
             raise ValueError("Existing test socket")
         super().__init__(str(path), Handler)
         path.chmod(0o660)
 
-    def handle(self, value):
+    def handle(self, value: Any) -> Any:
         if not isinstance(value, dict) or set(value) != {"method", "body", "content_type"}:
             raise ValueError("Invalid schema")
         method = value["method"]
@@ -151,7 +159,7 @@ class Transport(socketserver.UnixStreamServer):
         raise ValueError("Unsupported method")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--socket", type=Path, required=True)
     parser.add_argument("--worker-uid", type=int, required=True)

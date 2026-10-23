@@ -101,9 +101,8 @@ class Artifacts(unittest.TestCase):
 
     def test_canonical_attempt_path_and_directory_symlink(self):
         for attempt in (True, 0, "01", -1):
-            with self.subTest(attempt=attempt):
-                with self.assertRaises(ValueError):
-                    published_path(self.root, self.job["id"], attempt, self.sha)
+            with self.subTest(attempt=attempt), self.assertRaises(ValueError):
+                published_path(self.root, self.job["id"], attempt, self.sha)
         elsewhere = self.root / "elsewhere"
         elsewhere.mkdir()
         (self.root / "renders").symlink_to(elsewhere, target_is_directory=True)

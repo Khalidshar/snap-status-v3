@@ -5,10 +5,12 @@ import re
 import socket
 import sqlite3
 import ssl
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, NoReturn
 
 from .telegram_errors import safe_classification
 
@@ -51,12 +53,14 @@ REJECTION_MESSAGES = {
 }
 
 
-def number(value, low, high):
+def number(value: object, low: int, high: int) -> int | None:
     return value if type(value) is int and low <= value <= high else None
 
 
 class TelegramRejected(RuntimeError):
-    def __init__(self, status, error_code=None, classification=None):
+    def __init__(
+        self, status: object, error_code: object = None, classification: object = None
+    ) -> None:
         super().__init__("Telegram rejected the request")
         self.http_status = number(status, 100, 599)
         self.telegram_error_code = number(error_code, 100, 599)
@@ -79,11 +83,11 @@ class Diagnostic:
     evidence_write_failed: bool = False
 
 
-_current = ContextVar("status_send_diagnostic", default=None)
+_current: ContextVar[Diagnostic | None] = ContextVar("status_send_diagnostic", default=None)
 
 
 @contextmanager
-def operation():
+def operation() -> Iterator[Diagnostic]:
     """Nested workflow/delivery calls share evidence; separate threads do not."""
     existing = _current.get()
     if existing is not None:
@@ -97,7 +101,7 @@ def operation():
         _current.reset(reset)
 
 
-def stage(value):
+def stage(value: str) -> None:
     if value not in STAGES:
         raise ValueError("Unknown diagnostic stage")
     current = _current.get()
@@ -105,7 +109,7 @@ def stage(value):
         current.stage = value
 
 
-def reject(code):
+def reject(code: str) -> NoReturn:
     if code not in REJECTIONS:
         raise ValueError("Unknown diagnostic rejection")
     current = _current.get()
@@ -114,7 +118,7 @@ def reject(code):
     raise ValueError(REJECTION_MESSAGES[code])
 
 
-def record_error(error):
+def record_error(error: BaseException) -> None:
     """Never copy exception text, arbitrary class names, URLs or API bodies."""
     current = _current.get()
     if current is None or current.error_code is not None:
@@ -149,7 +153,9 @@ def record_error(error):
             current.error_code = "INTERNAL_ERROR"
 
 
-def telegram_call(transport, token, method, body=b"", kind="application/json"):
+def telegram_call(
+    transport: Any, token: str, method: str, body: bytes = b"", kind: str = "application/json"
+) -> Any:
     stages = {
         "getMe": "TELEGRAM_GET_ME",
         "getChat": "TELEGRAM_GET_CHAT",
@@ -169,7 +175,7 @@ def telegram_call(transport, token, method, body=b"", kind="application/json"):
         raise
 
 
-def acknowledge(message_id=None, *, durable=False):
+def acknowledge(message_id: object = None, *, durable: bool = False) -> None:
     current = _current.get()
     if current is not None:
         value = number(message_id, 1, 2**63 - 1)
@@ -181,11 +187,11 @@ def acknowledge(message_id=None, *, durable=False):
                 current.durable_ack_confirmed = True
 
 
-def field(value, pattern):
+def field(value: object, pattern: str) -> str | None:
     return value if isinstance(value, str) and re.fullmatch(pattern, value) else None
 
 
-def payload(env, current=None):
+def payload(env: Mapping[str, str], current: Diagnostic | None = None) -> dict[str, Any]:
     current = current or _current.get()
     # Without an operation context there is no proof that networking did not start.
     current = current or Diagnostic(network_started=True)
@@ -224,13 +230,13 @@ def payload(env, current=None):
     }
 
 
-def _atomic(path, value):
+def _atomic(path: Path, value: object) -> None:
     from .telegram_egress import atomic_json
 
     atomic_json(path, value)
 
 
-def failure_receipt(path, env):
+def failure_receipt(path: str | Path, env: Mapping[str, str]) -> Any:
     """Keep prior ACK/unknown proof intact; write the latest diagnostic separately."""
     current = _current.get()
     path = Path(path)
@@ -238,7 +244,7 @@ def failure_receipt(path, env):
         raise ValueError("Unsafe evidence path")
     path.parent.mkdir(parents=True, exist_ok=True)
     preserve = False
-    prior = None
+    prior: Any = None
     if path.exists():
         try:
             prior = json.loads(path.read_text(encoding="utf-8"))
@@ -284,8 +290,8 @@ def failure_receipt(path, env):
     return prior if preserve and prior is not None else value
 
 
-def attach_error(error, env):
-    try:
+def attach_error(error: Any, env: Mapping[str, str]) -> None:
+    try:  # noqa: SIM105  # explicit best-effort block
         error.status_diagnostics = payload(env)
-    except Exception:
+    except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
         pass

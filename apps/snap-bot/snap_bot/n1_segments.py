@@ -84,11 +84,11 @@ class JournalSegments:
                 os.link(name, path)
             except FileExistsError:
                 if path.is_symlink():
-                    raise SegmentCorrupt("Symlink segment")
+                    raise SegmentCorrupt("Symlink segment") from None
                 with path.open("rb") as stream:
                     existing = stream.readline(4097)
                 if existing != header:
-                    raise SegmentCorrupt("Segment header conflict")
+                    raise SegmentCorrupt("Segment header conflict") from None
             sync_directory(self.root)
             if failpoint:
                 failpoint("after_file_publish")

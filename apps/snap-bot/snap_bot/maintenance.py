@@ -7,6 +7,7 @@ service that re-runs a fact job through the full agent chain, never a delivery.
 import argparse
 import json
 import time
+from collections.abc import Sequence
 from pathlib import Path
 
 from studio_core.config import Config
@@ -30,8 +31,28 @@ from studio_core.repair.maintenance import (
     run_repair,
 )
 
+__all__ = [
+    "LABELS",
+    "LOOKBACK_SECONDS",
+    "MAX_REPAIRS_PER_DAY",
+    "MAX_REPAIRS_PER_LINEAGE",
+    "REPAIRABLE_COMMANDS",
+    "REPAIR_WINDOW_SECONDS",
+    "RETRYABLE_CODES",
+    "RULE_VERSION",
+    "apply",
+    "delivery_evidence",
+    "diagnose",
+    "failure_code",
+    "initialize",
+    "lineage",
+    "main",
+    "retry_fresh_job",
+    "run_repair",
+]
 
-def main(argv=None):
+
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Diagnose and, with --apply, repair inside the red lines; never sends"
     )

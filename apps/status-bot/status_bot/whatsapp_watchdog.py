@@ -4,7 +4,9 @@ import argparse
 import json
 import sqlite3
 import time
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from .whatsapp_contract import finite, identifier, require
 
@@ -23,7 +25,7 @@ STATES = {
 }
 
 
-def inspect_outbox(database, now=None):
+def inspect_outbox(database: str | Path, now: float | None = None) -> dict[str, Any]:
     now = time.time() if now is None else now
     require(finite(now), "WA_OBSERVATION_UNAVAILABLE")
     database = Path(database).absolute()
@@ -40,7 +42,7 @@ def inspect_outbox(database, now=None):
         exists = db.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='whatsapp_outbox'"
         ).fetchone()
-        rows = []
+        rows: list[dict[str, Any]] = []
         count = 0
         if exists:
             count = db.execute("SELECT count(*) FROM whatsapp_outbox").fetchone()[0]
@@ -100,7 +102,7 @@ def inspect_outbox(database, now=None):
         db.close()
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", type=Path, required=True)
     args = parser.parse_args(argv)

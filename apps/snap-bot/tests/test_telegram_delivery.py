@@ -27,7 +27,7 @@ class DeliveryTests(unittest.TestCase):
         self.repo = Repository(self.config)
         job, _ = self.repo.enqueue("test", "owner", "weather", "NORMAL", "input", time.time() + 600)
         self.job = job["id"]
-        claim = self.repo.claim()
+        _claim = self.repo.claim()
         with self.repo.transaction() as db:
             db.execute("UPDATE jobs SET lease_until=? WHERE id=?", (time.time() - 1, self.job))
         root = Storage(self.config).workspace(self.job)
@@ -424,11 +424,14 @@ class DeliveryTests(unittest.TestCase):
         from snap_bot.command_worker import confirmed_failure
         from snap_bot.telegram_egress import DeliveryConfirmed
 
-        with patch(
-            "snap_bot.telegram_egress.Storage.manifest", side_effect=OSError("synthetic disk fault")
+        with (
+            patch(
+                "snap_bot.telegram_egress.Storage.manifest",
+                side_effect=OSError("synthetic disk fault"),
+            ),
+            self.assertRaises(DeliveryConfirmed) as caught,
         ):
-            with self.assertRaises(DeliveryConfirmed) as caught:
-                deliver(self.config, self.job, self.digest, self.transport)
+            deliver(self.config, self.job, self.digest, self.transport)
         with patch("snap_bot.command_worker.print") as logger:
             result = confirmed_failure(self.config, self.job, caught.exception)
         self.assertEqual(result["delivery"], "PUBLISHED")
@@ -470,17 +473,20 @@ class DeliveryTests(unittest.TestCase):
         from snap_bot.command_worker import confirmed_failure
         from snap_bot.telegram_egress import DeliveryConfirmed
 
-        with patch(
-            "snap_bot.telegram_egress.Storage.manifest", side_effect=OSError("synthetic disk fault")
+        with (
+            patch(
+                "snap_bot.telegram_egress.Storage.manifest",
+                side_effect=OSError("synthetic disk fault"),
+            ),
+            self.assertRaises(DeliveryConfirmed) as caught,
         ):
-            with self.assertRaises(DeliveryConfirmed) as caught:
-                deliver(
-                    self.config,
-                    self.job,
-                    self.digest,
-                    self.transport,
-                    review_mode="PINNED_WEATHER_TEMPLATE",
-                )
+            deliver(
+                self.config,
+                self.job,
+                self.digest,
+                self.transport,
+                review_mode="PINNED_WEATHER_TEMPLATE",
+            )
         self.assertEqual(caught.exception.review_mode, "PINNED_WEATHER_TEMPLATE")
         receipt = confirmed_failure(self.config, self.job, caught.exception)
         self.assertEqual(receipt["review_mode"], "PINNED_WEATHER_TEMPLATE")
@@ -508,15 +514,15 @@ class DeliveryTests(unittest.TestCase):
                 "snap_bot.telegram_egress.Repository.reconcile_delivery",
                 side_effect=RuntimeError("synthetic reconciliation fault"),
             ),
+            self.assertRaises(DeliveryConfirmed),
         ):
-            with self.assertRaises(DeliveryConfirmed):
-                deliver(
-                    self.config,
-                    self.job,
-                    self.digest,
-                    self.transport,
-                    review_mode="PINNED_WEATHER_TEMPLATE",
-                )
+            deliver(
+                self.config,
+                self.job,
+                self.digest,
+                self.transport,
+                review_mode="PINNED_WEATHER_TEMPLATE",
+            )
         with self.repo.connect() as db:
             self.assertEqual(
                 db.execute("SELECT state,message_id FROM telegram_outbox").fetchone()["state"],
@@ -658,15 +664,15 @@ class DeliveryTests(unittest.TestCase):
                     "snap_bot.telegram_egress.Repository.reconcile_delivery",
                     side_effect=RuntimeError("synthetic reconciliation fault"),
                 ),
+                self.assertRaises(DeliveryConfirmed),
             ):
-                with self.assertRaises(DeliveryConfirmed):
-                    execute(
-                        self.config,
-                        settings,
-                        "synthetic-gateway-signing-secret-00000000",
-                        claim=claim,
-                        delivery=delivery,
-                    )
+                execute(
+                    self.config,
+                    settings,
+                    "synthetic-gateway-signing-secret-00000000",
+                    claim=claim,
+                    delivery=delivery,
+                )
         # This assertion detects removal of the specialized execute exception handler.
         self.assertEqual(self.repo.get(self.job)["state"], "DELIVERING")
         self.assertEqual(reconcile_evidence_sweep(self.config)["repaired"], 1)

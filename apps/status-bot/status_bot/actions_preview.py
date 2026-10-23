@@ -12,12 +12,17 @@ import os
 import re
 import sys
 import time
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from . import platform_policy
 from .send_diagnostics import attach_error, operation, payload, record_error, stage
+
+if TYPE_CHECKING:
+    from studio_core.config import Config
 
 ROOT = Path(__file__).resolve().parents[3]
 REPOSITORY = "Khalidshar/status-bot-v2"
@@ -28,7 +33,7 @@ BUNDLE_SECONDS = 3600
 ISOLATION = {"ipv4", "ipv6", "udp", "egress_unreachable"}
 
 
-def approval_guard(env):
+def approval_guard(env: Mapping[str, str]) -> None:
     if env.get("GITHUB_REPOSITORY") != REPOSITORY:
         raise ValueError("Wrong repository")
     if (
@@ -50,7 +55,7 @@ def approval_guard(env):
         raise ValueError("Source run required")
 
 
-def source_guard(run, env, now=None):
+def source_guard(run: Any, env: Mapping[str, str], now: float | None = None) -> None:
     now = time.time() if now is None else now
     if (
         run.get("event") != "workflow_dispatch"
@@ -67,13 +72,13 @@ def source_guard(run, env, now=None):
         raise ValueError("Source expired")
 
 
-def history_guard(artifacts, video_sha):
+def history_guard(artifacts: Any, video_sha: str) -> None:
     # Any earlier intent, even expired or with unknown outcome, blocks a resend.
     if any(item.get("name") == INTENT_PREFIX + video_sha for item in artifacts):
         raise ValueError("Prior send intent exists; unknown outcomes never retry")
 
 
-def intent_guard(env, artifact):
+def intent_guard(env: Mapping[str, str], artifact: Any) -> None:
     if not re.fullmatch("[1-9][0-9]*", env.get("SEND_INTENT_ARTIFACT_ID", "")):
         raise ValueError("Durable intent ID missing")
     if (
@@ -85,12 +90,12 @@ def intent_guard(env, artifact):
         raise ValueError("Durable intent binding invalid")
 
 
-def github_get(path, env):
+def github_get(path: str, env: Mapping[str, str]) -> Any:
     """Authenticated GitHub REST JSON read; never follows redirects to storage."""
     from urllib.request import HTTPRedirectHandler, Request, build_opener
 
     class NoRedirect(HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
+        def redirect_request(self, *args: Any, **kwargs: Any) -> None:
             return None
 
     token = env.get("GITHUB_TOKEN", "")
@@ -111,7 +116,9 @@ def github_get(path, env):
     return json.loads(raw)
 
 
-def preflight(env, get=github_get):
+def preflight(
+    env: Mapping[str, str], get: Callable[[str, Mapping[str, str]], Any] = github_get
+) -> None:
     platform_policy.reject_status_telegram()
     approval_guard(env)
     source_guard(get("actions/runs/" + env["SOURCE_RUN"], env), env)
@@ -130,7 +137,7 @@ def preflight(env, get=github_get):
     raise ValueError("History scan incomplete")
 
 
-def digest_guard(video, result, content, env):
+def digest_guard(video: bytes, result: Any, content: Any, env: Mapping[str, str]) -> None:
     if (
         not 0 < len(video) <= 50_000_000
         or hashlib.sha256(video).hexdigest() != env["VIDEO_SHA"]
@@ -144,7 +151,7 @@ def digest_guard(video, result, content, env):
         raise ValueError("Approved content differs")
 
 
-def bundle_config(directory):
+def bundle_config(directory: str | Path) -> "Config":
     from studio_core.config import Config
 
     config = Config.load(ROOT / "config/status/weather.toml")
@@ -156,7 +163,9 @@ def bundle_config(directory):
     )
 
 
-def verify_bundle(directory, env, now=None):
+def verify_bundle(
+    directory: str | Path, env: Mapping[str, str], now: float | None = None
+) -> tuple["Config", Any]:
     approval_guard(env)
     from studio_core.jobs import Repository
     from studio_core.storage import Storage
@@ -207,13 +216,18 @@ def verify_bundle(directory, env, now=None):
     return config, data
 
 
-def failure_receipt(path, env):
+def failure_receipt(path: str | Path, env: Mapping[str, str]) -> Any:
     from .send_diagnostics import failure_receipt as write_failure
 
     return write_failure(path, env)
 
 
-def send_bundle(directory, env, get=github_get, transport=None):
+def send_bundle(
+    directory: str | Path,
+    env: Mapping[str, str],
+    get: Callable[[str, Mapping[str, str]], Any] = github_get,
+    transport: Any = None,
+) -> dict[str, Any]:
     platform_policy.reject_status_telegram()
     from .telegram_egress import api, atomic_json, deliver
 
@@ -249,7 +263,7 @@ def send_bundle(directory, env, get=github_get, transport=None):
             raise
 
 
-def write_intent(env, target=Path("outputs/send-intent")):
+def write_intent(env: Mapping[str, str], target: Path = Path("outputs/send-intent")) -> None:
     platform_policy.reject_status_telegram()
     target.parent.mkdir(parents=True, exist_ok=True)
     target.mkdir(mode=0o750)
@@ -266,7 +280,9 @@ def write_intent(env, target=Path("outputs/send-intent")):
     )
 
 
-def retain_workflow_diagnostic(value, env, target=Path("outputs/send-intent")):
+def retain_workflow_diagnostic(
+    value: object, env: Mapping[str, str], target: str | Path = Path("outputs/send-intent")
+) -> bool:
     """Copy safe diagnostics into the already-retained results directory.
 
     Never create or alter an intent, and never use this copy to authorize a send.
@@ -299,7 +315,7 @@ def retain_workflow_diagnostic(value, env, target=Path("outputs/send-intent")):
     return True
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=["preflight", "intent", "send"])
     parser.add_argument("--bundle", type=Path, default=Path("outputs/status-manual"))
@@ -329,7 +345,7 @@ def main():
                     "STATUS_TEST_SEND_BLOCKED_OR_UNKNOWN; inspect durable intent and receipt",
                     file=sys.stderr,
                 )
-                raise SystemExit(1)
+                raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

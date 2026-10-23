@@ -4,9 +4,11 @@ import argparse
 import json
 import math
 import re
+import sqlite3
 import time
 import uuid
 from pathlib import Path
+from typing import Any
 
 from studio_core.config import Config
 from studio_core.jobs import Repository
@@ -23,14 +25,16 @@ from .owned_contract_adapter import (
 )
 
 
-def initialize_reviews(db):
+def initialize_reviews(db: sqlite3.Connection) -> None:
     db.execute("""CREATE TABLE IF NOT EXISTS human_frame_reviews(
       id TEXT PRIMARY KEY,job_id TEXT NOT NULL,attempt INTEGER NOT NULL,
       reviewer TEXT NOT NULL,reviewed_at REAL NOT NULL,video_sha TEXT NOT NULL,
       content_hash TEXT NOT NULL,quality_sha TEXT NOT NULL,mode TEXT NOT NULL)""")
 
 
-def record_human_frame(repo, job, token, attempt, result, *, reviewer):
+def record_human_frame(
+    repo: Repository, job: str, token: str, attempt: int, result: Any, *, reviewer: str
+) -> Any:
     """Only explicit operator command calls this; no preview/runtime caller."""
     if reviewer not in repo.config.owners.get("telegram", ()):
         raise ContractViolation("FINAL_REVIEWER_UNAUTHORIZED")
@@ -77,7 +81,9 @@ def record_human_frame(repo, job, token, attempt, result, *, reviewer):
     return review
 
 
-def final_input(db, job, attempt, result, now):
+def final_input(
+    db: sqlite3.Connection, job: str, attempt: int, result: Any, now: float
+) -> dict[str, Any]:
     evidence = quality_chain(db, job, attempt, result)
     review = None
     if db.execute("SELECT 1 FROM sqlite_master WHERE name='human_frame_reviews'").fetchone():
@@ -96,7 +102,7 @@ def final_input(db, job, attempt, result, now):
     }
 
 
-def decide(payload):
+def decide(payload: Any) -> dict[str, Any]:
     review = payload["human_approval"]
     render = payload["evidence"]["render"]
     reason = "HUMAN_FRAME_MISSING"
@@ -126,7 +132,7 @@ def decide(payload):
     }
 
 
-def validate_final_payload(direction, payload):
+def validate_final_payload(direction: str, payload: Any) -> Any:
     if not isinstance(payload, dict):
         raise ValueError("Final payload required")
     if (
@@ -193,7 +199,7 @@ def validate_final_payload(direction, payload):
     return True
 
 
-def evaluate_final(repo, job, token, attempt, result):
+def evaluate_final(repo: Repository, job: str, token: str, attempt: int, result: Any) -> Any:
     """Explicit evaluation/re-evaluation, not execution or delivery replay."""
     run = uuid.uuid4().hex
     started = time.monotonic()
@@ -240,7 +246,9 @@ def evaluate_final(repo, job, token, attempt, result):
     return decision
 
 
-def require_final(db, job, attempt, result, *, now=None):
+def require_final(
+    db: sqlite3.Connection, job: str, attempt: int, result: Any, *, now: float | None = None
+) -> Any:
     row = db.execute(
         "SELECT * FROM owned_agent_contracts WHERE job_id=? AND attempt=? AND role='final'",
         (job, attempt),
@@ -273,7 +281,7 @@ def require_final(db, job, attempt, result, *, now=None):
         raise ContractViolation("CONTRACT_FINAL_BLOCKED") from cause
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Explicit local visual approval; never sends")
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--job", required=True)

@@ -16,6 +16,7 @@ import threading
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
+from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
 from studio_core.jobs import LeaseLost
@@ -34,7 +35,7 @@ article{padding:20px 0;border-bottom:1px solid #e2e9e1}pre{white-space:pre-wrap;
 @media(max-width:600px){main{margin:12px;padding:20px}h1{font-size:26px}}"""
 
 
-def page(title, content):
+def page(title: str, content: str) -> bytes:
     return (
         '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -47,7 +48,7 @@ def page(title, content):
     ).encode()
 
 
-def fields(raw):
+def fields(raw: Any) -> dict[str, str]:
     require(type(raw) is bytes and len(raw) <= 8192, "HTTP_FORM_INVALID")
     try:
         text = raw.decode("utf-8", errors="strict")
@@ -71,7 +72,7 @@ class WebhookConfig:
     host: str
     verify_token: bytes
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         require(
             type(self.host) is str
             and re.fullmatch(r"[A-Za-z0-9.-]+(?::[0-9]{1,5})?", self.host)
@@ -83,7 +84,7 @@ class WebhookConfig:
 
 
 class Endpoint:
-    def __init__(self, mode, service, config=None):
+    def __init__(self, mode: str, service: Any, config: Any = None) -> None:
         require(mode in ("owner", "webhook"), "HTTP_MODE_INVALID")
         self.mode, self.service, self.config = mode, service, config
         if mode == "owner":
@@ -97,7 +98,9 @@ class Endpoint:
             )
             self.host = config.host
 
-    def dispatch(self, method, target, headers, body):
+    def dispatch(
+        self, method: str, target: str, headers: Any, body: bytes
+    ) -> tuple[int, str, bytes, dict[str, str]]:
         require(headers.get("Host") == self.host, "HTTP_HOST_DENIED")
         parsed = urlsplit(target)
         require(
@@ -111,7 +114,7 @@ class Endpoint:
         if self.mode == "webhook":
             require(parsed.path == "/whatsapp/webhook", "HTTP_ROUTE_DENIED")
             if method == "GET":
-                value = fields(parsed.query.encode())
+                value: Any = fields(parsed.query.encode())
                 require(
                     set(value) == {"hub.mode", "hub.verify_token", "hub.challenge"}
                     and value["hub.mode"] == "subscribe"
@@ -169,7 +172,7 @@ class Endpoint:
                     + "; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=900",
                 },
             )
-        cookies = []
+        cookies: list[str] = []
         for part in headers.get("Cookie", "").split(";"):
             key, separator, val = part.strip().partition("=")
             if key == COOKIE and separator:
@@ -215,7 +218,7 @@ class Endpoint:
             require(set(value) == {"csrf", "job"}, "HTTP_FORM_INVALID")
             ticket = self.service.open(cookie, value["csrf"], value["job"])
             return 303, "text/plain", b"", {"Location": "/review/" + ticket}
-        match = re.fullmatch("/review/([0-9a-f]{32})(/media|/decision)?", parsed.path)
+        match: Any = re.fullmatch("/review/([0-9a-f]{32})(/media|/decision)?", parsed.path)
         require(match is not None, "HTTP_ROUTE_DENIED")
         ticket, suffix = match.groups()
         if method == "GET" and suffix == "/media":
@@ -270,8 +273,9 @@ class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.0"
     server_version = "Madar"
     sys_version = ""
+    server: "PrivateServer"
 
-    def setup(self):
+    def setup(self) -> None:
         uid = struct.unpack(
             "3i", self.request.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
         )[1]
@@ -279,13 +283,13 @@ class Handler(BaseHTTPRequestHandler):
         self.request.settimeout(10)
         super().setup()
 
-    def log_message(self, *args):
+    def log_message(self, *args: Any) -> None:
         pass  # No URL, login body, challenge token, cookie or exception logging.
 
-    def send_error(self, code, message=None, explain=None):
+    def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
         self.reply(code, "text/plain; charset=utf-8", b"Request denied", {})
 
-    def reply(self, status, content_type, body, extra):
+    def reply(self, status: int, content_type: str, body: bytes, extra: dict[str, str]) -> None:
         self.close_connection = True
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -303,7 +307,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def handle_endpoint(self):
+    def handle_endpoint(self) -> None:
         try:
             require(
                 sum(len(k) + len(v) for k, v in self.headers.items()) <= 16384,
@@ -324,7 +328,7 @@ class Handler(BaseHTTPRequestHandler):
                 and not self.headers.get_all("Expect"),
                 "HTTP_FRAMING_INVALID",
             )
-            length = self.headers.get("Content-Length")
+            length: Any = self.headers.get("Content-Length")
             if self.command == "POST":
                 require(
                     length is not None and re.fullmatch("[0-9]{1,7}", length),
@@ -353,7 +357,14 @@ class PrivateServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
     daemon_threads = True
     request_queue_size = 8
 
-    def __init__(self, socket_path, endpoint, proxy_uid, *, enabled=False):
+    def __init__(
+        self,
+        socket_path: str | os.PathLike[str],
+        endpoint: Endpoint,
+        proxy_uid: int,
+        *,
+        enabled: object = False,
+    ) -> None:
         require(enabled is True, "HTTP_SERVICE_DISABLED")
         require(
             type(proxy_uid) is int and proxy_uid >= 0 and isinstance(endpoint, Endpoint),
@@ -377,7 +388,7 @@ class PrivateServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
         super().__init__(str(path), Handler)
         os.chmod(path, 0o600)
 
-    def process_request(self, request, client_address):
+    def process_request(self, request: Any, client_address: Any) -> None:
         if not self.slots.acquire(blocking=False):
             self.shutdown_request(request)
             return
@@ -387,11 +398,11 @@ class PrivateServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
             self.slots.release()
             raise
 
-    def process_request_thread(self, request, client_address):
+    def process_request_thread(self, request: Any, client_address: Any) -> None:
         try:
             super().process_request_thread(request, client_address)
         finally:
             self.slots.release()
 
-    def handle_error(self, request, client_address):
+    def handle_error(self, request: Any, client_address: Any) -> None:
         pass  # Fail closed without secret-bearing tracebacks.

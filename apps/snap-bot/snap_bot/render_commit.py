@@ -5,12 +5,16 @@ The DB-free renderer never imports this module.
 import hashlib
 import json
 import os
+import sqlite3
 import tempfile
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any, TypeVar
 
-from studio_core.jobs import LeaseLost
+from studio_core.config import Config
+from studio_core.jobs import LeaseLost, Repository
 from studio_core.repair.adoption import clear_pending
 from studio_core.storage import Storage
 
@@ -19,6 +23,8 @@ from .n1_artifacts import verified_bytes
 from .render import cleanup_attempt_temps, sync_dir, video_filename, write_once
 from .weather import content_hash
 
+T = TypeVar("T")
+
 
 class AdoptionPending(OSError):
     """Immutable spool retained; explicit SAME-owner adoption retry is required."""
@@ -26,7 +32,14 @@ class AdoptionPending(OSError):
     pass
 
 
-def stage_input(settings, repo, job, token, attempt, content):
+def stage_input(
+    settings: dict[str, Any],
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    content: dict[str, Any],
+) -> Path:
     repo.assert_owner(job, token, attempt=attempt)
     root = Path(settings["input_root"])
     if not root.is_absolute() or root.name != "renders":
@@ -44,14 +57,23 @@ def stage_input(settings, repo, job, token, attempt, content):
     return target
 
 
-def artifact_root(settings):
+def artifact_root(settings: dict[str, Any]) -> Path:
     root = Path(settings["spool_root"])
     if not root.is_absolute() or root.name != "renders":
         raise ValueError("Invalid spool root")
     return root.parent
 
 
-def record_stages(repo, db, job, attempt, result, expected, result_path, quality_sha):
+def record_stages(
+    repo: Repository,
+    db: sqlite3.Connection,
+    job: str,
+    attempt: int,
+    result: dict[str, Any],
+    expected: str,
+    result_path: str,
+    quality_sha: str,
+) -> None:
     # Core 0.7.0 record_stage has no db parameter. Preserve its schema and
     # invariants in this SAME owned transaction, without changing the wheel.
     db.execute(
@@ -87,7 +109,15 @@ def record_stages(repo, db, job, attempt, result, expected, result_path, quality
         repo.event(db, job, "stage.recorded", {"stage": stage, "attempt": attempt, "sha256": sha})
 
 
-def adopt_render(config, repo, job_id, token, attempt, result, settings):
+def adopt_render(
+    config: Config,
+    repo: Repository,
+    job_id: str,
+    token: str,
+    attempt: int,
+    result: dict[str, Any],
+    settings: dict[str, Any],
+) -> Any:
     filename = video_filename(result.get("content_type", "weather"))
     expected = f"renders/{job_id}/attempts/{attempt}/output/{filename}"
     if (
@@ -137,7 +167,7 @@ def adopt_render(config, repo, job_id, token, attempt, result, settings):
     quality_sha = hashlib.sha256(result_bytes).hexdigest()
     # Verification above is deliberately outside the retryable I/O boundary.
     output = Storage(config).workspace(job_id) / "output"
-    staged = []
+    staged: list[str] = []
     try:
         # Long copy and file fsync happen outside the short DB transaction.
         for value in (data, result_bytes, input_bytes):
@@ -173,7 +203,17 @@ def adopt_render(config, repo, job_id, token, attempt, result, settings):
     return repo.stage_result(job_id, "design", token=token, attempt=attempt)
 
 
-def owned_views(config, repo, job, token, attempt, manifest, output, *, validating=False):
+def owned_views(
+    config: Config,
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    manifest: dict[str, Any],
+    output: dict[str, Any],
+    *,
+    validating: bool = False,
+) -> None:
     storage = Storage(config)
     work = storage.workspace(job)
     storage.metadata.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -184,7 +224,7 @@ def owned_views(config, repo, job, token, attempt, manifest, output, *, validati
         (storage.metadata / (job + ".json"), manifest),
         (work / "output/slice-result.json", output),
     ]
-    staged = []
+    staged: list[tuple[str, Path]] = []
     try:
         for target, value in targets:
             fd, temp = tempfile.mkstemp(dir=target.parent, prefix=".view-")
@@ -210,14 +250,16 @@ def owned_views(config, repo, job, token, attempt, manifest, output, *, validati
                 os.unlink(temp)
 
 
-def observe_owned(repo, job, token, attempt, agent, callback):
+def observe_owned(
+    repo: Repository, job: str, token: str, attempt: int, agent: str, callback: Callable[[], T]
+) -> T:
     # These are owned DB events, not claims of physical N1 journal integration.
     if agent not in ("fact_source", "design", "quality"):
         raise ValueError("Invalid observed stage")
     run = uuid.uuid4().hex
     started = time.monotonic()
 
-    def record(status, code=None):
+    def record(status: str, code: str | None = None) -> None:
         with repo.owned_transaction(job, token, attempt=attempt) as db:
             details = {
                 "agent": agent,
@@ -234,7 +276,7 @@ def observe_owned(repo, job, token, attempt, agent, callback):
     try:
         result = callback()
     except BaseException:
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             record("FAILED", "STAGE_FAILED")
         except LeaseLost:
             pass

@@ -81,7 +81,7 @@ class MaintenanceTests(unittest.TestCase):
         self.assertEqual(json.loads(self.repo.timeline(new)[-1]["details"])["source_job"], job)
 
     def test_runner_runs_the_new_job_once_without_delivery(self):
-        job = self.failed()
+        _job = self.failed()
         claims = []
 
         def runner(claim):
@@ -240,7 +240,9 @@ class MaintenanceTests(unittest.TestCase):
         jobs = [self.failed() for _ in range(MAX_REPAIRS_PER_DAY + 1)]
         decisions = [self.item(job)["decision"] for job in jobs]
         self.assertEqual(decisions.count("AUTO"), MAX_REPAIRS_PER_DAY, msg="guard:daily-budget")
-        held = next(job for job, decision in zip(jobs, decisions) if decision == "OWNER")
+        held = next(
+            job for job, decision in zip(jobs, decisions, strict=False) if decision == "OWNER"
+        )
         self.assertEqual(self.item(held)["reason"], "DAILY_BUDGET_EXHAUSTED")
         apply(self.repo, self.plan())
         self.assertEqual(self.item(held)["reason"], "DAILY_BUDGET_EXHAUSTED")

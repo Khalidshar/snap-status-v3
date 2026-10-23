@@ -11,9 +11,8 @@ from pathlib import Path
 
 from snap_bot.agent_contract_map import LOCAL_TOOLS
 from snap_bot.content_agents import AgentRejected
-from snap_bot.did_you_know import CATALOG, CATEGORIES, load_facts, make_content, rotation_order
+from snap_bot.did_you_know import CATALOG, load_facts, make_content, rotation_order
 from snap_bot.editorial_agents import (
-    PROPOSAL_KEYS,
     catalog_facts,
     fix,
     propose,
@@ -136,14 +135,14 @@ class EditorialAgentTests(unittest.TestCase):
         from unittest.mock import patch
 
         draft = write(proposal(text="يدور كوكب نبتون  حول الشمس."), self.facts)
-        with patch(
-            "snap_bot.editorial_agents.re.sub",
-            side_effect=lambda p, r, t, *a, **k: t.replace("نبتون", "زحل"),
+        with (
+            patch(
+                "snap_bot.editorial_agents.re.sub",
+                side_effect=lambda p, r, t, *a, **k: t.replace("نبتون", "زحل"),
+            ),
+            self.assertRaisesRegex(AgentRejected, "FIXER_CHANGED_WORDS", msg="guard:fixer-words"),
         ):
-            with self.assertRaisesRegex(
-                AgentRejected, "FIXER_CHANGED_WORDS", msg="guard:fixer-words"
-            ):
-                fix(draft, review(draft, self.facts, today=TODAY))
+            fix(draft, review(draft, self.facts, today=TODAY))
 
 
 class OversightTests(unittest.TestCase):
@@ -257,7 +256,7 @@ class OversightTests(unittest.TestCase):
         self.assertEqual(plan(self.repo)["decision"], "GO")
 
     def test_manager_holds_while_a_job_is_active(self):
-        job, _ = self.repo.enqueue(
+        _job, _ = self.repo.enqueue(
             "active", "actor-active", "did_you_know", "NORMAL", "input", self.now + 900
         )
         self.assertEqual(plan(self.repo)["reasons"], ["QUEUE_BUSY"], msg="guard:manager-busy")

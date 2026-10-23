@@ -41,6 +41,6 @@
   - `MADAR_REQUIRE_REAL_RENDER=1`.
 
 ## الدَّين الموثّق (يُسدَّد وحدة وحدة، مثل النواة)
-- **mypy:** 38 وحدة من `snap_bot` في `[[tool.mypy.overrides]]` بقيمة `ignore_errors = true`. تخرج الوحدة من القائمة حين تُنمَّط.
+- **mypy:** ~~38 وحدة في استثناء `ignore_errors`~~ سُدِّد: كل الوحدات صارت مُنمَّطة (`RESUME-APP-TYPING-20261023.md`).
 - **ruff:** قواعد مستثناة لملفات التطبيق واختباراته في `per-file-ignores`.
 - **أدوات التخريب الخاصة بالتطبيق**: انتقلت لاحقاً إلى `scripts/check_app_mutations.py` (261 حالة). التفاصيل في `RESUME-APP-MUTATIONS-20261022.md`.
