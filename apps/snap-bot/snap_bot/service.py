@@ -1,12 +1,10 @@
 import argparse
-import hashlib
 import json
 import os
 import re
 import socket
 import socketserver
 import struct
-import tempfile
 import threading
 import time
 import tomllib
@@ -26,7 +24,8 @@ from studio_core.repair.adoption import claim_attempt, expire_pending_adoptions,
 from studio_core.storage import Storage
 
 from .agent_contract_map import RENDER_CHECKS
-from .agent_telemetry import TelemetryReconciliationRequired, observe
+from .agent_telemetry import TelemetryReconciliationRequired
+from .agent_telemetry import observe as observe  # patch target: tests assert no stage is observed
 from .arabic_agent import check_content
 from .content_agents import CHECKS, run_check
 from .did_you_know import choose_fact
@@ -156,12 +155,12 @@ def execute(
 
     thread = threading.Thread(target=renew, daemon=True)
     thread.start()
-    root = Storage(config).workspace(job["id"])
+    Storage(config).workspace(job["id"])  # creates the owned workspace
     try:
         if claim.get("recovered_from") is not None:
             raise TelemetryReconciliationRequired("Recovery is not activated for this service")
         repo.transition(job["id"], token, "RESEARCHING")
-        source = lambda: (
+        source = lambda: (  # noqa: E731  # kept as reviewed in the lab
             choose_fact(repo, job["id"], token, attempt)
             if job["command"] == "did_you_know"
             else fetch_weather(
@@ -258,7 +257,7 @@ def execute(
             result = observe_owned(repo, job["id"], token, attempt, "design", remote_render)
         if lease_failed:
             raise LeaseLost("Lease lost")
-        adopt = lambda: adopt_render(config, repo, job["id"], token, attempt, result, settings)
+        adopt = lambda: adopt_render(config, repo, job["id"], token, attempt, result, settings)  # noqa: E731  # kept as reviewed in the lab
         if fact_contracts:
             run_stage(
                 repo,
@@ -319,9 +318,9 @@ def execute(
             if isinstance(error, TelemetryReconciliationRequired)
             else "VERTICAL_SLICE_FAILED"
         )
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             repo.transition(job["id"], token, "FAILED", {"code": code})
-        except Exception:
+        except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
             pass
         raise
     finally:

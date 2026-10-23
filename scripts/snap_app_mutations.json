@@ -462,7 +462,7 @@
   "hunks": [
    {
     "file": "arabic_agent.py",
-    "old": "    if any(a.casefold() == b.casefold() for a, b in zip(words, words[1:])):\n",
+    "old": "    if any(a.casefold() == b.casefold() for a, b in itertools.pairwise(words)):\n",
     "new": "    if False:\n"
    }
   ]
@@ -566,7 +566,7 @@
   "hunks": [
    {
     "file": "send_reconciliation.py",
-    "old": "    download = Request(location)\n",
+    "old": "    download = Request(location)  # noqa: S310  # fixed https URL\n",
     "new": "    download = Request(location, headers={\"Authorization\": request.get_header(\"Authorization\")})\n"
    }
   ]
@@ -579,7 +579,7 @@
   "hunks": [
    {
     "file": "send_reconciliation.py",
-    "old": "    download = Request(location)\n",
+    "old": "    download = Request(location)  # noqa: S310  # fixed https URL\n",
     "new": "    download = Request(location, headers={\"Accept\": request.get_header(\"Accept\")})\n"
    }
   ]
@@ -2503,7 +2503,7 @@
   "hunks": [
    {
     "file": "owned_contract_adapter.py",
-    "old": "    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():\n",
+    "old": "    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():  # noqa: SIM102  # kept as reviewed\n",
     "new": "    if False:\n"
    }
   ]
@@ -2516,8 +2516,8 @@
   "hunks": [
    {
     "file": "owned_contract_adapter.py",
-    "old": "            return\n        raise ContractViolation(\"CONTRACT_DELIVERY_BLOCKED\")\n    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():\n",
-    "new": "            return\n        return\n    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():\n"
+    "old": "            return\n        raise ContractViolation(\"CONTRACT_DELIVERY_BLOCKED\")\n    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():  # noqa: SIM102  # kept as reviewed\n",
+    "new": "            return\n        return\n    if db.execute(\"SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'\").fetchone():  # noqa: SIM102  # kept as reviewed\n"
    }
   ]
  },
@@ -3075,7 +3075,7 @@
   "hunks": [
    {
     "file": "owned_contract_adapter.py",
-    "old": "        if (\n            (role == \"design\" and direction == \"output\")\n            or role == \"quality\"\n            or role in RENDER_CHECKS\n        ):\n",
+    "old": "        if (  # noqa: SIM102  # kept as reviewed\n            (role == \"design\" and direction == \"output\")\n            or role == \"quality\"\n            or role in RENDER_CHECKS\n        ):\n",
     "new": "        if (role == \"design\" and direction == \"output\") or role == \"quality\":\n"
    }
   ]

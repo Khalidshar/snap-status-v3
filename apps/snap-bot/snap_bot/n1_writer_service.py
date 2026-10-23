@@ -11,7 +11,6 @@ import signal
 import socket
 import stat
 import struct
-import sys
 import threading
 import time
 from collections.abc import Callable

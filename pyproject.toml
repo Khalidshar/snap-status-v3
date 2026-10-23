@@ -45,6 +45,8 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "S", "RUF"]
 # str+Enum is kept on purpose: StrEnum changes str() output of persisted states.
 ignore = ["UP042"]
+# Arabic text is the product: its letters and digits are intended, not look-alikes.
+allowed-confusables = ["ا", "٠", "١", "٥", "٧", "٫"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101"]
@@ -53,11 +55,12 @@ ignore = ["UP042"]
 # schema text is persisted in the sqlite_master of every existing database.
 "packages/studio-core/studio_core/jobs/repository.py" = ["E501"]
 
-# Snap app graduated from the lab as-is (behaviour proven by its 550 lab tests).
-# Debt, paid down module by module like the core: see docs/GRADUATION.md.
-"apps/snap-bot/snap_bot/*.py" = ["E501", "F401", "SIM105", "RUF001", "B904", "S110", "S603", "SIM102", "B905", "RUF005", "E731", "S607", "S310", "F841", "S608", "E402", "RUF059", "RUF007"]
+# App source keeps only E501: its SQL statements stay byte-identical (CREATE text is
+# persisted in sqlite_master) and its CSS/HTML strings are not worth splitting.
+# Test files: debt, paid down like the core (docs/GRADUATION.md).
+"apps/snap-bot/snap_bot/*.py" = ["E501"]
 "apps/snap-bot/tests/*.py" = ["SIM117", "F401", "E501", "B023", "RUF059", "RUF001", "S603", "S608", "B905", "B017", "E731", "S106", "F841", "S607", "RUF007", "RUF005", "B008", "S311", "S101"]
-"apps/status-bot/status_bot/*.py" = ["E501", "SIM105", "F401", "S110", "RUF001", "SIM103", "B904", "RUF059", "F841", "B905"]
+"apps/status-bot/status_bot/*.py" = ["E501"]
 "apps/status-bot/tests/*.py" = ["RUF059", "SIM117", "F401", "B023", "B017", "S106", "S105", "S608", "E501", "F841", "S101"]
 
 [tool.ruff.lint.isort]

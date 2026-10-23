@@ -266,7 +266,7 @@ print(json.dumps({'attempt':claim['attempt'] if claim else None}))
         with tempfile.TemporaryDirectory() as temp:
             _, repo, job = self.fixture(temp)
             first = repo.claim()
-            for alias in ("01", "001", "١"):  # noqa: RUF001  (Arabic-Indic digit on purpose)
+            for alias in ("01", "001", "١"):  # Arabic-Indic digit on purpose
                 with self.subTest(alias=alias), self.assertRaises(ValueError):
                     repo.record_stage(
                         job["id"],

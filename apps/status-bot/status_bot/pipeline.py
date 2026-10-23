@@ -118,9 +118,9 @@ def prepare(
             "external_delivery": False,
         }
     except Exception:
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             repo.transition(job["id"], token, "FAILED", {"code": "STATUS_WEATHER_PREPARE_FAILED"})
-        except Exception:
+        except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
             pass
         raise
     finally:
@@ -202,7 +202,7 @@ def _record_validation(
         if len(recorded) > 1024 * 1024 or digest(json.loads(recorded)) != digest(render):
             return False
         stored = root / "input/content.json"
-        if stored.is_symlink() or digest(json.loads(stored.read_bytes())) != digest(
+        if stored.is_symlink() or digest(json.loads(stored.read_bytes())) != digest(  # noqa: SIM103  # kept as reviewed
             source["content"]
         ):
             return False

@@ -110,7 +110,7 @@ def publish_snapshot(root: StrPath, job: str, attempt: int, data: bytes, expecte
             except ValueError:
                 matches = False
             if not matches:
-                raise EvidenceConflict("Published bytes conflict")
+                raise EvidenceConflict("Published bytes conflict") from None
         sync_directory(target.parent)
         return target
     finally:

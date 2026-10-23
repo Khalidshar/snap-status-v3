@@ -87,9 +87,9 @@ def graph_post(
         raise DeliveryBlocked("WA_TRANSPORT_UNKNOWN") from None
     finally:
         if connection is not None:
-            try:
+            try:  # noqa: SIM105  # explicit best-effort block
                 connection.close()
-            except Exception:
+            except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
                 pass
 
 

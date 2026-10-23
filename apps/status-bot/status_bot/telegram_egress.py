@@ -6,7 +6,6 @@ import os
 import re
 import sqlite3
 import time
-from pathlib import Path
 from typing import Any
 
 from studio_core import delivery
@@ -383,7 +382,7 @@ def _deliver(
                 ("DELIVERY_UNKNOWN", time.time(), digest),
             )
             db.execute("UPDATE deliveries SET state=? WHERE id=?", ("DELIVERY_UNKNOWN", digest))
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             repo.transition(job_id, lease, "FAILED", {"code": "DELIVERY_UNKNOWN"})
         except LeaseLost:
             pass

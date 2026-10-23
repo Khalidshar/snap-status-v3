@@ -191,19 +191,19 @@ def run(config: Config, settings: dict[str, Any], approved: str, client: Any) ->
                         flush=True,
                     )
                     if result["state"] != "COMPLETED":
-                        try:
+                        try:  # noqa: SIM105  # explicit best-effort block
                             client.call(
                                 "/reply", {"key": claim["id"] + ":failed", "message": "failed"}
                             )
-                        except Exception:
+                        except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
                             pass
                     elif result.get("delivery_receipt", {}).get("replayed") is False:
-                        try:
+                        try:  # noqa: SIM105  # explicit best-effort block
                             client.call(
                                 "/reply",
                                 {"key": claim["id"] + ":unchanged", "message": "unchanged"},
                             )
-                        except Exception:
+                        except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
                             pass
                 except DeliveryConfirmed as exc:
                     confirmed_failure(config, claim["id"], exc)
@@ -218,9 +218,9 @@ def run(config: Config, settings: dict[str, Any], approved: str, client: Any) ->
                         ),
                         flush=True,
                     )
-                    try:
+                    try:  # noqa: SIM105  # explicit best-effort block
                         client.call("/reply", {"key": claim["id"] + ":failed", "message": "failed"})
-                    except Exception:
+                    except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
                         pass
             with repo.connect() as db:
                 offset = db.execute("SELECT offset FROM telegram_cursor WHERE id=1").fetchone()[0]
@@ -239,7 +239,7 @@ def run(config: Config, settings: dict[str, Any], approved: str, client: Any) ->
                     flush=True,
                 )
                 if command.get("reply"):
-                    try:
+                    try:  # noqa: SIM105  # explicit best-effort block
                         client.call(
                             "/reply",
                             {
@@ -247,7 +247,7 @@ def run(config: Config, settings: dict[str, Any], approved: str, client: Any) ->
                                 "message": command["reply"],
                             },
                         )
-                    except Exception:
+                    except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
                         pass
             if time.time() - last_evidence >= 60:
                 evidence = safe_evidence_sweep(config, after=evidence_after)
@@ -318,7 +318,7 @@ def main() -> None:
         run(config, settings, a.baseline, Client(a.socket))
     except Exception as exc:
         print(json.dumps({"event": "worker.stopped", "error": type(exc).__name__}), flush=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

@@ -132,5 +132,5 @@ def measure_label(profile: Mapping[str, Any], filter_value: str) -> dict[str, in
         "rawvideo",
         "-",
     ]
-    pixels = subprocess.run(args, check=True, capture_output=True, timeout=30).stdout
+    pixels = subprocess.run(args, check=True, capture_output=True, timeout=30).stdout  # noqa: S603  # fixed argv, no shell
     return measured_box(pixels)

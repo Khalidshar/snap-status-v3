@@ -301,7 +301,7 @@ class OwnerReview:
     ) -> Any:
         self.authorize(cookie, csrf)
         require(decision in ("approve", "reject"), "REVIEW_DECISION_INVALID")
-        row, owned, manifest, _ = self.view(cookie, ticket)
+        row, owned, _manifest, _ = self.view(cookie, ticket)
         if decision == "reject":
             with self.repo.owned_transaction(
                 row["job_id"], owned["lease_token"], attempt=row["attempt"]

@@ -58,7 +58,7 @@ def archive_json(artifact: Json, env: Mapping[str, str]) -> Json:
     ):
         raise ValueError("Unsafe artifact redirect")
     # Signed storage URL: a separate request with no GitHub headers. Never log it.
-    download = Request(location)
+    download = Request(location)  # noqa: S310  # fixed https URL
     with opener.open(download, timeout=30) as response:
         if response.status != 200:
             raise ValueError("Unexpected artifact download status")

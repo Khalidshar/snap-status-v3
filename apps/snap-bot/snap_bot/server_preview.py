@@ -74,7 +74,7 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             str(bundle),
             json.dumps(provenance),
         ]
-        subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=330, check=True)
+        subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=330, check=True)  # noqa: S603  # fixed argv, no shell
         if Path(output).exists() or any(path.is_symlink() for path in bundle.rglob("*")):
             raise ValueError("Unsafe renderer output")
         # The controller owns the completed snapshot before Repository adjusts DB permissions.
@@ -110,7 +110,9 @@ def source_info() -> tuple[str, int]:
         commit, uid = data["commit"], data["owner_uid"]
     else:
         commit = subprocess.check_output(
-            ["git", "--no-optional-locks", "rev-parse", "HEAD"], cwd=ROOT, text=True
+            ["git", "--no-optional-locks", "rev-parse", "HEAD"],  # noqa: S607  # pinned system tool
+            cwd=ROOT,
+            text=True,
         ).strip()
         uid = pwd.getpwnam("ubuntu").pw_uid
     if not re.fullmatch("[0-9a-f]{40}", commit) or type(uid) is not int or uid <= 0:
@@ -338,7 +340,7 @@ class Runtime:
         _, uid = source_info()
         actor = owner_actor(uid)
         with self.locked():
-            directory, record, (_, repo, data, result) = self.verify(video_sha)
+            _directory, record, (_, repo, data, result) = self.verify(video_sha)
             if self.spent(video_sha) or any(
                 x["kind"] == "HUMAN_FRAME" and x.get("video_sha") == video_sha
                 for x in self.events()

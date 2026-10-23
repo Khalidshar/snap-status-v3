@@ -66,7 +66,7 @@ def validate(
 ) -> Any:
     try:
         validate_payload(role, direction, payload)
-        if (
+        if (  # noqa: SIM102  # kept as reviewed
             (role == "design" and direction == "output")
             or role == "quality"
             or role in RENDER_CHECKS
@@ -253,9 +253,9 @@ def run_stage(
                     role,
                 ),
             )
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             telemetry(repo, job, token, attempt, role, run, "FAILED", started, "STAGE_FAILED")
-        except Exception:
+        except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
             pass  # The durable contract failure, not logging, blocks delivery.
         if role == "arabic" and isinstance(error, ValueError) and not problem:
             raise ContractViolation("CONTRACT_ARABIC_REJECTED") from error
@@ -597,7 +597,7 @@ def require_delivery_contract(db: sqlite3.Connection, job: str, result: Any) -> 
         if legacy_preview_at_creation(db, job):
             return
         raise ContractViolation("CONTRACT_DELIVERY_BLOCKED")
-    if db.execute("SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'").fetchone():
+    if db.execute("SELECT 1 FROM sqlite_master WHERE name='telegram_outbox'").fetchone():  # noqa: SIM102  # kept as reviewed
         if db.execute(
             "SELECT 1 FROM telegram_outbox o JOIN deliveries d ON d.job_id=? AND d.state='PUBLISHED' AND d.id IN (o.video_sha,o.video_sha||':'||?) WHERE o.video_sha=? AND o.state='PUBLISHED' AND typeof(o.message_id)='integer'",
             (job, job, result["video_sha256"]),

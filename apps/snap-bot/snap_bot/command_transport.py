@@ -78,7 +78,7 @@ def validated_video(body: bytes, kind: str, owner: str) -> tuple[bytes, str]:
     names = [p.get_param("name", header="content-disposition") for p in parts]
     if sorted(names) != sorted(["chat_id", "caption", "supports_streaming", "video"]):
         raise ValueError("Unexpected fields")
-    fields = dict(zip(names, parts))
+    fields = dict(zip(names, parts, strict=True))
     if fields["chat_id"].get_payload(decode=True).decode() != owner:
         raise ValueError("Wrong owner")
     video = fields["video"].get_payload(decode=True)
@@ -274,7 +274,7 @@ def main() -> None:
         print(
             json.dumps({"event": "telegram.egress.failed", "error": type(exc).__name__}), flush=True
         )
-        raise SystemExit(1)
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

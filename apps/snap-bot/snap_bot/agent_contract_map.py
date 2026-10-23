@@ -52,7 +52,7 @@ BOUND = (
 CONTENT_CHECKS = ("arabic", "memory", "rotation", "proofreading", "translation")
 RENDER_CHECKS = ("voice", "media_verification", "judge")
 PASS_THROUGH = CONTENT_CHECKS + RENDER_CHECKS
-OBSERVED = BOUND + ("final",)
+OBSERVED = (*BOUND, "final")
 # Roles outside the per-job chain: local tools the owner or maintenance runs.
 LOCAL_TOOLS = {
     "manager": "oversight_agents.plan",

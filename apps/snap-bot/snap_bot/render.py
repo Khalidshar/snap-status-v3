@@ -4,8 +4,6 @@ import hashlib
 import json
 import os
 import re
-import socket
-import subprocess
 import time
 import uuid
 from pathlib import Path
@@ -21,7 +19,6 @@ from studio_core.renderer import (
     proof,
     publish_once,
     run,
-    verify_once,
 )
 from studio_core.renderer import (
     cleanup_attempt_temps as cleanup_attempt_temps,
@@ -31,6 +28,9 @@ from studio_core.renderer import (
 )
 from studio_core.renderer import (
     sync_dir as sync_dir,
+)
+from studio_core.renderer import (
+    verify_once as verify_once,
 )
 from studio_core.renderer import (
     write_once as write_once,

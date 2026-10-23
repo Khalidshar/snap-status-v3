@@ -276,7 +276,7 @@ def observe_owned(
     try:
         result = callback()
     except BaseException:
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             record("FAILED", "STAGE_FAILED")
         except LeaseLost:
             pass

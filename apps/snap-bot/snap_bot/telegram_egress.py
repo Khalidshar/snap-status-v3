@@ -6,7 +6,6 @@ import os
 import re
 import sqlite3
 import time
-from pathlib import Path
 from typing import Any
 
 from studio_core import delivery
@@ -96,7 +95,7 @@ def confirmed_result(
         raise DeliveryConfirmed(job_id, digest, review_mode) from cause
 
 
-from .send_evidence import delivery_evidence
+from .send_evidence import delivery_evidence  # noqa: E402  # import cycle: send_evidence uses api
 
 
 @delivery_evidence
@@ -355,7 +354,7 @@ def deliver(
                 ("DELIVERY_UNKNOWN", time.time(), digest),
             )
             db.execute("UPDATE deliveries SET state=? WHERE id=?", ("DELIVERY_UNKNOWN", digest))
-        try:
+        try:  # noqa: SIM105  # explicit best-effort block
             repo.transition(job_id, lease, "FAILED", {"code": "DELIVERY_UNKNOWN"})
         except LeaseLost:
             pass

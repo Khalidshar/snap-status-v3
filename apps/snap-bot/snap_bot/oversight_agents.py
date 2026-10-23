@@ -127,7 +127,8 @@ def plan(
     reasons: list[str] = []
     with repo.connect() as db:
         active = db.execute(
-            "SELECT COUNT(*) FROM jobs WHERE " + RUNNING + " AND expires_at>?", (now,)
+            "SELECT COUNT(*) FROM jobs WHERE " + RUNNING + " AND expires_at>?",  # noqa: S608  # constant SQL, values bound
+            (now,),
         ).fetchone()[0]
         awaiting = db.execute(
             "SELECT COUNT(*) FROM jobs WHERE state='VALIDATING' AND expires_at>?", (now,)
@@ -154,7 +155,7 @@ def plan(
         "next_category": category,
         "next_fact_id": first.get(category),
         "awaiting_owner_review": awaiting,
-        "chain": list(BOUND) + ["final"],
+        "chain": [*BOUND, "final"],
         "delivery": "MANUAL_AFTER_HUMAN_FRAME",
         "reserves": False,
         "claims": False,

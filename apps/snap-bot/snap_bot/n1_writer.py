@@ -192,7 +192,7 @@ class PhysicalWriter:
                 stream.write((canonical(header) + "\n").encode())
                 stream.flush()
                 os.fsync(stream.fileno())
-            try:
+            try:  # noqa: SIM105  # explicit best-effort block
                 os.link(name, path)
             except FileExistsError:
                 pass

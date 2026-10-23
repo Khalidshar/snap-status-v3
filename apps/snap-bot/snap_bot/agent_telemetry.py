@@ -29,7 +29,7 @@ def _record(config: Config, event: dict[str, Any]) -> None:
         raise TelemetryUnavailable("Invalid event identity")
     script = Path(__file__).parent / "madar" / "record.mjs"
     try:
-        completed = subprocess.run(
+        completed = subprocess.run(  # noqa: S603  # fixed argv, no shell
             [
                 NODE_EXECUTABLE,
                 "--max-old-space-size=32",

@@ -345,7 +345,7 @@ def main() -> None:
                     "STATUS_TEST_SEND_BLOCKED_OR_UNKNOWN; inspect durable intent and receipt",
                     file=sys.stderr,
                 )
-                raise SystemExit(1)
+                raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

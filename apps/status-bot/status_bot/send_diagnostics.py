@@ -291,7 +291,7 @@ def failure_receipt(path: str | Path, env: Mapping[str, str]) -> Any:
 
 
 def attach_error(error: Any, env: Mapping[str, str]) -> None:
-    try:
+    try:  # noqa: SIM105  # explicit best-effort block
         error.status_diagnostics = payload(env)
-    except Exception:
+    except Exception:  # noqa: S110  # best effort: must not mask the primary outcome
         pass

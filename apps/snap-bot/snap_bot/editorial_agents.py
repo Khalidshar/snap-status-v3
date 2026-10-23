@@ -11,7 +11,7 @@ import re
 import textwrap
 import unicodedata
 from collections.abc import Sequence
-from datetime import UTC, date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 

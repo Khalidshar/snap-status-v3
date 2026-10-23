@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from studio_core.config import Config
-from studio_core.jobs import Repository, canonical
+from studio_core.jobs import Repository
 from studio_core.jobs.component_lock import ComponentLocks
 
 # Shared renderer primitives (core 0.10.0); re-exported so callers and patches keep working.

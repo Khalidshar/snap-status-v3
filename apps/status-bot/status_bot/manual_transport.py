@@ -69,7 +69,7 @@ def approved_video(body: bytes, kind: str, owner: str, digest: str) -> tuple[byt
     names = [p.get_param("name", header="content-disposition") for p in parts]
     if sorted(names) != sorted(["chat_id", "caption", "supports_streaming", "video"]):
         raise ValueError("Invalid fields")
-    fields = dict(zip(names, parts))
+    fields = dict(zip(names, parts, strict=True))
     if fields["chat_id"].get_payload(decode=True).decode() != owner:
         raise ValueError("Wrong owner")
     video = fields["video"].get_payload(decode=True)

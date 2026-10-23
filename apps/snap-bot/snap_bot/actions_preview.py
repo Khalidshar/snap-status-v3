@@ -107,7 +107,7 @@ def github_get(path: str, env: Mapping[str, str]) -> Any:
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
-    with urlopen(request, timeout=30) as response:
+    with urlopen(request, timeout=30) as response:  # noqa: S310  # fixed https URL
         raw = response.read(4_000_001)
     if len(raw) > 4_000_000:
         raise ValueError("GitHub response too large")
@@ -225,7 +225,7 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             "renderer",
         ]
         try:
-            subprocess.run(args, check=True, capture_output=True, text=True, timeout=30)
+            subprocess.run(args, check=True, capture_output=True, text=True, timeout=30)  # noqa: S603  # fixed argv, no shell
             deadline = time.monotonic() + 20
             while not Path(settings["render_socket"]).exists():
                 if time.monotonic() > deadline:
@@ -279,8 +279,10 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             )
             return metadata
         finally:
-            subprocess.run(
-                ["sudo", "-n", "systemctl", "stop", unit], capture_output=True, timeout=30
+            subprocess.run(  # noqa: S603  # fixed argv, no shell
+                ["sudo", "-n", "systemctl", "stop", unit],  # noqa: S607  # pinned system tool
+                capture_output=True,
+                timeout=30,
             )
 
 
@@ -462,7 +464,7 @@ def main() -> None:
             print(
                 "TEST_SEND_BLOCKED_OR_UNKNOWN; inspect durable intent and receipt", file=sys.stderr
             )
-            raise SystemExit(1)
+            raise SystemExit(1) from None
 
 
 if __name__ == "__main__":
