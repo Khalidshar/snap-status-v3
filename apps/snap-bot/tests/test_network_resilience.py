@@ -200,7 +200,7 @@ class WeatherFallbackTests(unittest.TestCase):
             sleep=lambda s: None,
             breaker_for=lambda host: breaker if host == "api.open-meteo.com" else CircuitBreaker(),
         )
-        with patch("snap_bot.weather.parse", return_value={"source": "met-no"}):
+        with patch("studio_core.weather.parse", return_value={"source": "met-no"}):
             content, failures = fetch_weather(client, settings, 0)
         self.assertEqual(content, {"source": "met-no"})
         self.assertEqual(
