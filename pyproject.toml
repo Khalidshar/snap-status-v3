@@ -76,9 +76,7 @@ module = [
     "snap_bot.command_worker",
     "snap_bot.maintenance",
     "snap_bot.schedule_once",
-    "snap_bot.send_evidence",
     "snap_bot.server_preview",
     "snap_bot.service",
-    "snap_bot.telegram_egress",
 ]
 ignore_errors = true

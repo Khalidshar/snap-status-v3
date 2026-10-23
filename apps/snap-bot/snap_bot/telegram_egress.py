@@ -7,11 +7,18 @@ import re
 import sqlite3
 import time
 from pathlib import Path
+from typing import Any
 
 from studio_core import delivery
 
 # Shared receipt layer (core 0.11.0); re-exported for callers and tests.
-from studio_core.delivery import DeliveryConfirmed, atomic_json, receipt_metadata, remember_review
+from studio_core.config import Config
+from studio_core.delivery import (
+    DeliveryConfirmed,
+    receipt_metadata,
+    remember_review,
+)
+from studio_core.delivery import atomic_json as atomic_json
 from studio_core.jobs import LeaseLost, Repository
 from studio_core.network.egress import PinnedHTTPSConnection, validate_target
 from studio_core.storage import Storage
@@ -23,7 +30,7 @@ from .weather import content_hash
 EXPECTED_BOT = "khalid_snap_v2_test_bot"
 
 
-def api(token, method, body=b"", content_type="application/json"):
+def api(token: str, method: str, body: bytes = b"", content_type: str = "application/json") -> Any:
     if method not in {
         "getMe",
         "getChat",
@@ -53,7 +60,7 @@ def api(token, method, body=b"", content_type="application/json"):
         connection.close()
 
 
-def multipart(chat, video, content_type="weather"):
+def multipart(chat: str, video: bytes, content_type: str = "weather") -> tuple[bytes, str]:
     caption = (
         "اختبار Snap V2 — هل تعلم؟\nتابعني للمزيد 👻"
         if content_type == "did_you_know"
@@ -62,7 +69,7 @@ def multipart(chat, video, content_type="weather"):
     return delivery.multipart(chat, video, caption, video_filename(content_type))
 
 
-def reconcile_evidence_sweep(config, after="", limit=100):
+def reconcile_evidence_sweep(config: Config, after: str = "", limit: int = 100) -> dict[str, Any]:
     return delivery.reconcile_evidence_sweep(
         config,
         after,
@@ -72,11 +79,15 @@ def reconcile_evidence_sweep(config, after="", limit=100):
     )
 
 
-def reconcile_published(config, job_id, video_sha, review_mode=None):
+def reconcile_published(
+    config: Config, job_id: str, video_sha: str, review_mode: str | None = None
+) -> dict[str, Any]:
     return delivery.reconcile_published(config, job_id, video_sha, review_mode, bot=EXPECTED_BOT)
 
 
-def confirmed_result(config, job_id, digest, review_mode):
+def confirmed_result(
+    config: Config, job_id: str, digest: str, review_mode: str | None
+) -> dict[str, Any]:
     try:
         return reconcile_published(config, job_id, digest, review_mode)
     except Exception as cause:
@@ -87,7 +98,14 @@ from .send_evidence import delivery_evidence
 
 
 @delivery_evidence
-def deliver(config, job_id, reviewed_sha, transport=api, lease_token=None, review_mode=None):
+def deliver(
+    config: Config,
+    job_id: str,
+    reviewed_sha: str,
+    transport: Any = api,
+    lease_token: str | None = None,
+    review_mode: str | None = None,
+) -> Any:
     token = os.environ.get("TG_TEST_TOKEN", "")
     chat = os.environ.get("TG_TEST_CHAT", "")
     if (
@@ -157,7 +175,7 @@ def deliver(config, job_id, reviewed_sha, transport=api, lease_token=None, revie
                 changed_artifact = True
             else:
                 changed_artifact = False
-            existing = {
+            existing: dict[str, Any] | None = {
                 "delivery": old["state"],
                 "message_id": old["message_id"],
                 "replayed": False,
@@ -171,11 +189,11 @@ def deliver(config, job_id, reviewed_sha, transport=api, lease_token=None, revie
         if (
             lease_token is None
             and existing["delivery"] == "PUBLISHED"
-            and repo.get(job_id)["state"] != "COMPLETED"
+            and repo.get(job_id)["state"] != "COMPLETED"  # type: ignore[index]  # the outbox row proves the job exists
         ):
             claim = repo.claim(job_id=job_id)
             if not claim:
-                if repo.get(job_id)["state"] == "COMPLETED":
+                if repo.get(job_id)["state"] == "COMPLETED":  # type: ignore[index]
                     return confirmed_result(config, job_id, digest, review_mode)
                 raise LeaseLost("Reviewed job unavailable")
             lease_token = claim["lease_token"]
@@ -285,7 +303,7 @@ def deliver(config, job_id, reviewed_sha, transport=api, lease_token=None, revie
 
         stop = threading.Event()
 
-        def renew():
+        def renew() -> None:
             while not stop.wait(config.lease_seconds / 3):
                 try:
                     repo.heartbeat(job_id, lease)
