@@ -46,7 +46,7 @@ RUNNER = """import json,sys
 from pathlib import Path
 from dataclasses import replace
 p=json.loads(Path(sys.argv[1]).read_text())
-sys.path.insert(0,p['app_root'])
+sys.path[:0]=[p['app_root'],p['core_root']]
 from studio_core.config import Config
 from status_bot.render import render
 cfg=replace(Config.load(Path(p['config'])),data_root=Path(p['data_root']))
@@ -182,6 +182,7 @@ def main() -> None:
                     "config": str(base),
                     "data_root": str(cfg.data_root),
                     "app_root": str(fixture_apps),
+                    "core_root": CORE,
                     "settings": settings,
                     "job": job,
                     "digest": prepared["content"]["content_hash"],
@@ -205,8 +206,7 @@ def main() -> None:
             "--property=TimeoutStartSec=300s",
             "--property=TimeoutStopSec=5s",
             "--property=InaccessiblePaths=" + settings["egress_socket"],
-            # The unit gets a clean environment: name the installed core explicitly.
-            "--setenv=PYTHONPATH=" + str(fixture_apps) + os.pathsep + CORE,
+            "--setenv=PYTHONPATH=" + str(fixture_apps),
             "--setenv=LD_LIBRARY_PATH=" + str(Path(sys.base_prefix) / "lib"),
             sys.executable,
             str(runner),
