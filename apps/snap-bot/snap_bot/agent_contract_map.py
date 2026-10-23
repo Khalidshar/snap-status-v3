@@ -9,8 +9,10 @@ import json
 import math
 import re
 import sqlite3
+from collections.abc import Iterable
 from contextlib import closing
 from pathlib import Path
+from typing import Any
 
 ROLE_IDS = (
     "manager",
@@ -98,7 +100,7 @@ INTERFACES = {
 }
 
 
-def contract_plan(registry=None):
+def contract_plan(registry: Any = None) -> dict[str, Any]:
     if registry is None:
         registry = json.loads(
             (Path(__file__).parent / "madar/registry.json").read_text(encoding="utf-8")
@@ -145,7 +147,7 @@ def contract_plan(registry=None):
     return plan
 
 
-def validate_payload(role, direction, payload):
+def validate_payload(role: str, direction: str, payload: Any) -> Any:
     """Payload contracts enforced by the four bound owned stage adapters."""
     if role not in OBSERVED or direction not in ("input", "output"):
         raise ValueError("Unbound contract or direction")
@@ -238,12 +240,20 @@ def validate_payload(role, direction, payload):
     return True
 
 
-def _details(event):
+def _details(event: Any) -> Any:
     value = event["details"]
     return json.loads(value) if isinstance(value, str) else value
 
 
-def project_events(job_id, attempt, events, *, now, stale_seconds=120, registry=None):
+def project_events(
+    job_id: str,
+    attempt: Any,
+    events: Iterable[Any],
+    *,
+    now: float,
+    stale_seconds: float = 120,
+    registry: Any = None,
+) -> dict[str, Any]:
     """Caller must supply ordered, job-scoped DB events; no raw details returned."""
     if type(attempt) is not int or attempt < 1:
         raise ValueError("Invalid attempt")
@@ -256,8 +266,8 @@ def project_events(job_id, attempt, events, *, now, stale_seconds=120, registry=
     ):
         raise ValueError("Invalid freshness window")
     plan = contract_plan(registry)
-    latest = {}
-    runs = {}
+    latest: dict[str, Any] = {}
+    runs: dict[str, Any] = {}
     for event in events:
         if event["event"] != "agent.run":
             continue
@@ -334,7 +344,9 @@ def project_events(job_id, attempt, events, *, now, stale_seconds=120, registry=
     }
 
 
-def read_snapshot(database, job_id, *, now, registry=None):
+def read_snapshot(
+    database: str | Path, job_id: str, *, now: float, registry: Any = None
+) -> dict[str, Any]:
     """Existing SQLite only, mode=ro plus one read transaction; no Repository init."""
     path = Path(database).resolve(strict=True)
     with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as db:

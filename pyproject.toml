@@ -72,13 +72,10 @@ packages = ["studio_core", "snap_bot", "status_bot"]
 # Untyped Snap modules graduated as-is; each leaves this list when it is typed (GRADUATION.md).
 module = [
     "snap_bot.actions_preview",
-    "snap_bot.agent_contract_map",
     "snap_bot.command_transport",
     "snap_bot.command_worker",
-    "snap_bot.final_agent",
     "snap_bot.maintenance",
     "snap_bot.oversight_agents",
-    "snap_bot.owned_contract_adapter",
     "snap_bot.render_agents",
     "snap_bot.schedule_once",
     "snap_bot.send_evidence",
