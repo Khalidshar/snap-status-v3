@@ -87,11 +87,3 @@ module = [
     "snap_bot.telegram_egress",
 ]
 ignore_errors = true
-
-[[tool.mypy.overrides]]
-# Untyped Status modules graduated as-is; each leaves this list when it is typed (GRADUATION.md).
-module = [
-    "status_bot.actions_preview",
-    "status_bot.manual_transport",
-]
-ignore_errors = true
