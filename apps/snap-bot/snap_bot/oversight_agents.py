@@ -8,9 +8,12 @@ rendering or sending anything. No AI and no network.
 import argparse
 import hashlib
 import json
+import sqlite3
 import time
 from collections import Counter
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from studio_core.config import Config
 from studio_core.jobs import Repository
@@ -26,20 +29,23 @@ LOW_STOCK = 2
 RUNNING = "state NOT IN ('COMPLETED','FAILED','CANCELLED','EXPIRED','VALIDATING')"
 
 
-def _table(db, name):
+def _table(db: sqlite3.Connection, name: str) -> bool:
     return (
         db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone()
         is not None
     )
 
 
-def _stock(db, now, catalog):
+def _stock(
+    db: sqlite3.Connection, now: float, catalog: str | Path
+) -> tuple[dict[str, int], str | None, dict[Any, str]]:
     """Facts each category could still use now, outside every protected window."""
     if _table(db, "fact_reservations"):
         blocked, last = reservation_state(db, now)
     else:
         blocked, last = set(), None
-    stock, first = Counter(), {}
+    stock: Counter[str] = Counter()
+    first: dict[Any, str] = {}
     for fact in load_facts(catalog):
         if ("id", fact["id"]) not in blocked and (
             "body",
@@ -50,7 +56,13 @@ def _stock(db, now, catalog):
     return {category: stock[category] for category in CATEGORIES}, last, first
 
 
-def analyse(repo, *, now=None, window=7 * 86400, catalog=CATALOG):
+def analyse(
+    repo: Repository,
+    *,
+    now: float | None = None,
+    window: float = 7 * 86400,
+    catalog: str | Path = CATALOG,
+) -> dict[str, Any]:
     """المحلّل: counts and causes for the owner; changes nothing."""
     now = repo.clock() if now is None else now
     with repo.connect() as db:
@@ -61,7 +73,7 @@ def analyse(repo, *, now=None, window=7 * 86400, catalog=CATALOG):
         failures = Counter(
             failure_code(db, job) or "UNKNOWN" for job in jobs if job["state"] == "FAILED"
         )
-        rejections = Counter()
+        rejections: Counter[str] = Counter()
         if _table(db, "owned_agent_contracts"):
             for row in db.execute(
                 "SELECT c.role,c.error_code FROM owned_agent_contracts c JOIN jobs j ON j.id=c.job_id WHERE c.status='FAILED' AND j.created_at>?",
@@ -79,7 +91,7 @@ def analyse(repo, *, now=None, window=7 * 86400, catalog=CATALOG):
     facts = [job for job in jobs if job["command"] == "did_you_know"]
     finished = [job for job in facts if job["state"] in ("VALIDATING", "COMPLETED", "FAILED")]
     good = sum(job["state"] != "FAILED" for job in finished)
-    report = {
+    report: dict[str, Any] = {
         "schema": 1,
         "rule_version": RULE_VERSION,
         "analysed_at": now,
@@ -107,10 +119,12 @@ def analyse(repo, *, now=None, window=7 * 86400, catalog=CATALOG):
     return report
 
 
-def plan(repo, *, now=None, catalog=CATALOG):
+def plan(
+    repo: Repository, *, now: float | None = None, catalog: str | Path = CATALOG
+) -> dict[str, Any]:
     """المدير: GO or HOLD for the next did_you_know, with the choice it would make."""
     now = repo.clock() if now is None else now
-    reasons = []
+    reasons: list[str] = []
     with repo.connect() as db:
         active = db.execute(
             "SELECT COUNT(*) FROM jobs WHERE " + RUNNING + " AND expires_at>?", (now,)
@@ -157,7 +171,7 @@ def plan(repo, *, now=None, catalog=CATALOG):
     return result
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Read-only analyst report and manager plan")
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("role", choices=["analyst", "manager"])

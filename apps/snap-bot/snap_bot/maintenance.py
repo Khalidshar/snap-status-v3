@@ -30,6 +30,26 @@ from studio_core.repair.maintenance import (
     run_repair,
 )
 
+__all__ = [
+    "LABELS",
+    "LOOKBACK_SECONDS",
+    "MAX_REPAIRS_PER_DAY",
+    "MAX_REPAIRS_PER_LINEAGE",
+    "REPAIRABLE_COMMANDS",
+    "REPAIR_WINDOW_SECONDS",
+    "RETRYABLE_CODES",
+    "RULE_VERSION",
+    "apply",
+    "delivery_evidence",
+    "diagnose",
+    "failure_code",
+    "initialize",
+    "lineage",
+    "main",
+    "retry_fresh_job",
+    "run_repair",
+]
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(

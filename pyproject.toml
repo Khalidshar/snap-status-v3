@@ -75,8 +75,6 @@ module = [
     "snap_bot.command_transport",
     "snap_bot.command_worker",
     "snap_bot.maintenance",
-    "snap_bot.oversight_agents",
-    "snap_bot.render_agents",
     "snap_bot.schedule_once",
     "snap_bot.send_evidence",
     "snap_bot.server_preview",

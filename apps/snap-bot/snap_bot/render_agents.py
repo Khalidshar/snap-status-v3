@@ -7,8 +7,12 @@ delivery here: a rejection only stops the job before quality adopts the video.
 
 import json
 import math
+import sqlite3
 import struct
 from pathlib import Path
+from typing import Any
+
+from studio_core.jobs import Repository
 
 from .agent_contract_map import (
     BOUND,
@@ -26,11 +30,11 @@ MIN_PHONE_LUFS = -24.0
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
-def _number(value):
+def _number(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
-def check_voice(result):
+def check_voice(result: Any) -> dict[str, Any]:
     """الصوت: one generated ambient bed, measured loud enough and never clipping."""
     qa = result["qa"]
     if qa.get("audio") != "generated_ambient":
@@ -53,9 +57,10 @@ def check_voice(result):
     return {"decision": "PASS", "audio": "generated_ambient", **audio}
 
 
-def mp4_boxes(data):
+def mp4_boxes(data: bytes) -> list[str]:
     """Top-level ISO BMFF box types, in order; malformed sizes are rejected."""
-    boxes, offset = [], 0
+    boxes: list[str] = []
+    offset = 0
     while offset < len(data):
         if len(data) - offset < 8:
             raise AgentRejected("MEDIA_CONTAINER_INVALID")
@@ -75,7 +80,7 @@ def mp4_boxes(data):
     return boxes
 
 
-def _under_root(root, path):
+def _under_root(root: Path, path: Path) -> None:
     """No symlink anywhere from the spool root down to the file."""
     if root not in path.parents:
         raise AgentRejected("MEDIA_PATH_UNSAFE")
@@ -88,7 +93,7 @@ def _under_root(root, path):
         item = item.parent
 
 
-def check_media(result, settings):
+def check_media(result: Any, settings: Any) -> dict[str, Any]:
     """التحقق من الوسائط: the adopted-to-be bytes are exactly what the result declares."""
     profile = settings.get("profile") or {}
     root = Path(settings["spool_root"])
@@ -138,7 +143,7 @@ def check_media(result, settings):
     return {"decision": "PASS", "bytes": len(data), "boxes": boxes}
 
 
-def judge(db, job, attempt, result):
+def judge(db: sqlite3.Connection, job: str, attempt: int, result: Any) -> dict[str, Any]:
     """الحَكَم: every earlier agent of this attempt succeeded on the same lineage."""
     rows = {
         row["role"]: dict(row)
@@ -169,7 +174,15 @@ def judge(db, job, attempt, result):
     return {"decision": "PASS", "agents": len(earlier)}
 
 
-def run_render_check(role, repo, job, token, attempt, result, settings):
+def run_render_check(
+    role: str,
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    result: Any,
+    settings: Any,
+) -> Any:
     """Run one post-render agent under the current lease; return the result unchanged."""
     if role not in RENDER_CHECKS:
         raise ValueError("Unknown render agent")
