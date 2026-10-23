@@ -10,10 +10,12 @@ import socketserver
 import sqlite3
 import stat
 import time
+from collections.abc import Iterator
 from contextlib import contextmanager
 from email.parser import BytesParser
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
+from typing import Any
 
 from studio_core.network import UnixHTTPConnection
 
@@ -31,8 +33,8 @@ MESSAGES = {
 }
 
 
-def normalize_updates(updates, owner, now):
-    accepted = []
+def normalize_updates(updates: Any, owner: str, now: float) -> dict[str, Any]:
+    accepted: list[dict[str, Any]] = []
     cursor = 0
     for update in updates:
         uid = update.get("update_id")
@@ -63,13 +65,13 @@ def normalize_updates(updates, owner, now):
     return {"offset": cursor, "commands": accepted}
 
 
-def validated_video(body, kind, owner):
+def validated_video(body: bytes, kind: str, owner: str) -> tuple[bytes, str]:
     if not kind.startswith("multipart/form-data; boundary="):
         raise ValueError("Invalid multipart")
     boundary = kind.split("boundary=", 1)[1]
     if not re.fullmatch("studio[a-f0-9]{32}", boundary):
         raise ValueError("Invalid boundary")
-    mail = BytesParser(policy=email.policy.default).parsebytes(
+    mail: Any = BytesParser(policy=email.policy.default).parsebytes(
         ("Content-Type: " + kind + "\r\nMIME-Version: 1.0\r\n\r\n").encode() + body
     )
     parts = list(mail.iter_parts())
@@ -87,10 +89,10 @@ def validated_video(body, kind, owner):
 
 
 class Client:
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         self.path = path
 
-    def call(self, path, value):
+    def call(self, path: str, value: Any) -> Any:
         connection = UnixHTTPConnection(self.path, 60)
         try:
             connection.request(
@@ -104,7 +106,9 @@ class Client:
         finally:
             connection.close()
 
-    def telegram(self, ignored_token, method, body=b"", kind="application/json"):
+    def telegram(
+        self, ignored_token: object, method: str, body: bytes = b"", kind: str = "application/json"
+    ) -> Any:
         return self.call(
             "/api",
             {"method": method, "body": base64.b64encode(body).decode(), "content_type": kind},
@@ -112,14 +116,16 @@ class Client:
 
 
 class Handler(BaseHTTPRequestHandler):
-    def setup(self):
+    server: "Transport"
+
+    def setup(self) -> None:
         self.request.settimeout(60)
         super().setup()
 
-    def log_message(self, *args):
+    def log_message(self, *args: Any) -> None:
         pass
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if self.headers.get("Transfer-Encoding") or not 0 < length <= 3_000_000:
@@ -138,11 +144,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 class Transport(socketserver.UnixStreamServer):
-    def __init__(self, path, state, token, owner, caller=api):
-        self.state = state
-        self.token = token
-        self.owner = owner
-        self.caller = caller
+    def __init__(self, path: Path, state: Path, token: str, owner: str, caller: Any = api) -> None:
+        self.state: Path = state
+        self.token: str = token
+        self.owner: str = owner
+        self.caller: Any = caller
         state.mkdir(mode=0o700, parents=True, exist_ok=True)
         with self.db() as db:
             db.execute(
@@ -157,7 +163,7 @@ class Transport(socketserver.UnixStreamServer):
         path.chmod(0o660)
 
     @contextmanager
-    def db(self):
+    def db(self) -> Iterator[sqlite3.Connection]:
         db = sqlite3.connect(self.state / "replies.sqlite", isolation_level=None)
         db.execute("PRAGMA synchronous=FULL")
         try:
@@ -165,10 +171,10 @@ class Transport(socketserver.UnixStreamServer):
         finally:
             db.close()
 
-    def request(self, method, body=b"", kind="application/json"):
+    def request(self, method: str, body: bytes = b"", kind: str = "application/json") -> Any:
         return self.caller(self.token, method, body, kind)
 
-    def initialize(self):
+    def initialize(self) -> None:
         if self.request("getMe").get("username") != EXPECTED_BOT:
             raise ValueError("Wrong bot")
         if self.request("getWebhookInfo").get("url"):
@@ -190,7 +196,7 @@ class Transport(socketserver.UnixStreamServer):
             ).encode(),
         )
 
-    def handle(self, path, value):
+    def handle(self, path: str, value: Any) -> Any:
         if (
             path == "/poll"
             and set(value) == {"offset"}
@@ -252,7 +258,7 @@ class Transport(socketserver.UnixStreamServer):
         raise ValueError("RPC not allowed")
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--socket", type=Path, required=True)
     p.add_argument("--state", type=Path, required=True)

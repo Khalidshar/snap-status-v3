@@ -5,6 +5,7 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 from studio_core.config import Config
 from studio_core.jobs import Repository
@@ -13,7 +14,9 @@ from studio_core.jobs.gateway import CommandGateway
 from .command_worker import network_guard
 
 
-def enqueue(config, secret, owner, event_id, due, now=None):
+def enqueue(
+    config: Config, secret: str, owner: str, event_id: str, due: float, now: float | None = None
+) -> dict[str, Any]:
     now = time.time() if now is None else now
     if now < due:
         raise ValueError("Schedule is not due")
@@ -35,7 +38,7 @@ def enqueue(config, secret, owner, event_id, due, now=None):
     return {"job_id": job["id"], "created": created, "state": job["state"]}
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--config", type=Path, required=True)
     p.add_argument("--event", required=True)

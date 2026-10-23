@@ -7,6 +7,7 @@ service that re-runs a fact job through the full agent chain, never a delivery.
 import argparse
 import json
 import time
+from collections.abc import Sequence
 from pathlib import Path
 
 from studio_core.config import Config
@@ -51,7 +52,7 @@ __all__ = [
 ]
 
 
-def main(argv=None):
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="Diagnose and, with --apply, repair inside the red lines; never sends"
     )

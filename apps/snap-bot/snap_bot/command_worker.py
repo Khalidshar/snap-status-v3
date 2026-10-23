@@ -8,6 +8,7 @@ import socket
 import time
 import tomllib
 from pathlib import Path
+from typing import Any
 
 from studio_core.config import Config
 from studio_core.jobs import GatewayLimit, Repository
@@ -25,7 +26,7 @@ from .telegram_egress import (
 )
 
 
-def initialize(repo):
+def initialize(repo: Repository) -> None:
     with repo.transaction() as db:
         db.execute(
             "CREATE TABLE IF NOT EXISTS telegram_cursor(id INTEGER PRIMARY KEY CHECK(id=1),offset INTEGER NOT NULL)"
@@ -33,8 +34,8 @@ def initialize(repo):
         db.execute("INSERT OR IGNORE INTO telegram_cursor VALUES(1,0)")
 
 
-def accept_batch(repo, gateway, batch, owner):
-    accepted = []
+def accept_batch(repo: Repository, gateway: CommandGateway, batch: Any, owner: str) -> list[Any]:
+    accepted: list[Any] = []
     for command in batch["commands"]:
         uid = command["update_id"]
         kind = command["command"]
@@ -76,7 +77,7 @@ def accept_batch(repo, gateway, batch, owner):
     return accepted
 
 
-def baseline(config, settings):
+def baseline(config: Config, settings: dict[str, Any]) -> str:
     source = Path(__file__).with_name("render.py")
     value = {
         "renderer": hashlib.sha256(source.read_bytes()).hexdigest(),
@@ -89,8 +90,8 @@ def baseline(config, settings):
     return digest
 
 
-def network_guard():
-    result = {}
+def network_guard() -> dict[str, str]:
+    result: dict[str, str] = {}
     for name, family, kind in [
         ("ipv4", socket.AF_INET, socket.SOCK_STREAM),
         ("ipv6", socket.AF_INET6, socket.SOCK_STREAM),
@@ -106,7 +107,7 @@ def network_guard():
     return result
 
 
-def notify(value):
+def notify(value: str) -> None:
     address = os.environ.get("NOTIFY_SOCKET")
     if address:
         if address.startswith("@"):
@@ -117,7 +118,7 @@ def notify(value):
             sock.sendall(value.encode())
 
 
-def run(config, settings, approved, client):
+def run(config: Config, settings: dict[str, Any], approved: str, client: Any) -> None:
     owner = os.environ["TG_TEST_CHAT"]
     secret = os.environ["STUDIO_GATEWAY_SECRET"]
     if config.owners.get("telegram") != (owner,):
@@ -130,8 +131,8 @@ def run(config, settings, approved, client):
     repo = Repository(config)
     gateway = CommandGateway(config, repo, secret)
     initialize(repo)
-    last_gc = 0
-    last_evidence = 0
+    last_gc: float = 0
+    last_evidence: float = 0
     evidence_after = ""
     # Startup repair precedes GC and never contacts Telegram.
     evidence = safe_evidence_sweep(config)
@@ -152,7 +153,7 @@ def run(config, settings, approved, client):
     )
     notify("READY=1\nWATCHDOG=1")
 
-    def delivery(cfg, job_id, digest, lease):
+    def delivery(cfg: Config, job_id: str, digest: str, lease: str) -> Any:
         if baseline(cfg, settings) != approved:
             raise ValueError("Baseline changed")
         return deliver(
@@ -270,7 +271,7 @@ def run(config, settings, approved, client):
             time.sleep(5)
 
 
-def safe_evidence_sweep(config, after=""):
+def safe_evidence_sweep(config: Config, after: str = "") -> dict[str, Any]:
     try:
         return reconcile_evidence_sweep(config, after=after)
     except Exception:
@@ -279,7 +280,7 @@ def safe_evidence_sweep(config, after=""):
         return {"after": after, "repaired": 0, "pending": 0, "skipped": 0, "failed": True}
 
 
-def confirmed_failure(config, job_id, error):
+def confirmed_failure(config: Config, job_id: str, error: Any) -> Any:
     if error.job_id != job_id:
         raise ValueError("Receipt job mismatch")
     try:
@@ -305,7 +306,7 @@ def confirmed_failure(config, job_id, error):
         return None
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--config", type=Path, required=True)
     p.add_argument("--socket", type=Path, required=True)
