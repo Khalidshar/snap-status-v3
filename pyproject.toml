@@ -77,6 +77,5 @@ module = [
     "snap_bot.maintenance",
     "snap_bot.schedule_once",
     "snap_bot.server_preview",
-    "snap_bot.service",
 ]
 ignore_errors = true

@@ -13,6 +13,7 @@ import tomllib
 import uuid
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
+from typing import Any
 
 from studio_core.config import Config
 from studio_core.jobs import LeaseLost, Repository
@@ -43,7 +44,7 @@ from .telegram_egress import DeliveryConfirmed
 from .weather import fetch_weather
 
 
-def render_request(request):
+def render_request(request: Any) -> dict[str, Any]:
     # The lease token and attempt are fencing identities, not credentials; the socket stays 0600.
     if not isinstance(request, dict) or set(request) != {"job_id", "content_hash", "attempt"}:
         raise ValueError("Invalid request")
@@ -58,10 +59,12 @@ def render_request(request):
 
 
 class RenderHandler(BaseHTTPRequestHandler):
-    def log_message(self, *args):
+    server: Any
+
+    def log_message(self, *args: Any) -> None:
         pass
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         try:
             peer = struct.unpack(
                 "iII", self.connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
@@ -90,7 +93,7 @@ class RenderHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def renderer(config, settings):
+def renderer(config: Config, settings: dict[str, Any]) -> None:
     path = Path(settings["render_socket"])
     if path.exists():
         import stat
@@ -100,13 +103,20 @@ def renderer(config, settings):
         path.unlink()
     # Single request at a time enforces one render regardless of queue caller count.
     with socketserver.UnixStreamServer(str(path), RenderHandler) as server:
-        server.config = config
-        server.settings = settings
+        server.config = config  # type: ignore[attr-defined]
+        server.settings = settings  # type: ignore[attr-defined]
         path.chmod(0o660)
         server.serve_forever()
 
 
-def execute(config, settings, secret, claim=None, delivery=None, watchdog=None):
+def execute(
+    config: Config,
+    settings: dict[str, Any],
+    secret: str,
+    claim: Any = None,
+    delivery: Any = None,
+    watchdog: Any = None,
+) -> Any:
     repo = Repository(config, Redactor([secret]))
     gateway = CommandGateway(config, repo, secret)
     expire_pending_adoptions(repo)
@@ -132,9 +142,9 @@ def execute(config, settings, secret, claim=None, delivery=None, watchdog=None):
     token = claim["lease_token"]
     attempt = claim["attempt"]
     stop = threading.Event()
-    lease_failed = []
+    lease_failed: list[bool] = []
 
-    def renew():
+    def renew() -> None:
         while not stop.wait(config.lease_seconds / 3):
             try:
                 repo.heartbeat(job["id"], token)
@@ -180,7 +190,7 @@ def execute(config, settings, secret, claim=None, delivery=None, watchdog=None):
                     attempt,
                     role,
                     content,
-                    lambda role=role, content=content: run_check(
+                    lambda role=role, content=content: run_check(  # type: ignore[misc]  # defaults bind the loop variables
                         role, repo, job["id"], token, attempt, content
                     ),
                 )
@@ -195,7 +205,7 @@ def execute(config, settings, secret, claim=None, delivery=None, watchdog=None):
         for state in ("DOWNLOADING", "DESIGNING", "RENDERING"):
             repo.transition(job["id"], token, state)
 
-        def remote_render():
+        def remote_render() -> Any:
             owned = repo.assert_owner(job["id"], token, attempt=attempt)
             if owned["state"] != "RENDERING":
                 raise LeaseLost("Render requires RENDERING ownership")
@@ -240,7 +250,7 @@ def execute(config, settings, secret, claim=None, delivery=None, watchdog=None):
                     attempt,
                     role,
                     result,
-                    lambda role=role, result=result: run_render_check(
+                    lambda role=role, result=result: run_render_check(  # type: ignore[misc]
                         role, repo, job["id"], token, attempt, result, settings
                     ),
                 )
@@ -285,7 +295,7 @@ def execute(config, settings, secret, claim=None, delivery=None, watchdog=None):
             output["final_decision"] = evaluate_final(repo, job["id"], token, attempt, result)
         if delivery:
             output["delivery_receipt"] = delivery(config, job["id"], result["video_sha256"], token)
-            output["state"] = repo.get(job["id"])["state"]
+            output["state"] = repo.get(job["id"])["state"]  # type: ignore[index]
             output["external_delivery"] = output["delivery_receipt"]["delivery"] == "PUBLISHED"
             # Terminal delivery views are reconciled from ACK, never regressed to awaiting.
         return output
@@ -319,7 +329,7 @@ def execute(config, settings, secret, claim=None, delivery=None, watchdog=None):
         thread.join(timeout=2)
 
 
-def resume_render_adoption(config, settings, claim):
+def resume_render_adoption(config: Config, settings: dict[str, Any], claim: Any) -> Any:
     """Explicit local retry only; no renderer/source call, recovery or delivery."""
     repo = Repository(config)
     job = claim["id"]
@@ -401,7 +411,7 @@ def resume_render_adoption(config, settings, claim):
     return output
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("action", choices=["proxy", "renderer", "weather", "did_you_know"])

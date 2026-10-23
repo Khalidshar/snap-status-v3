@@ -14,11 +14,13 @@ from studio_core import delivery
 # Shared receipt layer (core 0.11.0); re-exported for callers and tests.
 from studio_core.config import Config
 from studio_core.delivery import (
-    DeliveryConfirmed,
+    DeliveryConfirmed as DeliveryConfirmed,
+)
+from studio_core.delivery import atomic_json as atomic_json
+from studio_core.delivery import (
     receipt_metadata,
     remember_review,
 )
-from studio_core.delivery import atomic_json as atomic_json
 from studio_core.jobs import LeaseLost, Repository
 from studio_core.network.egress import PinnedHTTPSConnection, validate_target
 from studio_core.storage import Storage
