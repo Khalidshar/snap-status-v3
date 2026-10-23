@@ -46,7 +46,7 @@ RUNNER = """import json,sys
 from pathlib import Path
 from dataclasses import replace
 p=json.loads(Path(sys.argv[1]).read_text())
-sys.path[:0]=[p['app_root'],p['core_root']]
+sys.path.insert(0,p['app_root'])
 from studio_core.config import Config
 from status_bot.render import render
 cfg=replace(Config.load(Path(p['config'])),data_root=Path(p['data_root']))
@@ -141,6 +141,8 @@ def main() -> None:
         fixture_apps = root / "apps"
         fixture_apps.mkdir()
         shutil.copytree(ROOT / "apps/status-bot/status_bot", fixture_apps / "status_bot")
+        # The capability-free unit cannot read the runner's home: ship the core beside the app.
+        shutil.copytree(Path(CORE) / "studio_core", fixture_apps / "studio_core")
         base = root / "weather.toml"
         shutil.copyfile(ROOT / "config/status/weather.toml", base)
         cfg = replace(Config.load(base), data_root=root / "data")
@@ -182,7 +184,6 @@ def main() -> None:
                     "config": str(base),
                     "data_root": str(cfg.data_root),
                     "app_root": str(fixture_apps),
-                    "core_root": CORE,
                     "settings": settings,
                     "job": job,
                     "digest": prepared["content"]["content_hash"],
