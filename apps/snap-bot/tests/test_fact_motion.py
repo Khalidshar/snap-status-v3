@@ -1,3 +1,4 @@
+import itertools
 import json
 import subprocess
 import tempfile
@@ -79,7 +80,7 @@ class FactMotionTests(unittest.TestCase):
     def test_each_element_has_full_reference_pixels_inside_safe_at_hold_endpoints(self):
         profile = fixtures.fact_profile()
         self.assertIsNotNone(profile)
-        fonts = dict(zip(("arabic", "latin"), font_paths(profile)))
+        fonts = dict(zip(("arabic", "latin"), font_paths(profile), strict=False))
         fact = max(load_facts(), key=lambda item: len(item["text"]))
         labels = fact_labels(make_content(fact, time.time()), profile)
         windows = reveal_windows(len(labels), 8)
@@ -170,7 +171,10 @@ class FactMotionTests(unittest.TestCase):
             self.assertEqual(len(frames), size * 36)
             reference = frames[:size]
             for offset in range(size, len(frames), size):
-                difference = [abs(a - b) for a, b in zip(reference, frames[offset : offset + size])]
+                difference = [
+                    abs(a - b)
+                    for a, b in zip(reference, frames[offset : offset + size], strict=False)
+                ]
                 self.assertLessEqual(max(difference), 4)
                 # Fixed source grain can have tiny inter-frame H.264 residuals.
                 self.assertLess(sum(difference) / size, 0.2)
@@ -220,10 +224,10 @@ class FactMotionTests(unittest.TestCase):
                 rows = [
                     sum(actual[y * 1080 + x0 : y * 1080 + x1]) / (x1 - x0) for y in range(y0, y1)
                 ]
-                jump = max(abs(a - b) for a, b in zip(rows, rows[1:]))
+                jump = max(abs(a - b) for a, b in itertools.pairwise(rows))
                 self.assertLessEqual(jump, 1.5, "Background row discontinuity on 0..255 luma")
             labels = fact_labels(f.content, profile)
-            fonts = dict(zip(("arabic", "latin"), font_paths(profile)))
+            fonts = dict(zip(("arabic", "latin"), font_paths(profile), strict=False))
             filters = card_filters(profile["fps"])
             for i, label in enumerate(labels):
                 path = f.spool() / f"contrast-{i}.txt"

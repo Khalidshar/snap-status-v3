@@ -142,7 +142,7 @@ class PartialTail(unittest.TestCase):
         self.assertEqual(self.ledger.view(self.job["id"]), [receipt, next_receipt])
 
     def test_physical_orphan_and_partial_tail_do_not_change_confirmed_child_anchor(self):
-        first, receipt, pending = self.first_and_tail(orphan=True)
+        first, receipt, _pending = self.first_and_tail(orphan=True)
         before = self.source(first).read_bytes()
         child = self.coordinator.rotate(*self.args())
         audit = json.loads(self.audit(first).read_bytes())
@@ -339,12 +339,14 @@ class PartialTail(unittest.TestCase):
 
     def test_tail_receipt_fsync_failure_is_not_a_seal_ack(self):
         first, _, _ = self.first_and_tail()
-        with patch(
-            "snap_bot.n1_partial_tail.sync_dir",
-            side_effect=OSError("synthetic directory durability"),
+        with (
+            patch(
+                "snap_bot.n1_partial_tail.sync_dir",
+                side_effect=OSError("synthetic directory durability"),
+            ),
+            self.assertRaises(Exception),
         ):
-            with self.assertRaises(Exception):
-                self.coordinator.rotate(*self.args())
+            self.coordinator.rotate(*self.args())
         self.assertTrue(self.audit(first).exists())
         self.assertEqual(
             self.writer.authority.load()["generations"][first["generation"]["body"]["gen"]][

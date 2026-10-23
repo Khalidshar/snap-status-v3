@@ -1,13 +1,10 @@
-import base64
-import json
 import tempfile
-import time
 import unittest
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import Mock
 
-from snap_bot.command_transport import Client, Transport, normalize_updates, validated_video
+from snap_bot.command_transport import Transport, normalize_updates, validated_video
 from snap_bot.command_worker import accept_batch, initialize, network_guard
 from snap_bot.telegram_egress import EXPECTED_BOT, multipart
 from studio_core.config import Config
@@ -56,7 +53,7 @@ class CommandTests(unittest.TestCase):
 
     def test_multipart_owner_fixed_and_fields_rebuilt(self):
         body, kind = multipart("42", b"mp4")
-        rebuilt, newkind = validated_video(body, kind, "42")
+        rebuilt, _newkind = validated_video(body, kind, "42")
         self.assertIn(b"mp4", rebuilt)
         with self.assertRaisesRegex(ValueError, "owner"):
             validated_video(body, kind, "99")

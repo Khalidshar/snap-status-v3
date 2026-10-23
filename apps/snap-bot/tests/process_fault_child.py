@@ -4,7 +4,6 @@ import argparse
 import json
 import os
 import socketserver
-import sys
 import threading
 import time
 from dataclasses import replace

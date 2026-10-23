@@ -11,7 +11,6 @@ from snap_bot.owned_contract_adapter import (
     contract_status,
     reconcile_stage,
     require_delivery_contract,
-    run_stage,
     telemetry,
 )
 from studio_core.jobs import LeaseLost
@@ -50,7 +49,7 @@ class ArabicRuleTests(unittest.TestCase):
         self.assertEqual(check_text("القيمة 9,192,631,770 صحيحة.")["decision"], "PASS")
 
     def test_foreign_controls_presentation_forms_and_tatweel_rejected(self):
-        for bad in ("\u202e", "\u200d", "\ufefb", "\u0640", "Т"):
+        for bad in ("\u202e", "\u200d", "\ufefb", "\u0640", "Т"):  # noqa: RUF001  # Cyrillic look-alike on purpose
             with (
                 self.subTest(bad=bad),
                 self.assertRaisesRegex(

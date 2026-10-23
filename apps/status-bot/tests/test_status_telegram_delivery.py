@@ -30,7 +30,7 @@ class DeliveryTests(unittest.TestCase):
         self.repo = Repository(self.config)
         job, _ = self.repo.enqueue("test", "owner", "weather", "NORMAL", "input", time.time() + 600)
         self.job = job["id"]
-        claim = self.repo.claim()
+        _claim = self.repo.claim()
         with self.repo.transaction() as db:
             db.execute("UPDATE jobs SET lease_until=? WHERE id=?", (time.time() - 1, self.job))
         root = Storage(self.config).workspace(self.job)
@@ -446,15 +446,15 @@ class DeliveryTests(unittest.TestCase):
                 "status_bot.telegram_egress.Repository.reconcile_delivery",
                 side_effect=RuntimeError("synthetic reconciliation fault"),
             ),
+            self.assertRaises(DeliveryConfirmed),
         ):
-            with self.assertRaises(DeliveryConfirmed):
-                deliver(
-                    self.config,
-                    self.job,
-                    self.digest,
-                    self.transport,
-                    review_mode="PINNED_WEATHER_TEMPLATE",
-                )
+            deliver(
+                self.config,
+                self.job,
+                self.digest,
+                self.transport,
+                review_mode="PINNED_WEATHER_TEMPLATE",
+            )
         with self.repo.connect() as db:
             self.assertEqual(
                 db.execute("SELECT state,message_id FROM telegram_outbox").fetchone()["state"],
@@ -678,17 +678,19 @@ class DeliveryTests(unittest.TestCase):
             deliver(self.config, self.job, self.digest, transport)
 
     def test_snap_credentials_are_not_reused(self):
-        with patch.dict(
-            os.environ,
-            {
-                "STATUS_TG_TEST_TOKEN": "",
-                "STATUS_TG_TEST_CHAT": "",
-                "TG_TEST_TOKEN": "123456:" + ("x" * 35),
-                "TG_TEST_CHAT": "42",
-            },
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "STATUS_TG_TEST_TOKEN": "",
+                    "STATUS_TG_TEST_CHAT": "",
+                    "TG_TEST_TOKEN": "123456:" + ("x" * 35),
+                    "TG_TEST_CHAT": "42",
+                },
+            ),
+            self.assertRaises(ValueError),
         ):
-            with self.assertRaises(ValueError):
-                deliver(self.config, self.job, self.digest, self.transport)
+            deliver(self.config, self.job, self.digest, self.transport)
         self.assertEqual(self.calls, [])
 
     def test_other_application_rejected_before_network(self):

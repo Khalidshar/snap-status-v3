@@ -1,6 +1,3 @@
-import hashlib
-import json
-import time
 import unittest
 
 import test_owned_contract_adapter as fixtures

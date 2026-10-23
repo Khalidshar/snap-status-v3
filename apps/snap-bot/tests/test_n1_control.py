@@ -1,11 +1,8 @@
-import copy
 import functools
-import json
 import os
 import socket
 import tempfile
 import threading
-import time
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -15,7 +12,7 @@ from snap_bot.n1_contracts import Ledger, Refused
 from snap_bot.n1_control import ControlClient, ControlHandler, ControlService, request, serve
 from snap_bot.n1_coordinator import JournalCoordinator
 from snap_bot.n1_generations import RegisteredWriter
-from snap_bot.n1_writer import IsolatedAppendHandler, PhysicalWriter, generation
+from snap_bot.n1_writer import IsolatedAppendHandler, PhysicalWriter
 from studio_core.config import Config
 from studio_core.jobs import LeaseLost, Repository
 

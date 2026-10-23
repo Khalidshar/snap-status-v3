@@ -151,12 +151,14 @@ class FactAudioTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "video.mp4"
             path.write_bytes(b"probe")
-            with patch(
-                "snap_bot.render.run",
-                return_value=SimpleNamespace(stdout=json.dumps(self.probe([self.audio()]))),
+            with (
+                patch(
+                    "snap_bot.render.run",
+                    return_value=SimpleNamespace(stdout=json.dumps(self.probe([self.audio()]))),
+                ),
+                self.assertRaises(ValueError, msg="guard:weather-no-audio"),
             ):
-                with self.assertRaises(ValueError, msg="guard:weather-no-audio"):
-                    validate(path, facts.fact_profile())
+                validate(path, facts.fact_profile())
 
     def test_fact_requires_exact_audio_codec_channels_rate_and_duration(self):
         audio = self.audio()
@@ -183,9 +185,9 @@ class FactAudioTests(unittest.TestCase):
                         "snap_bot.render.run",
                         return_value=SimpleNamespace(stdout=json.dumps(self.probe(streams))),
                     ),
+                    self.assertRaises(ValueError),
                 ):
-                    with self.assertRaises(ValueError):
-                        validate(path, facts.fact_profile(), fact=True)
+                    validate(path, facts.fact_profile(), fact=True)
 
     def test_validate_enforces_encoded_loudness_and_peak(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -201,9 +203,9 @@ class FactAudioTests(unittest.TestCase):
                         "snap_bot.render.measure_audio",
                         return_value={"integrated_lufs": loudness, "true_peak_dbtp": peak},
                     ),
+                    self.assertRaises(ValueError),
                 ):
-                    with self.assertRaises(ValueError):
-                        validate(path, facts.fact_profile(), fact=True)
+                    validate(path, facts.fact_profile(), fact=True)
 
     def test_measurement_rejects_missing_or_nonfinite_ebur128_summary(self):
         for text in (

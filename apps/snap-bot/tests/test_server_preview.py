@@ -1,6 +1,5 @@
 """Behavioral server fences. Telegram transport is always fake."""
 
-import hashlib
 import json
 import os
 import tempfile
@@ -336,7 +335,6 @@ print('ROOT_CONTROLLER_NONROOT_RENDER_FAKE_SEND_PASS')
         self.assertIn("ROOT_CONTROLLER_NONROOT_RENDER_FAKE_SEND_PASS", result.stdout)
 
     def test_actual_render_approval_and_fake_delivery(self):
-        from snap_bot.final_agent import evaluate_final, record_human_frame
 
         commit = server.subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=server.ROOT, text=True

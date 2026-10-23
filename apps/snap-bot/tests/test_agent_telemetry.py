@@ -31,20 +31,24 @@ class ObservationTests(unittest.TestCase):
 
     def test_missing_journal_prevents_unobserved_execution(self):
         calls = []
-        with patch(
-            "snap_bot.agent_telemetry._record", side_effect=TelemetryUnavailable("unavailable")
+        with (
+            patch(
+                "snap_bot.agent_telemetry._record", side_effect=TelemetryUnavailable("unavailable")
+            ),
+            self.assertRaises(TelemetryUnavailable),
         ):
-            with self.assertRaises(TelemetryUnavailable):
-                observe(object(), "quality", "job3", lambda: calls.append(1))
+            observe(object(), "quality", "job3", lambda: calls.append(1))
         self.assertEqual(calls, [])
 
     def test_failure_after_computation_is_not_success(self):
-        with patch(
-            "snap_bot.agent_telemetry._record",
-            side_effect=[None, TelemetryUnavailable("unavailable")],
+        with (
+            patch(
+                "snap_bot.agent_telemetry._record",
+                side_effect=[None, TelemetryUnavailable("unavailable")],
+            ),
+            self.assertRaises(TelemetryUnavailable),
         ):
-            with self.assertRaises(TelemetryUnavailable):
-                observe(object(), "quality", "job4", lambda: 42)
+            observe(object(), "quality", "job4", lambda: 42)
 
 
 if __name__ == "__main__":

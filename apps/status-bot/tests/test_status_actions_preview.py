@@ -2,20 +2,17 @@ import hashlib
 import json
 import os
 import shutil
-import sqlite3
 import sys
 import tempfile
 import time
 import unittest
-from dataclasses import replace
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
 from status_bot import actions_preview as actions
 from status_bot.pipeline import prepare, record_validation
 from status_bot.telegram_egress import EXPECTED_BOT
-from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.storage import Storage
 
@@ -296,16 +293,19 @@ class BundleTests(unittest.TestCase):
         )
 
     def test_wrong_intent_blocks_before_telegram(self):
-        with patch.dict(
-            os.environ, {"STATUS_TG_TEST_TOKEN": "123456:" + "x" * 35, "STATUS_TG_TEST_CHAT": "42"}
+        with (
+            patch.dict(
+                os.environ,
+                {"STATUS_TG_TEST_TOKEN": "123456:" + "x" * 35, "STATUS_TG_TEST_CHAT": "42"},
+            ),
+            self.assertRaises(ValueError),
         ):
-            with self.assertRaises(ValueError):
-                actions.send_bundle(
-                    self.bundle,
-                    self.env,
-                    lambda p, e: {**self.github(p, e), "workflow_run": {"id": 1}},
-                    self.transport,
-                )
+            actions.send_bundle(
+                self.bundle,
+                self.env,
+                lambda p, e: {**self.github(p, e), "workflow_run": {"id": 1}},
+                self.transport,
+            )
         self.assertEqual(self.calls, [], "guard:intent-before-network")
 
 

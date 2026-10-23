@@ -46,7 +46,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "S", "RUF"]
 # str+Enum is kept on purpose: StrEnum changes str() output of persisted states.
 ignore = ["UP042"]
 # Arabic text is the product: its letters and digits are intended, not look-alikes.
-allowed-confusables = ["ا", "٠", "١", "٥", "٧", "٫"]
+allowed-confusables = ["ا", "ه", "٠", "١", "٥", "٧", "٫"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101"]
@@ -57,11 +57,14 @@ allowed-confusables = ["ا", "٠", "١", "٥", "٧", "٫"]
 
 # App source keeps only E501: its SQL statements stay byte-identical (CREATE text is
 # persisted in sqlite_master) and its CSS/HTML strings are not worth splitting.
-# Test files: debt, paid down like the core (docs/GRADUATION.md).
+# Test files keep security rules that do not apply to fixtures (asserts, fake credentials,
+# seeded randomness, fixed-argv subprocesses, constant test SQL) and four readability
+# rules: nested with blocks scope each assertRaises, closures run inside their own loop
+# iteration, fixture literals are long, and fault injection asserts broad exceptions.
 "apps/snap-bot/snap_bot/*.py" = ["E501"]
-"apps/snap-bot/tests/*.py" = ["SIM117", "F401", "E501", "B023", "RUF059", "RUF001", "S603", "S608", "B905", "B017", "E731", "S106", "F841", "S607", "RUF007", "RUF005", "B008", "S311", "S101"]
+"apps/snap-bot/tests/*.py" = ["S101", "S105", "S106", "S311", "S603", "S607", "S608", "SIM117", "B023", "E501", "B017"]
 "apps/status-bot/status_bot/*.py" = ["E501"]
-"apps/status-bot/tests/*.py" = ["RUF059", "SIM117", "F401", "B023", "B017", "S106", "S105", "S608", "E501", "F841", "S101"]
+"apps/status-bot/tests/*.py" = ["S101", "S105", "S106", "S311", "S603", "S607", "S608", "SIM117", "B023", "E501", "B017"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["studio_core", "snap_bot", "status_bot"]

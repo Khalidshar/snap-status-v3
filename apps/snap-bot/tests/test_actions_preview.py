@@ -1,4 +1,3 @@
-import copy
 import json
 import os
 import sys
@@ -164,7 +163,7 @@ class ActionsPreviewTests(unittest.TestCase):
                 actions.approval_guard({**environment(), "SOURCE_RUN": value})
 
     def test_source_is_manual_successful_same_commit_recent(self):
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         env = environment()
         run = {
@@ -277,7 +276,7 @@ class ActionsRealPreviewTests(unittest.TestCase):
             )
             env["VIDEO_SHA"] = data["render"]["video_sha256"]
             env["CONTENT_HASH"] = data["render"]["content_hash"]
-            config, repo, value, result = actions.verify_bundle(directory, env)
+            _config, repo, value, result = actions.verify_bundle(directory, env)
             self.assertEqual(value["delivery"], "NOT_ATTEMPTED")
             self.assertIsNone(value["human_approval"])
             self.assertTrue(

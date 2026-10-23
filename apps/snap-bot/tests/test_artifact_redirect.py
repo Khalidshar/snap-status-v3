@@ -96,7 +96,7 @@ class ArtifactRedirectTests(unittest.TestCase):
         return {"id": 9, "expired": False, "digest": "sha256:" + hashlib.sha256(raw).hexdigest()}
 
     def test_old_urllib_add_header_leaks_to_redirected_host_and_gets_401(self):
-        with servers() as (observed, raw, opener):
+        with servers() as (observed, _raw, opener):
             request = urllib.request.Request("https://api.github.com/synthetic")
             request.add_header("Authorization", "Bearer SYNTHETIC")
             request.add_header("Accept", "application/vnd.github+json")
@@ -159,7 +159,7 @@ class ArtifactRedirectTests(unittest.TestCase):
 
     def test_original_archive_size_limit_still_enforced(self):
         with (
-            servers(raw=b"x" * 2_000_001) as (observed, raw, opener),
+            servers(raw=b"x" * 2_000_001) as (_observed, raw, opener),
             patch("urllib.request.build_opener", side_effect=opener),
         ):
             try:

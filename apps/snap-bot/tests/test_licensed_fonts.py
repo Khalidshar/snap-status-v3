@@ -41,7 +41,7 @@ class LicensedFontTests(unittest.TestCase):
 
     def test_default_is_pinned_kufi_bold_and_fallbacks_admitted(self):
         p = profile()
-        primary, latin = fonts.font_paths(p)
+        primary, _latin = fonts.font_paths(p)
         self.assertEqual(primary.name, "NotoKufiArabic-Bold.ttf", "guard:kufi-bold-default")
         self.assertEqual(p["fact_body_font_size"], 68, "guard:kufi-measured-size")
         from snap_bot.did_you_know import load_facts, make_content

@@ -193,7 +193,7 @@ class Service(unittest.TestCase):
         self.assertEqual(self.call(), {})
 
     def test_credential_loaded_without_values_in_errors(self):
-        directory, path = self.creds()
+        directory, _path = self.creds()
         with patch.dict(os.environ, {"CREDENTIALS_DIRECTORY": str(directory)}):
             self.assertEqual(credential("journal-key"), self.key)
 
@@ -263,7 +263,7 @@ class Service(unittest.TestCase):
                 self.assertFalse(credential_access(1, meta))
 
     def test_real_cli_append_then_sigterm_removes_socket(self):
-        directory, path = self.creds()
+        directory, _path = self.creds()
         cfg = replace(
             Config.load(Path(__file__).parents[3] / "config/snap/weather.toml"),
             data_root=self.root / "data",

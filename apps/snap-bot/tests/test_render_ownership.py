@@ -2,7 +2,6 @@ import hashlib
 import json
 import os
 import shutil
-import socket
 import socketserver
 import struct
 import subprocess
@@ -323,7 +322,7 @@ class RenderOwnershipTests(unittest.TestCase):
 
     def pending_execute(self):
         from snap_bot.render_commit import AdoptionPending
-        from snap_bot.service import execute, resume_render_adoption
+        from snap_bot.service import execute
 
         actual = os.replace
         renames = []
@@ -402,9 +401,9 @@ class RenderOwnershipTests(unittest.TestCase):
                 "snap_bot.service.fetch_weather",
                 side_effect=AssertionError("expired retry fetched"),
             ),
+            self.assertRaises(LeaseLost),
         ):
-            with self.assertRaises(LeaseLost):
-                resume_render_adoption(self.config, self.settings, self.owner)
+            resume_render_adoption(self.config, self.settings, self.owner)
         failed = self.repo.get(self.job)
         self.assertEqual(
             (failed["state"], failed["error_code"]), ("FAILED", "ADOPTION_PENDING_EXPIRED")

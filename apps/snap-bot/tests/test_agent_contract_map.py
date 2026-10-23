@@ -404,11 +404,13 @@ class OwnedDatabaseProjectionTests(unittest.TestCase):
         )
 
     def test_read_only_connection_rejects_mutation_and_missing_db(self):
-        with closing(
-            sqlite3.connect(self.repo.path.resolve().as_uri() + "?mode=ro", uri=True)
-        ) as db:
-            with self.assertRaises(sqlite3.OperationalError):
-                db.execute("DELETE FROM events")
+        with (
+            closing(
+                sqlite3.connect(self.repo.path.resolve().as_uri() + "?mode=ro", uri=True)
+            ) as db,
+            self.assertRaises(sqlite3.OperationalError),
+        ):
+            db.execute("DELETE FROM events")
         missing = self.repo.path.parent / "missing.sqlite"
         with self.assertRaises(FileNotFoundError):
             read_snapshot(missing, self.job, now=self.now + 100, registry=REGISTRY)

@@ -9,14 +9,12 @@ import hmac
 import io
 import json
 import os
-import socket
 import struct
 import threading
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from email.message import Message
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -27,7 +25,7 @@ import test_status_whatsapp_outbox as fixtures
 from status_bot.owner_review import OwnerConfig, OwnerReview
 from status_bot.review_http import COOKIE, Endpoint, Handler, PrivateServer, WebhookConfig, fields
 from status_bot.review_service import assemble, main
-from status_bot.whatsapp_contract import DeliveryBlocked, sha
+from status_bot.whatsapp_contract import DeliveryBlocked
 from studio_core.jobs import LeaseLost
 from studio_core.network import UnixHTTPConnection
 
@@ -346,7 +344,7 @@ class ReviewContracts(unittest.TestCase):
         self.assertEqual(self.outbox.receipt(result["id"])["state"], "PREPARED")
 
     def test_foreign_database_job_denies_session_and_all_control(self):
-        claim, _, _, ticket = self.ticket()
+        _claim, _, _, ticket = self.ticket()
         with self.repo.transaction() as db:
             db.execute("UPDATE jobs SET app='snap-bot-v2'")
         with self.assertRaisesRegex(DeliveryBlocked, "WA_DATABASE_SCOPE_INVALID"):
