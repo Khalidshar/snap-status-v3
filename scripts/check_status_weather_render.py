@@ -30,12 +30,15 @@ sys.path.insert(0, str(ROOT / "apps/status-bot/tests"))
 
 from test_status_weather import FixtureClient  # noqa: E402
 
+import studio_core  # noqa: E402  # after the app paths above
 from status_bot.pipeline import prepare, record_validation  # noqa: E402
 from status_bot.whatsapp_contract import DeliveryBlocked, DeliveryIdentity  # noqa: E402
 from status_bot.whatsapp_outbox import WhatsAppOutbox  # noqa: E402
-from studio_core.config import Config  # noqa: E402  # after the app paths above
+from studio_core.config import Config  # noqa: E402
 from studio_core.jobs import Repository  # noqa: E402
 from studio_core.storage import Storage  # noqa: E402
+
+CORE = str(Path(studio_core.__file__).resolve().parents[1])
 
 BUNDLE_SECONDS = 3600
 REPOSITORY = "Khalidshar/status-bot-v2"
@@ -202,7 +205,8 @@ def main() -> None:
             "--property=TimeoutStartSec=300s",
             "--property=TimeoutStopSec=5s",
             "--property=InaccessiblePaths=" + settings["egress_socket"],
-            "--setenv=PYTHONPATH=" + str(fixture_apps),
+            # The unit gets a clean environment: name the installed core explicitly.
+            "--setenv=PYTHONPATH=" + str(fixture_apps) + os.pathsep + CORE,
             "--setenv=LD_LIBRARY_PATH=" + str(Path(sys.base_prefix) / "lib"),
             sys.executable,
             str(runner),
