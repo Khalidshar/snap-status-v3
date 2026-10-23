@@ -22,3 +22,9 @@
 - **mypy:** ~~17 وحدة في `ignore_errors`~~ سُدِّد (`RESUME-APP-TYPING-20261023.md`).
 - **ruff:** قواعد مستثناة.
 - **`tools/check_weather_render.py`** (رندر حقيقي بـsudo، كان في CI المختبر): لم ينتقل بعد.
+
+## تحديث 2026-10-23: فحص الرندر الحقيقي لتطبيق Status
+- `scripts/check_status_weather_render.py` منقول من `tools/check_weather_render.py` في المختبر، بمسارات v3 (`status_bot` و`config/status/weather.toml`).
+- يجري رندراً حقيقياً بـFFmpeg داخل وحدة systemd بلا إنترنت، على طقس اصطناعي. يتحقق أن الفيديو الاصطناعي **مرفوض** من مسار واتساب، ولا يستخدم أي بيانات دخول ولا يرسل شيئاً.
+- يعمل في CI عبر مهمة `Status real render` على مشغّل مؤقت فيه root وsystemd. محلياً يتوقف عند حارس systemd كما هو متوقع، لأن الحاوية بلا systemd.
+- **لم يُتحقق منه بعد على CI:** تشغيل GitHub Actions متوقف على الحساب.
