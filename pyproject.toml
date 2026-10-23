@@ -67,11 +67,3 @@ known-first-party = ["studio_core", "snap_bot", "status_bot"]
 python_version = "3.11"
 strict = true
 packages = ["studio_core", "snap_bot", "status_bot"]
-
-[[tool.mypy.overrides]]
-# Untyped Snap modules graduated as-is; each leaves this list when it is typed (GRADUATION.md).
-module = [
-    "snap_bot.actions_preview",
-    "snap_bot.server_preview",
-]
-ignore_errors = true

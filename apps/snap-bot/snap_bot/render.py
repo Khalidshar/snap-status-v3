@@ -18,7 +18,6 @@ from studio_core.jobs import canonical
 from studio_core.renderer import (
     attempt_workspace,
     ensure_glyphs,
-    file_sha256,
     proof,
     publish_once,
     run,
@@ -26,6 +25,9 @@ from studio_core.renderer import (
 )
 from studio_core.renderer import (
     cleanup_attempt_temps as cleanup_attempt_temps,
+)
+from studio_core.renderer import (
+    file_sha256 as file_sha256,
 )
 from studio_core.renderer import (
     sync_dir as sync_dir,
