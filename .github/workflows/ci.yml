@@ -115,14 +115,16 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
-      # Non-interactive and without the man-db rebuild: this step hung twice in 3 runs.
+      # Non-interactive, no man-db rebuild, bounded downloads and dpkg-lock waits: this
+      # step hung several times on runners before any test ran.
       - timeout-minutes: 8
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo rm -f /var/lib/man-db/auto-update
-          sudo -E apt-get update -qq
-          sudo -E apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
+          apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=120)
+          sudo -E apt-get "${apt_opts[@]}" update -qq
+          sudo -E apt-get "${apt_opts[@]}" install -y --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
       - run: uv sync --all-packages
       - run: sudo -n "$(uv run --frozen python -c 'import sys; print(sys.executable)')" scripts/check_status_weather_render.py
 
@@ -143,8 +145,9 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo rm -f /var/lib/man-db/auto-update
-          sudo -E apt-get update -qq
-          sudo -E apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
+          apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=120)
+          sudo -E apt-get "${apt_opts[@]}" update -qq
+          sudo -E apt-get "${apt_opts[@]}" install -y --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
       # --status-render also runs the installed Status controller: live public weather
       # (keyless, allowlisted hosts only), a no-network render, and no delivery.
       - run: sudo -n /usr/bin/python3 scripts/check_release_install.py --node-bin "$(command -v node)" --status-render
