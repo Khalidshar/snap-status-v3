@@ -108,44 +108,66 @@ jobs:
     # Disposable root runner with systemd: a real no-Internet FFmpeg render of synthetic
     # weather, which must stay ineligible for WhatsApp. No credentials, no sending.
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: "3.12"
           enable-cache: true
-      # Non-interactive and without the man-db rebuild: this step hung twice in 3 runs.
-      - timeout-minutes: 8
+      # Non-interactive, no man-db rebuild, bounded downloads and dpkg-lock waits.
+      # The runner mirror is sometimes very slow (~180 KB/s for these 82 MB), so the
+      # downloaded packages are cached between runs; apt still verifies each one.
+      - uses: actions/cache@v4
+        with:
+          path: ~/apt-archives
+          key: apt-noble-ffmpeg-fontconfig-noto-core-freefont-v1
+      - timeout-minutes: 12
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo rm -f /var/lib/man-db/auto-update
-          sudo -E apt-get update -qq
-          sudo -E apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
+          mkdir -p ~/apt-archives/partial
+          apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=120 -o "Dir::Cache::Archives=$HOME/apt-archives")
+          sudo -E apt-get "${apt_opts[@]}" update -qq
+          sudo -E apt-get "${apt_opts[@]}" install -y --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
+          sudo rm -rf ~/apt-archives/partial ~/apt-archives/lock
+          sudo chown -R "$USER" ~/apt-archives
       - run: uv sync --all-packages
       - run: sudo -n "$(uv run --frozen python -c 'import sys; print(sys.executable)')" scripts/check_status_weather_render.py
 
   release-install:
-    name: Snap release install
+    name: Release install
     # Disposable root runner with systemd: a real install of this commit into a temporary
-    # root, then cutover and rollback to a lab release. check_env runs for real as the
-    # non-root runner account. No service starts and nothing is sent.
+    # root, then cutover and rollback to a lab release, then a real Status preview.
+    # check_env runs for real as the non-root runner account. Nothing is sent.
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - timeout-minutes: 8
+      # The runner mirror is sometimes very slow (~180 KB/s for these 82 MB), so the
+      # downloaded packages are cached between runs; apt still verifies each one.
+      - uses: actions/cache@v4
+        with:
+          path: ~/apt-archives
+          key: apt-noble-ffmpeg-fontconfig-noto-core-freefont-v1
+      - timeout-minutes: 12
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo rm -f /var/lib/man-db/auto-update
-          sudo -E apt-get update -qq
-          sudo -E apt-get install -y -qq --no-install-recommends ffmpeg fontconfig
-      - run: sudo -n /usr/bin/python3 scripts/check_release_install.py --node-bin "$(command -v node)"
+          mkdir -p ~/apt-archives/partial
+          apt_opts=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o DPkg::Lock::Timeout=120 -o "Dir::Cache::Archives=$HOME/apt-archives")
+          sudo -E apt-get "${apt_opts[@]}" update -qq
+          sudo -E apt-get "${apt_opts[@]}" install -y --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
+          sudo rm -rf ~/apt-archives/partial ~/apt-archives/lock
+          sudo chown -R "$USER" ~/apt-archives
+      # --status-render also runs the installed Status controller: live public weather
+      # (keyless, allowlisted hosts only), a no-network render, and no delivery.
+      - run: sudo -n /usr/bin/python3 scripts/check_release_install.py --node-bin "$(command -v node)" --status-render
 
   secret-scan:
     name: Secret scan
