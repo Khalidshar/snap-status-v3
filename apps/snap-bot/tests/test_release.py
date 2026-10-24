@@ -41,6 +41,7 @@ def layout(snap_deps: str = '["studio-core"]') -> dict[str, str]:
     files = {name: "" for name in installer.REQUIRED}
     files["apps/snap-bot/pyproject.toml"] = "[project]\ndependencies = " + snap_deps + "\n"
     files["packages/studio-core/pyproject.toml"] = "[project]\ndependencies = []\n"
+    files["apps/status-bot/pyproject.toml"] = '[project]\ndependencies = ["studio-core"]\n'
     return files
 
 
@@ -131,7 +132,11 @@ class InstallerTests(unittest.TestCase):
         release = installer.RELEASES / self.commit
         self.assertEqual(
             plan["path_file"].splitlines(),
-            [str(release / "apps/snap-bot"), str(release / "packages/studio-core")],
+            [
+                str(release / "apps/snap-bot"),
+                str(release / "apps/status-bot"),
+                str(release / "packages/studio-core"),
+            ],
             "guard:release-import-roots",
         )
 
@@ -152,7 +157,18 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(blocked(installer.unit_text, True), "guard:send-needs-env-file")
 
     def test_unit_names_differ_from_lab(self):
-        self.assertTrue(all(name.startswith("madar-v3-snap-") for name in installer.UNITS))
+        self.assertTrue(all(name.startswith("madar-v3-") for name in installer.UNITS))
+
+    def test_status_unit_renders_only(self):
+        text = installer.unit_for("madar-v3-status-render.service", SECRET)
+        self.assertIn("-m status_bot.server_preview render\n", text)
+        self.assertIn("PrivateNetwork=yes", text)
+        self.assertIn("RestrictAddressFamilies=AF_UNIX\n", text)
+        self.assertIn("ReadWritePaths=/var/lib/madar/status\n", text)
+        for absent in ("EnvironmentFile", " send", "AF_INET", "[Install]"):
+            self.assertNotIn(absent, text, "guard:status-no-delivery")
+        status = [name for name in installer.UNITS if "status" in name]
+        self.assertEqual(status, ["madar-v3-status-render.service"], "guard:status-render-only")
 
     def test_source_commit_and_dirty_refused(self):
         self.assertTrue(blocked(installer.source_files, self.source, "a" * 40), "guard:commit")

@@ -36,9 +36,9 @@ def load_installer() -> Any:
     return module
 
 
-def run(args: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+def run(args: list[str], timeout: int = 120, **kwargs: Any) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603  # fixed argv, no shell
-        args, capture_output=True, text=True, timeout=120, **kwargs
+        args, capture_output=True, text=True, timeout=timeout, **kwargs
     )
 
 
@@ -55,6 +55,7 @@ def redirect(installer: Any, root: Path) -> None:
     installer.RELEASES = installer.BASE / "releases"
     installer.STATE = root / "var/lib/madar"
     installer.DATA = installer.STATE / "snap"
+    installer.STATUS_DATA = installer.STATE / "status"
     installer.UNIT_DIR = root / "etc/systemd/system"
     installer.UNIT_DIR.mkdir(parents=True)
 
@@ -68,9 +69,37 @@ def fake_lab_release(installer: Any, commit: str, uid: int) -> Path:
     return release
 
 
+def status_render(release: Path, state: Path) -> dict[str, Any]:
+    """Run the installed Status controller for real: live weather, no-network render."""
+    python = str(release / ".venv/bin/python")
+    command = [python, "-I", "-m", "status_bot.server_preview", "render", "--state", str(state)]
+    result = run(command, cwd=release, env={"PATH": "/usr/bin:/bin"}, timeout=600)
+    if result.returncode:
+        raise RuntimeError("Status render failed: " + result.stderr[-3000:])
+    value: dict[str, Any] = json.loads(result.stdout.strip().splitlines()[-1])
+    preview = state / "previews" / value["preview_id"]
+    ledger = (state / "events.jsonl").read_text().splitlines()
+    if (
+        value["qa"]["result"] != "PASS"
+        or not all(value["network_isolation"].values())
+        or value["delivery"] != "NOT_ATTEMPTED"
+        or value["source"] == "synthetic-fixture"
+        or len(ledger) != 1
+        or json.loads(ledger[0])["video_sha"] != value["video_sha"]
+        or sorted(path.name for path in preview.iterdir())
+        != ["evidence.json", "manifest.json", "preview.png", "render-result.json", "weather.mp4"]
+    ):
+        raise RuntimeError("Unexpected Status preview: " + json.dumps(value, ensure_ascii=False))
+    units = run(["systemctl", "list-units", "--all", "--no-legend", "madar-v3-status-*"])
+    if units.stdout.strip():
+        raise RuntimeError("Transient Status units left behind: " + units.stdout)
+    return value
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--node-bin", required=True)
+    parser.add_argument("--status-render", action="store_true")
     options = parser.parse_args()
     if os.geteuid() != 0 or Path("/proc/1/comm").read_text().strip() != "systemd":
         raise SystemExit("Disposable Linux root/systemd required")
@@ -109,10 +138,14 @@ def main() -> None:
 
         # The owner's renderer imports the release's own packages, from the release only.
         python = str(release / ".venv/bin/python")
-        probe = "import snap_bot.actions_preview as a, studio_core as c; print(a.ROOT, c.__file__)"
+        probe = (
+            "import snap_bot.actions_preview as a, status_bot.server_preview as t, studio_core as c"
+            "; print(a.ROOT, t.ROOT, c.__file__)"
+        )
         account = ["sudo", "-n", "-u", owner, "env", "PATH=/usr/bin:/bin"]
         imported = run([*account, python, "-I", "-c", probe], cwd="/", check=True).stdout.split()
-        if Path(imported[0]) != release or release not in Path(imported[1]).parents:
+        roots = {Path(imported[0]), Path(imported[1])}
+        if roots != {release} or release not in Path(imported[2]).parents:
             raise RuntimeError("Release imports leak outside the release: " + " ".join(imported))
         # A lab unit pointed at a v3 release must fail before doing anything.
         lab = run(
@@ -150,6 +183,9 @@ def main() -> None:
             installer.RELEASES / lab_commit
         ):
             raise RuntimeError("Activation history mismatch")
+        status = None
+        if options.status_render:
+            status = status_render(release, installer.STATUS_DATA)
         print(
             json.dumps(
                 {
@@ -160,6 +196,8 @@ def main() -> None:
                     "systemd_actions": [],
                     "rollback_to_lab": True,
                     "lab_unit_fails_closed": True,
+                    "status_preview": status
+                    and {key: status[key] for key in ("source", "video_sha", "qa", "delivery")},
                 }
             )
         )

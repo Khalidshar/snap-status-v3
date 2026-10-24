@@ -127,10 +127,10 @@ jobs:
       - run: sudo -n "$(uv run --frozen python -c 'import sys; print(sys.executable)')" scripts/check_status_weather_render.py
 
   release-install:
-    name: Snap release install
+    name: Release install
     # Disposable root runner with systemd: a real install of this commit into a temporary
-    # root, then cutover and rollback to a lab release. check_env runs for real as the
-    # non-root runner account. No service starts and nothing is sent.
+    # root, then cutover and rollback to a lab release, then a real Status preview.
+    # check_env runs for real as the non-root runner account. Nothing is sent.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -144,8 +144,10 @@ jobs:
         run: |
           sudo rm -f /var/lib/man-db/auto-update
           sudo -E apt-get update -qq
-          sudo -E apt-get install -y -qq --no-install-recommends ffmpeg fontconfig
-      - run: sudo -n /usr/bin/python3 scripts/check_release_install.py --node-bin "$(command -v node)"
+          sudo -E apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-noto-core fonts-freefont-ttf
+      # --status-render also runs the installed Status controller: live public weather
+      # (keyless, allowlisted hosts only), a no-network render, and no delivery.
+      - run: sudo -n /usr/bin/python3 scripts/check_release_install.py --node-bin "$(command -v node)" --status-render
 
   secret-scan:
     name: Secret scan
