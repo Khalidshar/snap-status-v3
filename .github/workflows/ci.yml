@@ -126,6 +126,27 @@ jobs:
       - run: uv sync --all-packages
       - run: sudo -n "$(uv run --frozen python -c 'import sys; print(sys.executable)')" scripts/check_status_weather_render.py
 
+  release-install:
+    name: Snap release install
+    # Disposable root runner with systemd: a real install of this commit into a temporary
+    # root, then cutover and rollback to a lab release. check_env runs for real as the
+    # non-root runner account. No service starts and nothing is sent.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - timeout-minutes: 8
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo -E apt-get update -qq
+          sudo -E apt-get install -y -qq --no-install-recommends ffmpeg fontconfig
+      - run: sudo -n /usr/bin/python3 scripts/check_release_install.py --node-bin "$(command -v node)"
+
   secret-scan:
     name: Secret scan
     runs-on: ubuntu-latest
@@ -176,7 +197,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [changes, lint, test, app-mutations, status-render, secret-scan, workflow-lint, build]
+    needs: [changes, lint, test, app-mutations, status-render, release-install, secret-scan, workflow-lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
