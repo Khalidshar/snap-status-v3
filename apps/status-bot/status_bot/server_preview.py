@@ -214,6 +214,8 @@ class Runtime:
             "proxy",
         ]
         subprocess.run(command, check=True, capture_output=True, timeout=30)  # noqa: S603  # fixed argv
+        if len(os.fsencode(socket_path)) > 107:
+            raise ValueError("Egress socket path too long")
         deadline = time.monotonic() + 20
         while not socket_path.is_socket():
             if time.monotonic() > deadline:
@@ -255,7 +257,8 @@ class Runtime:
         commit = release_commit()
         with self.locked():
             identifier = uuid.uuid4().hex
-            run = safe_path(self.root / "runs" / identifier)
+            # Short run directory: the egress socket path must fit AF_UNIX's 107 bytes.
+            run = safe_path(self.root / "runs" / identifier[:12])
             run.mkdir(mode=0o700)
             (run / "data").mkdir(mode=0o700)
             egress = "madar-v3-status-egress-" + identifier[:12] + ".service"
@@ -346,8 +349,10 @@ def main() -> None:
         value = Runtime(state_root(args.state)).render()
         print(json.dumps(value, ensure_ascii=False))
     except Exception as error:
-        message = str(error) if isinstance(error, ValueError) else type(error).__name__
-        print("STATUS_PREVIEW_BLOCKED: " + message, file=sys.stderr)
+        # No secrets exist in this path; the reason is needed to diagnose a blocked run.
+        print(
+            "STATUS_PREVIEW_BLOCKED: " + type(error).__name__ + ": " + str(error), file=sys.stderr
+        )
         raise SystemExit(1) from None
 
 
