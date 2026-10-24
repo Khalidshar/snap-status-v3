@@ -75,6 +75,10 @@ git tag snap-bot-v0.1.0 && git push origin snap-bot-v0.1.0
 تتطلب السكربتات `uv` وDocker (مع buildx). إذا واجهت حد طلبات Docker Hub محليًا، استخدم صورة أساس بديلة:
 `DOCKER_BUILD_FLAGS="--build-arg BASE_IMAGE=mirror.gcr.io/library/python:3.12-slim" make images`.
 
+## التشغيل على السيرفر
+
+تشغيل Snap على السيرفر يتم يدويًا من إصدار ثابت لكل التزام، بدون Actions. التفاصيل في `SERVER-RUNTIME.md`. تثبّته وظيفة CI «Snap release install»: تثبيت حقيقي، ثم انتقال، ثم رجوع، على Runner مؤقت.
+
 ## نقاط تمديد مخطط لها
 
 - Workflow ليلي للاختبارات الثقيلة (Render حقيقي، Golden screenshots، E2E بـMocks) عند إضافة الـRenderer.
