@@ -262,6 +262,8 @@ def build_plan(
     channels: dict[str, Any] = {"test": {"bot": TEST_BOT}}
     wanted = {name: unit_for(name, secret) for name in UNITS}
     if main_env or main_bot_name:
+        if not (main_env and main_bot_name):
+            raise ValueError("Main channel needs its env file and bot")
         main_secret = str(telegram_file(main_env))
         if main_secret == secret:
             raise ValueError("Main and test environment files must differ")

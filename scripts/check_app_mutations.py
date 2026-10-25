@@ -1,7 +1,8 @@
 """Guard deletions for the Snap app, each in an isolated temporary source copy.
 
-The 261 cases are the lab's named mutation tools (snap-bot-v2 tools/check_*_mutations.py),
-recorded and re-expressed against the formatted v3 sources. Every case removes or
+261 cases are the lab's named mutation tools (snap-bot-v2 tools/check_*_mutations.py),
+recorded and re-expressed against the formatted v3 sources; later cases guard v3-only
+code such as the main delivery channel. Every case removes or
 weakens one protective line; its named test must then fail, and when the lab case
 names an assertion marker, that marker must appear in the failure.
 Usage: uv run --frozen python scripts/check_app_mutations.py [--jobs N] [--only TOOL]
