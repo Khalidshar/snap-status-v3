@@ -101,7 +101,13 @@ def probe(ffprobe: str, path: Path) -> dict[str, Any]:
 
 
 def command(
-    ffmpeg: str, clip: Path, out: Path, brand: dict[str, Any], duration: float, audio: bool
+    ffmpeg: str,
+    clip: Path,
+    out: Path,
+    brand: dict[str, Any],
+    duration: float,
+    audio: bool,
+    normalize_audio: bool = True,
 ) -> list[str]:
     box, bg = brand["clip_box"], brand["background"]
     gradient = (
@@ -121,7 +127,8 @@ def command(
         f"{fit};[0:v][clip]overlay={box['x']}:{box['y']}:shortest=1[base];"
         "[base][2:v]overlay=0:0:shortest=1,format=yuv420p[video]"
     )
-    sound = ["-map", "1:a:0", "-af", "loudnorm=I=-18:TP=-1.5:LRA=11"] if audio else ["-map", "3:a"]
+    level = ["-af", "loudnorm=I=-18:TP=-1.5:LRA=11"] if normalize_audio else []
+    sound = ["-map", "1:a:0", *level] if audio else ["-map", "3:a"]
     return [
         ffmpeg, "-v", "error", "-nostdin", "-y", *inputs, "-filter_complex", graph,
         "-map", "[video]", *sound, "-t", f"{duration:.3f}", *ENCODE, "-f", "mp4", str(out),
@@ -136,6 +143,7 @@ def compose(
     ffprobe: str = "/usr/bin/ffprobe",
     brand_root: Path = BRAND,
     timeout: float = 900,
+    normalize_audio: bool = True,
 ) -> dict[str, Any]:
     clip, out = Path(clip), Path(out)
     if out.suffix != ".mp4" or out.exists() or out.is_symlink():
@@ -150,7 +158,12 @@ def compose(
     if partial.exists() or partial.is_symlink():
         raise ValueError("Partial output already exists")
     try:
-        run(command(ffmpeg, clip, partial, brand, source["duration"], source["audio"]), timeout)
+        run(
+            command(
+                ffmpeg, clip, partial, brand, source["duration"], source["audio"], normalize_audio
+            ),
+            timeout,
+        )
         result = probe(ffprobe, partial)
         if (
             (result["width"], result["height"]) != (WIDTH, HEIGHT)
@@ -169,7 +182,21 @@ def compose(
         "duration": result["duration"],
         "source": {k: source[k] for k in ("width", "height", "duration", "audio")},
         "overlay_sha256": brand["overlay"]["sha256"],
+        "clip_box": brand["clip_box"],
         "external_delivery": False,
+    }
+
+
+def framed_box(box: dict[str, int], clip_box: dict[str, int]) -> dict[str, int]:
+    """Where a box measured on the 1080x1920 clip lands once the clip sits in the frame."""
+    scale = min(clip_box["width"] / WIDTH, clip_box["height"] / HEIGHT)
+    left = clip_box["x"] + (clip_box["width"] - WIDTH * scale) / 2
+    top = clip_box["y"] + (clip_box["height"] - HEIGHT * scale) / 2
+    return {
+        "x": round(left + box["x"] * scale),
+        "y": round(top + box["y"] * scale),
+        "width": round(box["width"] * scale),
+        "height": round(box["height"] * scale),
     }
 
 

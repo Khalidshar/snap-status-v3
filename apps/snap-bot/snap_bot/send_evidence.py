@@ -93,13 +93,17 @@ def delivery_evidence(function: Callable[..., Any]) -> Callable[..., Any]:
                 **kwargs,
             )
         except Exception:
+            environ = __import__("os").environ
+            if kwargs.get("channel") == "main":
+                names, missing = ("TG_TOKEN", "TG_CHAT"), "INVALID_MAIN_CREDENTIALS"
+            else:
+                names, missing = ("TG_TEST_TOKEN", "TG_TEST_CHAT"), "INVALID_TEST_CREDENTIALS"
             failure_receipt(
                 Storage(config).workspace(job_id) / "output/pre-network-receipt.json",
-                run_id=__import__("os").environ.get("GITHUB_RUN_ID", ""),
+                run_id=environ.get("GITHUB_RUN_ID", ""),
                 video_sha=reviewed_sha,
-                reason="INVALID_TEST_CREDENTIALS"
-                if not __import__("os").environ.get("TG_TEST_TOKEN")
-                or not __import__("os").environ.get("TG_TEST_CHAT")
+                reason=missing
+                if not all(environ.get(name) for name in names)
                 else "DELIVERY_REJECTED_OR_UNKNOWN",
             )
             raise

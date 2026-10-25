@@ -36,6 +36,7 @@ from studio_core.renderer import (
     write_once as write_once,
 )
 
+from . import brand_frame
 from .did_you_know import validate_content
 from .fact_audio import ambient_source, measure_audio
 from .fact_layout import card_filters, display_text, fact_labels, label_y, measure_label
@@ -104,6 +105,11 @@ def render(
             "duration_seconds"
         ] <= 12:
             raise ValueError("Invalid fact video profile")
+    # The approved "روّق مع خالد" frame wraps every fact video when its profile names it.
+    frame_name = settings["profile"].get("brand_frame") if is_fact else None
+    if frame_name not in (None, "rawwag"):
+        raise ValueError("Unknown brand frame")
+    brand = brand_frame.load_brand() if frame_name else None
     isolation = proof(settings["egress_socket"])
     spool.mkdir(parents=True, exist_ok=True, mode=0o750)
     root = spool / job_id
@@ -255,7 +261,21 @@ def render(
         # Explicit same-attempt retry uses already published bytes, not another encode.
         qa = validate(output, profile, fact=is_fact)
     else:
-        run(args, profile["timeout_seconds"])
+        if brand:
+            # QA, the hash and preview.png all describe the framed video the owner reviews.
+            clip = work / "temp" / (run_id + ".clip.mp4")
+            args[-1] = str(clip)
+            run(args, profile["timeout_seconds"])
+            brand_frame.compose(
+                clip,
+                partial,
+                ffmpeg=profile["ffmpeg"],
+                ffprobe=profile["ffprobe"],
+                timeout=profile["timeout_seconds"],
+                normalize_audio=False,
+            )
+        else:
+            run(args, profile["timeout_seconds"])
         qa = validate(partial, profile, fact=is_fact)
         publish_once(partial, output)
     digest = file_sha256(output)
@@ -297,6 +317,13 @@ def render(
         "glyph_coverage": "PASS",
     }
     if is_fact:
+        if brand:
+            safe_boxes = [brand_frame.framed_box(box, brand["clip_box"]) for box in safe_boxes]
+            result["brand_frame"] = {
+                "name": frame_name,
+                "overlay_sha256": brand["overlay"]["sha256"],
+                "clip_box": brand["clip_box"],
+            }
         result.update(
             {"content_type": "did_you_know", "safe_area": {"result": "PASS", "boxes": safe_boxes}}
         )

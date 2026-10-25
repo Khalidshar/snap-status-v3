@@ -56,6 +56,8 @@ font_sha256 = "549173578b9ca93ac8b458e5a4cc3262db9a35992d0bfbc80835d92a621655fc"
 latin_font = "assets/fonts/cairo/Cairo-Regular.ttf"
 latin_font_sha256 = "d82f9e84b1a7fbc7dc25d332c851fdb3d1af6a814e8793e1421b6b3652b90f0f"
 fc_query = "/usr/bin/fc-query"
+# The approved personal frame (brand_frame.py); every fact video is framed before QA.
+brand_frame = "rawwag"
 
 
 fact_body_font_size = 68

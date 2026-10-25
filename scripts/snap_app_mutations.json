@@ -3296,7 +3296,7 @@
   "hunks": [
    {
     "file": "server_preview.py",
-    "old": "            self.require_approval(record, uid)\n",
+    "old": "            self.require_approval(record, uid, channel, bot)\n",
     "new": "            pass\n"
    }
   ]
@@ -3394,6 +3394,45 @@
     "file": "server_preview.py",
     "old": "            if (\n                value[\"seq\"] != len(events) + 1\n                or value[\"previous\"] != previous\n                or hashlib.sha256(canonical(value)).hexdigest() != signature\n            ):\n",
     "new": "            if value[\"seq\"] != len(events) + 1 or value[\"previous\"] != previous or False:\n"
+   }
+  ]
+ },
+ {
+  "tool": "server_preview",
+  "label": "approval bot pin",
+  "test": "test_main_pin_changed_after_approval",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "server_preview.py",
+    "old": "            and x.get(\"bot\", EXPECTED_BOT) == bot\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "telegram_egress",
+  "label": "main bot pin",
+  "test": "test_main_channel_refusals",
+  "marker": "",
+  "hunks": [
+   {
+    "file": "telegram_egress.py",
+    "old": "    if not re.fullmatch(BOT_NAME, value) or value.lower() == EXPECTED_BOT:\n        raise ValueError(\"Main bot not pinned\")\n",
+    "new": ""
+   }
+  ]
+ },
+ {
+  "tool": "release",
+  "label": "main channel needs both",
+  "test": "test_main_channel_refusals",
+  "marker": "guard:main-channel",
+  "hunks": [
+   {
+    "file": "release.py",
+    "old": "        if not (main_env and main_bot_name):\n            raise ValueError(\"Main channel needs its env file and bot\")\n",
+    "new": ""
    }
   ]
  }
