@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "brand": "روّق مع خالد",
+  "approved": "2026-10-24",
+  "design": "personal frame (snap-bot-v2 docs/design-lab/rawwag-20261014)",
+  "overlay": {
+    "file": "frame_personal.png",
+    "sha256": "58e849c97d60750b7af86df1e323f8bf72ce4383f18ef3f3f89ddc779c42f2b4",
+    "width": 1080,
+    "height": 1920
+  },
+  "template": {
+    "file": "frame_personal.html",
+    "sha256": "3671666df0e515f8dd518df0dda538d58adacf4575f4b44b74a325ff3b52ef89",
+    "renderer": "scripts/render_brand_frame.js"
+  },
+  "fonts": [
+    {
+      "family": "Aref Ruqaa",
+      "file": "ArefRuqaa-Bold.ttf",
+      "sha256": "247071015b7eefd63f94d6e47949c5d10294ed31bd432f809ba9a219d93f91bb",
+      "license": "OFL-1.1",
+      "license_file": "OFL-ArefRuqaa.txt",
+      "license_sha256": "41ac14451a624c69490e24b9aaaaa1f65dc9dc17c3f6f38172fc43d5ba654a1b"
+    },
+    {
+      "family": "Cairo",
+      "file": "../../fonts/cairo/Cairo[slnt,wght].ttf",
+      "sha256": "667c987182391c91f4e57a2f455b1794fb5e3ee6ca4ef3383e86bb690fa9c964",
+      "license": "OFL-1.1",
+      "license_file": "../../fonts/cairo/OFL.txt",
+      "license_sha256": "a4554e1799d42e1405924b61eb0e0722ae1623b1f1f07f995348f96c496362a9"
+    }
+  ],
+  "clip_box": {"x": 108, "y": 210, "width": 864, "height": 1536},
+  "background": {"top": "0x0B3D2E", "bottom": "0x062A20"}
+}
