@@ -83,6 +83,20 @@ class CommandTests(unittest.TestCase):
         for flag in ("-crf", "-maxrate", "-movflags"):
             self.assertIn(flag, args)
 
+    def test_measured_audio_can_pass_through_unchanged(self):
+        args = frame.command(
+            FFMPEG, Path("in.mp4"), Path("out.mp4"), self.brand, 8.0, True, normalize_audio=False
+        )
+        self.assertNotIn("-af", args, "guard:keep-measured-audio")
+        self.assertIn("1:a:0", args)
+
+    def test_boxes_follow_the_clip_into_the_frame(self):
+        box = self.brand["clip_box"]
+        whole = frame.framed_box({"x": 0, "y": 0, "width": 1080, "height": 1920}, box)
+        self.assertEqual(whole, box, "guard:framed-box")
+        inner = frame.framed_box({"x": 130, "y": 200, "width": 820, "height": 100}, box)
+        self.assertEqual(inner, {"x": 212, "y": 370, "width": 656, "height": 80})
+
     def test_silent_clip_gets_a_silent_track(self):
         args = frame.command(FFMPEG, Path("in.mp4"), Path("out.mp4"), self.brand, 3.0, False)
         self.assertIn("anullsrc=r=48000:cl=stereo", args)

@@ -170,6 +170,38 @@ class InstallerTests(unittest.TestCase):
         status = [name for name in installer.UNITS if "status" in name]
         self.assertEqual(status, ["madar-v3-status-render.service"], "guard:status-render-only")
 
+    def test_main_channel_is_opt_in(self):
+        plan = self.plan()
+        self.assertEqual(plan["channels"], {"test": {"bot": installer.TEST_BOT}})
+        self.assertNotIn(installer.MAIN_UNIT, [Path(x).name for x in plan["units"]])
+
+    def test_main_channel_unit_and_pinned_bot(self):
+        main = "/etc/madar/snap-telegram-main.env"
+        plan = self.plan(main_env=main, main_bot_name="rawwag_main_bot")
+        self.assertEqual(plan["channels"]["main"], {"bot": "rawwag_main_bot"})
+        units = {Path(x).name: text for x, text in plan["units"].items()}
+        text = units[installer.MAIN_UNIT]
+        self.assertIn("EnvironmentFile=" + main + "\n", text)
+        self.assertIn(" send --channel main --video-sha %i\n", text, "guard:main-unit-channel")
+        self.assertNotIn(SECRET, text, "guard:main-unit-own-env")
+        # The test unit is byte-for-byte what earlier releases installed.
+        self.assertEqual(units["madar-v3-snap-send@.service"], installer.unit_text(True, SECRET))
+        for path in plan["writes"]:
+            installer.destination(path)
+
+    def test_main_channel_refusals(self):
+        main = "/etc/madar/snap-telegram-main.env"
+        for kwargs in (
+            {"main_env": main},
+            {"main_bot_name": "rawwag_main_bot"},
+            {"main_env": main, "main_bot_name": installer.TEST_BOT},
+            {"main_env": main, "main_bot_name": "not a bot"},
+            {"main_env": main, "main_bot_name": "rawwag_main"},
+            {"main_env": SECRET, "main_bot_name": "rawwag_main_bot"},
+        ):
+            with self.subTest(kwargs=kwargs):
+                self.assertTrue(blocked(self.plan, **kwargs), "guard:main-channel")
+
     def test_source_commit_and_dirty_refused(self):
         self.assertTrue(blocked(installer.source_files, self.source, "a" * 40), "guard:commit")
         (self.source / installer.REQUIRED[0]).write_text("dirty")

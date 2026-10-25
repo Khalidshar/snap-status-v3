@@ -23,7 +23,7 @@ from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
 from .send_evidence import failure_receipt, network_started
 from .send_reconciliation import receipt_allows
-from .telegram_egress import DeliveryConfirmed, deliver
+from .telegram_egress import CHANNELS, EXPECTED_BOT, DeliveryConfirmed, deliver, main_bot
 
 STATE = Path("/var/lib/madar/snap")
 
@@ -118,6 +118,22 @@ def source_info() -> tuple[str, int]:
     if not re.fullmatch("[0-9a-f]{40}", commit) or type(uid) is not int or uid <= 0:
         raise ValueError("Invalid release authority")
     return commit, uid
+
+
+def channel_bot(channel: str) -> str:
+    """The bot a channel delivers to, as the installer pinned it. Never opens a secret."""
+    if channel not in CHANNELS:
+        raise ValueError("Unknown delivery channel")
+    if channel == "test":
+        return EXPECTED_BOT
+    manifest = ROOT / "madar-release.json"
+    if not manifest.exists():
+        raise ValueError("Main channel not installed")
+    source_info()  # the same trust checks as the release manifest
+    bot = json.loads(manifest.read_text()).get("channels", {}).get("main", {}).get("bot", "")
+    if not bot:
+        raise ValueError("Main channel not installed")
+    return main_bot(bot)
 
 
 def owner_actor(uid: int) -> int:
@@ -336,9 +352,11 @@ class Runtime:
             raise ValueError("Provenance changed")
         return directory, record, verify_quality(directory, data, video_sha)
 
-    def approve(self, video_sha: str) -> Any:
+    def approve(self, video_sha: str, channel: str = "test") -> Any:
         _, uid = source_info()
         actor = owner_actor(uid)
+        # The owner approves one destination; send refuses any other.
+        bot = channel_bot(channel)
         with self.locked():
             _directory, record, (_, repo, data, result) = self.verify(video_sha)
             if self.spent(video_sha) or any(
@@ -366,26 +384,34 @@ class Runtime:
                 content_hash=record["content_hash"],
                 commit=record["commit"],
                 evidence_sha=record["evidence_sha"],
+                channel=channel,
+                bot=bot,
             )
 
-    def require_approval(self, record: Any, uid: int) -> Any:
+    def require_approval(
+        self, record: Any, uid: int, channel: str = "test", bot: str = EXPECTED_BOT
+    ) -> Any:
         keys = ("video_sha", "preview_id", "content_hash", "commit", "evidence_sha")
         if not any(
             x["kind"] == "HUMAN_FRAME"
             and x.get("owner_uid") == uid
             and all(x.get(k) == record[k] for k in keys)
+            # Approvals recorded before channels existed were for the test bot.
+            and x.get("channel", "test") == channel
+            and x.get("bot", EXPECTED_BOT) == bot
             for x in self.events()
         ):
             raise ValueError("Matching HUMAN_FRAME required")
 
-    def send(self, video_sha: str, transport: Any = None) -> Any:
+    def send(self, video_sha: str, transport: Any = None, channel: str = "test") -> Any:
         sha(video_sha)
         _, uid = source_info()
+        bot = channel_bot(channel)
         with self.locked():
             if self.spent(video_sha):
                 raise ValueError("SHA permanently consumed")
             directory, record, (config, _, data, _) = self.verify(video_sha)
-            self.require_approval(record, uid)
+            self.require_approval(record, uid, channel, bot)
             intent = {
                 "run_id": record["preview_id"],
                 "video_sha": video_sha,
@@ -404,11 +430,17 @@ class Runtime:
                     transport=transport,
                     lease_token=data["lease_token"],
                     review_mode="HUMAN_FRAME",
+                    channel=channel,
+                    pinned_bot=bot,
                 )
                 if receipt.get("delivery") != "PUBLISHED":
                     raise RuntimeError("Delivery not confirmed")
                 return self.append(
-                    "ACK", video_sha=video_sha, message_id=receipt["message_id"], bot=receipt["bot"]
+                    "ACK",
+                    video_sha=video_sha,
+                    message_id=receipt["message_id"],
+                    bot=receipt["bot"],
+                    channel=channel,
                 )
             except DeliveryConfirmed:
                 self.append("ACK_EVIDENCE_PENDING", video_sha=video_sha)
@@ -433,6 +465,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=("render", "approve", "send"))
     parser.add_argument("--video-sha")
+    parser.add_argument("--channel", choices=CHANNELS, default="test")
     args = parser.parse_args()
     try:
         if os.geteuid() != 0:
@@ -441,7 +474,7 @@ def main() -> None:
         value = (
             runtime.render()
             if args.action == "render"
-            else getattr(runtime, args.action)(sha(args.video_sha))
+            else getattr(runtime, args.action)(sha(args.video_sha), channel=args.channel)
         )
         print(json.dumps(value, ensure_ascii=True))
     except Exception:

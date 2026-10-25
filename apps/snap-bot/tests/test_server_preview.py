@@ -205,6 +205,62 @@ class ServerPreviewTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.approve()
 
+    def pin_main(self, bot="rawwag_main_bot"):
+        pins = {"test": server.EXPECTED_BOT, "main": bot}
+        active = patch.object(server, "channel_bot", side_effect=lambda channel: pins[channel])
+        active.start()
+        self.addCleanup(active.stop)
+        return pins
+
+    def main_transport(self, token, method, *args):
+        self.fixture.calls.append(method)
+        if method == "getMe":
+            return {"username": "rawwag_main_bot"}
+        if method == "getChat":
+            return {"id": 77, "type": "private"}
+        return {"message_id": 9, "chat": {"id": 77}}
+
+    def test_approval_names_one_channel(self):
+        self.pin_main()
+        approval = self.runtime.approve(self.sha, channel="main")
+        self.assertEqual((approval["channel"], approval["bot"]), ("main", "rawwag_main_bot"))
+        with self.assertRaises(ValueError):
+            self.runtime.send(self.sha, self.fixture.transport)
+        self.assertEqual(self.fixture.calls, [], "guard:approval-channel")
+
+    def test_test_approval_never_reaches_main(self):
+        self.pin_main()
+        self.approve()
+        with self.assertRaises(ValueError):
+            self.runtime.send(self.sha, self.main_transport, channel="main")
+        self.assertEqual(self.fixture.calls, [], "guard:approval-channel")
+
+    def test_main_pin_changed_after_approval(self):
+        pins = self.pin_main()
+        self.runtime.approve(self.sha, channel="main")
+        pins["main"] = "another_main_bot"
+        with self.assertRaises(ValueError):
+            self.runtime.send(self.sha, self.main_transport, channel="main")
+        self.assertEqual(self.fixture.calls, [], "guard:approval-bot")
+
+    def test_main_send_acknowledged_with_channel(self):
+        self.pin_main()
+        self.runtime.approve(self.sha, channel="main")
+        with patch.dict(os.environ, {"TG_TOKEN": "654321:" + ("y" * 35), "TG_CHAT": "77"}):
+            ack = self.runtime.send(self.sha, self.main_transport, channel="main")
+        self.assertEqual(
+            (ack["kind"], ack["channel"], ack["bot"]), ("ACK", "main", "rawwag_main_bot")
+        )
+        self.assertEqual(self.fixture.calls.count("sendVideo"), 1)
+
+    def test_main_channel_requires_installed_pin(self):
+        with patch.object(server, "ROOT", self.runtime.root):
+            with self.assertRaises(ValueError):
+                server.channel_bot("main")
+        self.assertEqual(server.channel_bot("test"), server.EXPECTED_BOT)
+        with self.assertRaises(ValueError):
+            server.channel_bot("staging")
+
     def test_concurrent_sends(self):
         from concurrent.futures import ThreadPoolExecutor
 

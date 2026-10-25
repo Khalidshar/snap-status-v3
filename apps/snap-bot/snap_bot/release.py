@@ -10,6 +10,9 @@ Ported from the lab (snap-bot-v2 tools/install_madar_release.py). Differences:
 The Snap state directory and its append-only ledger stay shared, so a video SHA consumed by
 either version stays consumed for both. Status keeps its own state directory and has a
 render-only unit: no Status delivery unit exists.
+The owner's main bot is opt-in: --telegram-main-env and --telegram-main-bot together add a
+separate madar-v3-snap-send-main@ unit and record the pinned bot in the release manifest.
+The test unit is unchanged, so the main bot never receives a send meant for the test bot.
 
 Stdlib only: it runs from a clean source checkout before any venv exists:
   sudo python3 apps/snap-bot/snap_bot/release.py --source <checkout> --commit <40-hex> \
@@ -38,6 +41,9 @@ UNITS = (
     "madar-v3-snap-send@.service",
     "madar-v3-status-render.service",
 )
+MAIN_UNIT = "madar-v3-snap-send-main@.service"
+TEST_BOT = "khalid_snap_v2_test_bot"
+BOT_NAME = r"[A-Za-z][A-Za-z0-9_]{1,29}[Bb][Oo][Tt]"
 LAYOUT = "v3"
 PYTHON = "python3.12"
 SITE = ".venv/lib/python3.12/site-packages"
@@ -62,7 +68,7 @@ def destination(path: str | Path, allow_current: bool = False) -> Path:
     if not path.is_absolute() or ".." in path.parts:
         raise ValueError("Destination outside allowed roots")
     allowed = path in (BASE, STATE) or BASE in path.parents or STATE in path.parents
-    unit = path.parent == UNIT_DIR and path.name in UNITS
+    unit = path.parent == UNIT_DIR and path.name in (*UNITS, MAIN_UNIT)
     if not (allowed or unit):
         raise ValueError("Destination outside allowed roots")
     for item in (path, *path.parents):
@@ -121,6 +127,20 @@ def telegram_file(path: str | Path) -> Path:
     if path.stat().st_uid != 0 or path.stat().st_mode & 0o022:
         raise ValueError("Untrusted Telegram environment file")
     return path
+
+
+def main_bot(value: str) -> str:
+    # Mirrors telegram_egress.main_bot; this installer runs before any venv exists.
+    if not re.fullmatch(BOT_NAME, value) or value.lower() == TEST_BOT:
+        raise ValueError("Main bot username required")
+    return value
+
+
+def main_unit_text(telegram_env: str) -> str:
+    """Delivery to the owner's main bot. The bot it must be is pinned in the release manifest."""
+    return unit_text(True, telegram_env).replace(
+        " send --video-sha %i\n", " send --channel main --video-sha %i\n"
+    )
 
 
 def unit_text(send: bool = False, telegram_env: str = "") -> str:
@@ -216,7 +236,13 @@ def path_file(release: Path) -> str:
 
 
 def build_plan(
-    source: str | Path, commit: str, node_bin: str | Path, telegram_env: str, owner: str = "ubuntu"
+    source: str | Path,
+    commit: str,
+    node_bin: str | Path,
+    telegram_env: str,
+    owner: str = "ubuntu",
+    main_env: str = "",
+    main_bot_name: str = "",
 ) -> dict[str, Any]:
     source = Path(source).resolve()
     if not re.fullmatch("[0-9a-f]{40}", commit):
@@ -233,10 +259,17 @@ def build_plan(
     if uid <= 0:
         raise ValueError("Non-root owner required")
     secret = str(telegram_file(telegram_env))
+    channels: dict[str, Any] = {"test": {"bot": TEST_BOT}}
+    wanted = {name: unit_for(name, secret) for name in UNITS}
+    if main_env or main_bot_name:
+        main_secret = str(telegram_file(main_env))
+        if main_secret == secret:
+            raise ValueError("Main and test environment files must differ")
+        channels["main"] = {"bot": main_bot(main_bot_name)}
+        wanted[MAIN_UNIT] = main_unit_text(main_secret)
     units = {}
-    for name in UNITS:
+    for name, text in wanted.items():
         target = destination(UNIT_DIR / name)
-        text = unit_for(name, secret)
         if target.exists():
             stat = target.stat()
             if stat.st_uid != 0 or stat.st_mode & 0o022 or target.read_text() != text:
@@ -264,6 +297,7 @@ def build_plan(
         "owner_uid": uid,
         "node_bin": str(node),
         "units": units,
+        "channels": channels,
         "writes": writes,
         "path_file": path_file(release),
         "commands": [
@@ -365,6 +399,7 @@ def execute(plan: dict[str, Any]) -> dict[str, Any]:
         "owner_uid": plan["owner_uid"],
         "layout": LAYOUT,
         "environment": "PASS",
+        "channels": plan["channels"],
     }
     write_new(release / "madar-release.json", json.dumps(manifest).encode())
     for name in ("previews", "intents", "tmp"):
@@ -382,6 +417,8 @@ def main() -> None:
     parser.add_argument("--commit", required=True)
     parser.add_argument("--node-bin", default="/usr/bin/node")
     parser.add_argument("--telegram-env", default="")
+    parser.add_argument("--telegram-main-env", default="")
+    parser.add_argument("--telegram-main-bot", default="")
     parser.add_argument("--owner", default="ubuntu")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--activate-only", action="store_true")
@@ -395,7 +432,13 @@ def main() -> None:
             if args.source is None:
                 raise ValueError("Source required")
             plan = build_plan(
-                args.source, args.commit, args.node_bin, args.telegram_env, args.owner
+                args.source,
+                args.commit,
+                args.node_bin,
+                args.telegram_env,
+                args.owner,
+                args.telegram_main_env,
+                args.telegram_main_bot,
             )
             result = plan if args.dry_run else execute(plan)
         print(json.dumps(result, indent=2))

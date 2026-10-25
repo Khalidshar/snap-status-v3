@@ -357,6 +357,56 @@ class RealFactRenderTests(unittest.TestCase):
         finally:
             fixture.doCleanups()
 
+    def test_real_ffmpeg_fact_inside_the_approved_frame(self):
+        from snap_bot import brand_frame
+
+        fixture = FactRendererTests()
+        fixture.setUp()
+        f = fixture.fixture
+        try:
+            f.settings["profile"] = fact_profile()
+            if f.settings["profile"] is None:
+                self.fail("CI requires real FFmpeg")
+            f.settings["profile"]["brand_frame"] = "rawwag"
+            with patch("snap_bot.render.proof", return_value=ownership.ISOLATION):
+                result = render(SimpleNamespace(app="snap-bot-v2"), f.settings, f.job, f.digest, 1)
+            brand = brand_frame.load_brand()
+            box = brand["clip_box"]
+            self.assertEqual(
+                result["brand_frame"]["overlay_sha256"], brand["overlay"]["sha256"], "guard:frame"
+            )
+            self.assertEqual((result["qa"]["width"], result["qa"]["height"]), (1080, 1920))
+            self.assertEqual(result["qa"]["audio"], "generated_ambient")
+            self.assertTrue(
+                all(
+                    box["x"] <= b["x"]
+                    and b["x"] + b["width"] <= box["x"] + box["width"]
+                    and box["y"] <= b["y"]
+                    and b["y"] + b["height"] <= box["y"] + box["height"]
+                    for b in result["safe_area"]["boxes"]
+                ),
+                "guard:framed-safe-boxes",
+            )
+            from snap_bot.render_agents import check_media
+
+            self.assertEqual(check_media(result, f.settings)["boxes"][:1], ["ftyp"])
+        finally:
+            fixture.doCleanups()
+
+    def test_unknown_frame_refused_before_render(self):
+        fixture = FactRendererTests()
+        fixture.setUp()
+        f = fixture.fixture
+        try:
+            f.settings["profile"] = fact_profile()
+            if f.settings["profile"] is None:
+                self.fail("CI requires real FFmpeg")
+            f.settings["profile"]["brand_frame"] = "other"
+            with self.assertRaisesRegex(ValueError, "Unknown brand frame"):
+                render(SimpleNamespace(app="snap-bot-v2"), f.settings, f.job, f.digest, 1)
+        finally:
+            fixture.doCleanups()
+
 
 if __name__ == "__main__":
     unittest.main()

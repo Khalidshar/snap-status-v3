@@ -926,6 +926,56 @@ class DeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "owner"):
             deliver(self.config, self.job, self.digest, transport)
 
+    def main_transport(self, token, method, body=b"", kind="application/json"):
+        self.calls.append((method, token))
+        if method == "getMe":
+            return {"username": "rawwag_main_bot"}
+        if method == "getChat":
+            return {"id": 77, "type": "private"}
+        return {"message_id": 9, "chat": {"id": 77}}
+
+    def test_main_channel_uses_only_its_own_credentials_and_pinned_bot(self):
+        main = {"TG_TOKEN": "654321:" + ("y" * 35), "TG_CHAT": "77"}
+        with patch.dict(os.environ, main):
+            proof = deliver(
+                self.config,
+                self.job,
+                self.digest,
+                self.main_transport,
+                channel="main",
+                pinned_bot="rawwag_main_bot",
+            )
+        self.assertEqual(proof["delivery"], "PUBLISHED")
+        self.assertEqual(proof["bot"], "rawwag_main_bot", "guard:main-receipt-bot")
+        self.assertEqual({token for _, token in self.calls}, {main["TG_TOKEN"]})
+
+    def test_main_channel_refusals(self):
+        main = {"TG_TOKEN": "654321:" + ("y" * 35), "TG_CHAT": "77"}
+        cases = (
+            ({}, {"channel": "main", "pinned_bot": "rawwag_main_bot"}, "credentials"),
+            (main, {"channel": "main"}, "Main bot not pinned"),
+            (main, {"channel": "main", "pinned_bot": EXPECTED_BOT}, "Main bot not pinned"),
+            (main, {"channel": "main", "pinned_bot": "other_main_bot"}, "Wrong main bot"),
+            (main, {"channel": "staging", "pinned_bot": "rawwag_main_bot"}, "Unknown"),
+        )
+        for env, kwargs, message in cases:
+            with self.subTest(kwargs=kwargs), patch.dict(os.environ, env):
+                if not env:
+                    os.environ.pop("TG_TOKEN", None)
+                    os.environ.pop("TG_CHAT", None)
+                with self.assertRaisesRegex(ValueError, message):
+                    deliver(self.config, self.job, self.digest, self.main_transport, **kwargs)
+        self.assertNotIn("sendVideo", [method for method, _ in self.calls], "guard:main-channel")
+        self.assertEqual(self.repo.get(self.job)["state"], "RUNNING")
+
+    def test_main_caption_has_no_test_label(self):
+        from snap_bot.telegram_egress import multipart
+
+        body, _ = multipart("77", b"video", "did_you_know", "main")
+        self.assertNotIn("اختبار".encode(), body, "guard:main-caption")
+        body, _ = multipart("42", b"video", "did_you_know")
+        self.assertIn("اختبار".encode(), body)
+
 
 if __name__ == "__main__":
     unittest.main()

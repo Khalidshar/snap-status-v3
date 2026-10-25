@@ -1,4 +1,9 @@
-"""Owner-only test transport. Run in the dedicated egress oneshot, never renderer."""
+"""Owner-only transport. Run in the dedicated egress oneshot, never renderer.
+
+Two channels: "test" (TG_TEST_TOKEN/TG_TEST_CHAT, the pinned lab bot) and "main"
+(TG_TOKEN/TG_CHAT, the owner's main bot, pinned by the caller from the release manifest,
+never from the environment). Both deliver only to a verified private owner chat.
+"""
 
 import hashlib
 import json
@@ -29,6 +34,25 @@ from .render import video_filename
 from .weather import content_hash
 
 EXPECTED_BOT = "khalid_snap_v2_test_bot"
+CHANNELS = ("test", "main")
+BOT_NAME = r"[A-Za-z][A-Za-z0-9_]{1,29}[Bb][Oo][Tt]"
+
+
+def main_bot(value: str) -> str:
+    """The main bot's username, never the lab bot's."""
+    if not re.fullmatch(BOT_NAME, value) or value.lower() == EXPECTED_BOT:
+        raise ValueError("Main bot not pinned")
+    return value
+
+
+def channel_credentials(channel: str, pinned: str | None = None) -> tuple[str, str, str]:
+    """Token, chat and expected bot username for one channel, from its own variables only."""
+    if channel == "test":
+        return os.environ.get("TG_TEST_TOKEN", ""), os.environ.get("TG_TEST_CHAT", ""), EXPECTED_BOT
+    if channel == "main":
+        bot = main_bot(pinned or "")
+        return os.environ.get("TG_TOKEN", ""), os.environ.get("TG_CHAT", ""), bot
+    raise ValueError("Unknown delivery channel")
 
 
 def api(token: str, method: str, body: bytes = b"", content_type: str = "application/json") -> Any:
@@ -61,12 +85,17 @@ def api(token: str, method: str, body: bytes = b"", content_type: str = "applica
         connection.close()
 
 
-def multipart(chat: str, video: bytes, content_type: str = "weather") -> tuple[bytes, str]:
-    caption = (
-        "اختبار Snap V2 — هل تعلم؟\nتابعني للمزيد 👻"
-        if content_type == "did_you_know"
-        else "اختبار Snap V2 — طقس الرياض، فيديو تجريبي مستقل"
-    )
+def multipart(
+    chat: str, video: bytes, content_type: str = "weather", channel: str = "test"
+) -> tuple[bytes, str]:
+    if channel == "main":
+        caption = "هل تعلم؟\nتابعني للمزيد 👻" if content_type == "did_you_know" else "طقس الرياض"
+    else:
+        caption = (
+            "اختبار Snap V2 — هل تعلم؟\nتابعني للمزيد 👻"
+            if content_type == "did_you_know"
+            else "اختبار Snap V2 — طقس الرياض، فيديو تجريبي مستقل"
+        )
     return delivery.multipart(chat, video, caption, video_filename(content_type))
 
 
@@ -81,16 +110,20 @@ def reconcile_evidence_sweep(config: Config, after: str = "", limit: int = 100) 
 
 
 def reconcile_published(
-    config: Config, job_id: str, video_sha: str, review_mode: str | None = None
+    config: Config,
+    job_id: str,
+    video_sha: str,
+    review_mode: str | None = None,
+    bot: str = EXPECTED_BOT,
 ) -> dict[str, Any]:
-    return delivery.reconcile_published(config, job_id, video_sha, review_mode, bot=EXPECTED_BOT)
+    return delivery.reconcile_published(config, job_id, video_sha, review_mode, bot=bot)
 
 
 def confirmed_result(
-    config: Config, job_id: str, digest: str, review_mode: str | None
+    config: Config, job_id: str, digest: str, review_mode: str | None, bot: str = EXPECTED_BOT
 ) -> dict[str, Any]:
     try:
-        return reconcile_published(config, job_id, digest, review_mode)
+        return reconcile_published(config, job_id, digest, review_mode, bot)
     except Exception as cause:
         raise DeliveryConfirmed(job_id, digest, review_mode) from cause
 
@@ -106,14 +139,15 @@ def deliver(
     transport: Any = api,
     lease_token: str | None = None,
     review_mode: str | None = None,
+    channel: str = "test",
+    pinned_bot: str | None = None,
 ) -> Any:
-    token = os.environ.get("TG_TEST_TOKEN", "")
-    chat = os.environ.get("TG_TEST_CHAT", "")
+    token, chat, bot = channel_credentials(channel, pinned_bot)
     if (
         getattr(transport, "__wrapped__", transport) is api
         and not re.fullmatch(r"[0-9]{6,15}:[A-Za-z0-9_-]{30,80}", token)
     ) or not re.fullmatch(r"[0-9]+", chat):
-        raise ValueError("Invalid test credentials")
+        raise ValueError("Invalid " + channel + " credentials")
     root = Storage(config).workspace(job_id)
     result = json.loads((root / "output/render-result.json").read_text())
     content = json.loads((root / "input/content.json").read_text())
@@ -146,8 +180,8 @@ def deliver(
         with repo.connect() as db:
             require_delivery_contract(db, job_id, result)
     identity = transport(token, "getMe")
-    if identity.get("username") != EXPECTED_BOT:
-        raise ValueError("Wrong test bot")
+    if identity.get("username") != bot:
+        raise ValueError("Wrong " + channel + " bot")
     owner = transport(token, "getChat", json.dumps({"chat_id": chat}).encode())
     if owner.get("type") != "private" or str(owner.get("id")) != chat:
         raise ValueError("Unverified private owner")
@@ -195,7 +229,7 @@ def deliver(
             claim = repo.claim(job_id=job_id)
             if not claim:
                 if repo.get(job_id)["state"] == "COMPLETED":  # type: ignore[index]
-                    return confirmed_result(config, job_id, digest, review_mode)
+                    return confirmed_result(config, job_id, digest, review_mode, bot)
                 raise LeaseLost("Reviewed job unavailable")
             lease_token = claim["lease_token"]
             for state in (
@@ -241,7 +275,7 @@ def deliver(
             else:
                 repo.transition(job_id, lease_token, "FAILED", {"code": "DELIVERY_UNKNOWN"})
             if existing["delivery"] == "PUBLISHED":
-                proof = confirmed_result(config, job_id, digest, review_mode)
+                proof = confirmed_result(config, job_id, digest, review_mode, bot)
                 proof["replayed"] = False
                 return proof
             manifest = (
@@ -258,7 +292,7 @@ def deliver(
             )
             Storage(config).manifest(job_id, manifest)
         if existing["delivery"] == "PUBLISHED":
-            proof = confirmed_result(config, job_id, digest, review_mode)
+            proof = confirmed_result(config, job_id, digest, review_mode, bot)
             proof["replayed"] = False
             return proof
         return existing
@@ -316,7 +350,7 @@ def deliver(
         thread = threading.Thread(target=renew, daemon=True)
         thread.start()
         try:
-            body, kind = multipart(chat, video, content.get("type", "weather"))
+            body, kind = multipart(chat, video, content.get("type", "weather"), channel)
             sent = transport(token, "sendVideo", body, kind)
             if str(sent.get("chat", {}).get("id")) != chat or not isinstance(
                 sent.get("message_id"), int
@@ -339,9 +373,9 @@ def deliver(
             # Durable PUBLISHED remains available to claim() and the evidence sweep.
             with repo.transaction() as db:
                 repo.reconcile_delivery(job_id, db=db)
-            return confirmed_result(config, job_id, digest, review_mode)
+            return confirmed_result(config, job_id, digest, review_mode, bot)
         repo.mark_artifacts_terminal(job_id, "PUBLISHED")
-        return confirmed_result(config, job_id, digest, review_mode)
+        return confirmed_result(config, job_id, digest, review_mode, bot)
     except Exception:
         with repo.transaction() as db:
             acknowledged = db.execute(
