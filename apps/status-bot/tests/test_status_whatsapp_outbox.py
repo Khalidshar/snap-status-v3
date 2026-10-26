@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 
 from test_status_weather import TINY_MP4, FixtureClient
 
-from status_bot.agents import CheckRejected
+from status_bot.agents import CheckRejected, check_memory
 from status_bot.pipeline import prepare, record_validation
 from status_bot.whatsapp_contract import (
     ApiResponse,
@@ -499,11 +499,8 @@ class WhatsAppContracts(unittest.TestCase):
         self.repo.transition(claim["id"], claim["lease_token"], "FAILED")
         same = (copy.deepcopy(value["content"]), [])
         # The memory agent stops the repeat first; the outbox still refuses it on its own.
-        with (
-            patch("status_bot.pipeline.fetch_weather", return_value=same),
-            self.assertRaisesRegex(CheckRejected, "MEMORY_REPEAT"),
-        ):
-            self.fixture("wa_memory_fixture")
+        with self.repo.connect() as db, self.assertRaisesRegex(CheckRejected, "MEMORY_REPEAT"):
+            check_memory(db, "another-job", value["source_payload"])
         with (
             patch("status_bot.pipeline.fetch_weather", return_value=same),
             patch("status_bot.agents.check_memory", return_value={"decision": "PASS"}),
