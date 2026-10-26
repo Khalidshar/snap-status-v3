@@ -42,6 +42,7 @@ UNITS = (
     "madar-v3-status-render.service",
 )
 MAIN_UNIT = "madar-v3-snap-send-main@.service"
+COMMANDS_UNIT = "madar-v3-snap-commands.service"
 TEST_BOT = "khalid_snap_v2_test_bot"
 BOT_NAME = r"[A-Za-z][A-Za-z0-9_]{1,29}[Bb][Oo][Tt]"
 LAYOUT = "v3"
@@ -68,7 +69,7 @@ def destination(path: str | Path, allow_current: bool = False) -> Path:
     if not path.is_absolute() or ".." in path.parts:
         raise ValueError("Destination outside allowed roots")
     allowed = path in (BASE, STATE) or BASE in path.parents or STATE in path.parents
-    unit = path.parent == UNIT_DIR and path.name in (*UNITS, MAIN_UNIT)
+    unit = path.parent == UNIT_DIR and path.name in (*UNITS, MAIN_UNIT, COMMANDS_UNIT)
     if not (allowed or unit):
         raise ValueError("Destination outside allowed roots")
     for item in (path, *path.parents):
@@ -140,6 +141,23 @@ def main_unit_text(telegram_env: str) -> str:
     """Delivery to the owner's main bot. The bot it must be is pinned in the release manifest."""
     return unit_text(True, telegram_env).replace(
         " send --video-sha %i\n", " send --channel main --video-sha %i\n"
+    )
+
+
+def commands_unit_text(telegram_env: str) -> str:
+    """The owner's command listener on the main bot: long-running, started by hand, no [Install]."""
+    return (
+        unit_text(True, telegram_env)
+        .replace(
+            "Description=Madar v3 manual Snap operation\n",
+            "Description=Madar v3 owner commands (main bot)\n",
+        )
+        .replace("Type=oneshot\n", "Type=simple\nRestart=on-failure\nRestartSec=30\n")
+        .replace(
+            "ExecStart=/opt/madar/current/.venv/bin/python -m snap_bot.server_preview"
+            " send --video-sha %i\n",
+            "ExecStart=/opt/madar/current/.venv/bin/python -m snap_bot.owner_commands\n",
+        )
     )
 
 
@@ -269,6 +287,7 @@ def build_plan(
             raise ValueError("Main and test environment files must differ")
         channels["main"] = {"bot": main_bot(main_bot_name)}
         wanted[MAIN_UNIT] = main_unit_text(main_secret)
+        wanted[COMMANDS_UNIT] = commands_unit_text(main_secret)
     units = {}
     for name, text in wanted.items():
         target = destination(UNIT_DIR / name)
