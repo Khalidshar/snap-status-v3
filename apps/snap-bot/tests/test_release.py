@@ -174,6 +174,7 @@ class InstallerTests(unittest.TestCase):
         plan = self.plan()
         self.assertEqual(plan["channels"], {"test": {"bot": installer.TEST_BOT}})
         self.assertNotIn(installer.MAIN_UNIT, [Path(x).name for x in plan["units"]])
+        self.assertNotIn(installer.COMMANDS_UNIT, [Path(x).name for x in plan["units"]])
 
     def test_main_channel_unit_and_pinned_bot(self):
         main = "/etc/madar/snap-telegram-main.env"
@@ -186,6 +187,12 @@ class InstallerTests(unittest.TestCase):
         self.assertNotIn(SECRET, text, "guard:main-unit-own-env")
         # The test unit is byte-for-byte what earlier releases installed.
         self.assertEqual(units["madar-v3-snap-send@.service"], installer.unit_text(True, SECRET))
+        listener = units[installer.COMMANDS_UNIT]
+        self.assertIn("EnvironmentFile=" + main + "\n", listener)
+        self.assertIn("Type=simple\nRestart=on-failure\n", listener)
+        self.assertIn("-m snap_bot.owner_commands\n", listener, "guard:commands-unit")
+        for absent in (SECRET, " send ", " approve", "[Install]"):
+            self.assertNotIn(absent, listener)
         for path in plan["writes"]:
             installer.destination(path)
 
