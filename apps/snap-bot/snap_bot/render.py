@@ -45,6 +45,9 @@ from .font_admission import choose_font, fallback_fonts, font_paths
 from .weather import content_hash as calculate_content_hash
 
 ALLOWED_CONTENT = {"weather", "did_you_know"}
+# fact_labels() draws the identity (name, handle) first; card_filters() ends with the border.
+FRAMED_SKIP_LABELS = 2
+CARD_BORDER = "drawbox=x=80:y=340:w=920:h=1240:color=0xD6B26C:t=2"
 
 
 def video_filename(content_type: object) -> str:
@@ -168,9 +171,18 @@ def render(
     if is_fact:
         filters = background_filters(filters)
         filters.append(glow_filter(profile["fps"], profile["duration_seconds"]))
+    # Inside the frame the frame carries the identity and the gold border: the card
+    # draws neither (no second name/handle, no third gold box). Timings stay put.
+    framed_skip = FRAMED_SKIP_LABELS if brand else 0
+    if brand:
+        if labels[1][0] != "@rawwag_khalid" or "خالد" not in labels[0][0]:
+            raise ValueError("Unexpected fact identity labels")
+        filters.remove(CARD_BORDER)
     y: int | str
     label_font: Path
     for index, label in enumerate(labels):
+        if index < framed_skip:
+            continue
         text, size, y, color = label[:4]
         if len(text) > 110 or any(ord(c) < 32 for c in text):
             raise ValueError("Unsafe label")

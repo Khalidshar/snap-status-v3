@@ -390,6 +390,21 @@ class RealFactRenderTests(unittest.TestCase):
             from snap_bot.render_agents import check_media
 
             self.assertEqual(check_media(result, f.settings)["boxes"][:1], ["ftyp"])
+            # The frame alone carries the identity and the gold border.
+            design = Path(f.settings["spool_root"]) / f.job / "attempts/1/design"
+            (filters,) = design.glob("*/filters.txt")
+            graph = filters.read_text()
+            self.assertNotIn("drawbox=x=80:y=340", graph, "guard:framed-no-card-border")
+            drawn = [p.read_text() for p in design.glob("*/text*.txt")]
+            self.assertFalse(
+                any("rawwag" in t or "خالد" in t for t in drawn), "guard:framed-no-second-identity"
+            )
+            self.assertIn("هل تعلم", "".join(drawn))
+            source = Path(f.settings["input_root"]) / f.job / "attempts/1/input/content.json"
+            self.assertEqual(
+                len(result["safe_area"]["boxes"]),
+                len(fact_labels(json.loads(source.read_text()), f.settings["profile"])) - 2,
+            )
         finally:
             fixture.doCleanups()
 
