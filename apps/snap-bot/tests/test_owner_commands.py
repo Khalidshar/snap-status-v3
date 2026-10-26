@@ -112,6 +112,36 @@ class OwnerCommandTests(unittest.TestCase):
             self.assertIn("لم يصل إلى v3", self.studio.answer(text), text)
         self.assertEqual(self.runtime.appended, [], "guard:read-only")
 
+    def test_unknown_text_shows_the_menu(self):
+        self.assertIn("القائمة", self.studio.answer("لا توقف شي"))
+        self.assertIn("⏯ التحكم", self.studio.answer("لا توقف شي"))
+
+    def test_poll_replies_only_to_the_owner_and_advances(self):
+        calls = []
+
+        def transport(token, method, body=b""):
+            calls.append((method, json.loads(body or b"{}")))
+            if method == "getUpdates":
+                return [update(10, "الحالة"), update(11, "1", chat="99", sender="99")]
+            return {"message_id": 1, "chat": {"id": 77}}
+
+        offset = listener.poll_once("t", OWNER, self.studio, 3, transport)
+        self.assertEqual(offset, 12)
+        sends = [body for method, body in calls if method == "sendMessage"]
+        self.assertEqual(len(sends), 1)
+        self.assertEqual(sends[0]["chat_id"], OWNER, "guard:reply-owner")
+        self.assertEqual(calls[0][1]["offset"], 3)
+        self.assertEqual({m for m, _ in calls}, {"getUpdates", "sendMessage"})
+
+    def test_credentials_come_from_the_main_channel_only(self):
+        with patch.dict("os.environ", {"TG_TOKEN": "", "TG_CHAT": "77"}, clear=False):
+            with self.assertRaises(ValueError):
+                listener.credentials()
+        with patch.dict(
+            "os.environ", {"TG_TOKEN": "654321:" + "y" * 35, "TG_CHAT": "77"}, clear=False
+        ):
+            self.assertEqual(listener.credentials()[2], "khalid_s2ss_bot")
+
 
 class ClipCycleTests(unittest.TestCase):
     def setUp(self):
@@ -213,36 +243,6 @@ class ClipCycleTests(unittest.TestCase):
         method, kind = calls[-1]
         self.assertEqual(method, "sendPhoto")
         self.assertTrue(kind.startswith("multipart/form-data; boundary="))
-
-    def test_unknown_text_shows_the_menu(self):
-        self.assertIn("القائمة", self.studio.answer("لا توقف شي"))
-        self.assertIn("⏯ التحكم", self.studio.answer("لا توقف شي"))
-
-    def test_poll_replies_only_to_the_owner_and_advances(self):
-        calls = []
-
-        def transport(token, method, body=b""):
-            calls.append((method, json.loads(body or b"{}")))
-            if method == "getUpdates":
-                return [update(10, "الحالة"), update(11, "1", chat="99", sender="99")]
-            return {"message_id": 1, "chat": {"id": 77}}
-
-        offset = listener.poll_once("t", OWNER, self.studio, 3, transport)
-        self.assertEqual(offset, 12)
-        sends = [body for method, body in calls if method == "sendMessage"]
-        self.assertEqual(len(sends), 1)
-        self.assertEqual(sends[0]["chat_id"], OWNER, "guard:reply-owner")
-        self.assertEqual(calls[0][1]["offset"], 3)
-        self.assertEqual({m for m, _ in calls}, {"getUpdates", "sendMessage"})
-
-    def test_credentials_come_from_the_main_channel_only(self):
-        with patch.dict("os.environ", {"TG_TOKEN": "", "TG_CHAT": "77"}, clear=False):
-            with self.assertRaises(ValueError):
-                listener.credentials()
-        with patch.dict(
-            "os.environ", {"TG_TOKEN": "654321:" + "y" * 35, "TG_CHAT": "77"}, clear=False
-        ):
-            self.assertEqual(listener.credentials()[2], "khalid_s2ss_bot")
 
 
 if __name__ == "__main__":
