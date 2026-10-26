@@ -188,6 +188,12 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         config = Config.load(path)
         settings = tomllib.loads(text)["slice"]
         repo = Repository(config)
+        history = provenance.get("fact_history", []) if isinstance(provenance, dict) else []
+        if history:
+            from .did_you_know import seed_history
+
+            with repo.transaction() as db:
+                seed_history(db, history)
         local_nonce = uuid.uuid4().hex
         gateway = CommandGateway(config, repo, local_nonce)
         now = time.time()
