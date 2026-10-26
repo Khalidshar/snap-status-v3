@@ -45,7 +45,11 @@ def validate_target(
     if host is None or host not in hosts:
         raise PolicyDenied("HOST_NOT_ALLOWED")
     records = resolver(host, 443, type=socket.SOCK_STREAM)
-    addresses = sorted({record[4][0] for record in records})
+    # IPv4 first: a host without an IPv6 route (the AWS server) cannot reach a v6 answer.
+    addresses = sorted(
+        {record[4][0] for record in records},
+        key=lambda ip: (ipaddress.ip_address(ip).version, ip),
+    )
     if not addresses or any(not ipaddress.ip_address(ip).is_global for ip in addresses):
         raise PolicyDenied("NON_PUBLIC_ADDRESS")
     # All answers are checked; connection uses one fixed address with original TLS SNI.

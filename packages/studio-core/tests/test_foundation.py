@@ -414,6 +414,24 @@ class NetworkTests(unittest.TestCase):
             ("allowed.example", "8.8.8.8", "/a?q=x"),
         )
 
+    def test_ipv4_answer_preferred_over_ipv6(self):
+        # A v6 answer sorts first as text; the server has no IPv6 route.
+        answers = self.dns("2a03:2880:f00a:8:face:b00c:0:2") + self.dns("31.13.72.8")
+        self.assertEqual(
+            validate_target(
+                "https://allowed.example/", self.config.network_hosts, lambda *a, **k: answers
+            )[1],
+            "31.13.72.8",
+            "guard:ipv4-first",
+        )
+        only_v6 = self.dns("2a03:2880:f00a:8:face:b00c:0:2")
+        self.assertEqual(
+            validate_target(
+                "https://allowed.example/", self.config.network_hosts, lambda *a, **k: only_v6
+            )[1],
+            "2a03:2880:f00a:8:face:b00c:0:2",
+        )
+
     def fetch_mock(self, status=200, body=b"ok", length=None):
         response = Mock(status=status)
         response.getheader.side_effect = lambda key, default=None: (
