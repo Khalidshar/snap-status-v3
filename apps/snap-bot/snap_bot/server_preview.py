@@ -21,6 +21,7 @@ from typing import Any
 
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
+from .did_you_know import HISTORY_LIMIT, WINDOW_SECONDS
 from .send_evidence import failure_receipt, network_started
 from .send_reconciliation import receipt_allows
 from .telegram_egress import CHANNELS, EXPECTED_BOT, DeliveryConfirmed, deliver, main_bot
@@ -294,6 +295,59 @@ class Runtime:
         sync_directory(self.root)
         return value
 
+    def rendered_fact(self, preview_id: object) -> dict[str, Any] | None:
+        """The fact a kept preview carries, or None when the preview is gone or not a fact."""
+        if not isinstance(preview_id, str) or not re.fullmatch("[0-9a-f]{32}", preview_id):
+            return None
+        try:
+            directory = safe_path(self.root / "previews" / preview_id)
+            job = json.loads((directory / "preview.json").read_text())["job_id"]
+            if not re.fullmatch("[0-9a-f]{32}", job):
+                return None
+            path = directory / "state" / "renders" / job / "input" / "content.json"
+            content: dict[str, Any] = json.loads(safe_path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        if content.get("type") != "did_you_know" or not isinstance(content.get("body"), str):
+            return None
+        return content
+
+    def fact_history(self) -> list[dict[str, Any]]:
+        """Facts already sent (blocked 30 days from the send) or rendered and still sendable.
+
+        A send whose outcome is unknown counts as sent; one proven to have stopped
+        before the network releases its fact.
+        """
+        events = self.events()
+        sent: dict[str, float] = {}
+        for x in events:
+            if x["kind"] in ("ACK", "ACK_EVIDENCE_PENDING", "UNKNOWN"):
+                sent.setdefault(x["video_sha"], x["time"])
+        released = {x["video_sha"] for x in events if x["kind"] == "PRE_NETWORK_BLOCKED"}
+        entries: list[dict[str, Any]] = []
+        for x in events:
+            if x["kind"] != "RENDERED" or x["video_sha"] in released:
+                continue
+            content = self.rendered_fact(x.get("preview_id"))
+            if content is None:
+                continue
+            if x["video_sha"] in sent:
+                at = sent[x["video_sha"]]
+                until = at + WINDOW_SECONDS
+            else:
+                at = x["time"]
+                until = max(at, float(content["expires_at"]))
+            entries.append(
+                {
+                    "fact_id": content["fact_id"],
+                    "body_hash": hashlib.sha256(content["body"].encode()).hexdigest(),
+                    "category": content["category"],
+                    "at": at,
+                    "until": until,
+                }
+            )
+        return entries[-HISTORY_LIMIT:]
+
     def spent(self, video_sha: str) -> bool:
         return (self.root / "intents" / (video_sha + ".json")).exists() or any(
             x["kind"] == "INTENT" and x.get("video_sha") == video_sha for x in self.events()
@@ -304,7 +358,12 @@ class Runtime:
         with self.locked():
             identifier = uuid.uuid4().hex
             directory = self.root / "previews" / identifier
-            data = render_bundle(directory, {"run_id": identifier, "head_sha": commit})
+            provenance = {
+                "run_id": identifier,
+                "head_sha": commit,
+                "fact_history": self.fact_history(),
+            }
+            data = render_bundle(directory, provenance)
             video_sha = sha(data["render"]["video_sha256"])
             if any(
                 x["kind"] == "RENDERED" and x.get("video_sha") == video_sha for x in self.events()

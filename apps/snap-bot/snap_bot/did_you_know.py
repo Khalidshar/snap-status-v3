@@ -42,6 +42,9 @@ HOSTS = {
 }
 
 
+HISTORY_LIMIT = 1000
+
+
 class FactsExhausted(ValueError):
     pass
 
@@ -192,7 +195,58 @@ def reservation_state(
             blocked.add(("id", row["fact_id"]))
             blocked.add(("body", row["body_hash"]))
     last = json.loads(history[0]["content_json"])["category"] if history else None
+    seen = (
+        db.execute("SELECT 1 FROM sqlite_master WHERE name='fact_history'").fetchone() is not None
+    )
+    if seen:
+        rows = db.execute("SELECT * FROM fact_history ORDER BY at DESC").fetchall()
+        for row in rows:
+            if row["until"] > now:
+                blocked.add(("id", row["fact_id"]))
+                blocked.add(("body", row["body_hash"]))
+        if rows and (not history or rows[0]["at"] > history[0]["reserved_at"]):
+            last = rows[0]["category"]
     return blocked, last
+
+
+def history_entry(entry: Any) -> tuple[str, str, str, float, float]:
+    """One fact the owner was already shown, as the server ledger recorded it."""
+    if not isinstance(entry, dict) or set(entry) != {
+        "fact_id",
+        "body_hash",
+        "category",
+        "at",
+        "until",
+    }:
+        raise ValueError("Invalid fact history")
+    times = (entry["at"], entry["until"])
+    if (
+        not isinstance(entry["fact_id"], str)
+        or not re.fullmatch("dyk-[0-9]{2}", entry["fact_id"])
+        or not isinstance(entry["body_hash"], str)
+        or not re.fullmatch("[0-9a-f]{64}", entry["body_hash"])
+        or entry["category"] not in CATEGORIES
+        or any(type(t) not in (int, float) or not math.isfinite(t) for t in times)
+        or entry["until"] < entry["at"]
+    ):
+        raise ValueError("Invalid fact history")
+    return entry["fact_id"], entry["body_hash"], entry["category"], entry["at"], entry["until"]
+
+
+def seed_history(db: sqlite3.Connection, entries: Any) -> None:
+    """Carry facts shown in earlier renders into a fresh job database.
+
+    Each server render starts from an empty database, so without this every render
+    would reserve the same first fact. Rows block their fact until `until` and the
+    newest one sets the rotation category, through reservation_state.
+    """
+    if not isinstance(entries, list) or len(entries) > HISTORY_LIMIT:
+        raise ValueError("Invalid fact history")
+    rows = [history_entry(entry) for entry in entries]
+    db.execute(
+        "CREATE TABLE IF NOT EXISTS fact_history(fact_id TEXT NOT NULL,body_hash TEXT NOT NULL,category TEXT NOT NULL,at REAL NOT NULL,until REAL NOT NULL)"
+    )
+    db.executemany("INSERT INTO fact_history VALUES(?,?,?,?,?)", rows)
 
 
 def rotation_order(last: str | None) -> tuple[str, ...]:
