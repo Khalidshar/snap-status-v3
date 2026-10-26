@@ -1,11 +1,19 @@
-"""Manual Status server preview: live weather, no-network render, local owner preview.
+"""Manual Status server cycle: live weather, no-network render, owner approval, one send.
 
 Each run fetches the weather through its own transient egress unit (the only process with IP
 sockets, exact allowlisted hosts), renders in a transient unit without network, then records
-the validated preview under the state directory with an append-only ledger. There is no
-WhatsApp or Telegram path here: delivery is a separate, later owner decision.
+the validated preview under the state directory with an append-only ledger.
+
+Delivery mirrors the Snap server cycle: the owner approves one exact video SHA on the server,
+stating how many hours ago they last messaged the business number (WhatsApp only lets a
+business send a video inside 24 hours of the owner's last message; with no webhook here the
+owner's statement is that evidence, and Graph still refuses a closed window). The send unit
+then signs a short review, prepares the outbox, uploads and makes at most one messages POST.
+Each SHA is sent at most once; an unknown outcome is never retried.
 Usage (root, from the release venv):
   python -m status_bot.server_preview render
+  python -m status_bot.server_preview approve --video-sha <sha> --messaged-hours-ago <0-23>
+  python -m status_bot.server_preview send --video-sha <sha>     (madar-v3-status-send@<sha>)
 """
 
 import argparse
@@ -26,10 +34,15 @@ from pathlib import Path
 from typing import Any
 
 from studio_core.config import Config
+from studio_core.jobs import Repository
 from studio_core.network import NetworkClient
 from studio_core.storage import Storage
 
 from .pipeline import prepare, record_validation
+from .whatsapp_contract import DeliveryIdentity, sign_review
+from .whatsapp_contract import sha as contract_sha
+from .whatsapp_egress import DeliveryWorker, GraphCredentials, GraphTransport
+from .whatsapp_outbox import WhatsAppOutbox
 
 ROOT = Path(__file__).resolve().parents[3]
 STATE = Path("/var/lib/madar/status")
@@ -44,6 +57,18 @@ cfg=Config.load(Path(p['config']))
 print(json.dumps(render(cfg,p['settings'],p['job'],p['digest'])))
 """
 TOOLS = (("ffmpeg", "ffmpeg"), ("ffprobe", "ffprobe"), ("fc_query", "fc-query"))
+GRAPH_VERSION = "v21.0"
+REVIEW_SECONDS = 300
+WINDOW_SECONDS = 86400
+# The send unit's EnvironmentFile; values are read, never printed.
+WA_ENV = (
+    "WA_TOKEN",
+    "STATUS_WA_BUSINESS_ACCOUNT",
+    "STATUS_WA_PHONE_NUMBER",
+    "STATUS_WA_RECIPIENT",
+    "STATUS_WA_GATE_KEY",
+    "STATUS_WA_WEBHOOK_KEY",
+)
 COMMON = (
     "--property=NoNewPrivileges=yes",
     "--property=CapabilityBoundingSet=",
@@ -104,6 +129,9 @@ def run_config(run: Path) -> Path:
     replacements = {
         'data_root = "../.status-weather-state"': 'data_root = "' + str(run / "data") + '"',
         'socket = "egress.sock"': 'socket = "' + str(run / "egress.sock") + '"',
+        # The job stays owned for the content's hour, so the owner can review and send.
+        "lease_seconds = 600": "lease_seconds = 3600",
+        "NORMAL = 600": "NORMAL = 3600",
     }
     for old, new in replacements.items():
         if text.count(old) != 1:
@@ -320,6 +348,16 @@ class Runtime:
                 "delivery": "NOT_ATTEMPTED",
             }
             (preview / "evidence.json").write_text(json.dumps(evidence, indent=2))
+            # The lease stays root-only beside the preview: the send unit needs it to own the job.
+            claim = prepared["claim"]
+            lease = {
+                "run": identifier[:12],
+                "lease_token": claim.get("lease_token"),
+                "attempt": claim.get("attempt", 1),
+            }
+            fd = os.open(preview / "lease.json", os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            with os.fdopen(fd, "w") as stream:
+                json.dump(lease, stream)
             sync_directory(preview)
             self.append("RENDERED", **evidence, evidence_sha=digest(preview / "evidence.json"))
             return {
@@ -327,6 +365,135 @@ class Runtime:
                 "qa": result["qa"],
                 "network_isolation": result["network_isolation"],
             }
+
+    def rendered(self, video_sha: str) -> dict[str, Any]:
+        if not isinstance(video_sha, str) or not re.fullmatch("[0-9a-f]{64}", video_sha):
+            raise ValueError("Exact video SHA required")
+        records = [
+            x for x in self.events() if x["kind"] == "RENDERED" and x.get("video_sha") == video_sha
+        ]
+        if len(records) != 1:
+            raise ValueError("Unknown or ambiguous SHA")
+        record = records[0]
+        if not re.fullmatch("[0-9a-f]{32}", record["preview_id"]):
+            raise ValueError("Invalid preview")
+        preview = safe_path(self.root / "previews" / record["preview_id"])
+        if digest(preview / "weather.mp4") != video_sha:
+            raise ValueError("Preview changed")
+        return record
+
+    def spent(self, video_sha: str) -> bool:
+        return any(x["kind"] == "INTENT" and x.get("video_sha") == video_sha for x in self.events())
+
+    def approve(self, video_sha: str, hours_ago: int) -> dict[str, Any]:
+        """The owner watched this exact video and messaged the number `hours_ago` hours ago."""
+        if type(hours_ago) is not int or not 0 <= hours_ago <= 23:
+            raise ValueError("Last message to the number must be 0-23 hours ago")
+        with self.locked():
+            record = self.rendered(video_sha)
+            now = time.time()
+            if self.spent(video_sha):
+                raise ValueError("SHA already sent")
+            if any(
+                x["kind"] == "HUMAN_FRAME" and x.get("video_sha") == video_sha
+                for x in self.events()
+            ):
+                raise ValueError("SHA already approved")
+            if not now < record["expires_at"]:
+                raise ValueError("Content expired")
+            return self.append(
+                "HUMAN_FRAME",
+                video_sha=video_sha,
+                preview_id=record["preview_id"],
+                channel="whatsapp",
+                inbound_at=now - hours_ago * 3600,
+            )
+
+    def send(
+        self,
+        video_sha: str,
+        transport: Any = None,
+        environment: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        env = dict(os.environ if environment is None else environment)
+        with self.locked():
+            record = self.rendered(video_sha)
+            approvals = [
+                x
+                for x in self.events()
+                if x["kind"] == "HUMAN_FRAME" and x.get("video_sha") == video_sha
+            ]
+            if len(approvals) != 1 or approvals[0].get("channel") != "whatsapp":
+                raise ValueError("Owner approval required")
+            if self.spent(video_sha):
+                raise ValueError("SHA already sent")
+            now = time.time()
+            inbound = approvals[0]["inbound_at"]
+            if not 0 <= now - inbound < WINDOW_SECONDS:
+                raise ValueError("WhatsApp window closed: message the number, then render again")
+            missing = [name for name in WA_ENV if not env.get(name)]
+            if missing:
+                raise ValueError("WhatsApp environment incomplete: " + ",".join(missing))
+            identity = DeliveryIdentity(
+                env["STATUS_WA_BUSINESS_ACCOUNT"],
+                env["STATUS_WA_PHONE_NUMBER"],
+                env["STATUS_WA_RECIPIENT"],
+                env["STATUS_WA_GATE_KEY"].encode(),
+                env["STATUS_WA_WEBHOOK_KEY"].encode(),
+            )
+            preview = safe_path(self.root / "previews" / record["preview_id"])
+            lease = json.loads((preview / "lease.json").read_text())
+            if not re.fullmatch("[0-9a-f]{12}", str(lease.get("run"))):
+                raise ValueError("Invalid run")
+            run = safe_path(self.root / "runs" / lease["run"])
+            repo = Repository(Config.load(run / "weather.toml"))
+            outbox = WhatsAppOutbox(repo, identity)
+            job, attempt, token = record["job_id"], lease["attempt"], lease["lease_token"]
+            manifest, _ = outbox.bundle(job, attempt)
+            review = {
+                "app": "status-bot-v2",
+                "job_id": job,
+                "attempt": attempt,
+                "content_hash": manifest["content"]["content_hash"],
+                "video_sha256": video_sha,
+                "manifest_sha256": contract_sha(manifest),
+                "identity_binding": identity.binding,
+                "decision": "APPROVE_WHATSAPP_VIDEO",
+                "issued_at": now,
+                "expires_at": now + REVIEW_SECONDS,
+                "nonce": uuid.uuid4().hex,
+            }
+            signature = sign_review(review, identity.gate_key)
+            receipt = outbox.prepare(job, token, attempt, review, signature)
+            with repo.transaction() as db:
+                # The owner's stated last message stands in for the inbound webhook.
+                db.execute(
+                    "INSERT INTO whatsapp_windows VALUES(?,?) ON CONFLICT(identity_binding) "
+                    "DO UPDATE SET last_inbound_at=MAX(last_inbound_at,excluded.last_inbound_at)",
+                    (identity.binding, inbound),
+                )
+            fields = {"video_sha": video_sha, "outbox_id": receipt["id"], "channel": "whatsapp"}
+            self.append("INTENT", **fields)
+            if transport is None:
+                credentials = GraphCredentials(
+                    GRAPH_VERSION, identity.phone_number, identity.recipient, env["WA_TOKEN"]
+                )
+                transport = GraphTransport(credentials, enabled=True)
+            try:
+                result = DeliveryWorker(outbox, transport, enabled=True).deliver(
+                    receipt["id"], token, review, signature
+                )
+            except Exception as error:
+                # The outbox refused before its upload began: nothing reached Graph.
+                self.append("PRE_NETWORK_BLOCKED", **fields, code=type(error).__name__)
+                raise RuntimeError("Blocked before WhatsApp; SHA consumed, render again") from None
+            if result["state"] == "API_ACCEPTED":
+                return self.append("ACK", **fields, state=result["state"])
+            if result["state"] == "REJECTED":
+                self.append("REJECTED", **fields, code=result["error_code"])
+                raise RuntimeError("WhatsApp refused the message: " + str(result["error_code"]))
+            self.append("UNKNOWN", **fields, state=result["state"])
+            raise RuntimeError("WhatsApp outcome unknown; SHA permanently blocked, no retry")
 
 
 def state_root(value: str | None) -> Path:
@@ -340,13 +507,23 @@ def state_root(value: str | None) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("render",))
+    parser.add_argument("action", choices=("render", "approve", "send"))
+    parser.add_argument("--video-sha", default="")
+    parser.add_argument("--messaged-hours-ago", type=int)
     parser.add_argument("--state", help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
         if os.geteuid() != 0:
             raise ValueError("Root controller required")
-        value = Runtime(state_root(args.state)).render()
+        runtime = Runtime(state_root(args.state))
+        if args.action == "render":
+            value = runtime.render()
+        elif args.action == "approve":
+            if args.messaged_hours_ago is None:
+                raise ValueError("--messaged-hours-ago is required")
+            value = runtime.approve(args.video_sha, args.messaged_hours_ago)
+        else:
+            value = runtime.send(args.video_sha)
         print(json.dumps(value, ensure_ascii=False))
     except Exception as error:
         # No secrets exist in this path; the reason is needed to diagnose a blocked run.

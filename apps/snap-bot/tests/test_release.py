@@ -196,6 +196,22 @@ class InstallerTests(unittest.TestCase):
         for path in plan["writes"]:
             installer.destination(path)
 
+    def test_whatsapp_send_unit_is_opt_in_and_networked_alone(self):
+        plain = [Path(x).name for x in self.plan()["units"]]
+        self.assertNotIn(installer.WHATSAPP_UNIT, plain, "guard:whatsapp-opt-in")
+        env = "/etc/madar/status-whatsapp.env"
+        units = {Path(x).name: t for x, t in self.plan(whatsapp_env=env)["units"].items()}
+        text = units[installer.WHATSAPP_UNIT]
+        self.assertIn("EnvironmentFile=" + env + "\n", text)
+        self.assertIn(" -m status_bot.server_preview send --video-sha %i\n", text)
+        self.assertIn("RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6\n", text)
+        self.assertNotIn("PrivateNetwork=yes", text)
+        self.assertNotIn(SECRET, text, "guard:whatsapp-own-env")
+        # The render unit keeps no network, byte for byte.
+        self.assertEqual(units["madar-v3-status-render.service"], installer.status_unit_text())
+        self.assertIn("PrivateNetwork=yes", installer.status_unit_text())
+        self.assertTrue(blocked(self.plan, whatsapp_env=SECRET), "guard:whatsapp-env-distinct")
+
     def test_main_channel_refusals(self):
         main = "/etc/madar/snap-telegram-main.env"
         for kwargs in (
