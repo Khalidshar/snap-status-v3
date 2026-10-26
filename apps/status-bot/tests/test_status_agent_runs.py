@@ -3,12 +3,14 @@
 import copy
 import hashlib
 import json
+import struct
 import unittest
 from dataclasses import replace
 from unittest.mock import patch
 
 import test_status_weather as fixture_weather
 
+from status_bot.agents import CHAIN
 from status_bot.pipeline import prepare, record_validation
 from status_bot.render import render
 from status_bot.weather import SourceInvalid, content_hash
@@ -19,6 +21,14 @@ from studio_core.observability.watchdog import inspect_runtime
 from studio_core.storage import Storage
 
 FixtureClient = fixture_weather.FixtureClient
+# A minimal fast-start MP4 (ftyp, moov before mdat): the media agent checks the container.
+TINY_MP4 = (
+    struct.pack(">I4s4sI", 16, b"ftyp", b"isom", 0)
+    + struct.pack(">I4s", 8, b"moov")
+    + struct.pack(">I4s", 12, b"mdat")
+    + b"unit"
+)
+SILENT_QA = {"result": "PASS", "audio": "not_required_for_weather_card"}
 
 
 class StatusAgentRuns(unittest.TestCase):
@@ -31,13 +41,13 @@ class StatusAgentRuns(unittest.TestCase):
             self.cfg, self.settings, FixtureClient(), self.secret, "agent_1", synthetic=True
         )
         root = Storage(self.cfg).workspace(prepared["claim"]["id"])
-        data = b"unit-fixture-not-real-video"
+        data = TINY_MP4
         (root / "output/weather.mp4").write_bytes(data)
         result = {
             "job_id": prepared["claim"]["id"],
             "content_hash": prepared["content"]["content_hash"],
             "video_sha256": hashlib.sha256(data).hexdigest(),
-            "qa": {"result": "PASS"},
+            "qa": dict(SILENT_QA),
         }
         (root / "output/render-result.json").write_text(json.dumps(result))
         return prepared, root, result
@@ -48,7 +58,7 @@ class StatusAgentRuns(unittest.TestCase):
         repo = Repository(self.cfg)
         with repo.connect() as db:
             rows = [dict(row) for row in db.execute("SELECT * FROM agent_runs ORDER BY started_at")]
-        self.assertEqual([r["role"] for r in rows], ["fact_source", "arabic", "quality"])
+        self.assertEqual([r["role"] for r in rows], list(CHAIN), "guard:status-chain-order")
         self.assertTrue(
             all(
                 r["status"] == "SUCCEEDED" and r["app"] == "status-bot-v2" and r["attempt"] == 1
@@ -70,13 +80,13 @@ class StatusAgentRuns(unittest.TestCase):
                     self.cfg, self.settings, FixtureClient(), self.secret, event, synthetic=True
                 )
                 root = Storage(self.cfg).workspace(prepared["claim"]["id"])
-                data = b"video-unit-fixture"
+                data = TINY_MP4
                 video = root / "output/weather.mp4"
                 result = {
                     "job_id": prepared["claim"]["id"],
                     "content_hash": prepared["content"]["content_hash"],
                     "video_sha256": hashlib.sha256(data).hexdigest(),
-                    "qa": {"result": "PASS"},
+                    "qa": dict(SILENT_QA),
                 }
                 if change == "changed":
                     video.write_bytes(b"tampered")
