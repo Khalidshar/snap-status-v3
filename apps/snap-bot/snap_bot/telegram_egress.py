@@ -60,6 +60,7 @@ def api(token: str, method: str, body: bytes = b"", content_type: str = "applica
         "getMe",
         "getChat",
         "sendVideo",
+        "sendPhoto",
         "getUpdates",
         "getWebhookInfo",
         "sendMessage",

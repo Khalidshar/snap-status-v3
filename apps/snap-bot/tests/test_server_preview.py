@@ -220,6 +220,13 @@ class ServerPreviewTests(unittest.TestCase):
             return {"id": 77, "type": "private"}
         return {"message_id": 9, "chat": {"id": 77}}
 
+    def test_owner_chat_approves_the_main_channel_only(self):
+        with patch.object(server.os, "geteuid", return_value=0), self.assertRaises(ValueError):
+            self.runtime.approve(self.sha, "test", owner_chat=True)
+        with patch.object(server.os, "geteuid", return_value=1000), self.assertRaises(ValueError):
+            self.runtime.approve(self.sha, "main", owner_chat=True)
+        self.assertNotIn("HUMAN_FRAME", [e["kind"] for e in self.runtime.events()])
+
     def test_approval_names_one_channel(self):
         self.pin_main()
         approval = self.runtime.approve(self.sha, channel="main")
