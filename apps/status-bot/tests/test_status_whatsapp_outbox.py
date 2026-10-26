@@ -14,7 +14,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from test_status_weather import FixtureClient
+from test_status_weather import TINY_MP4, FixtureClient
 
 from status_bot.pipeline import prepare, record_validation
 from status_bot.whatsapp_contract import (
@@ -99,7 +99,7 @@ class WhatsAppContracts(unittest.TestCase):
         claim = value["claim"]
         job = claim["id"]
         root = Storage(self.cfg).workspace(job)
-        video = b"unit-fixture-bytes-not-an-actual-mp4"
+        video = TINY_MP4
         (root / "output/weather.mp4").write_bytes(video)
         result = {
             "job_id": job,

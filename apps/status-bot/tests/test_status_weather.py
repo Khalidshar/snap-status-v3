@@ -1,5 +1,6 @@
 import hashlib
 import json
+import struct
 import tempfile
 import time
 import unittest
@@ -16,6 +17,14 @@ from status_bot.weather import SourceInvalid, content_hash, parse
 from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.storage import Storage
+
+# A minimal fast-start MP4 (ftyp, moov before mdat): the media agent checks the container.
+TINY_MP4 = (
+    struct.pack(">I4s4sI", 16, b"ftyp", b"isom", 0)
+    + struct.pack(">I4s", 8, b"moov")
+    + struct.pack(">I4s", 12, b"mdat")
+    + b"unit"
+)
 
 
 class FixtureClient:
@@ -75,7 +84,7 @@ class StatusWeather(unittest.TestCase):
         value = prepare(
             self.cfg, self.settings, FixtureClient(), self.secret, "weather_1", synthetic=True
         )
-        video = b"unit-fixture-bytes-not-a-real-render"
+        video = TINY_MP4
         (Storage(self.cfg).workspace(value["claim"]["id"]) / "output/weather.mp4").write_bytes(
             video
         )
@@ -83,7 +92,11 @@ class StatusWeather(unittest.TestCase):
             "job_id": value["claim"]["id"],
             "content_hash": value["content"]["content_hash"],
             "video_sha256": hashlib.sha256(video).hexdigest(),
-            "qa": {"result": "PASS", "visual_review": "PENDING"},
+            "qa": {
+                "result": "PASS",
+                "audio": "not_required_for_weather_card",
+                "visual_review": "PENDING",
+            },
         }
         (
             Storage(self.cfg).workspace(value["claim"]["id"]) / "output/render-result.json"
