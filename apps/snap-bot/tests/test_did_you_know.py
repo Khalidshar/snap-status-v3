@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import threading
@@ -7,6 +8,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+from snap_bot.content_agents import AgentRejected, check_memory
 from snap_bot.did_you_know import (
     CATALOG,
     WINDOW_SECONDS,
@@ -14,6 +16,7 @@ from snap_bot.did_you_know import (
     choose_fact,
     load_facts,
     make_content,
+    seed_history,
     validate_content,
     validate_fact,
 )
@@ -233,6 +236,63 @@ class CuratedFactsTests(unittest.TestCase):
         self.assertEqual(
             categories, ["animals", "body", "geography", "technology", "space", "animals"]
         )
+
+    def seen(self, fact, at, until):
+        entry = {
+            "fact_id": fact["id"],
+            "body_hash": hashlib.sha256(fact["text"].encode()).hexdigest(),
+            "category": fact["category"],
+            "at": at,
+            "until": until,
+        }
+        with self.repo.transaction() as db:
+            seed_history(db, [entry])
+        return entry
+
+    def test_fact_sent_from_an_earlier_database_is_not_chosen_again(self):
+        # The server renders each clip in a fresh database: the ledger history is all it knows.
+        first = next(f for f in self.facts if f["category"] == "animals")
+        self.seen(first, self.now - 60, self.now - 60 + WINDOW_SECONDS)
+        chosen = self.choose(self.claim())
+        self.assertNotEqual(chosen["fact_id"], first["id"], "guard:ledger-history-blocks-repeat")
+        self.assertEqual(chosen["category"], "body", "guard:ledger-history-rotates")
+
+    def test_old_history_only_sets_rotation(self):
+        first = next(f for f in self.facts if f["category"] == "animals")
+        self.seen(first, self.now - WINDOW_SECONDS - 60, self.now - 60)
+        self.assertEqual(self.choose(self.claim())["category"], "body")
+
+    def test_memory_agent_refuses_a_fact_the_ledger_already_sent(self):
+        claim = self.claim()
+        content = self.choose(claim)
+        fact = next(f for f in self.facts if f["id"] == content["fact_id"])
+        self.seen(fact, self.now - 60, self.now + WINDOW_SECONDS)
+        with self.repo.connect() as db, self.assertRaises(AgentRejected):
+            check_memory(db, claim["id"], content)
+
+    def test_history_entries_are_validated(self):
+        fact = self.facts[0]
+        good = {
+            "fact_id": fact["id"],
+            "body_hash": "a" * 64,
+            "category": fact["category"],
+            "at": 1.0,
+            "until": 2.0,
+        }
+        for bad in (
+            {**good, "fact_id": "x"},
+            {**good, "body_hash": "z" * 64},
+            {**good, "category": "religion"},
+            {**good, "until": 0.5},
+            {**good, "at": float("nan")},
+            {**good, "extra": 1},
+        ):
+            with (
+                self.subTest(bad=bad),
+                self.repo.transaction() as db,
+                self.assertRaises(ValueError),
+            ):
+                seed_history(db, [bad])
 
     def test_lost_owner_cannot_reserve_or_record_event(self):
         first = self.claim()

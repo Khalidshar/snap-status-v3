@@ -306,6 +306,78 @@ class ServerPreviewTests(unittest.TestCase):
         self.assertEqual(self.fixture.calls, [])
 
 
+@unittest.skipUnless(os.name == "posix", "Linux locking and fsync")
+class FactHistoryTests(unittest.TestCase):
+    """The ledger tells each fresh render which facts the owner has already seen."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.runtime = server.Runtime(Path(self.temp.name))
+        (self.runtime.root / "previews").mkdir(parents=True)
+
+    def rendered(self, n, fact_id, category, expires_at):
+        preview, job, video = f"{n:032x}", f"{n + 100:032x}", f"{n:064x}"
+        directory = self.runtime.root / "previews" / preview
+        content = directory / "state/renders" / job / "input"
+        content.mkdir(parents=True)
+        (directory / "preview.json").write_text(json.dumps({"job_id": job}))
+        (content / "content.json").write_text(
+            json.dumps(
+                {
+                    "type": "did_you_know",
+                    "fact_id": fact_id,
+                    "category": category,
+                    "body": "نص " + fact_id,
+                    "expires_at": expires_at,
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        self.runtime.append("RENDERED", video_sha=video, preview_id=preview)
+        return video
+
+    def test_sent_pending_and_released_renders(self):
+        sent = self.rendered(1, "dyk-01", "animals", 1.0)
+        self.runtime.append("ACK", video_sha=sent, message_id=1, bot="b", channel="main")
+        unknown = self.rendered(2, "dyk-02", "body", 1.0)
+        self.runtime.append("UNKNOWN", video_sha=unknown)
+        stopped = self.rendered(3, "dyk-03", "space", 1.0)
+        self.runtime.append("PRE_NETWORK_BLOCKED", video_sha=stopped)
+        self.rendered(4, "dyk-04", "geography", 4_000_000_000.0)
+        history = {h["fact_id"]: h for h in self.runtime.fact_history()}
+        self.assertEqual(
+            set(history), {"dyk-01", "dyk-02", "dyk-04"}, "guard:stopped-send-releases"
+        )
+        for fact in ("dyk-01", "dyk-02"):
+            row = history[fact]
+            self.assertAlmostEqual(row["until"] - row["at"], server.WINDOW_SECONDS)
+        self.assertEqual(history["dyk-04"]["until"], 4_000_000_000.0)
+
+    def test_missing_or_foreign_previews_are_skipped(self):
+        self.runtime.append("RENDERED", video_sha="e" * 64, preview_id="f" * 32)
+        self.runtime.append("RENDERED", video_sha="d" * 64, preview_id="../escape")
+        self.assertEqual(self.runtime.fact_history(), [])
+
+    def test_render_passes_history_to_the_renderer(self):
+        sent = self.rendered(5, "dyk-05", "technology", 1.0)
+        self.runtime.append("ACK", video_sha=sent, message_id=2, bot="b", channel="main")
+        seen = {}
+
+        def render(path, provenance):
+            seen.update(provenance)
+            raise RuntimeError("stop after provenance")
+
+        with (
+            patch.object(server, "source_info", return_value=("a" * 40, 1000)),
+            patch.object(server, "render_bundle", side_effect=render),
+            self.assertRaises(RuntimeError),
+        ):
+            self.runtime.render()
+        self.assertEqual([h["fact_id"] for h in seen["fact_history"]], ["dyk-05"])
+
+
 class OwnerAuthorityTests(unittest.TestCase):
     def test_owner_uid_required(self):
         for euid, raw in ((1000, "1000"), (0, "1001"), (0, ""), (0, "01000")):
