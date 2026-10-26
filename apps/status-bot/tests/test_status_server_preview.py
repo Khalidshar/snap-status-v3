@@ -157,8 +157,17 @@ class RenderFlowTests(unittest.TestCase):
         preview = self.runtime.root / "previews" / value["preview_id"]
         self.assertEqual(
             sorted(p.name for p in preview.iterdir()),
-            ["evidence.json", "manifest.json", "preview.png", "render-result.json", "weather.mp4"],
+            [
+                "evidence.json",
+                "lease.json",
+                "manifest.json",
+                "preview.png",
+                "render-result.json",
+                "weather.mp4",
+            ],
         )
+        # The send unit's lease to the job stays root-only.
+        self.assertEqual((preview / "lease.json").stat().st_mode & 0o777, 0o600)
         (event,) = self.runtime.events()
         self.assertEqual((event["kind"], event["video_sha"]), ("RENDERED", self.sha))
 

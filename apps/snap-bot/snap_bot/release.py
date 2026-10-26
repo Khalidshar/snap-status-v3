@@ -9,10 +9,12 @@ Ported from the lab (snap-bot-v2 tools/install_madar_release.py). Differences:
   and v3 units fail closed on a lab release (no snap_bot module).
 The Snap state directory and its append-only ledger stay shared, so a video SHA consumed by
 either version stays consumed for both. Status keeps its own state directory and has a
-render-only unit: no Status delivery unit exists.
+render unit without network; its WhatsApp send unit is opt-in (below).
 The owner's main bot is opt-in: --telegram-main-env and --telegram-main-bot together add a
 separate madar-v3-snap-send-main@ unit and record the pinned bot in the release manifest.
 The test unit is unchanged, so the main bot never receives a send meant for the test bot.
+WhatsApp is opt-in too: --whatsapp-env adds madar-v3-status-send@, the only Status unit with
+network, which sends one owner-approved weather video by SHA.
 
 Stdlib only: it runs from a clean source checkout before any venv exists:
   sudo python3 apps/snap-bot/snap_bot/release.py --source <checkout> --commit <40-hex> \
@@ -43,6 +45,7 @@ UNITS = (
 )
 MAIN_UNIT = "madar-v3-snap-send-main@.service"
 COMMANDS_UNIT = "madar-v3-snap-commands.service"
+WHATSAPP_UNIT = "madar-v3-status-send@.service"
 TEST_BOT = "khalid_snap_v2_test_bot"
 BOT_NAME = r"[A-Za-z][A-Za-z0-9_]{1,29}[Bb][Oo][Tt]"
 LAYOUT = "v3"
@@ -69,7 +72,12 @@ def destination(path: str | Path, allow_current: bool = False) -> Path:
     if not path.is_absolute() or ".." in path.parts:
         raise ValueError("Destination outside allowed roots")
     allowed = path in (BASE, STATE) or BASE in path.parents or STATE in path.parents
-    unit = path.parent == UNIT_DIR and path.name in (*UNITS, MAIN_UNIT, COMMANDS_UNIT)
+    unit = path.parent == UNIT_DIR and path.name in (
+        *UNITS,
+        MAIN_UNIT,
+        COMMANDS_UNIT,
+        WHATSAPP_UNIT,
+    )
     if not (allowed or unit):
         raise ValueError("Destination outside allowed roots")
     for item in (path, *path.parents):
@@ -243,6 +251,29 @@ ExecStart=/opt/madar/current/.venv/bin/python -m status_bot.server_preview rende
 """
 
 
+def whatsapp_unit_text(whatsapp_env: str) -> str:
+    """One owner-approved WhatsApp send by SHA. Network only here, never in the render unit."""
+    if not whatsapp_env:
+        raise ValueError("WhatsApp environment file required")
+    return (
+        status_unit_text()
+        .replace(
+            "Description=Madar v3 manual Status weather preview (no delivery)\n",
+            "Description=Madar v3 manual Status WhatsApp send\n",
+        )
+        .replace(
+            "PrivateNetwork=yes\nRestrictAddressFamilies=AF_UNIX\n",
+            "RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6\nEnvironmentFile="
+            + whatsapp_env
+            + "\n",
+        )
+        .replace(
+            " -m status_bot.server_preview render\n",
+            " -m status_bot.server_preview send --video-sha %i\n",
+        )
+    )
+
+
 def unit_for(name: str, telegram_env: str) -> str:
     if name.startswith("madar-v3-status-"):
         return status_unit_text()
@@ -261,6 +292,7 @@ def build_plan(
     owner: str = "ubuntu",
     main_env: str = "",
     main_bot_name: str = "",
+    whatsapp_env: str = "",
 ) -> dict[str, Any]:
     source = Path(source).resolve()
     if not re.fullmatch("[0-9a-f]{40}", commit):
@@ -288,6 +320,11 @@ def build_plan(
         channels["main"] = {"bot": main_bot(main_bot_name)}
         wanted[MAIN_UNIT] = main_unit_text(main_secret)
         wanted[COMMANDS_UNIT] = commands_unit_text(main_secret)
+    if whatsapp_env:
+        whatsapp_secret = str(telegram_file(whatsapp_env))
+        if whatsapp_secret in (secret, main_env):
+            raise ValueError("WhatsApp environment file must be its own")
+        wanted[WHATSAPP_UNIT] = whatsapp_unit_text(whatsapp_secret)
     units = {}
     for name, text in wanted.items():
         target = destination(UNIT_DIR / name)
@@ -440,6 +477,7 @@ def main() -> None:
     parser.add_argument("--telegram-env", default="")
     parser.add_argument("--telegram-main-env", default="")
     parser.add_argument("--telegram-main-bot", default="")
+    parser.add_argument("--whatsapp-env", default="")
     parser.add_argument("--owner", default="ubuntu")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--activate-only", action="store_true")
@@ -460,6 +498,7 @@ def main() -> None:
                 args.owner,
                 args.telegram_main_env,
                 args.telegram_main_bot,
+                args.whatsapp_env,
             )
             result = plan if args.dry_run else execute(plan)
         print(json.dumps(result, indent=2))

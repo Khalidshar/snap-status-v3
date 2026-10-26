@@ -87,7 +87,15 @@ def status_render(release: Path, state: Path) -> dict[str, Any]:
         or len(ledger) != 1
         or json.loads(ledger[0])["video_sha"] != value["video_sha"]
         or sorted(path.name for path in preview.iterdir())
-        != ["evidence.json", "manifest.json", "preview.png", "render-result.json", "weather.mp4"]
+        != [
+            "evidence.json",
+            "lease.json",
+            "manifest.json",
+            "preview.png",
+            "render-result.json",
+            "weather.mp4",
+        ]
+        or (preview / "lease.json").stat().st_mode & 0o777 != 0o600
     ):
         raise RuntimeError("Unexpected Status preview: " + json.dumps(value, ensure_ascii=False))
     units = run(["systemctl", "list-units", "--all", "--no-legend", "madar-v3-status-*"])
