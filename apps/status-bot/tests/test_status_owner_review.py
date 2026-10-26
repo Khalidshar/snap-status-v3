@@ -404,7 +404,7 @@ class ReviewContracts(unittest.TestCase):
         self.assertEqual(self.request(self.owner, "POST", "/review", body)[0], 303)
         self.assertEqual(
             self.request(self.owner, path="/review/" + ticket + "/media")[2],
-            b"unit-fixture-bytes-not-an-actual-mp4",
+            fixtures.TINY_MP4,
         )
         body = urlencode({"csrf": self.csrf, "decision": "approve", "watched": "yes"}).encode()
         status, _, data = self.request(self.owner, "POST", "/review/" + ticket + "/decision", body)

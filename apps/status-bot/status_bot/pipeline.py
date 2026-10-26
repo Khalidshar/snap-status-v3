@@ -1,4 +1,4 @@
-"""Status V2 weather slice. Owned computation, no scheduler or external delivery."""
+"""Status weather slice: the eighteen-role chain in Snap's order. No scheduler or delivery."""
 
 import hashlib
 import json
@@ -6,6 +6,7 @@ import os
 import re
 import stat
 import time
+from functools import partial
 from typing import Any
 
 from studio_core.config import Config
@@ -15,7 +16,20 @@ from studio_core.jobs.gateway import CommandGateway
 from studio_core.observability.agent_runs import digest, run_agent
 from studio_core.storage import Storage
 
-from .agents import arabic_output, contract, source_output, source_request, weather_payload
+from .agents import (
+    CONTENT_CHECKS,
+    RENDER_CHECKS,
+    CheckRejected,
+    arabic_output,
+    check_media,
+    check_voice,
+    contract,
+    judge,
+    run_content_check,
+    source_output,
+    source_request,
+    weather_payload,
+)
 from .weather import content_hash, fetch_weather
 
 
@@ -96,6 +110,23 @@ def prepare(
             weather_payload,
             arabic_output,
         )
+        for role in CONTENT_CHECKS:
+
+            def check(role: str = role, payload: Any = checked) -> Any:
+                with repo.owned_transaction(job["id"], token, attempt=attempt) as db:
+                    return run_content_check(role, db, job["id"], payload, settings["city"])
+
+            checked = run_agent(
+                repo,
+                job["id"],
+                token,
+                attempt,
+                contract(role),
+                checked,
+                check,
+                weather_payload,
+                arabic_output,
+            )
         locks.assert_holder(lease)
         # Bind the filesystem commit to the exact current owner and attempt.
         with repo.owned_transaction(job["id"], token, attempt=attempt):
@@ -218,6 +249,65 @@ def _record_validation(
             "visual_review": "PENDING",
         }
 
+    def rendered(value: Any) -> bool:
+        return (
+            isinstance(value, dict)
+            and value.get("job_id") == job
+            and value.get("content_hash") == prepared["content"]["content_hash"]
+            and value.get("qa", {}).get("result") == "PASS"
+            and isinstance(value.get("video_sha256"), str)
+            and re.fullmatch("[0-9a-f]{64}", value["video_sha256"]) is not None
+        )
+
+    def unchanged(value: Any, original: Any) -> bool:
+        return digest(value) == digest(original)
+
+    def video_bytes() -> bytes:
+        video = root / "output/weather.mp4"
+        if video.is_symlink() or not video.is_file():
+            raise CheckRejected("MEDIA_VIDEO_MISSING")
+        descriptor = os.open(video, os.O_RDONLY | os.O_NOFOLLOW)
+        with os.fdopen(descriptor, "rb") as stream:
+            data = stream.read(50_000_001)
+        if not 0 < len(data) <= 50_000_000:
+            raise CheckRejected("MEDIA_SIZE_INVALID")
+        return data
+
+    def render_check(role: str) -> Any:
+        if role == "voice":
+            check_voice(result)
+        elif role == "media_verification":
+            check_media(result, video_bytes())
+        else:
+            with repo.owned_transaction(job, token, attempt=attempt) as db:
+                judge(db, job, attempt)
+        return result
+
+    # الإخراج: the renderer's result is the design output; lineage to translation is gated.
+    run_agent(
+        repo,
+        job,
+        token,
+        attempt,
+        contract("design"),
+        result,
+        lambda: result,
+        rendered,
+        unchanged,
+        bind_dependency=False,
+    )
+    for role in RENDER_CHECKS:
+        run_agent(
+            repo,
+            job,
+            token,
+            attempt,
+            contract(role),
+            result,
+            partial(render_check, role),
+            rendered,
+            unchanged,
+        )
     checked = run_agent(
         repo,
         job,
@@ -229,6 +319,22 @@ def _record_validation(
         valid_input,
         lambda value, original: value == accept(),
         bind_dependency=False,
+    )
+
+    def decide() -> dict[str, Any]:
+        # Status has no delivery path yet: the gate only ever asks for the owner.
+        return {"delivery_decision": "OWNER_REVIEW_REQUIRED", "external_delivery": False}
+
+    run_agent(
+        repo,
+        job,
+        token,
+        attempt,
+        contract("final"),
+        checked,
+        decide,
+        lambda value: value == accept(),
+        lambda value, original: value == decide(),
     )
     with repo.owned_transaction(job, token, attempt=attempt) as db:
         repo.transition(job, token, "VALIDATING", {"qa": checked["qa"]}, db=db)

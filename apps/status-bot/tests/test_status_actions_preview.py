@@ -181,14 +181,17 @@ class BundleTests(unittest.TestCase):
         )
         self.job = prepared["claim"]["id"]
         root = Storage(config).workspace(self.job)
-        self.video = b"reviewed synthetic weather bytes"
+        # A minimal fast-start MP4: the media agent checks the container.
+        self.video = (
+            b"\x00\x00\x00\x10ftypisom\x00\x00\x00\x00\x00\x00\x00\x08moov\x00\x00\x00\x0cmdatview"
+        )
         (root / "output/weather.mp4").write_bytes(self.video)
         (root / "output/preview.png").write_bytes(b"preview")
         result = {
             "job_id": self.job,
             "content_hash": prepared["content"]["content_hash"],
             "video_sha256": hashlib.sha256(self.video).hexdigest(),
-            "qa": {"result": "PASS"},
+            "qa": {"result": "PASS", "audio": "not_required_for_weather_card"},
             "network_isolation": ISOLATION,
             "glyph_coverage": "PASS",
         }
