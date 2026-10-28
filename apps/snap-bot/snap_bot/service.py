@@ -161,7 +161,7 @@ def execute(
             raise TelemetryReconciliationRequired("Recovery is not activated for this service")
         repo.transition(job["id"], token, "RESEARCHING")
         source = lambda: (  # noqa: E731  # kept as reviewed in the lab
-            choose_fact(repo, job["id"], token, attempt)
+            choose_fact(repo, job["id"], token, attempt, kind=settings.get("kind", "did_you_know"))
             if job["command"] == "did_you_know"
             else fetch_weather(
                 ResilientClient(

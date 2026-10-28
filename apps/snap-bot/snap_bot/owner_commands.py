@@ -36,8 +36,12 @@ PENDING = STATE / "commands" / "pending.json"
 FRESH_SECONDS = 900
 NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم."
 READ_ONLY = {"status", "last", "agents", "schedule", "report", "dash"}
-ACTIONS = {"facts", "preview", "send", "cancel"}
+ACTIONS = {"facts", "preview", "send", "cancel", "tech", "style", "funny", "night"}
 RENDER_UNIT = "madar-v3-snap-render.service"
+KIND_RENDER_UNIT = "madar-v3-snap-render@{kind}.service"
+# Menu command key -> content kind it renders.
+RENDER_KINDS = {"facts": "did_you_know", "tech": "tech", "style": "style", "funny": "funny",
+                "night": "night"}  # fmt: skip
 SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
 NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
 
@@ -222,6 +226,8 @@ class Studio:
             return None
         return {
             "sha": event["video_sha"],
+            "kind": content.get("kind", "did_you_know"),
+            "title": content.get("title", "هل تعلم؟"),
             "body": content.get("body", ""),
             "category": content.get("category", ""),
             "expires_at": float(data["expires_at"]),
@@ -231,7 +237,8 @@ class Studio:
     def describe(self, clip: dict[str, Any]) -> str:
         minutes = max(0, int((clip["expires_at"] - time.time()) / 60))
         return (
-            "💡 هل تعلم؟\n"
+            str(clip["title"])
+            + "\n"
             + str(clip["body"])
             + "\n\nالمقطع "
             + str(clip["sha"])[:8]
@@ -240,14 +247,33 @@ class Studio:
             + " دقيقة.\nاكتب «معاينة» لترى صورته، أو «أرسل» لإرساله، أو «ألغِ»."
         )
 
-    def facts(self) -> str:
+    def make(self, kind: str) -> str:
+        """Render one clip of this kind, or show the pending clip when it is the same kind."""
         clip = self.pending()
-        if clip:
+        if clip and clip["kind"] == kind:
             return "عندك مقطع ينتظر قرارك:\n\n" + self.describe(clip)
-        if self.start(RENDER_UNIT) != 0:
-            return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص madar-v3-snap-render على السيرفر."
+        unit = RENDER_UNIT if kind == "did_you_know" else KIND_RENDER_UNIT.format(kind=kind)
+        if self.start(unit) != 0:
+            return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص " + unit + " على السيرفر."
         clip = self.pending()
-        return self.describe(clip) if clip else "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
+        if not clip or clip["kind"] != kind:
+            return "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
+        return self.describe(clip)
+
+    def facts(self) -> str:
+        return self.make("did_you_know")
+
+    def tech(self) -> str:
+        return self.make("tech")
+
+    def style(self) -> str:
+        return self.make("style")
+
+    def funny(self) -> str:
+        return self.make("funny")
+
+    def night(self) -> str:
+        return self.make("night")
 
     def preview(self) -> Any:
         clip = self.pending()

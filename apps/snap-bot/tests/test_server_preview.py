@@ -220,6 +220,22 @@ class ServerPreviewTests(unittest.TestCase):
             return {"id": 77, "type": "private"}
         return {"message_id": 9, "chat": {"id": 77}}
 
+    def test_render_names_its_kind_and_refuses_unknown_ones(self):
+        with self.assertRaises(ValueError):
+            self.runtime.render("nope")
+        seen = {}
+
+        def capture(path, provenance):
+            seen.update(provenance)
+            raise RuntimeError("stop after provenance")
+
+        with (
+            patch.object(server, "render_bundle", side_effect=capture),
+            self.assertRaises(RuntimeError),
+        ):
+            self.runtime.render("tech")
+        self.assertEqual(seen["kind"], "tech")
+
     def test_owner_chat_approves_the_main_channel_only(self):
         with patch.object(server.os, "geteuid", return_value=0), self.assertRaises(ValueError):
             self.runtime.approve(self.sha, "test", owner_chat=True)

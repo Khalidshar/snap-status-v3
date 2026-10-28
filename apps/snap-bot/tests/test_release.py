@@ -128,7 +128,10 @@ class InstallerTests(unittest.TestCase):
         self.assertNotIn(str(installer.BASE / "current"), plan["writes"], "guard:no-activation")
         self.assertIs(plan["activates"], False)
         self.assertEqual(plan["systemd_actions"], [])
-        self.assertEqual(sorted(Path(x).name for x in plan["units"]), sorted(installer.UNITS))
+        self.assertEqual(
+            sorted(Path(x).name for x in plan["units"]),
+            sorted([*installer.UNITS, installer.KIND_RENDER_UNIT]),
+        )
         release = installer.RELEASES / self.commit
         self.assertEqual(
             plan["path_file"].splitlines(),
@@ -211,6 +214,14 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(units["madar-v3-status-render.service"], installer.status_unit_text())
         self.assertIn("PrivateNetwork=yes", installer.status_unit_text())
         self.assertTrue(blocked(self.plan, whatsapp_env=SECRET), "guard:whatsapp-env-distinct")
+
+    def test_kind_render_unit_renders_one_kind_without_network(self):
+        units = {Path(x).name: t for x, t in self.plan()["units"].items()}
+        text = units[installer.KIND_RENDER_UNIT]
+        self.assertIn(" -m snap_bot.server_preview render --kind %i\n", text)
+        self.assertIn("PrivateNetwork=yes", text, "guard:kind-render-no-network")
+        self.assertNotIn("EnvironmentFile", text)
+        self.assertEqual(units["madar-v3-snap-render.service"], installer.unit_text())
 
     def test_main_channel_refusals(self):
         main = "/etc/madar/snap-telegram-main.env"

@@ -187,6 +187,14 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         path.write_text(text, encoding="utf-8")
         config = Config.load(path)
         settings = tomllib.loads(text)["slice"]
+        from .did_you_know import DEFAULT_KIND, KINDS
+
+        kind = (
+            provenance.get("kind", DEFAULT_KIND) if isinstance(provenance, dict) else DEFAULT_KIND
+        )
+        if kind not in KINDS:
+            raise ValueError("Unknown content kind")
+        settings["kind"] = kind
         repo = Repository(config)
         history = provenance.get("fact_history", []) if isinstance(provenance, dict) else []
         if history:

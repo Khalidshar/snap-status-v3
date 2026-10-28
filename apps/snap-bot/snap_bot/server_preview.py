@@ -21,7 +21,7 @@ from typing import Any
 
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
-from .did_you_know import HISTORY_LIMIT, WINDOW_SECONDS
+from .did_you_know import DEFAULT_KIND, HISTORY_LIMIT, KINDS, WINDOW_SECONDS
 from .send_evidence import failure_receipt, network_started
 from .send_reconciliation import receipt_allows
 from .telegram_egress import CHANNELS, EXPECTED_BOT, DeliveryConfirmed, deliver, main_bot
@@ -354,7 +354,9 @@ class Runtime:
             x["kind"] == "INTENT" and x.get("video_sha") == video_sha for x in self.events()
         )
 
-    def render(self) -> Any:
+    def render(self, kind: str = DEFAULT_KIND) -> Any:
+        if kind not in KINDS:
+            raise ValueError("Unknown content kind")
         commit, _ = source_info()
         with self.locked():
             identifier = uuid.uuid4().hex
@@ -363,6 +365,7 @@ class Runtime:
                 "run_id": identifier,
                 "head_sha": commit,
                 "fact_history": self.fact_history(),
+                "kind": kind,
             }
             data = render_bundle(directory, provenance)
             video_sha = sha(data["render"]["video_sha256"])
@@ -534,13 +537,14 @@ def main() -> None:
     parser.add_argument("action", choices=("render", "approve", "send"))
     parser.add_argument("--video-sha")
     parser.add_argument("--channel", choices=CHANNELS, default="test")
+    parser.add_argument("--kind", choices=sorted(KINDS), default=DEFAULT_KIND)
     args = parser.parse_args()
     try:
         if os.geteuid() != 0:
             raise ValueError("Root controller required")
         runtime = Runtime()
         value = (
-            runtime.render()
+            runtime.render(args.kind)
             if args.action == "render"
             else getattr(runtime, args.action)(sha(args.video_sha), channel=args.channel)
         )
