@@ -217,7 +217,9 @@ SOURCE_ITEM_HASHES = {
         "c78479fad54ea53cf30668baf89613f19d942ad9de61e06a2705fce34594eca8",
         "268d777f9869070f7697ca6db494262c2291d7119a51e1f1dfc76468f6299b4a",
         "afb28ac1cda77ac4897c5d453a418327933e961b71e3c704422256837a84dbfd",
-        "89b636a86d6fd012f723f1e8d3a44489b7b56ef83b814c37ded188a43545a646",
+        # Owner-approved 2026-10-29: only the ID and source number 2319 -> 2318 changed;
+        # the source copy hashed 89b636a8... before that correction.
+        "6dcbf2d4e4b205d27d90764a044a3a99099c268233b0acc708dc1f9b90f64ae6",
         "5f1e2c0fa523b6450a822d798b1d2df48d264f2a3c8e38f84f6a440d031b5c83",
         "94fe34c32af8a85de6f8eed6adfa3d43001caf3c77235eace822f70717e2a13a",
     ],
