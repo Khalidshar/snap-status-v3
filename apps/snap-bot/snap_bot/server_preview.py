@@ -344,6 +344,7 @@ class Runtime:
                     "category": content["category"],
                     "at": at,
                     "until": until,
+                    **({"kind": content["kind"]} if "kind" in content else {}),
                 }
             )
         return entries[-HISTORY_LIMIT:]

@@ -16,7 +16,18 @@ from typing import Any
 from studio_core.jobs import Repository
 
 from .arabic_agent import ABBREVIATIONS
-from .did_you_know import CATALOG, load_facts, reservation_state, rotation_order, validate_content
+from .did_you_know import (
+    CATALOG,
+    CATEGORIES,
+    DEFAULT_KIND,
+    categories_of,
+    content_kind,
+    load_facts,
+    load_kind,
+    reservation_state,
+    rotation_order,
+    validate_content,
+)
 
 RULE_VERSION = "content-agents-v1"
 CHECKS = ("memory", "rotation", "proofreading", "translation")
@@ -45,7 +56,9 @@ def check_memory(db: sqlite3.Connection, job: str, content: dict[str, Any]) -> d
     body_hash = hashlib.sha256(content["body"].encode()).hexdigest()
     if row["fact_id"] != content["fact_id"] or row["body_hash"] != body_hash:
         raise AgentRejected("MEMORY_RESERVATION_MISMATCH")
-    blocked, _ = reservation_state(db, row["reserved_at"], exclude_job=job)
+    blocked, _ = reservation_state(
+        db, row["reserved_at"], exclude_job=job, kind=content_kind(content)
+    )
     if ("id", content["fact_id"]) in blocked or ("body", body_hash) in blocked:
         raise AgentRejected("MEMORY_REPEAT")
     return {"decision": "PASS", "protected_items": len(blocked) // 2}
@@ -60,10 +73,16 @@ def check_rotation(
 ) -> dict[str, Any]:
     """التناوب: the category is the first in rotation order that still had an eligible fact."""
     row = _reservation(db, job)
-    blocked, last = reservation_state(db, row["reserved_at"], exclude_job=job)
+    kind = content_kind(content)
+    blocked, last = reservation_state(db, row["reserved_at"], exclude_job=job, kind=kind)
     day = datetime.fromtimestamp(row["reserved_at"], UTC).date()
-    facts = load_facts(catalog or CATALOG, day)
-    for category in rotation_order(last):
+    categories: tuple[str, ...]
+    if kind == DEFAULT_KIND:
+        facts, categories = load_facts(catalog or CATALOG, day), CATEGORIES
+    else:
+        facts = load_kind(kind, day)
+        categories = categories_of(facts)
+    for category in rotation_order(last, categories):
         eligible = [
             fact
             for fact in facts

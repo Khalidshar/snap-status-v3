@@ -87,10 +87,14 @@ def api(token: str, method: str, body: bytes = b"", content_type: str = "applica
 
 
 def multipart(
-    chat: str, video: bytes, content_type: str = "weather", channel: str = "test"
+    chat: str,
+    video: bytes,
+    content_type: str = "weather",
+    channel: str = "test",
+    title: str = "هل تعلم؟",
 ) -> tuple[bytes, str]:
     if channel == "main":
-        caption = "هل تعلم؟\nتابعني للمزيد 👻" if content_type == "did_you_know" else "طقس الرياض"
+        caption = title + "\nتابعني للمزيد 👻" if content_type == "did_you_know" else "طقس الرياض"
     else:
         caption = (
             "اختبار Snap V2 — هل تعلم؟\nتابعني للمزيد 👻"
@@ -351,7 +355,13 @@ def deliver(
         thread = threading.Thread(target=renew, daemon=True)
         thread.start()
         try:
-            body, kind = multipart(chat, video, content.get("type", "weather"), channel)
+            body, kind = multipart(
+                chat,
+                video,
+                content.get("type", "weather"),
+                channel,
+                content.get("title", "هل تعلم؟"),
+            )
             sent = transport(token, "sendVideo", body, kind)
             if str(sent.get("chat", {}).get("id")) != chat or not isinstance(
                 sent.get("message_id"), int
