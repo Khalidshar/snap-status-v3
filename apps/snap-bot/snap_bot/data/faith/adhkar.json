@@ -1,0 +1,281 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": true,
+  "kind": "adhkar",
+  "source_repo": "Khalidshar/status-bot@b445281",
+  "items": [
+    {
+      "type": "quran",
+      "surah": 2,
+      "ayahs": [
+        255
+      ],
+      "title": "آية الكرسي",
+      "count": 1,
+      "timing": "الصباح",
+      "source": "القرآن الكريم • سورة البقرة 255",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-01",
+      "period": "am"
+    },
+    {
+      "type": "quran",
+      "surah": 112,
+      "ayahs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "سورة الإخلاص",
+      "count": 3,
+      "timing": "الصباح",
+      "source": "القرآن الكريم • سورة الإخلاص",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-02",
+      "period": "am"
+    },
+    {
+      "type": "quran",
+      "surah": 113,
+      "ayahs": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "سورة الفلق",
+      "count": 3,
+      "timing": "الصباح",
+      "source": "القرآن الكريم • سورة الفلق",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-03",
+      "period": "am"
+    },
+    {
+      "type": "quran",
+      "surah": 114,
+      "ayahs": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "title": "سورة الناس",
+      "count": 3,
+      "timing": "الصباح",
+      "source": "القرآن الكريم • سورة الناس",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-04",
+      "period": "am"
+    },
+    {
+      "type": "hadith",
+      "text": "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
+      "count": 3,
+      "timing": "الصباح",
+      "source": "سنن الترمذي • حديث حسن صحيح",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-05",
+      "period": "am",
+      "sha256": "1cc5b5d84c163c7d9e6b778041834e3029962f333993ec6e6f10ce7b141bd3ed"
+    },
+    {
+      "type": "hadith",
+      "text": "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا",
+      "count": 3,
+      "timing": "الصباح",
+      "source": "سنن الترمذي • حديث حسن صحيح",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D9%85%D9%86-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-06",
+      "period": "am",
+      "sha256": "195fb3afa85a99068fb1b5b3e8e6739a164435765a17574ff3a969bacdc01063"
+    },
+    {
+      "type": "hadith",
+      "text": "اللَّهُمَّ بِكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُورُ",
+      "count": 1,
+      "timing": "الصباح",
+      "source": "سنن الترمذي • حديث حسن صحيح",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-07",
+      "period": "am",
+      "sha256": "107b184a46714019f5867a51778f4983fbdb5cae09f134024431ab2c345522f5"
+    },
+    {
+      "type": "hadith",
+      "text": "اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لَا إِلَهَ إِلَّا أَنْتَ",
+      "count": 3,
+      "timing": "الصباح",
+      "source": "سنن أبي داود",
+      "verification_url": "https://binbaz.org.sa/audios/2821/458-%D9%85%D9%86-%D8%AD%D8%AF%D9%8A%D8%AB-%D8%A7%D9%86-%D8%A7%D8%A8%D8%A7-%D8%A8%D9%83%D8%B1-%D8%A7%D9%84%D8%B5%D8%AF%D9%8A%D9%82-%D8%B1%D8%B6%D9%8A-%D8%A7%D9%84%D9%84%D9%87-%D8%B9%D9%86%D9%87-%D9%82%D8%A7%D9%84-%D9%8A%D8%A7-%D8%B1%D8%B3%D9%88%D9%84-%D8%A7%D9%84%D9%84%D9%87-%D9%85%D8%B1%D9%86%D9%8A-%D8%A8%D9%83%D9%84%D9%85%D8%A7%D8%AA-%D8%A7%D9%82%D9%88%D9%84%D9%87%D9%86-%D8%A7%D8%B0%D8%A7-%D8%A7%D8%B5%D8%A8%D8%AD%D8%AA-%D9%88%D8%A7%D8%B0%D8%A7-%D8%A7%D9%85%D8%B3%D9%8A%D8%AA",
+      "id": "adhkar-am-08",
+      "period": "am",
+      "sha256": "571d4b39d12f8a3aa969dd8d98bbdb4502a05444d1cacd73dc80accde1f05b7f"
+    },
+    {
+      "type": "hadith",
+      "text": "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
+      "count": 100,
+      "timing": "الصباح",
+      "source": "صحيح مسلم",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-am-09",
+      "period": "am",
+      "sha256": "01807d3530700f42c32b3ff195ad57564229b251c00887fddd6f1b2cfe19f45f"
+    },
+    {
+      "type": "quran",
+      "surah": 2,
+      "ayahs": [
+        255
+      ],
+      "title": "آية الكرسي",
+      "count": 1,
+      "timing": "المساء والليل",
+      "source": "القرآن الكريم • سورة البقرة 255",
+      "verification_url": "https://binbaz.org.sa/fatwas/2088/%D8%A7%D9%84%D8%B7%D8%B1%D9%8A%D9%82%D8%A9-%D8%A7%D9%84%D8%B4%D8%B1%D8%B9%D9%8A%D8%A9-%D9%84%D9%84%D9%88%D9%82%D8%A7%D9%8A%D8%A9-%D9%85%D9%86-%D8%A7%D9%84%D8%B3%D8%AD%D8%B1",
+      "id": "adhkar-pm-01",
+      "period": "pm"
+    },
+    {
+      "type": "quran",
+      "surah": 2,
+      "ayahs": [
+        285,
+        286
+      ],
+      "title": "آخر آيتين من سورة البقرة",
+      "count": 1,
+      "timing": "الليل",
+      "source": "القرآن الكريم • سورة البقرة 285-286",
+      "verification_url": "https://binbaz.org.sa/audios/2577/326-%D9%85%D9%86-%D8%AD%D8%AF%D9%8A%D8%AB-%D9%85%D9%86-%D9%82%D8%B1%D8%A7-%D8%A8%D8%A7%D9%84%D8%A7%D9%8A%D8%AA%D9%8A%D9%86-%D9%85%D9%86-%D8%A7%D8%AE%D8%B1-%D8%B3%D9%88%D8%B1%D8%A9-%D8%A7%D9%84%D8%A8%D9%82%D8%B1%D8%A9-%D9%81%D9%8A-%D9%84%D9%8A%D9%84%D8%A9-%D9%83%D9%81%D8%AA%D8%A7%D9%87",
+      "id": "adhkar-pm-02",
+      "period": "pm"
+    },
+    {
+      "type": "quran",
+      "surah": 112,
+      "ayahs": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "سورة الإخلاص",
+      "count": 3,
+      "timing": "المساء",
+      "source": "القرآن الكريم • سورة الإخلاص",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-pm-03",
+      "period": "pm"
+    },
+    {
+      "type": "quran",
+      "surah": 113,
+      "ayahs": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "title": "سورة الفلق",
+      "count": 3,
+      "timing": "المساء",
+      "source": "القرآن الكريم • سورة الفلق",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-pm-04",
+      "period": "pm"
+    },
+    {
+      "type": "quran",
+      "surah": 114,
+      "ayahs": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "title": "سورة الناس",
+      "count": 3,
+      "timing": "المساء",
+      "source": "القرآن الكريم • سورة الناس",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%Bر",
+      "id": "adhkar-pm-05",
+      "period": "pm"
+    },
+    {
+      "type": "hadith",
+      "text": "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
+      "count": 3,
+      "timing": "المساء",
+      "source": "سنن الترمذي • حديث حسن صحيح",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-pm-06",
+      "period": "pm",
+      "sha256": "1cc5b5d84c163c7d9e6b778041834e3029962f333993ec6e6f10ce7b141bd3ed"
+    },
+    {
+      "type": "hadith",
+      "text": "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا",
+      "count": 3,
+      "timing": "المساء",
+      "source": "سنن الترمذي • حديث حسن صحيح",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-pm-07",
+      "period": "pm",
+      "sha256": "195fb3afa85a99068fb1b5b3e8e6739a164435765a17574ff3a969bacdc01063"
+    },
+    {
+      "type": "hadith",
+      "text": "اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ",
+      "count": 1,
+      "timing": "المساء",
+      "source": "سنن الترمذي • حديث حسن صحيح",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-pm-08",
+      "period": "pm",
+      "sha256": "d3f4f71f3c5056967c8fd4bf6832af277f9616b78b3ed876b9e17b839d952c73"
+    },
+    {
+      "type": "hadith",
+      "text": "اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لَا إِلَهَ إِلَّا أَنْتَ",
+      "count": 3,
+      "timing": "المساء",
+      "source": "سنن أبي داود",
+      "verification_url": "https://binbaz.org.sa/audios/2821/458-%D9%85%D9%86-%D8%AD%D8%AF%D9%8A%D8%AB-%D8%A7%D9%86-%D8%A7%D8%A8%D8%A7-%D8%A8%D9%83%D8%B1-%D8%A7%D9%84%D8%B5%D8%AF%D9%8A%D9%82-%D8%B1%D8%B6%D9%8A-%D8%A7%D9%84%D9%84%D9%87-%D8%B9%D9%86%D9%87-%D9%82%D8%A7%D9%84-%D9%8A%D8%A7-%D8%B1%D8%B3%D9%88%D9%84-%D8%A7%D9%84%D9%84%D9%87-%D9%85%D8%B1%D9%86%D9%8A-%D8%A8%D9%83%D9%84%D9%85%D8%A7%D8%AA-%D8%A7%D9%82%D9%88%D9%84%D9%87%D9%86-%D8%A7%D8%B0%D8%A7-%D8%A7%D8%B5%D8%A8%D8%AD%D8%AA-%D9%88%D8%A7%D9%85%D8%B3%D9%8A%D8%AA",
+      "id": "adhkar-pm-09",
+      "period": "pm",
+      "sha256": "571d4b39d12f8a3aa969dd8d98bbdb4502a05444d1cacd73dc80accde1f05b7f"
+    },
+    {
+      "type": "hadith",
+      "text": "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
+      "count": 3,
+      "timing": "المساء",
+      "source": "صحيح مسلم",
+      "verification_url": "https://binbaz.org.sa/fatwas/2088/%D8%A7%D9%84%D8%B7%D8%B1%D9%8A%D9%82%D8%A9-%D8%A7%D9%84%D8%B4%D8%B1%D8%B9%D9%8A%D8%A9-%D9%84%D9%84%D9%88%D9%82%D8%A7%D9%8A%D8%A9-%D9%85%D9%86-%D8%A7%D9%84%D8%B3%D8%AD%D8%B1",
+      "id": "adhkar-pm-10",
+      "period": "pm",
+      "sha256": "39bc09969e681187bdbcf4838e2a43c1ad23ed786565f7cc7a9a530c2877e7d7"
+    },
+    {
+      "type": "hadith",
+      "text": "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
+      "count": 100,
+      "timing": "المساء",
+      "source": "صحيح مسلم",
+      "verification_url": "https://binbaz.org.sa/audios/879/12-%D8%A7%D9%84%D9%81%D8%B5%D9%84-%D8%A7%D9%84%D8%A7%D9%88%D9%84-%D9%81%D9%8A-%D8%B0%D9%83%D8%B1-%D8%B7%D8%B1%D9%81%D9%8A-%D8%A7%D9%84%D9%86%D9%87%D8%A7%D8%B1",
+      "id": "adhkar-pm-11",
+      "period": "pm",
+      "sha256": "01807d3530700f42c32b3ff195ad57564229b251c00887fddd6f1b2cfe19f45f"
+    }
+  ]
+}
