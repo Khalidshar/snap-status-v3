@@ -89,7 +89,7 @@ def sacred_body(
         width_px=width,
         font_size=profile.get("sacred_font_size", 52),
         color="#F6EEDE",
-        max_height=height,
+        max_height_px=height,
     )
     if not 0 < size[0] <= width or not 0 < size[1] <= height:
         raise ValueError("Sacred text exceeds its card")
