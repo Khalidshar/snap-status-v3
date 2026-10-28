@@ -11,13 +11,24 @@ from .did_you_know import is_sacred, validate_content
 SAFE = (130, 170, 950, 1580)
 # The sacred body image: centred between the title and the source line.
 SACRED_BODY = (130, 560, 820, 720)
-# A hadith card has no title: it opens with the Prophet ﷺ, above the verbatim text.
+# A hadith card has no title: it opens with its narrator and the Prophet ﷺ, above the
+# verbatim text.
 PROPHET_LINE = "قال رسول الله ﷺ:"
+HADITH_BODY = (130, 620, 820, 660)
 
 
 def sacred_body_box(content: dict[str, Any]) -> tuple[int, int, int, int]:
-    del content  # one body box for every sacred kind
-    return SACRED_BODY
+    return HADITH_BODY if content.get("kind") == "hadith" else SACRED_BODY
+
+
+def narrator_line(content: dict[str, Any]) -> str:
+    """«عن أبي هريرة رضي الله عنه», from the reviewed faith catalog, never from content."""
+    from . import faith
+
+    item = next((i for i in faith.load("hadith") if i["id"] == content["fact_id"]), None)
+    if item is None:
+        raise ValueError("Unknown hadith")
+    return "عن " + str(item["narrator"])
 
 
 def drawing_text(text: str) -> str:
@@ -93,9 +104,14 @@ def sacred_labels(
     # Title and source carry no vowel marks, so drawtext shapes them safely.
     labels = [
         *SACRED_IDENTITY,
-        (PROPHET_LINE, 80, 440, "0xD6B26C", "arabic")
-        if content["kind"] == "hadith"
-        else (content["title"], title_size, 430, "0xD6B26C", "arabic"),
+        *(
+            [
+                (narrator_line(content), 52, 400, "0xF6EEDE", "arabic"),
+                (PROPHET_LINE, 76, 490, "0xD6B26C", "arabic"),
+            ]
+            if content["kind"] == "hadith"
+            else [(content["title"], title_size, 430, "0xD6B26C", "arabic")]
+        ),
         (content["attribution"], 40, 1320, "0xF6EEDE", "arabic"),
         ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
     ]
