@@ -60,3 +60,44 @@ def path() -> Path:
     """Return the verified bundled asset, without installing it or rendering."""
     verify()
     return DIRECTORY / FILENAME
+
+
+AMIRI = Path(__file__).resolve().parents[3] / "assets/fonts/amiri/Amiri-Regular.ttf"
+# Existing Amiri Regular fingerprint from assets/fonts/manifest.json; no new font.
+AMIRI_SHA256 = "316c56966b5ceb7ccd7f6fc490b3c3b31033523cfabd3d591395642c4b86ea62"
+
+
+def font_for(kind_or_item: str | dict[str, Any]) -> Path:
+    """Choose by content type, never by missing glyphs or by rewriting text.
+
+    Morning/evening collections mix Quran and narration: pass the individual
+    item for those collections. Unknown or contradictory types are refused.
+    """
+    kind: object
+    if isinstance(kind_or_item, str):
+        kind = kind_or_item
+    elif isinstance(kind_or_item, dict):
+        item = kind_or_item
+        reference = "surah" in item and ("ayah" in item or "ayahs" in item)
+        kind = item.get("type")
+        if kind == "hadith" and reference:
+            raise ValueError("Conflicting faith font type")
+        if kind is None:
+            if reference:
+                kind = "quran"
+            elif all(key in item for key in ("text", "source", "grade")):
+                kind = "hadith"
+    else:
+        raise ValueError("Unknown faith font type")
+    if kind in ("quran", "verse", "friday", "kahf"):
+        return path()
+    if kind not in ("hadith", "dua"):
+        raise ValueError("Unknown or mixed faith kind; pass an individual item")
+    try:
+        if not AMIRI.is_file() or AMIRI.is_symlink():
+            raise ValueError("Missing Amiri-Regular.ttf at assets/fonts/amiri/Amiri-Regular.ttf")
+        if hashlib.sha256(AMIRI.read_bytes()).hexdigest() != AMIRI_SHA256:
+            raise ValueError("Amiri Regular SHA-256 mismatch")
+    except OSError as error:
+        raise ValueError("Unreadable Amiri Regular font") from error
+    return AMIRI

@@ -88,37 +88,129 @@ def test_bad_archive_never_extracts(tmp_path: Path) -> None:
 
 
 @pytest.fixture(scope="module")
-def charset() -> str:
+def charsets() -> dict[str, str]:
     executable = shutil.which("fc-query")
     if executable is None:
         pytest.skip("fc-query is absent locally; CI must provide fontconfig")
-    # Same argv/charset query as snap_bot.render; never fontconfig fallback lookup.
-    result = subprocess.run(
-        [executable, "--format=%{charset}", str(quran_font.path())],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=5,
-    )
-    assert result.stdout.strip(), "fc-query returned an empty charset"
-    return result.stdout
+    result = {}
+    # Query only the exact selected font, never a fontconfig fallback.
+    for kind in ("quran", "hadith"):
+        try:
+            selected = quran_font.font_for(kind)
+        except ValueError as error:
+            # Keep Quran coverage runnable even if the separate Amiri asset is missing.
+            result[kind] = "ERROR: " + str(error)
+            continue
+        query = subprocess.run(
+            [executable, "--format=%{charset}", str(selected)],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        assert query.stdout.strip(), f"Empty charset: {selected}"
+        result[kind] = query.stdout
+    return result
 
 
-@pytest.mark.parametrize("kind", faith.KINDS)
-def test_every_faith_character_covered(charset: str, kind: str) -> None:
+def assert_covered(charset: str, texts: list[tuple[str, str]], section: str) -> None:
+    assert not charset.startswith("ERROR: "), f"{section}: {charset}"
     ranges = []
     for item in charset.split():
         ends = item.split("-")
         ranges.append((int(ends[0], 16), int(ends[-1], 16)))
     missing: dict[int, list[str]] = {}
-    # Check the exact text() output: do not strip, normalise or remove any marks.
-    for item in faith.load(kind):
-        for char in faith.text(item):
+    for identifier, text in texts:
+        for char in text:
             if not any(low <= ord(char) <= high for low, high in ranges):
-                missing.setdefault(ord(char), []).append(item["id"])
+                missing.setdefault(ord(char), []).append(identifier)
     details = [
         f"U+{code:04X} {chr(code)} {unicodedata.name(chr(code), 'UNKNOWN')}: "
         + ", ".join(sorted(set(ids)))
         for code, ids in sorted(missing.items())
     ]
-    assert not missing, f"{kind}: missing font characters\n" + "\n".join(details)
+    assert not missing, f"{section}: missing font characters\n" + "\n".join(details)
+
+
+def test_quran_character_coverage(charsets: dict[str, str]) -> None:
+    # Validate the subset via faith first; inspect ALL bundled ayahs, not only
+    # verses selected by one menu entry. Exact stored text, no normalization.
+    faith.load("verse")
+    subset = json.loads((faith.DATA / "quran_subset.json").read_text())
+    texts = [(f"{i['surah']}:{i['ayah']}", i["text"]) for i in subset["items"]]
+    for kind in ("adhkar_am", "adhkar_pm"):
+        texts.extend((i["id"], faith.text(i)) for i in faith.load(kind) if i["type"] == "quran")
+    assert_covered(charsets["quran"], texts, "Quran / KFGQPC Hafs")
+
+
+def test_non_quran_character_coverage(charsets: dict[str, str]) -> None:
+    texts = []
+    for kind in faith.KINDS:
+        if kind in ("verse", "friday", "kahf"):
+            continue
+        texts.extend((i["id"], faith.text(i)) for i in faith.load(kind) if i.get("type") != "quran")
+    assert_covered(charsets["hadith"], texts, "Narrations / Amiri Regular")
+
+
+@pytest.mark.parametrize("kind", ("quran", "verse", "friday", "kahf"))
+def test_quran_kind_routes_to_hafs(kind: str) -> None:
+    assert quran_font.font_for(kind) == quran_font.path()
+
+
+@pytest.mark.parametrize(
+    "item",
+    (
+        {"type": "quran", "surah": 2, "ayahs": [255]},
+        {"surah": 18, "ayahs": [1, 2]},
+        {"surah": 18, "ayah": 1, "text": "synthetic routing fixture"},
+    ),
+)
+def test_quran_item_routes_to_hafs(item: dict) -> None:
+    assert quran_font.font_for(item) == quran_font.path()
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "hadith",
+        "dua",
+        {"type": "hadith"},
+        {"text": "synthetic routing fixture", "source": "fixture", "grade": "fixture"},
+    ),
+)
+def test_non_quran_routes_only_to_existing_amiri(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str | dict
+) -> None:
+    # Synthetic bytes exercise routing only; never pretend to test glyph coverage.
+    asset = tmp_path / "Amiri-Regular.ttf"
+    asset.write_bytes(b"routing fixture")
+    monkeypatch.setattr(quran_font, "AMIRI", asset)
+    monkeypatch.setattr(quran_font, "AMIRI_SHA256", hashlib.sha256(asset.read_bytes()).hexdigest())
+    assert quran_font.font_for(value) == asset
+    asset.unlink()
+    with pytest.raises(ValueError, match="Missing Amiri"):
+        quran_font.font_for(value)
+
+
+def test_changed_amiri_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    asset = tmp_path / "Amiri-Regular.ttf"
+    asset.write_bytes(b"modified font fixture")
+    monkeypatch.setattr(quran_font, "AMIRI", asset)
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        quran_font.font_for("hadith")
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "adhkar_am",
+        "adhkar_pm",
+        "unknown",
+        {},
+        {"type": "unknown"},
+        {"type": "hadith", "surah": 2, "ayahs": [1]},
+    ),
+)
+def test_unknown_or_mixed_kind_rejected(value: str | dict) -> None:
+    with pytest.raises(ValueError):
+        quran_font.font_for(value)
