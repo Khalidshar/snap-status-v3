@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": false,
+  "kind": "style",
+  "items": [
+    {
+      "id": "style-01",
+      "source": "جامعة بوردو",
+      "verified_at": "2026-10-28",
+      "text": "رتب خزانتك وراجع الملابس والإكسسوارات الموجودة قبل تخطيط إطلالاتك.",
+      "source_url": "https://extension.purdue.edu/county/tippecanoe/_docs/4h_documents/consumerclothingmanuals1.pdf"
+    },
+    {
+      "id": "style-02",
+      "source": "جامعة بوردو",
+      "verified_at": "2026-10-28",
+      "text": "خطط لإطلالات الأسبوع وفق أنشطتك والمناسبات التي تنتظرك.",
+      "source_url": "https://extension.purdue.edu/county/tippecanoe/_docs/4h_documents/consumerclothingmanuals1.pdf"
+    },
+    {
+      "id": "style-03",
+      "source": "جامعة بوردو",
+      "verified_at": "2026-10-28",
+      "text": "جرب الحركة بملابسك للتأكد من راحتها، لا مظهرها فقط.",
+      "source_url": "https://extension.purdue.edu/county/tippecanoe/_docs/4h_documents/consumerclothingmanuals1.pdf"
+    },
+    {
+      "id": "style-04",
+      "source": "جامعة كارولاينا الشمالية في شارلوت",
+      "verified_at": "2026-10-28",
+      "text": "اختر ألوان قطع تتكامل معًا في الإطلالة.",
+      "source_url": "https://career.charlotte.edu/students/professional-attire"
+    },
+    {
+      "id": "style-05",
+      "source": "جامعة كارولاينا الشمالية في شارلوت",
+      "verified_at": "2026-10-28",
+      "text": "جرب ملابسك باكرًا لتترك وقتًا لأي تعديل في المقاس.",
+      "source_url": "https://career.charlotte.edu/students/professional-attire"
+    },
+    {
+      "id": "style-06",
+      "source": "جامعة بوردو",
+      "verified_at": "2026-10-28",
+      "text": "جرب تغيير إطلالتك بإكسسوار موجود لديك، ثم قارن الشكلين.",
+      "source_url": "https://extension.purdue.edu/county/tippecanoe/_docs/4h_documents/consumerclothingmanuals1.pdf"
+    },
+    {
+      "id": "style-07",
+      "source": "جامعة بوردو",
+      "verified_at": "2026-10-28",
+      "text": "فكر في طريقة تجعل إطلالتك الأنيقة مريحة أيضًا.",
+      "source_url": "https://extension.purdue.edu/county/tippecanoe/_docs/4h_documents/consumerclothingmanuals1.pdf"
+    },
+    {
+      "id": "style-08",
+      "source": "جامعة كارولاينا الشمالية في شارلوت",
+      "verified_at": "2026-10-28",
+      "text": "اختر ملابس بحالة جيدة، وتفقدها قبل المناسبة.",
+      "source_url": "https://career.charlotte.edu/students/professional-attire"
+    },
+    {
+      "id": "style-09",
+      "source": "جامعة كارولاينا الشمالية في شارلوت",
+      "verified_at": "2026-10-28",
+      "text": "تفقد الوبر والتجاعيد قبل ارتداء ملابسك.",
+      "source_url": "https://career.charlotte.edu/students/professional-attire"
+    },
+    {
+      "id": "style-10",
+      "source": "جامعة كارولاينا الشمالية في شارلوت",
+      "verified_at": "2026-10-28",
+      "text": "اختر إكسسوارات بسيطة لا تطغى على بقية الإطلالة.",
+      "source_url": "https://career.charlotte.edu/students/professional-attire"
+    },
+    {
+      "id": "style-11",
+      "source": "جامعة كارولاينا الشمالية في شارلوت",
+      "verified_at": "2026-10-28",
+      "text": "نسق لون الحزام مع الحذاء وبقية الملابس.",
+      "source_url": "https://career.charlotte.edu/students/professional-attire"
+    },
+    {
+      "id": "style-12",
+      "source": "جامعة كارولاينا الشمالية في شارلوت",
+      "verified_at": "2026-10-28",
+      "text": "في اللقاءات الرسمية، استخدم العطر باعتدال وبرائحة خفيفة.",
+      "source_url": "https://career.charlotte.edu/students/professional-attire"
+    },
+    {
+      "id": "style-13",
+      "source": "جامعة بريناو",
+      "verified_at": "2026-10-28",
+      "text": "احرص على نظافة الحذاء وسلامته قبل الخروج.",
+      "source_url": "https://www.brenau.edu/student-life/career-development/dressing-for-the-interview/"
+    },
+    {
+      "id": "style-14",
+      "source": "جامعة بريناو",
+      "verified_at": "2026-10-28",
+      "text": "نسق لون الحذاء مع ملابسك لتبدو الإطلالة مترابطة.",
+      "source_url": "https://www.brenau.edu/student-life/career-development/dressing-for-the-interview/"
+    },
+    {
+      "id": "style-15",
+      "source": "جامعة بريناو",
+      "verified_at": "2026-10-28",
+      "text": "رتب شعرك بتسريحة واضحة وبسيطة.",
+      "source_url": "https://www.brenau.edu/student-life/career-development/dressing-for-the-interview/"
+    },
+    {
+      "id": "style-16",
+      "source": "جامعة بريناو",
+      "verified_at": "2026-10-28",
+      "text": "حافظ على أظافرك نظيفة ومقلمة بعناية.",
+      "source_url": "https://www.brenau.edu/student-life/career-development/dressing-for-the-interview/"
+    },
+    {
+      "id": "style-17",
+      "source": "جامعة بريناو",
+      "verified_at": "2026-10-28",
+      "text": "تفقد مظهر الحقيبة وحالتها ضمن استعدادك للمناسبة.",
+      "source_url": "https://www.brenau.edu/student-life/career-development/dressing-for-the-interview/"
+    },
+    {
+      "id": "style-18",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "استخدم ماء فاترًا عند تنظيف وجهك بدل الماء الساخن.",
+      "source_url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101"
+    },
+    {
+      "id": "style-19",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "نظف وجهك بلطف بأطراف أصابعك، دون فرك خشن.",
+      "source_url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101"
+    },
+    {
+      "id": "style-20",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "اختر منظفًا لطيفًا غير كاشط للعناية اليومية بوجهك.",
+      "source_url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101"
+    },
+    {
+      "id": "style-21",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "جفف وجهك بالتربيت بمنشفة ناعمة.",
+      "source_url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101"
+    },
+    {
+      "id": "style-22",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "تجنب الإفراط في غسل وجهك طوال اليوم.",
+      "source_url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101"
+    },
+    {
+      "id": "style-23",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "اختر روتين عناية يناسب طبيعة شعرك بدل تقليد كل تسريحة أو عادة.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    },
+    {
+      "id": "style-24",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "اغسل شعرك وفق حاجته وما يتراكم عليه من دهون وأوساخ.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    },
+    {
+      "id": "style-25",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "ركز الشامبو على فروة الرأس بدل فرك أطراف الشعر به.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    },
+    {
+      "id": "style-26",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "استخدم البلسم بعد غسل الشعر لتسهيل فك التشابك.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    },
+    {
+      "id": "style-27",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "فك تشابك الشعر ببطء، بدءًا من الأطراف ثم صعودًا.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    },
+    {
+      "id": "style-28",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "استخدم مشطًا واسع الأسنان لفك تشابك الشعر المبلل بلطف.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    },
+    {
+      "id": "style-29",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "امتص ماء الشعر بمنشفة دون فركه بعنف.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    },
+    {
+      "id": "style-30",
+      "source": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "verified_at": "2026-10-28",
+      "text": "خفف استخدام أدوات تصفيف الشعر الساخنة، واختر حرارة منخفضة أو متوسطة.",
+      "source_url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips"
+    }
+  ]
+}
