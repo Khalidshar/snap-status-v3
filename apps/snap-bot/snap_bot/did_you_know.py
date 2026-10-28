@@ -371,3 +371,5 @@ def choose_fact(
 
 
 register_kind(DEFAULT_KIND, "هل تعلم؟", lambda today: load_facts(CATALOG, today))
+# The variety kinds register themselves; imported last, after everything above exists.
+from . import variety_kinds  # noqa: E402,F401

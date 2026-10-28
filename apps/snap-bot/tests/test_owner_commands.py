@@ -41,7 +41,7 @@ class FakeRuntime:
         self.approved.append((sha, channel, owner_chat))
         self.list.append({"kind": "HUMAN_FRAME", "video_sha": sha, "time": time.time()})
 
-    def rendered(self, n, body="نص المعلومة", expires=600):
+    def rendered(self, n, body="نص المعلومة", expires=600, kind=None, title="هل تعلم؟"):
         """A kept preview exactly as the server render leaves it."""
         sha, preview, job = f"{n:064x}", f"{n:032x}", f"{n + 9:032x}"
         directory = self.root / "previews" / preview
@@ -51,7 +51,16 @@ class FakeRuntime:
         )
         (directory / "preview.png").write_bytes(b"png-bytes")
         (directory / "state/renders" / job / "input/content.json").write_text(
-            json.dumps({"body": body, "category": "body"}, ensure_ascii=False), encoding="utf-8"
+            json.dumps(
+                {
+                    "body": body,
+                    "category": "body",
+                    "title": title,
+                    **({"kind": kind} if kind else {}),
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
         )
         self.list.append(
             {"kind": "RENDERED", "video_sha": sha, "preview_id": preview, "time": time.time()}
@@ -169,6 +178,20 @@ class ClipCycleTests(unittest.TestCase):
         again = self.studio.answer("7")
         self.assertIn("ينتظر قرارك", again)
         self.assertEqual(self.started, [listener.RENDER_UNIT], "guard:no-wasted-render")
+
+    def test_variety_commands_render_their_own_kind(self):
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            11, "نصيحة تقنية", kind="tech", title="تقنية"
+        )
+        reply = self.studio.answer("8")
+        self.assertEqual(self.started, ["madar-v3-snap-render@tech.service"], "guard:kind-unit")
+        self.assertTrue(reply.startswith("تقنية"), "guard:title-from-content")
+        self.assertIn("ينتظر قرارك", self.studio.answer("التقنية"), "guard:same-kind-reuse")
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            12, "سطر هادئ", kind="night", title="قبل النوم"
+        )
+        self.assertIn("سطر هادئ", self.studio.answer("قبل النوم"))
+        self.assertEqual(self.started[-1], "madar-v3-snap-render@night.service")
 
     def test_preview_is_the_pending_still(self):
         self.assertEqual(self.studio.answer("معاينة"), listener.NO_CLIP)

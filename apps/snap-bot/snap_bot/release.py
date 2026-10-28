@@ -46,6 +46,7 @@ UNITS = (
 MAIN_UNIT = "madar-v3-snap-send-main@.service"
 COMMANDS_UNIT = "madar-v3-snap-commands.service"
 WHATSAPP_UNIT = "madar-v3-status-send@.service"
+KIND_RENDER_UNIT = "madar-v3-snap-render@.service"
 TEST_BOT = "khalid_snap_v2_test_bot"
 BOT_NAME = r"[A-Za-z][A-Za-z0-9_]{1,29}[Bb][Oo][Tt]"
 LAYOUT = "v3"
@@ -77,6 +78,7 @@ def destination(path: str | Path, allow_current: bool = False) -> Path:
         MAIN_UNIT,
         COMMANDS_UNIT,
         WHATSAPP_UNIT,
+        KIND_RENDER_UNIT,
     )
     if not (allowed or unit):
         raise ValueError("Destination outside allowed roots")
@@ -274,6 +276,13 @@ def whatsapp_unit_text(whatsapp_env: str) -> str:
     )
 
 
+def kind_render_unit_text() -> str:
+    """Render one clip of the named content kind (madar-v3-snap-render@tech), no network."""
+    return unit_text().replace(
+        " -m snap_bot.server_preview render\n", " -m snap_bot.server_preview render --kind %i\n"
+    )
+
+
 def unit_for(name: str, telegram_env: str) -> str:
     if name.startswith("madar-v3-status-"):
         return status_unit_text()
@@ -311,6 +320,7 @@ def build_plan(
     secret = str(telegram_file(telegram_env))
     channels: dict[str, Any] = {"test": {"bot": TEST_BOT}}
     wanted = {name: unit_for(name, secret) for name in UNITS}
+    wanted[KIND_RENDER_UNIT] = kind_render_unit_text()
     if main_env or main_bot_name:
         if not (main_env and main_bot_name):
             raise ValueError("Main channel needs its env file and bot")
