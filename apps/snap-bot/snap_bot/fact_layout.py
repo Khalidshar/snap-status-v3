@@ -50,7 +50,7 @@ def fact_labels(
     labels = [
         ("روّق مع خالد", 50, 210, "0xD6B26C", "arabic"),
         ("@rawwag_khalid", 38, 290, "0xD6B26C", "latin"),
-        ("هل تعلم؟", title_size, 430, "0xD6B26C", "arabic"),
+        (content["title"], title_size, 430, "0xD6B26C", "arabic"),
     ]
     labels += [
         (line, body_size, first_y + 115 * i, "0xF6EEDE", "arabic") for i, line in enumerate(lines)

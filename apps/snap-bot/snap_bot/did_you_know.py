@@ -5,6 +5,7 @@ import json
 import math
 import re
 import sqlite3
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
@@ -43,6 +44,10 @@ HOSTS = {
 
 
 HISTORY_LIMIT = 1000
+DEFAULT_KIND = "did_you_know"
+# Each kind is one reviewed catalog with its own on-screen title. A loader returns facts
+# shaped like the did_you_know catalog: id, category, text, source, source_url, verified_at.
+KINDS: dict[str, tuple[str, Callable[[date], list[dict[str, Any]]]]] = {}
 
 
 class FactsExhausted(ValueError):
@@ -112,12 +117,37 @@ def load_facts(path: str | Path = CATALOG, today: date | None = None) -> list[di
     return facts
 
 
-def make_content(fact: dict[str, Any], now: float) -> dict[str, Any]:
+def register_kind(kind: str, title: str, loader: Callable[[date], list[dict[str, Any]]]) -> None:
+    if not re.fullmatch("[a-z][a-z_]{1,23}", kind) or kind in KINDS:
+        raise ValueError("Invalid or duplicate content kind")
+    safe_text(title, 40)
+    KINDS[kind] = (title, loader)
+
+
+def load_kind(kind: str, today: date | None = None) -> list[dict[str, Any]]:
+    """The facts of one reviewed kind. Every loader validates its whole catalog."""
+    if kind not in KINDS:
+        raise ValueError("Unknown content kind")
+    today = today or datetime.now(UTC).date()
+    facts = KINDS[kind][1](today)
+    ids = {fact["id"] for fact in facts}
+    if len(ids) != len(facts) or not facts:
+        raise ValueError("Invalid content kind catalog")
+    return facts
+
+
+def categories_of(facts: list[dict[str, Any]]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(fact["category"] for fact in facts))
+
+
+def make_content(fact: dict[str, Any], now: float, kind: str = DEFAULT_KIND) -> dict[str, Any]:
+    if kind not in KINDS:
+        raise ValueError("Unknown content kind")
     value: dict[str, Any] = {
         "type": "did_you_know",
         "sacred": False,
         "language": "ar",
-        "title": "هل تعلم؟",
+        "title": KINDS[kind][0],
         "body": fact["text"],
         "fact_id": fact["id"],
         "category": fact["category"],
@@ -125,23 +155,36 @@ def make_content(fact: dict[str, Any], now: float) -> dict[str, Any]:
         "source_display": fact["source"],
         "source_url": fact["source_url"],
         "verified_at": fact["verified_at"],
-        "attribution": "المصدر: " + fact["source"],
+        "attribution": "المصدر: " + fact["source"]
+        if fact["source"] != "original"
+        else "روّق مع خالد",
         "footer": FOOTER,
         "fetched_at": datetime.fromtimestamp(now, UTC).isoformat(),
         "expires_at": now + 3600,
     }
+    # The original kind keeps its exact fields, so its existing content hashes stay valid.
+    if kind != DEFAULT_KIND:
+        value["kind"] = kind
     value["content_hash"] = content_hash(value)
     return value
+
+
+def content_kind(value: dict[str, Any]) -> str:
+    kind = value.get("kind", DEFAULT_KIND)
+    if not isinstance(kind, str) or kind not in KINDS or (kind == DEFAULT_KIND and "kind" in value):
+        raise ValueError("Unknown content kind")
+    return kind
 
 
 def validate_content(value: dict[str, Any]) -> dict[str, Any]:
     if value.get("type") != "did_you_know" or value.get("sacred") is not False:
         raise ValueError("Unapproved fact content")
     now = datetime.now(UTC).timestamp()
-    fact = next((f for f in load_facts() if f["id"] == value.get("fact_id")), None)
+    kind = content_kind(value)
+    fact = next((f for f in load_kind(kind) if f["id"] == value.get("fact_id")), None)
     if fact is None:
         raise ValueError("Unknown curated fact")
-    expected = make_content(fact, now)
+    expected = make_content(fact, now, kind)
     # Expiry and fetch timestamp are deliberately excluded by the existing hash.
     if (
         content_hash(value) != expected["content_hash"]
@@ -154,7 +197,11 @@ def validate_content(value: dict[str, Any]) -> dict[str, Any]:
 
 
 def reservation_state(
-    db: sqlite3.Connection, now: float, *, exclude_job: str | None = None
+    db: sqlite3.Connection,
+    now: float,
+    *,
+    exclude_job: str | None = None,
+    kind: str = DEFAULT_KIND,
 ) -> tuple[set[tuple[str, str]], str | None]:
     """Protected (fact id, body hash) pairs and the last reserved category.
 
@@ -194,7 +241,11 @@ def reservation_state(
         if protected:
             blocked.add(("id", row["fact_id"]))
             blocked.add(("body", row["body_hash"]))
-    last = json.loads(history[0]["content_json"])["category"] if history else None
+    # Repeats are blocked across every kind; rotation follows the same kind only.
+    mine = [
+        row for row in history if json.loads(row["content_json"]).get("kind", DEFAULT_KIND) == kind
+    ]
+    last = json.loads(mine[0]["content_json"])["category"] if mine else None
     seen = (
         db.execute("SELECT 1 FROM sqlite_master WHERE name='fact_history'").fetchone() is not None
     )
@@ -204,33 +255,44 @@ def reservation_state(
             if row["until"] > now:
                 blocked.add(("id", row["fact_id"]))
                 blocked.add(("body", row["body_hash"]))
-        if rows and (not history or rows[0]["at"] > history[0]["reserved_at"]):
-            last = rows[0]["category"]
+        own = [row for row in rows if (row["kind"] or DEFAULT_KIND) == kind]
+        if own and (not mine or own[0]["at"] > mine[0]["reserved_at"]):
+            last = own[0]["category"]
     return blocked, last
 
 
-def history_entry(entry: Any) -> tuple[str, str, str, float, float]:
+def history_entry(entry: Any) -> tuple[str, str, str, float, float, str]:
     """One fact the owner was already shown, as the server ledger recorded it."""
-    if not isinstance(entry, dict) or set(entry) != {
-        "fact_id",
-        "body_hash",
-        "category",
-        "at",
-        "until",
-    }:
+    keys = {"fact_id", "body_hash", "category", "at", "until"}
+    if not isinstance(entry, dict) or not keys <= set(entry) <= keys | {"kind"}:
         raise ValueError("Invalid fact history")
     times = (entry["at"], entry["until"])
+    kind = entry.get("kind", DEFAULT_KIND)
     if (
         not isinstance(entry["fact_id"], str)
-        or not re.fullmatch("dyk-[0-9]{2}", entry["fact_id"])
+        or not re.fullmatch("[a-z][a-z_]{1,23}-[0-9]{2}", entry["fact_id"])
         or not isinstance(entry["body_hash"], str)
         or not re.fullmatch("[0-9a-f]{64}", entry["body_hash"])
-        or entry["category"] not in CATEGORIES
+        or not isinstance(entry["category"], str)
+        or not re.fullmatch("[a-z][a-z_]{1,23}", entry["category"])
+        or not isinstance(kind, str)
+        or not re.fullmatch("[a-z][a-z_]{1,23}", kind)
         or any(type(t) not in (int, float) or not math.isfinite(t) for t in times)
         or entry["until"] < entry["at"]
+        or kind not in KINDS
     ):
         raise ValueError("Invalid fact history")
-    return entry["fact_id"], entry["body_hash"], entry["category"], entry["at"], entry["until"]
+    allowed = CATEGORIES if kind == DEFAULT_KIND else categories_of(load_kind(kind))
+    if entry["category"] not in allowed:
+        raise ValueError("Invalid fact history")
+    return (
+        entry["fact_id"],
+        entry["body_hash"],
+        entry["category"],
+        entry["at"],
+        entry["until"],
+        kind,
+    )
 
 
 def seed_history(db: sqlite3.Connection, entries: Any) -> None:
@@ -244,21 +306,28 @@ def seed_history(db: sqlite3.Connection, entries: Any) -> None:
         raise ValueError("Invalid fact history")
     rows = [history_entry(entry) for entry in entries]
     db.execute(
-        "CREATE TABLE IF NOT EXISTS fact_history(fact_id TEXT NOT NULL,body_hash TEXT NOT NULL,category TEXT NOT NULL,at REAL NOT NULL,until REAL NOT NULL)"
+        "CREATE TABLE IF NOT EXISTS fact_history(fact_id TEXT NOT NULL,body_hash TEXT NOT NULL,category TEXT NOT NULL,at REAL NOT NULL,until REAL NOT NULL,kind TEXT)"
     )
-    db.executemany("INSERT INTO fact_history VALUES(?,?,?,?,?)", rows)
+    db.executemany("INSERT INTO fact_history VALUES(?,?,?,?,?,?)", rows)
 
 
-def rotation_order(last: str | None) -> tuple[str, ...]:
-    start = (CATEGORIES.index(last) + 1) % len(CATEGORIES) if last in CATEGORIES else 0
-    return CATEGORIES[start:] + CATEGORIES[:start]
+def rotation_order(last: str | None, categories: tuple[str, ...] = CATEGORIES) -> tuple[str, ...]:
+    start = (categories.index(last) + 1) % len(categories) if last in categories else 0
+    return categories[start:] + categories[:start]
 
 
 def choose_fact(
-    repo: Repository, job: str, token: str, attempt: int, *, catalog: str | Path = CATALOG
+    repo: Repository,
+    job: str,
+    token: str,
+    attempt: int,
+    *,
+    catalog: str | Path = CATALOG,
+    kind: str = DEFAULT_KIND,
 ) -> tuple[dict[str, Any], list[Any]]:
     now = repo.clock()
-    facts = load_facts(catalog, datetime.fromtimestamp(now, UTC).date())
+    day = datetime.fromtimestamp(now, UTC).date()
+    facts = load_facts(catalog, day) if kind == DEFAULT_KIND else load_kind(kind, day)
     with repo.owned_transaction(job, token, attempt=attempt) as db:
         db.execute(
             "CREATE TABLE IF NOT EXISTS fact_reservations(job_id TEXT PRIMARY KEY REFERENCES jobs(id),fact_id TEXT NOT NULL,body_hash TEXT NOT NULL,reserved_at REAL NOT NULL,content_json TEXT NOT NULL)"
@@ -271,14 +340,16 @@ def choose_fact(
         ).fetchone()
         if prior:
             return json.loads(prior["content_json"]), []
-        blocked, last = reservation_state(db, now)
-        rotation = rotation_order(last)
+        blocked, last = reservation_state(db, now, kind=kind)
+        rotation = rotation_order(
+            last, CATEGORIES if kind == DEFAULT_KIND else categories_of(facts)
+        )
         ordered = [fact for category in rotation for fact in facts if fact["category"] == category]
         for fact in ordered:
             digest = hashlib.sha256(fact["text"].encode()).hexdigest()
             if ("id", fact["id"]) in blocked or ("body", digest) in blocked:
                 continue
-            content = make_content(fact, now)
+            content = make_content(fact, now, kind)
             db.execute(
                 "INSERT INTO fact_reservations(job_id,fact_id,body_hash,reserved_at,content_json) VALUES(?,?,?,?,?)",
                 (
@@ -297,3 +368,6 @@ def choose_fact(
             )
             return content, []
         raise FactsExhausted("No fact available inside the 30-day exclusion window")
+
+
+register_kind(DEFAULT_KIND, "هل تعلم؟", lambda today: load_facts(CATALOG, today))

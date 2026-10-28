@@ -217,6 +217,7 @@ def run_stage(
                     from .arabic_agent import inspect_content
 
                     saved = {
+                        **({"kind": value["kind"]} if "kind" in value else {}),
                         "fact_id": value["fact_id"],
                         "body": value["body"],
                         "content_hash": value["content_hash"],
@@ -287,7 +288,7 @@ def contract_status(repo: Repository, job: str, attempt: int, role: str) -> Any:
 
 def arabic_evidence(row: Any, content_sha: str, content_hash: str | None = None) -> Any:
     from .arabic_agent import inspect_content
-    from .did_you_know import load_facts, make_content
+    from .did_you_know import DEFAULT_KIND, load_kind, make_content
 
     try:
         saved = json.loads(row["output_json"])
@@ -299,11 +300,12 @@ def arabic_evidence(row: Any, content_sha: str, content_hash: str | None = None)
             or saved["content_sha"] != content_sha
         ):
             raise ValueError("Arabic lineage changed")
-        fact = next((f for f in load_facts() if f["id"] == saved["fact_id"]), None)
+        kind = saved.get("kind", DEFAULT_KIND)
+        fact = next((f for f in load_kind(kind) if f["id"] == saved["fact_id"]), None)
         if (
             fact is None
             or fact["text"] != saved["body"]
-            or make_content(fact, 0)["content_hash"] != saved["content_hash"]
+            or make_content(fact, 0, kind)["content_hash"] != saved["content_hash"]
         ):
             raise ValueError("Foreign Arabic fact")
         if content_hash is not None and saved["content_hash"] != content_hash:
