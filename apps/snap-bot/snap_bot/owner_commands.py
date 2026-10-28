@@ -1,18 +1,27 @@
 """The owner's command listener for the main Snap bot (unified menu, studio_core.commands).
 
 Long-polls Telegram for the pinned main bot and answers only the owner's private chat
-(TG_CHAT), from the same person, on fresh messages. This first stage is read-only: it
-shows the menu, the sections, the studio state and the last video. Every command that
-would make, send or stop something answers that it is not available in v3 yet and does
-nothing; those land one by one in later releases. It never renders, approves or sends.
+(TG_CHAT), from the same person, on fresh messages. It shows the menu, the sections, the
+studio state and the last video, and runs the Snap clip cycle the owner runs on the
+server, through the same units:
+  «هل تعلم»  renders one clip (madar-v3-snap-render) and shows its fact;
+  «معاينة»   sends the pending clip's still to this chat;
+  «أرسل»     asks for «نعم»; «نعم» within two minutes approves that exact SHA for the
+             main channel and starts madar-v3-snap-send-main@<sha> once;
+  «ألغِ»      drops the pending clip; it is never sent.
+Every other command with an effect still answers that it is not in v3 yet.
 Run by madar-v3-snap-commands.service: python -m snap_bot.owner_commands
 """
 
 import json
 import os
 import re
+import subprocess
 import sys
 import time
+import uuid
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from studio_core import commands as menu
@@ -23,10 +32,25 @@ from .server_preview import STATE, Runtime, channel_bot, safe_path, source_info
 from .telegram_egress import api
 
 OFFSET = STATE / "commands" / "offset.json"
+PENDING = STATE / "commands" / "pending.json"
 FRESH_SECONDS = 900
 NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم."
-# Read-only commands this stage answers; the rest reply NOT_YET.
 READ_ONLY = {"status", "last", "agents", "schedule", "report", "dash"}
+ACTIONS = {"facts", "preview", "send", "cancel"}
+RENDER_UNIT = "madar-v3-snap-render.service"
+SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
+NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
+
+
+def systemctl_start(unit: str) -> int:
+    """Start one oneshot unit and wait for it; the unit does the work, never this process."""
+    result = subprocess.run(  # noqa: S603  # fixed argv, unit names are built here
+        ["systemctl", "start", unit],  # noqa: S607  # pinned system tool
+        capture_output=True,
+        timeout=600,
+        check=False,
+    )
+    return result.returncode
 
 
 def owner_messages(updates: Any, owner: str, now: float) -> tuple[int, list[str]]:
@@ -77,10 +101,18 @@ def describe_event(event: dict[str, Any]) -> str:
 
 
 class Studio:
-    """The answers. Reads the release manifest and the ledger; writes nothing."""
+    """The answers. Read-only answers come from the release manifest and the ledger; the
+    clip cycle runs through the server units and the owner-chat approval."""
 
-    def __init__(self, runtime: Runtime | None = None) -> None:
+    def __init__(
+        self,
+        runtime: Runtime | None = None,
+        start: Callable[[str], int] = systemctl_start,
+        pending_path: Path = PENDING,
+    ) -> None:
         self.runtime = runtime or Runtime()
+        self.start = start
+        self.pending_path = pending_path
 
     def status(self) -> str:
         commit, _ = source_info()
@@ -134,20 +166,155 @@ class Studio:
     def dash(self) -> str:
         return "🖥️ لوحة التحكم: «غرفة قيادة مدار» في Claude (خاصة بك)."
 
-    def answer(self, text: str) -> str:
+    # The clip cycle ------------------------------------------------------------
+
+    def state(self) -> dict[str, Any]:
+        try:
+            value = json.loads(safe_path(self.pending_path).read_text())
+        except FileNotFoundError:
+            return {"confirm": None, "cancelled": []}
+        if not isinstance(value, dict):
+            raise ValueError("Invalid pending state")
+        return {"confirm": value.get("confirm"), "cancelled": list(value.get("cancelled", []))}
+
+    def save(self, state: dict[str, Any]) -> None:
+        path = safe_path(self.pending_path)
+        path.parent.mkdir(mode=0o700, exist_ok=True)
+        temporary = path.with_name(path.name + ".tmp")
+        temporary.write_text(json.dumps(state))
+        os.replace(temporary, path)
+
+    def pending(self) -> dict[str, Any] | None:
+        """The newest rendered clip that is unsent, unapproved, not cancelled and unexpired."""
+        events = self.runtime.events()
+        cancelled = set(self.state()["cancelled"])
+        decided = {
+            e.get("video_sha")
+            for e in events
+            if e.get("kind") in ("HUMAN_FRAME", "INTENT", "ACK", "UNKNOWN", "PRE_NETWORK_BLOCKED")
+        }
+        for event in reversed(events):
+            sha = event.get("video_sha")
+            if event.get("kind") != "RENDERED" or sha in decided or sha in cancelled:
+                continue
+            clip = self.clip(event)
+            if clip and clip["expires_at"] > time.time():
+                return clip
+            return None
+        return None
+
+    def clip(self, event: dict[str, Any]) -> dict[str, Any] | None:
+        preview = event.get("preview_id")
+        if not isinstance(preview, str) or not re.fullmatch("[0-9a-f]{32}", preview):
+            return None
+        try:
+            directory = safe_path(self.runtime.root / "previews" / preview)
+            data = json.loads((directory / "preview.json").read_text())
+            job = data["job_id"]
+            if not re.fullmatch("[0-9a-f]{32}", job):
+                return None
+            content = json.loads(
+                (directory / "state/renders" / job / "input/content.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+        except (OSError, ValueError, KeyError, TypeError):
+            return None
+        return {
+            "sha": event["video_sha"],
+            "body": content.get("body", ""),
+            "category": content.get("category", ""),
+            "expires_at": float(data["expires_at"]),
+            "still": directory / "preview.png",
+        }
+
+    def describe(self, clip: dict[str, Any]) -> str:
+        minutes = max(0, int((clip["expires_at"] - time.time()) / 60))
+        return (
+            "💡 هل تعلم؟\n"
+            + str(clip["body"])
+            + "\n\nالمقطع "
+            + str(clip["sha"])[:8]
+            + " · صالح "
+            + str(minutes)
+            + " دقيقة.\nاكتب «معاينة» لترى صورته، أو «أرسل» لإرساله، أو «ألغِ»."
+        )
+
+    def facts(self) -> str:
+        clip = self.pending()
+        if clip:
+            return "عندك مقطع ينتظر قرارك:\n\n" + self.describe(clip)
+        if self.start(RENDER_UNIT) != 0:
+            return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص madar-v3-snap-render على السيرفر."
+        clip = self.pending()
+        return self.describe(clip) if clip else "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
+
+    def preview(self) -> Any:
+        clip = self.pending()
+        if not clip:
+            return NO_CLIP
+        return {"photo": clip["still"], "caption": self.describe(clip)}
+
+    def send(self) -> str:
+        clip = self.pending()
+        if not clip:
+            return NO_CLIP
+        state = self.state()
+        state["confirm"] = {"sha": clip["sha"], "at": time.time()}
+        self.save(state)
+        return menu.confirm_text(menu.BY_KEY["send"]) + "\nالمقطع " + str(clip["sha"])[:8]
+
+    def cancel(self) -> str:
+        clip = self.pending()
+        state = self.state()
+        state["confirm"] = None
+        if not clip:
+            self.save(state)
+            return NO_CLIP
+        state["cancelled"] = (state["cancelled"] + [clip["sha"]])[-200:]
+        self.save(state)
+        return "❌ أُلغي المقطع " + str(clip["sha"])[:8] + ". لن يُرسل."
+
+    def yes(self) -> str:
+        state = self.state()
+        confirm = state["confirm"]
+        state["confirm"] = None
+        self.save(state)
+        if not isinstance(confirm, dict) or not 0 <= time.time() - confirm.get("at", 0) < (
+            menu.CONFIRM_SECONDS
+        ):
+            return "لا يوجد أمر ينتظر التأكيد."
+        clip = self.pending()
+        if not clip or clip["sha"] != confirm.get("sha"):
+            return "تغيّر المقطع المنتظر، فلم يُرسل شيء. اكتب «أرسل» من جديد."
+        sha = clip["sha"]
+        try:
+            self.runtime.approve(sha, "main", owner_chat=True)
+        except Exception as error:
+            return "⚠️ لم تُسجَّل الموافقة (" + type(error).__name__ + ")، فلم يُرسل شيء."
+        self.start(SEND_UNIT.format(sha=sha))
+        outcome = [e for e in self.runtime.events() if e.get("video_sha") == sha]
+        last = outcome[-1] if outcome else {}
+        if last.get("kind") == "ACK":
+            return describe_event(last)
+        return (
+            "⚠️ لم يتأكد الإرسال (" + str(last.get("kind", "?")) + "). المقطع مقفل ولن يُعاد إرساله."
+        )
+
+    def answer(self, text: str) -> Any:
         parsed = menu.parse(text)
         kind = parsed["kind"]
         if kind == "section":
             return menu.section_text(parsed["section"])
         if kind == "command":
             command = parsed["command"]
-            if command.key in READ_ONLY:
-                return str(getattr(self, command.key)())
+            if command.key in READ_ONLY or command.key in ACTIONS:
+                return getattr(self, command.key)()
             return NOT_YET.format(label=command.label)
         if kind == "add_fact":
             return NOT_YET.format(label=menu.BY_KEY["add_fact"].label)
         if kind == "yes":
-            return "لا يوجد أمر ينتظر التأكيد."
+            return self.yes()
         return menu.menu_text()
 
 
@@ -185,8 +352,35 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
     cursor, texts = owner_messages(updates, owner, time.time())
     for text in texts:
         reply = studio.answer(text)
+        if isinstance(reply, dict):
+            body, kind = photo_body(owner, Path(reply["photo"]).read_bytes(), reply["caption"])
+            transport(token, "sendPhoto", body, kind)
+            continue
         transport(token, "sendMessage", json.dumps({"chat_id": owner, "text": reply}).encode())
     return max(offset, cursor)
+
+
+def photo_body(chat: str, photo: bytes, caption: str) -> tuple[bytes, str]:
+    boundary = "madar" + uuid.uuid4().hex
+    while boundary.encode() in photo:
+        boundary = "madar" + uuid.uuid4().hex
+    parts = []
+    for name, value in (("chat_id", chat), ("caption", caption[:1024])):
+        parts.append(
+            (
+                "--" + boundary + '\r\nContent-Disposition: form-data; name="' + name + '"'
+                "\r\n\r\n" + value + "\r\n"
+            ).encode()
+        )
+    parts.append(
+        (
+            "--" + boundary + '\r\nContent-Disposition: form-data; name="photo"; '
+            'filename="preview.png"\r\nContent-Type: image/png\r\n\r\n'
+        ).encode()
+        + photo
+        + ("\r\n--" + boundary + "--\r\n").encode()
+    )
+    return b"".join(parts), "multipart/form-data; boundary=" + boundary
 
 
 def main() -> None:

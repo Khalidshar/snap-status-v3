@@ -411,9 +411,16 @@ class Runtime:
             raise ValueError("Provenance changed")
         return directory, record, verify_quality(directory, data, video_sha)
 
-    def approve(self, video_sha: str, channel: str = "test") -> Any:
+    def approve(self, video_sha: str, channel: str = "test", *, owner_chat: bool = False) -> Any:
+        """The owner's approval: from a sudo session, or (main channel only) from the
+        owner's private chat on the pinned main bot after an explicit «نعم»."""
         _, uid = source_info()
-        actor = owner_actor(uid)
+        if owner_chat:
+            if os.geteuid() != 0 or channel != "main":
+                raise ValueError("Owner chat approves the main channel only, as root")
+            actor = uid
+        else:
+            actor = owner_actor(uid)
         # The owner approves one destination; send refuses any other.
         bot = channel_bot(channel)
         with self.locked():
@@ -445,6 +452,7 @@ class Runtime:
                 evidence_sha=record["evidence_sha"],
                 channel=channel,
                 bot=bot,
+                via="owner_chat" if owner_chat else "sudo",
             )
 
     def require_approval(
