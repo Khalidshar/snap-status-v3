@@ -46,6 +46,24 @@ SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
 NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
 
 
+# Layout contains command keys only; the shared registry owns every button label.
+KEYBOARD_ROWS = (
+    ("facts", "tech", "style"),
+    ("funny", "night", "hadith"),
+    ("dua", "preview", "send"),
+    ("cancel", "status", "last"),
+)
+
+
+def reply_keyboard() -> dict[str, Any]:
+    """Expose the requested v3 shortcuts only while their handlers are enabled."""
+    enabled = ACTIONS | READ_ONLY
+    rows = [
+        [{"text": menu.BY_KEY[key].label} for key in row if key in enabled] for row in KEYBOARD_ROWS
+    ]
+    return {"keyboard": [row for row in rows if row], "resize_keyboard": True}
+
+
 def systemctl_start(unit: str) -> int:
     """Start one oneshot unit and wait for it; the unit does the work, never this process."""
     result = subprocess.run(  # noqa: S603  # fixed argv, unit names are built here
@@ -388,7 +406,10 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
             body, kind = photo_body(owner, Path(reply["photo"]).read_bytes(), reply["caption"])
             transport(token, "sendPhoto", body, kind)
             continue
-        transport(token, "sendMessage", json.dumps({"chat_id": owner, "text": reply}).encode())
+        message = {"chat_id": owner, "text": reply}
+        if menu.parse(text)["kind"] == "menu":
+            message["reply_markup"] = reply_keyboard()
+        transport(token, "sendMessage", json.dumps(message).encode())
     return max(offset, cursor)
 
 
