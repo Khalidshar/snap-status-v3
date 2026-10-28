@@ -342,7 +342,7 @@ def test_hadith_narrators_match_reviewed_sources() -> None:
         "bukhari_6018": ("أبو هريرة", "bukhari:6018"),
         "muslim_2699": ("أبو هريرة", "muslim:2699a"),
         "bukhari_13": ("أنس بن مالك", "bukhari:13"),
-        "muslim_2319": ("أبو هريرة", "muslim:2318a"),
+        "muslim_2318": ("أبو هريرة", "muslim:2318a"),
         "bukhari_6114": ("أبو هريرة", "bukhari:6114"),
         "muslim_41": ("جابر بن عبد الله", "muslim:41"),
     }
