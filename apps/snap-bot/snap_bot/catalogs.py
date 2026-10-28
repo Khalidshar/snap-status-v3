@@ -14,6 +14,15 @@ from .did_you_know import safe_text
 KINDS = ("tech", "style", "riddle", "funny", "night")
 DATA = Path(__file__).with_name("data")
 HOSTS = {
+    "www.aad.org",
+    "extension.purdue.edu",
+    "career.charlotte.edu",
+    "www.brenau.edu",
+    "www.cisa.gov",
+    "www.ncsc.gov.uk",
+    "support.apple.com",
+    "support.google.com",
+    "support.microsoft.com",
     "developer.mozilla.org",
     "support.mozilla.org",
     "www.ginetex.net",

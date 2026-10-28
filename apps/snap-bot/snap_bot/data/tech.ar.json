@@ -6,213 +6,213 @@
   "items": [
     {
       "id": "tech-01",
-      "source": "توثيق موزيلا",
+      "source": "المركز الوطني البريطاني للأمن السيبراني",
       "verified_at": "2026-10-28",
-      "text": "المتصفح يطلب صفحات الويب من الخوادم ثم يعرضها على جهازك.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "فعّل التحقق بخطوتين ليحتاج الدخول إلى حسابك تحققًا إضافيًا بعد كلمة المرور.",
+      "source_url": "https://www.ncsc.gov.uk/guidance/setting-2-step-verification-2sv"
     },
     {
       "id": "tech-02",
-      "source": "توثيق موزيلا",
+      "source": "المركز الوطني البريطاني للأمن السيبراني",
       "verified_at": "2026-10-28",
-      "text": "الخادم حاسوب يخزن صفحات أو مواقع أو تطبيقات ويستجيب للطلبات.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "احم بريدك الإلكتروني بالتحقق بخطوتين؛ فقد يستخدم لاستعادة حساباتك الأخرى.",
+      "source_url": "https://www.ncsc.gov.uk/guidance/setting-2-step-verification-2sv"
     },
     {
       "id": "tech-03",
-      "source": "توثيق موزيلا",
+      "source": "المركز الوطني البريطاني للأمن السيبراني",
       "verified_at": "2026-10-28",
-      "text": "اتصال الإنترنت يتيح لجهازك إرسال البيانات واستقبالها.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "تطبيق المصادقة أحد خيارات التحقق بخطوتين، إلى جانب الرسائل النصية.",
+      "source_url": "https://www.ncsc.gov.uk/guidance/setting-2-step-verification-2sv"
     },
     {
       "id": "tech-04",
-      "source": "توثيق موزيلا",
+      "source": "وكالة الأمن السيبراني الأمريكية",
       "verified_at": "2026-10-28",
-      "text": "نظام أسماء النطاقات يساعد على إيجاد عنوان الخادم من اسم الموقع.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "استخدم كلمة مرور مختلفة لكل حساب حتى لا يمتد أثر تسريب واحد إلى بقية حساباتك.",
+      "source_url": "https://www.cisa.gov/sites/default/files/2024-09/Secure-Our-World-Passwords-Tip-Sheet.pdf"
     },
     {
       "id": "tech-05",
-      "source": "توثيق موزيلا",
+      "source": "وكالة الأمن السيبراني الأمريكية",
       "verified_at": "2026-10-28",
-      "text": "تنتقل بيانات الويب في أجزاء صغيرة تسمى حزمًا.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "كلمة المرور الطويلة والعشوائية أصعب تخمينًا من الكلمات الشائعة.",
+      "source_url": "https://www.cisa.gov/sites/default/files/2024-09/Secure-Our-World-Passwords-Tip-Sheet.pdf"
     },
     {
       "id": "tech-06",
-      "source": "توثيق موزيلا",
+      "source": "وكالة الأمن السيبراني الأمريكية",
       "verified_at": "2026-10-28",
-      "text": "قد تتكون صفحة الويب من ملفات متعددة يجمعها المتصفح.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "يمكن لمدير كلمات المرور إنشاء كلمات قوية وحفظها وملئها تلقائيًا.",
+      "source_url": "https://www.cisa.gov/sites/default/files/2024-09/Secure-Our-World-Passwords-Tip-Sheet.pdf"
     },
     {
       "id": "tech-07",
-      "source": "توثيق موزيلا",
+      "source": "وكالة الأمن السيبراني الأمريكية",
       "verified_at": "2026-10-28",
-      "text": "عنوان الويب قد يتضمن اسم النطاق ومسار المورد المطلوب.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "قد تصل رسائل التصيد عبر البريد أو الرسائل النصية لتطلب معلوماتك الشخصية.",
+      "source_url": "https://www.cisa.gov/sites/default/files/publications/phishing_and_spoofing_tip_sheet_2022_092022.pdf"
     },
     {
       "id": "tech-08",
-      "source": "توثيق موزيلا",
+      "source": "وكالة الأمن السيبراني الأمريكية",
       "verified_at": "2026-10-28",
-      "text": "اسم النطاق جزء مقروء من عنوان الموقع.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "تحقق من هوية المرسل قبل فتح رابط أو مرفق غير متوقع.",
+      "source_url": "https://www.cisa.gov/sites/default/files/publications/phishing_and_spoofing_tip_sheet_2022_092022.pdf"
     },
     {
       "id": "tech-09",
-      "source": "توثيق موزيلا",
+      "source": "وكالة الأمن السيبراني الأمريكية",
       "verified_at": "2026-10-28",
-      "text": "مسار عنوان الويب يحدد موردًا على الخادم.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "إذا شككت في رسالة، تواصل مع الجهة عبر وسيلة تعرفها بدل بيانات الاتصال داخلها.",
+      "source_url": "https://www.cisa.gov/sites/default/files/publications/phishing_and_spoofing_tip_sheet_2022_092022.pdf"
     },
     {
       "id": "tech-10",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "يعيد الخادم استجابة بعد تلقي طلب من المتصفح.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "تجنب شحن الهاتف في جو تتجاوز حرارته ٣٥ درجة مئوية للمحافظة على عمر البطارية.",
+      "source_url": "https://support.apple.com/en-ae/105105"
     },
     {
       "id": "tech-11",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "لغة ترميز صفحات الويب تصف بنية محتوى الصفحة.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "عمر البطارية الكيميائي يتأثر بتاريخ الحرارة ونمط الشحن، لا بمرور الزمن وحده.",
+      "source_url": "https://support.apple.com/en-ae/105105"
     },
     {
       "id": "tech-12",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "تستخدم أوراق الأنماط لتحديد مظهر صفحات الويب.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "يقل تيار الشحن تدريجيًا قرب امتلاء بطارية الهاتف لتقليل الحرارة.",
+      "source_url": "https://support.apple.com/en-ae/105105"
     },
     {
       "id": "tech-13",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "يمكن للبرامج النصية إضافة تفاعل إلى صفحة الويب.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "لا تترك هاتفك في سيارة حارة؛ فالحرارة المرتفعة قد تؤثر في أدائه وبطاريته.",
+      "source_url": "https://support.apple.com/en-us/118431"
     },
     {
       "id": "tech-14",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "رمز الاستجابة 404 يعني أن المورد المطلوب غير موجود.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "قد يتوقف شحن الهاتف مؤقتًا إذا ارتفعت حرارته كثيرًا.",
+      "source_url": "https://support.apple.com/en-us/118431"
     },
     {
       "id": "tech-15",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "رمز الاستجابة 200 يدل على نجاح الطلب.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "قد يقل زمن استخدام البطارية مؤقتًا في البرد، ثم يعود طبيعيًا بعد اعتدال الحرارة.",
+      "source_url": "https://support.apple.com/en-us/118431"
     },
     {
       "id": "tech-16",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "رمز الاستجابة 301 يدل على نقل المورد بصورة دائمة.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "راجع استخدام التطبيقات للمساحة من إعدادات تخزين الهاتف قبل حذف ملفات عشوائيًا.",
+      "source_url": "https://support.apple.com/en-us/108429"
     },
     {
       "id": "tech-17",
-      "source": "توثيق موزيلا",
+      "source": "دعم أبل",
       "verified_at": "2026-10-28",
-      "text": "رمز الاستجابة 403 يدل على رفض الوصول إلى المورد.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "إزالة التطبيق مع الاحتفاظ ببياناته تختلف عن حذفه مع بياناته.",
+      "source_url": "https://support.apple.com/en-us/108429"
     },
     {
       "id": "tech-18",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "رمز الاستجابة 503 قد يشير إلى تعذر الخدمة مؤقتًا.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "التخزين يحتفظ بالصور والملفات، بينما تستخدم الذاكرة لتشغيل البرامج.",
+      "source_url": "https://support.google.com/android/answer/7431795"
     },
     {
       "id": "tech-19",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "المتصفح من أمثلة البرامج التي تعمل بوصفها عميلًا للويب.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "مسح ذاكرة التخزين المؤقت يزيل بيانات مؤقتة، وقد يبطئ أول فتح للتطبيق بعدها.",
+      "source_url": "https://support.google.com/android/answer/7431795"
     },
     {
       "id": "tech-20",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "عنوان الخادم الرقمي يختلف عن اسم النطاق المقروء.",
-      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+      "text": "مسح بيانات التطبيق يختلف عن مسح ذاكرته المؤقتة، وقد يحذف بياناته نهائيًا.",
+      "source_url": "https://support.google.com/android/answer/7431795"
     },
     {
       "id": "tech-21",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "التصفح الخاص لا يجعل نشاطك مجهولًا تمامًا على الإنترنت.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "راجع التنزيلات والتطبيقات غير المستخدمة عند الحاجة إلى مساحة إضافية.",
+      "source_url": "https://support.google.com/android/answer/7431795"
     },
     {
       "id": "tech-22",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "الملفات التي تنزلها في نافذة خاصة تبقى على جهازك.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "راجع أذونات التطبيقات لمعرفة أيها يستطيع الوصول إلى الكاميرا أو الميكروفون.",
+      "source_url": "https://support.google.com/android/answer/9431959"
     },
     {
       "id": "tech-23",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "الإشارات المرجعية التي تحفظها في نافذة خاصة تبقى بعد إغلاقها.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "يمكن تغيير إذن التطبيق من إعدادات الجهاز بدل الاكتفاء باختياره وقت التثبيت.",
+      "source_url": "https://support.google.com/android/answer/9431959"
     },
     {
       "id": "tech-24",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "التصفح الخاص لا يمنع مزود الإنترنت من معرفة نشاط التصفح.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "قد يتيح النظام السماح بالموقع أثناء استخدام التطبيق فقط.",
+      "source_url": "https://support.google.com/android/answer/9431959"
     },
     {
       "id": "tech-25",
-      "source": "توثيق موزيلا",
+      "source": "دعم جوجل",
       "verified_at": "2026-10-28",
-      "text": "قد يظل موقع الويب قادرًا على معرفة زيارتك عند استخدام نافذة خاصة.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "مدير الأذونات يساعدك على معرفة التطبيقات التي تشترك في صلاحية واحدة.",
+      "source_url": "https://support.google.com/android/answer/9431959"
     },
     {
       "id": "tech-26",
-      "source": "توثيق موزيلا",
+      "source": "دعم مايكروسوفت",
       "verified_at": "2026-10-28",
-      "text": "التصفح الخاص لا يحمي وحده من البرامج الضارة.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "قد ينتج الذكاء الاصطناعي إجابة خاطئة بصياغة مقنعة؛ تحقق من المعلومات المهمة.",
+      "source_url": "https://support.microsoft.com/en-us/privacy/microsoft-copilot/transparency-note"
     },
     {
       "id": "tech-27",
-      "source": "توثيق موزيلا",
+      "source": "دعم مايكروسوفت",
       "verified_at": "2026-10-28",
-      "text": "في التصفح الخاص لا تحفظ مدخلات النماذج للإكمال التلقائي.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "يمكن للذكاء الاصطناعي التوليدي المساعدة في إعداد مسودة، لكنها تحتاج إلى مراجعتك.",
+      "source_url": "https://support.microsoft.com/en-us/privacy/microsoft-copilot/transparency-note"
     },
     {
       "id": "tech-28",
-      "source": "توثيق موزيلا",
+      "source": "دعم مايكروسوفت",
       "verified_at": "2026-10-28",
-      "text": "ملفات الارتباط قد تحفظ تفضيلات المواقع وحالة تسجيل الدخول.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "قد تختلف إجابات الذكاء الاصطناعي للسؤال نفسه؛ فهي ليست نتائج ثابتة دائمًا.",
+      "source_url": "https://support.microsoft.com/en-us/privacy/microsoft-copilot/transparency-note"
     },
     {
       "id": "tech-29",
-      "source": "توثيق موزيلا",
+      "source": "دعم مايكروسوفت",
       "verified_at": "2026-10-28",
-      "text": "في التصفح الخاص تحذف ملفات الارتباط المؤقتة بعد إغلاق آخر نافذة خاصة.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "راجع إعدادات خصوصية مساعد الذكاء الاصطناعي لمعرفة خيارات استخدام محادثاتك.",
+      "source_url": "https://support.microsoft.com/en-us/microsoft-copilot/privacy-faq-for-microsoft-copilot"
     },
     {
       "id": "tech-30",
-      "source": "توثيق موزيلا",
+      "source": "دعم مايكروسوفت",
       "verified_at": "2026-10-28",
-      "text": "كلمات المرور الجديدة المحفوظة أثناء التصفح الخاص تبقى بعد انتهاء الجلسة.",
-      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+      "text": "وجود رابط مصدر في إجابة الذكاء الاصطناعي لا يغني عن فتحه والتحقق من مضمونه.",
+      "source_url": "https://support.microsoft.com/en-us/microsoft-copilot/privacy-faq-for-microsoft-copilot"
     }
   ]
 }
