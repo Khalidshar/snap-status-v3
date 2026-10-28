@@ -1,6 +1,6 @@
 """Verbatim faith data, checked before use. No network, rewriting or proofreading.
 
-The official subset is intentionally absent until the pinned archive validates.
+The bundled subset comes from the owner-approved 2026-09-30 package.
 Missing or invalid data fails closed; there is no fallback text or online fetch.
 """
 
@@ -15,21 +15,28 @@ from typing import Any
 DATA = Path(__file__).with_name("data") / "faith"
 SOURCE_REPO = "Khalidshar/status-bot@b445281"
 OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v30.zip"
-OFFICIAL_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
+OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
+PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
 KINDS = ("adhkar_am", "adhkar_pm", "hadith", "dua", "verse", "friday", "kahf")
 GRADES = ("صحيح", "حسن صحيح", "حسن")
 
 
-def _safe(value: object) -> str:
+def _safe(value: object, *, quran: bool = False) -> str:
     if not isinstance(value, str) or not value:
         raise ValueError("Missing faith string")
-    if any(unicodedata.category(c) in {"Cc", "Cf", "Cs"} for c in value):
+    # U+06DD is the official ayah-number marker, not a bidi control. Keep it
+    # verbatim only for Quran text, once, immediately before final Arabic digits.
+    ayah_marker = quran and value.count("\u06dd") == 1 and re.search(r"\u06dd[٠-٩]+\Z", value)
+    if any(
+        unicodedata.category(c) in {"Cc", "Cf", "Cs"} and not (c == "\u06dd" and ayah_marker)
+        for c in value
+    ):
         raise ValueError("Unsafe faith character")
     return value
 
 
-def _verified(item: dict[str, Any]) -> str:
-    value = _safe(item.get("text"))
+def _verified(item: dict[str, Any], *, quran: bool = False) -> str:
+    value = _safe(item.get("text"), quran=quran)
     if item.get("sha256") != hashlib.sha256(value.encode("utf-8")).hexdigest():
         raise ValueError("Faith text hash mismatch")
     return value
@@ -95,6 +102,10 @@ def _subset() -> tuple[dict[tuple[int, int], str], dict[str, Any]]:
     if (
         obj.get("zip_url") != OFFICIAL_URL
         or obj.get("zip_sha256") != OFFICIAL_SHA256
+        or obj.get("publication_date") != "2026-09-30"
+        or obj.get("previous_zip_sha256") != PREVIOUS_SHA256
+        or not isinstance(obj.get("checksum_note"), str)
+        or not obj["checksum_note"]
         or obj.get("package_version") != "kfgqpc_hafs_v30"
         or obj.get("package_ayahs") != 6236
         or obj.get("package_surahs") != 114
@@ -113,7 +124,7 @@ def _subset() -> tuple[dict[tuple[int, int], str], dict[str, Any]]:
             raise ValueError("Invalid ayah coordinates")
         if (surah, ayah) in index:
             raise ValueError("Duplicate subset ayah")
-        index[(surah, ayah)] = _verified(item)
+        index[(surah, ayah)] = _verified(item, quran=True)
     if len(index) != 90:
         raise ValueError("Incomplete Quran subset")
     collections = obj.get("collections")

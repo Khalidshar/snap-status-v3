@@ -17,8 +17,6 @@ def digest(value: str) -> str:
 
 @pytest.mark.parametrize("kind", faith.KINDS)
 def test_bundled_kind(kind: str) -> None:
-    if kind not in {"hadith", "dua"} and not (faith.DATA / "quran_subset.json").exists():
-        pytest.skip("BLOCKED: official archive SHA does not match task pin; no Quran accepted")
     items = faith.load(kind)
     assert (
         len(items)
@@ -69,6 +67,9 @@ def synthetic_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         "source_repo": faith.SOURCE_REPO,
         "zip_url": faith.OFFICIAL_URL,
         "zip_sha256": faith.OFFICIAL_SHA256,
+        "publication_date": "2026-09-30",
+        "previous_zip_sha256": faith.PREVIOUS_SHA256,
+        "checksum_note": "synthetic metadata fixture",
         "package_version": "kfgqpc_hafs_v30",
         "package_ayahs": 6236,
         "package_surahs": 114,
@@ -242,3 +243,56 @@ def test_exact_source_copy(kind: str, filename: str) -> None:
             original.pop("id")
         hashes.append(digest(json.dumps(original, ensure_ascii=False, sort_keys=True)))
     assert hashes == SOURCE_ITEM_HASHES[kind]
+
+
+def test_official_ayah_markers_preserved() -> None:
+    subset = json.loads((faith.DATA / "quran_subset.json").read_text())
+    for item in subset["items"]:
+        assert "\u06dd" in item["text"]
+        assert faith._verified(item, quran=True) == item["text"]
+        with pytest.raises(ValueError, match="Unsafe"):
+            faith._verified(item)  # not allowed in narration text
+
+
+@pytest.mark.parametrize("control", ("\u202e", "\u2067", "\u200f", "\x00", "\n"))
+def test_quran_still_rejects_controls(control: str) -> None:
+    item = json.loads((faith.DATA / "quran_subset.json").read_text())["items"][0]
+    item["text"] = control + item["text"]
+    item["sha256"] = digest(item["text"])
+    with pytest.raises(ValueError, match="Unsafe"):
+        faith._verified(item, quran=True)
+
+
+@pytest.mark.parametrize(
+    "value", ("synthetic \u06dd", "\u06dd١ synthetic", "synthetic \u06dd١\u06dd٢")
+)
+def test_invalid_marker_position_rejected(value: str) -> None:
+    with pytest.raises(ValueError, match="Unsafe"):
+        faith._verified({"text": value, "sha256": digest(value)}, quran=True)
+
+
+@pytest.mark.parametrize(
+    "field,value", (("zip_sha256", faith.PREVIOUS_SHA256), ("publication_date", "2026-09-29"))
+)
+def test_superseded_package_rejected(synthetic_data: Path, field: str, value: str) -> None:
+    path = synthetic_data / "quran_subset.json"
+    obj = json.loads(path.read_text())
+    obj[field] = value
+    path.write_text(json.dumps(obj))
+    with pytest.raises(ValueError, match="Unapproved official"):
+        faith.load("verse")
+
+
+def test_builder_requires_unicode_source_field() -> None:
+    script = Path(__file__).resolve().parents[3] / "tools/build_faith_data.py"
+    spec = importlib.util.spec_from_file_location("build_faith_unicode_test", script)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    base = {"sura_no": 1, "aya_no": 1, "aya_text": "alternate fixture"}
+    assert module.rows_from_json(json.dumps([base]).encode()) is None
+    base["aya_text_unicode"] = "  unchanged unicode fixture  "
+    assert (
+        module.rows_from_json(json.dumps([base]).encode())[0]["aya_text_unicode"]
+        == base["aya_text_unicode"]
+    )

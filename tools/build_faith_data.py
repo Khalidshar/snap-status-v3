@@ -3,9 +3,8 @@
 Run manually once; CI must never download. A local --zip permits offline checks
 of the same bytes. A mismatch stops before reading any text or writing output.
 
-Blocked build on 2026-10-28: the downloaded official URL returned SHA-256
-227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245,
-which differs from the authorized pin below. No subset has been generated.
+Owner authorized the republished 2026-09-30 package on 2026-10-28.
+The previous checksum belongs to an earlier package version.
 """
 
 import argparse
@@ -19,7 +18,9 @@ from typing import Any
 from urllib.request import urlopen
 
 OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v30.zip"
-OFFICIAL_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
+OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
+PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
+PUBLICATION_DATE = "2026-09-30"
 OUTPUT = Path(__file__).resolve().parents[1] / "apps/snap-bot/snap_bot/data/faith/quran_subset.json"
 
 # Reference structure copied from status-bot@b445281; contains no sacred text.
@@ -186,7 +187,7 @@ def rows_from_json(raw: bytes) -> list[dict[str, Any]] | None:
     if not all(
         isinstance(row, dict)
         and {"sura_no", "aya_no"} <= row.keys()
-        and isinstance(row.get("aya_text_unicode", row.get("aya_text")), str)
+        and isinstance(row.get("aya_text_unicode"), str)
         for row in rows
     ):
         return None
@@ -214,7 +215,7 @@ def read_package(raw: bytes) -> dict[tuple[int, int], str]:
         if type(surah) is not int or type(ayah) is not int:
             raise ValueError("Non-integer ayah coordinates")
         key = (surah, ayah)
-        value = row.get("aya_text_unicode", row.get("aya_text"))
+        value = row["aya_text_unicode"]
         if not 1 <= surah <= 114 or ayah < 1 or key in index or not value:
             raise ValueError("Invalid or duplicate ayah")
         # No strip(), normalisation, punctuation, or other edits to sacred bytes.
@@ -245,6 +246,11 @@ def build(raw: bytes, output: Path) -> None:
         "source_repo": "Khalidshar/status-bot@b445281",
         "zip_url": OFFICIAL_URL,
         "zip_sha256": OFFICIAL_SHA256,
+        "publication_date": PUBLICATION_DATE,
+        "previous_zip_sha256": PREVIOUS_SHA256,
+        "checksum_note": (
+            "البصمة القديمة تخص نسخة سابقة؛ اعتمد المالك بصمة إعادة النشر بتاريخ 2026-09-30."
+        ),
         "package_version": "kfgqpc_hafs_v30",
         "build_date": datetime.now(UTC).date().isoformat(),
         "package_ayahs": 6236,
