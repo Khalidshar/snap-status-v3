@@ -141,7 +141,7 @@ def main() -> None:
         if manifest["layout"] != "v3" or manifest["environment"] != "PASS":
             raise RuntimeError("Unverified manifest")
         units = sorted(path.name for path in installer.UNIT_DIR.iterdir())
-        if units != sorted(installer.UNITS):
+        if units != sorted([*installer.UNITS, installer.KIND_RENDER_UNIT]):
             raise RuntimeError("Unexpected units")
 
         # The owner's renderer imports the release's own packages, from the release only.
