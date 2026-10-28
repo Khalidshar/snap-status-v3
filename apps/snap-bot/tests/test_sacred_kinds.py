@@ -12,7 +12,6 @@ from snap_bot import faith, sacred_kinds
 from snap_bot.arabic_agent import check_text, inspect_content
 from snap_bot.content_agents import CHECKS, AgentRejected, proofread, run_check
 from snap_bot.fact_layout import (
-    HADITH_BODY,
     PROPHET_LINE,
     SACRED_BODY,
     fact_labels,
@@ -84,8 +83,8 @@ class SacredKindTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             fact_labels(content)
         labels = [label[0] for label in sacred_labels(content)]
-        self.assertIn("حديث شريف", labels)
-        self.assertEqual(len(labels), 6, "guard:no-body-lines")
+        self.assertNotIn("حديث شريف", labels, "guard:owner-dropped-the-title")
+        self.assertEqual(len(labels), 5, "guard:no-body-lines")
         self.assertFalse(any(content["body"][:10] in label for label in labels))
         with self.assertRaises(ValueError):
             sacred_labels(contents("tech")[0])
@@ -94,14 +93,14 @@ class SacredKindTests(unittest.TestCase):
         for content in contents("hadith"):
             with self.subTest(fact=content["fact_id"]):
                 labels = [label[0] for label in sacred_labels(content)]
-                self.assertEqual(labels[3], PROPHET_LINE, "guard:prophet-line")
-                self.assertIn("ﷺ", labels[3])
-                self.assertEqual(sacred_body_box(content), HADITH_BODY)
+                self.assertEqual(labels[2], PROPHET_LINE, "guard:prophet-line-opens-the-card")
+                self.assertIn("ﷺ", labels[2])
+                self.assertEqual(sacred_body_box(content), SACRED_BODY)
         dua = contents("dua")[0]
         self.assertNotIn(PROPHET_LINE, [label[0] for label in sacred_labels(dua)])
-        self.assertEqual(sacred_body_box(dua), SACRED_BODY)
-        # The line sits between the title and the verbatim body, never inside the body.
-        self.assertLess(575 + 64, HADITH_BODY[1])
+        self.assertIn("دعاء", [label[0] for label in sacred_labels(dua)])
+        # The line sits above the verbatim body, never inside it.
+        self.assertLess(440 + 80, SACRED_BODY[1])
         self.assertNotIn(PROPHET_LINE, contents("hadith")[0]["body"])
 
     def test_a_rendered_hadith_seeds_the_next_render_history(self):
