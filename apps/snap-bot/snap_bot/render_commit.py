@@ -134,15 +134,16 @@ def adopt_render(
     content = json.loads(input_path.read_bytes())
     if filename != video_filename(content.get("type")):
         raise ValueError("Render content type mismatch")
-    if content.get("sacred") is not False:
-        raise ValueError("Unverified render input")
     if content["type"] == "did_you_know":
+        # validate_content allows sacred only for a sacred kind with its verbatim text.
         validate_content(content)
         if (
             result.get("content_type") != "did_you_know"
             or result.get("safe_area", {}).get("result") != "PASS"
         ):
             raise ValueError("Missing fact QA")
+    elif content.get("sacred") is not False:
+        raise ValueError("Unverified render input")
     root = artifact_root(settings)
     source = root / expected
     cursor = root

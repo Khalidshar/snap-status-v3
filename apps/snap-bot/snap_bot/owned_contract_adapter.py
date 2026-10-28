@@ -288,7 +288,7 @@ def contract_status(repo: Repository, job: str, attempt: int, role: str) -> Any:
 
 def arabic_evidence(row: Any, content_sha: str, content_hash: str | None = None) -> Any:
     from .arabic_agent import inspect_content
-    from .did_you_know import DEFAULT_KIND, load_kind, make_content
+    from .did_you_know import DEFAULT_KIND, SACRED_KINDS, load_kind, make_content
 
     try:
         saved = json.loads(row["output_json"])
@@ -311,7 +311,12 @@ def arabic_evidence(row: Any, content_sha: str, content_hash: str | None = None)
         if content_hash is not None and saved["content_hash"] != content_hash:
             raise ValueError("Foreign Arabic content")
         if saved["report"] != inspect_content(
-            {"type": "did_you_know", "sacred": False, "body": saved["body"]}
+            {
+                "type": "did_you_know",
+                "sacred": kind in SACRED_KINDS,
+                "body": saved["body"],
+                **({"kind": kind, "fact_id": saved["fact_id"]} if kind in SACRED_KINDS else {}),
+            }
         ):
             raise ValueError("Arabic proof changed")
     except (TypeError, ValueError, KeyError, IndexError) as cause:

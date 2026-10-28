@@ -7,6 +7,7 @@ import unicodedata
 from typing import Any
 
 RULE_VERSION = "arabic-local-v1"
+SACRED_RULE_VERSION = "sacred-verbatim-v1"
 ABBREVIATIONS = ("E Ink", "IPv6", "IPv4", "CERN", "GPS", "NFC", "QR")
 CHECKS = (
     "arabic_letters",
@@ -65,12 +66,30 @@ def check_text(text: object) -> dict[str, Any]:
     }
 
 
+def check_sacred(kind: object, fact_id: object, body: object) -> dict[str, Any]:
+    """Sacred text is never judged by the writing rules: it must be the approved text exactly."""
+    from .sacred_kinds import TITLES, verbatim
+
+    if kind not in TITLES:
+        raise ValueError("ARABIC_CONTENT_INVALID")
+    try:
+        digest = verbatim(str(kind), fact_id, body)
+    except ValueError as error:
+        raise ValueError("ARABIC_SACRED_CHANGED") from error
+    return {
+        "version": SACRED_RULE_VERSION,
+        "decision": "PASS",
+        "checks": ["verbatim_sha256"],
+        "sha256": digest,
+    }
+
+
 def inspect_content(content: object) -> dict[str, Any]:
-    if (
-        not isinstance(content, dict)
-        or content.get("type") != "did_you_know"
-        or content.get("sacred") is not False
-    ):
+    if not isinstance(content, dict) or content.get("type") != "did_you_know":
+        raise ValueError("ARABIC_CONTENT_INVALID")
+    if content.get("sacred") is True:
+        return check_sacred(content.get("kind"), content.get("fact_id"), content.get("body"))
+    if content.get("sacred") is not False:
         raise ValueError("ARABIC_CONTENT_INVALID")
     return check_text(content.get("body"))
 
