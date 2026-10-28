@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": false,
+  "kind": "tech",
+  "items": [
+    {
+      "id": "tech-01",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "المتصفح يطلب صفحات الويب من الخوادم ثم يعرضها على جهازك.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-02",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "الخادم حاسوب يخزن صفحات أو مواقع أو تطبيقات ويستجيب للطلبات.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-03",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "اتصال الإنترنت يتيح لجهازك إرسال البيانات واستقبالها.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-04",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "نظام أسماء النطاقات يساعد على إيجاد عنوان الخادم من اسم الموقع.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-05",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "تنتقل بيانات الويب في أجزاء صغيرة تسمى حزمًا.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-06",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "قد تتكون صفحة الويب من ملفات متعددة يجمعها المتصفح.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-07",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "عنوان الويب قد يتضمن اسم النطاق ومسار المورد المطلوب.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-08",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "اسم النطاق جزء مقروء من عنوان الموقع.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-09",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "مسار عنوان الويب يحدد موردًا على الخادم.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-10",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "يعيد الخادم استجابة بعد تلقي طلب من المتصفح.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-11",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "لغة ترميز صفحات الويب تصف بنية محتوى الصفحة.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-12",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "تستخدم أوراق الأنماط لتحديد مظهر صفحات الويب.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-13",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "يمكن للبرامج النصية إضافة تفاعل إلى صفحة الويب.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-14",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "رمز الاستجابة 404 يعني أن المورد المطلوب غير موجود.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-15",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "رمز الاستجابة 200 يدل على نجاح الطلب.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-16",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "رمز الاستجابة 301 يدل على نقل المورد بصورة دائمة.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-17",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "رمز الاستجابة 403 يدل على رفض الوصول إلى المورد.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-18",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "رمز الاستجابة 503 قد يشير إلى تعذر الخدمة مؤقتًا.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-19",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "المتصفح من أمثلة البرامج التي تعمل بوصفها عميلًا للويب.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-20",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "عنوان الخادم الرقمي يختلف عن اسم النطاق المقروء.",
+      "source_url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Getting_started/Web_standards/How_the_web_works"
+    },
+    {
+      "id": "tech-21",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "التصفح الخاص لا يجعل نشاطك مجهولًا تمامًا على الإنترنت.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-22",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "الملفات التي تنزلها في نافذة خاصة تبقى على جهازك.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-23",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "الإشارات المرجعية التي تحفظها في نافذة خاصة تبقى بعد إغلاقها.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-24",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "التصفح الخاص لا يمنع مزود الإنترنت من معرفة نشاط التصفح.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-25",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "قد يظل موقع الويب قادرًا على معرفة زيارتك عند استخدام نافذة خاصة.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-26",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "التصفح الخاص لا يحمي وحده من البرامج الضارة.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-27",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "في التصفح الخاص لا تحفظ مدخلات النماذج للإكمال التلقائي.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-28",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "ملفات الارتباط قد تحفظ تفضيلات المواقع وحالة تسجيل الدخول.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-29",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "في التصفح الخاص تحذف ملفات الارتباط المؤقتة بعد إغلاق آخر نافذة خاصة.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    },
+    {
+      "id": "tech-30",
+      "source": "توثيق موزيلا",
+      "verified_at": "2026-10-28",
+      "text": "كلمات المرور الجديدة المحفوظة أثناء التصفح الخاص تبقى بعد انتهاء الجلسة.",
+      "source_url": "https://support.mozilla.org/en-US/kb/private-browsing-use-firefox-without-history"
+    }
+  ]
+}

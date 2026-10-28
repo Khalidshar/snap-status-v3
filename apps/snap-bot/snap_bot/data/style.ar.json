@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": false,
+  "kind": "style",
+  "items": [
+    {
+      "id": "style-01",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "اقرأ بطاقة العناية قبل تنظيف ملابسك.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-02",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "قد تعرض بطاقة الملابس تعليمات العناية بكلمات أو رموز.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-03",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "اتباع تعليمات العناية يساعد على تجنب تلف الملابس.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-04",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "تحقق من تعليمات الغسل المنفصل لتجنب انتقال الألوان.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-05",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "يمكن معرفة حاجة القطعة إلى تنظيف متخصص من بطاقة العناية.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-06",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "رموز العناية تشمل الغسل والتبييض والتجفيف والكي والعناية المتخصصة.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-07",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "رمز حوض الماء يشير إلى الغسل.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-08",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "المثلث على بطاقة العناية يخص التبييض.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-09",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "المربع في رموز العناية يشير إلى التجفيف.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-10",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "رمز المكواة يوضح تعليمات الكي.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-11",
+      "source": "سلامة المنتجات الأسترالية",
+      "verified_at": "2026-10-28",
+      "text": "الدائرة في رموز العناية تشير إلى التنظيف المتخصص.",
+      "source_url": "https://www.productsafety.gov.au/consumers/use-cosmetic-and-fashion-products-safely/care-labelling-on-clothing-and-textiles-guide"
+    },
+    {
+      "id": "style-12",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "الرقم داخل حوض الغسل يحدد أقصى حرارة للماء بالمئوية.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-13",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "الخط تحت حوض الغسل يدل على دورة ألطف.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-14",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "الخطان تحت حوض الغسل يدلان على دورة شديدة اللطف.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-15",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "حوض الغسل المشطوب يعني أن القطعة لا تغسل.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-16",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "المثلث المشطوب يعني تجنب التبييض.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-17",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "المثلث الفارغ يسمح باستخدام مبيض الكلور أو الأكسجين.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-18",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "المثلث ذو الخطين المائلين يسمح بمبيض الأكسجين دون الكلور.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-19",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "الدائرة داخل مربع تشير إلى التجفيف الآلي.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-20",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "النقاط داخل رمز التجفيف الآلي توضح مستوى الحرارة.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-21",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "المربع ذو الخط الأفقي يشير إلى التجفيف على سطح مستو.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-22",
+      "source": "جينيتكس",
+      "verified_at": "2026-10-28",
+      "text": "الخطوط المائلة في زاوية رمز التجفيف الطبيعي تدل على التجفيف في الظل.",
+      "source_url": "https://www.ginetex.net/GB/labelling/care-symbols.asp"
+    },
+    {
+      "id": "style-23",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "عند ظهور منع التجفيف الآلي، تجنب وضع القطعة في المجفف.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    },
+    {
+      "id": "style-24",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "قد تسمح بطاقة العناية بالتجفيف الآلي دون حرارة.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    },
+    {
+      "id": "style-25",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "التجفيف بالتعليق يختلف عن التجفيف على سطح مستو.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    },
+    {
+      "id": "style-26",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "بعض الرموز توضح التجفيف بالتقطير دون إزالة الماء الزائد أولًا.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    },
+    {
+      "id": "style-27",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "قد يحدد رمز الغسل اليدوي حدًا أقصى لحرارة الماء.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    },
+    {
+      "id": "style-28",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "قد تميز رموز الغسل بين الدورة العادية والدورة اللطيفة.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    },
+    {
+      "id": "style-29",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "درجات الحرارة على بطاقة العناية حدود يجب عدم تجاوزها.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    },
+    {
+      "id": "style-30",
+      "source": "مكتب شؤون المستهلك الكندي",
+      "verified_at": "2026-10-28",
+      "text": "عند ظهور رمز منع الكي، تجنب كي القطعة أو كبسها.",
+      "source_url": "https://www.ised-isde.canada.ca/site/office-consumer-affairs/en/product-safety-recalls-and-labelling/guide-apparel-and-textile-care-symbols"
+    }
+  ]
+}

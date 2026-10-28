@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": false,
+  "kind": "riddle",
+  "items": [
+    {
+      "id": "riddle-01",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "في درج ثلاث كرات حمراء وكرتان زرقاوان. كم كرة فيه؟",
+      "answer": "خمس كرات."
+    },
+    {
+      "id": "riddle-02",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "رتبت أربعة كتب، ثم أضفت كتابين. كم كتابًا صار لديك؟",
+      "answer": "ستة كتب."
+    },
+    {
+      "id": "riddle-03",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما العدد الذي يأتي بعد تسعة وقبل أحد عشر؟",
+      "answer": "عشرة."
+    },
+    {
+      "id": "riddle-04",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشكل الذي له ثلاثة أضلاع متساوية؟",
+      "answer": "مثلث متساوي الأضلاع."
+    },
+    {
+      "id": "riddle-05",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشكل الذي له أربعة أضلاع متساوية وأربع زوايا قائمة؟",
+      "answer": "المربع."
+    },
+    {
+      "id": "riddle-06",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "لديك تفاحتان، وأعطاك صديقك ثلاثًا. كم تفاحة معك؟",
+      "answer": "خمس تفاحات."
+    },
+    {
+      "id": "riddle-07",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما العدد الذي يساوي نصف اثني عشر؟",
+      "answer": "ستة."
+    },
+    {
+      "id": "riddle-08",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما العدد الذي يساوي ضعف سبعة؟",
+      "answer": "أربعة عشر."
+    },
+    {
+      "id": "riddle-09",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "إذا بدأ السباق بخمسة متسابقين وانسحب اثنان، فكم بقي؟",
+      "answer": "ثلاثة متسابقين."
+    },
+    {
+      "id": "riddle-10",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشيء الذي تقرأ عليه الوقت وله عقربان؟",
+      "answer": "الساعة ذات العقارب."
+    },
+    {
+      "id": "riddle-11",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الأداة التي لها أسنان وتستخدم لترتيب الشعر؟",
+      "answer": "المشط."
+    },
+    {
+      "id": "riddle-12",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشيء الذي له صفحات وغلاف وتقرأه؟",
+      "answer": "الكتاب."
+    },
+    {
+      "id": "riddle-13",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشيء الذي يحمل المطر فوقك ولا يمشي وحده؟",
+      "answer": "المظلة."
+    },
+    {
+      "id": "riddle-14",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الأداة التي تفتح قفل الباب المناسب لها؟",
+      "answer": "المفتاح."
+    },
+    {
+      "id": "riddle-15",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشيء الذي تكتب به على السبورة ويمسح بسهولة، إذا كان أبيض ترابيًا؟",
+      "answer": "الطباشير."
+    },
+    {
+      "id": "riddle-16",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الوعاء الذي له مقبض وتشرب منه الشاي؟",
+      "answer": "الكوب."
+    },
+    {
+      "id": "riddle-17",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشيء الذي يعكس صورتك عندما تقف أمامه؟",
+      "answer": "المرآة."
+    },
+    {
+      "id": "riddle-18",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الأداة التي تقص الورق ولها نصلان وحلقتان للأصابع؟",
+      "answer": "المقص."
+    },
+    {
+      "id": "riddle-19",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشيء الذي يضيء الغرفة بالكهرباء؟",
+      "answer": "المصباح."
+    },
+    {
+      "id": "riddle-20",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الشيء الذي نضعه بين صفحات الكتاب لتحديد موضع القراءة؟",
+      "answer": "علامة الكتاب."
+    },
+    {
+      "id": "riddle-21",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "في صف ستة مقاعد، جلس أربعة أشخاص. كم مقعدًا بقي فارغًا؟",
+      "answer": "مقعدان."
+    },
+    {
+      "id": "riddle-22",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "لديك عشر خرزات وقسمتها بالتساوي إلى مجموعتين. كم في كل مجموعة؟",
+      "answer": "خمس خرزات."
+    },
+    {
+      "id": "riddle-23",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "تحركت خطوتين للأمام وخطوة للخلف. كم خطوة تقدمت؟",
+      "answer": "خطوة واحدة."
+    },
+    {
+      "id": "riddle-24",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما العدد الزوجي الواقع بين خمسة وسبعة؟",
+      "answer": "ستة."
+    },
+    {
+      "id": "riddle-25",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "أي شهر يأتي مباشرة بعد يناير؟",
+      "answer": "فبراير."
+    },
+    {
+      "id": "riddle-26",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما اليوم الذي يأتي مباشرة بعد الاثنين؟",
+      "answer": "الثلاثاء."
+    },
+    {
+      "id": "riddle-27",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "إذا كانت الساعة الثالثة، فكم تصبح بعد ساعتين؟",
+      "answer": "الخامسة."
+    },
+    {
+      "id": "riddle-28",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما اللون الناتج عن مزج طلاء أزرق وأصفر عادة؟",
+      "answer": "الأخضر."
+    },
+    {
+      "id": "riddle-29",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "صندوق فيه قلم واحد، وأضفت ثلاثة أقلام ثم أخذت قلمًا. كم بقي؟",
+      "answer": "ثلاثة أقلام."
+    },
+    {
+      "id": "riddle-30",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "question": "ما الحرف الأول في كلمة نافذة؟",
+      "answer": "حرف النون."
+    }
+  ]
+}
