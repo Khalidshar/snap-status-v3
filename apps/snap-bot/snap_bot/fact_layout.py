@@ -66,6 +66,13 @@ def fact_labels(
     return [(drawing_text(text), size, y, color, role) for text, size, y, color, role in labels]
 
 
+# The same identity rows as fact_labels, which keeps its own reviewed copy.
+SACRED_IDENTITY = (
+    ("روّق مع خالد", 50, 210, "0xD6B26C", "arabic"),
+    ("@rawwag_khalid", 38, 290, "0xD6B26C", "latin"),
+)
+
+
 def sacred_labels(
     content: dict[str, Any], profile: Mapping[str, Any] | None = None
 ) -> list[tuple[str, int, int, str, str]]:
@@ -78,8 +85,7 @@ def sacred_labels(
         raise ValueError("Unsupported fact font size")
     # Title and source carry no vowel marks, so drawtext shapes them safely.
     labels = [
-        ("روّق مع خالد", 50, 210, "0xD6B26C", "arabic"),
-        ("@rawwag_khalid", 38, 290, "0xD6B26C", "latin"),
+        *SACRED_IDENTITY,
         (content["title"], title_size, 430, "0xD6B26C", "arabic"),
         (content["attribution"], 40, 1320, "0xF6EEDE", "arabic"),
         ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
