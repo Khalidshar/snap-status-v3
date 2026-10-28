@@ -37,11 +37,19 @@ from studio_core.renderer import (
 )
 
 from . import brand_frame
-from .did_you_know import validate_content
+from .did_you_know import is_sacred, validate_content
 from .fact_audio import ambient_source, measure_audio
-from .fact_layout import card_filters, display_text, fact_labels, label_y, measure_label
+from .fact_layout import (
+    SACRED_BODY,
+    card_filters,
+    display_text,
+    fact_labels,
+    label_y,
+    measure_label,
+    sacred_labels,
+)
 from .fact_motion import background_filters, glow_filter, label_filter, reveal_windows
-from .font_admission import choose_font, fallback_fonts, font_paths
+from .font_admission import admit_font, choose_font, fallback_fonts, font_paths
 from .weather import content_hash as calculate_content_hash
 
 ALLOWED_CONTENT = {"weather", "did_you_know"}
@@ -54,6 +62,48 @@ def video_filename(content_type: object) -> str:
     if content_type not in ALLOWED_CONTENT:
         raise ValueError("Unsupported render content type")
     return "weather.mp4" if content_type == "weather" else "did-you-know.mp4"
+
+
+def sacred_body(
+    body: str,
+    profile: dict[str, Any],
+    design: Path,
+    card: str,
+    window: tuple[float, float],
+    safe_boxes: list[dict[str, int]],
+) -> str:
+    """Overlay the verbatim body, shaped whole by pango (drawtext misplaces vowel marks)."""
+    from . import sacred_text
+
+    font = admit_font(profile["sacred_font"], profile["sacred_font_sha256"], profile)
+    version = run([profile["pango_view"], "--version"], 5).stdout.strip()
+    if version != profile["pango_version"]:
+        raise ValueError("pango-view version mismatch")
+    left, top, width, height = SACRED_BODY
+    image = design / "body.png"
+    size = sacred_text.render_text_png(
+        body,
+        font,
+        image,
+        pango_view=profile["pango_view"],
+        width_px=width,
+        font_size=profile.get("sacred_font_size", 52),
+        color="#F6EEDE",
+        max_height=height,
+    )
+    if not 0 < size[0] <= width or not 0 < size[1] <= height:
+        raise ValueError("Sacred text exceeds its card")
+    y = top + (height - size[1]) // 2
+    safe_boxes.append(
+        {"x": left + (width - size[0]) // 2, "y": y, "width": size[0], "height": size[1]}
+    )
+    start, end = window
+    fps = profile["fps"]
+    return (
+        f"movie={image},format=rgba,loop=loop=-1:size=1:start=0,setpts=N/({fps}*TB),"
+        f"fade=t=in:st={start:g}:d={end - start:g}:alpha=1[body];"
+        f"[in]{card}[card];[card][body]overlay=x=(W-w)/2:y={y}:format=auto[out]"
+    )
 
 
 def render(
@@ -97,7 +147,8 @@ def render(
         digest != content_hash
         or content.get("content_hash") != digest
         or content.get("type") not in ALLOWED_CONTENT
-        or content.get("sacred") is not False
+        # Facts are checked by validate_content below: sacred only for a sacred kind.
+        or (content.get("type") != "did_you_know" and content.get("sacred") is not False)
     ):
         raise ValueError("Unverified render input")
     is_fact = content["type"] == "did_you_know"
@@ -161,9 +212,19 @@ def render(
             (content["attribution"], 30, 1490, "0xF6EEDE"),
         ]
     )
-    if is_fact:
+    sacred = is_fact and is_sacred(content)
+    body_window = (0.0, 0.0)
+    if sacred:
+        labels = sacred_labels(content, profile)
+        # The body image takes the one body slot of the reveal: title, body, then source.
+        windows = reveal_windows(len(labels) + 1, profile["duration_seconds"])
+        body_window = windows.pop(3)
+    elif is_fact:
         labels = fact_labels(content, profile)
-    windows = reveal_windows(len(labels), profile["duration_seconds"]) if is_fact else []
+    if is_fact and not sacred:
+        windows = reveal_windows(len(labels), profile["duration_seconds"])
+    elif not is_fact:
+        windows = []
     design = work / "design" / run_id
     design.mkdir(mode=0o750)
     safe_boxes = []
@@ -209,8 +270,11 @@ def render(
                 raise ValueError(f"{error}; label={text!r}; size={size}") from error
             filter_value = label_filter(filter_value, windows[index])
         filters.append(filter_value)
+    script = ",".join(filters)
+    if sacred:
+        script = sacred_body(content["body"], profile, design, script, body_window, safe_boxes)
     filter_path = design / "filters.txt"
-    write_once(filter_path, ",".join(filters).encode())
+    write_once(filter_path, script.encode())
     output = work / "output" / video_filename(content["type"])
     partial = work / "temp" / (run_id + ".partial.mp4")
     args = [

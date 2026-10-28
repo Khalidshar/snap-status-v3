@@ -36,12 +36,12 @@ PENDING = STATE / "commands" / "pending.json"
 FRESH_SECONDS = 900
 NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم."
 READ_ONLY = {"status", "last", "agents", "schedule", "report", "dash"}
-ACTIONS = {"facts", "preview", "send", "cancel", "tech", "style", "funny", "night"}
+ACTIONS = {"facts", "preview", "send", "cancel", "tech", "style", "funny", "night", "hadith", "dua"}
 RENDER_UNIT = "madar-v3-snap-render.service"
 KIND_RENDER_UNIT = "madar-v3-snap-render@{kind}.service"
 # Menu command key -> content kind it renders.
 RENDER_KINDS = {"facts": "did_you_know", "tech": "tech", "style": "style", "funny": "funny",
-                "night": "night"}  # fmt: skip
+                "night": "night", "hadith": "hadith", "dua": "dua"}  # fmt: skip
 SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
 NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
 
@@ -274,6 +274,12 @@ class Studio:
 
     def night(self) -> str:
         return self.make("night")
+
+    def hadith(self) -> str:
+        return self.make("hadith")
+
+    def dua(self) -> str:
+        return self.make("dua")
 
     def preview(self) -> Any:
         clip = self.pending()

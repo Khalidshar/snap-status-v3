@@ -15,13 +15,14 @@ from typing import Any
 
 from studio_core.jobs import Repository
 
-from .arabic_agent import ABBREVIATIONS
+from .arabic_agent import ABBREVIATIONS, check_sacred
 from .did_you_know import (
     CATALOG,
     CATEGORIES,
     DEFAULT_KIND,
     categories_of,
     content_kind,
+    is_sacred,
     load_facts,
     load_kind,
     reservation_state,
@@ -144,6 +145,10 @@ def run_check(
     if role in ("memory", "rotation"):
         with repo.owned_transaction(job, token, attempt=attempt) as db:
             (check_memory if role == "memory" else check_rotation)(db, job, content)
+    elif is_sacred(content):
+        # Faith text is not proofread or translated: the arabic agent already proved
+        # it is the approved text, byte for byte.
+        check_sacred(content.get("kind"), content["fact_id"], content["body"])
     elif role == "proofreading":
         proofread(content["body"])
     else:

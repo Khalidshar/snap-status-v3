@@ -63,7 +63,7 @@ jobs:
         with:
           node-version: "22"
       # Real FFmpeg/ffprobe and fonts for the Snap render tests; no publishing or secrets.
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri pango1.0-tools
       - run: uv sync --all-packages
       - run: node apps/snap-bot/tests/run_agent_runtime.mjs
       - run: scripts/test.sh all
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri pango1.0-tools
       - run: uv sync --all-packages
       # Deliberate Snap guard deletions (ported lab tools): each must fail its named test.
       - run: uv run --frozen python scripts/check_app_mutations.py --jobs 4

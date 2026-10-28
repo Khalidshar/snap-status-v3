@@ -193,6 +193,19 @@ class ClipCycleTests(unittest.TestCase):
         self.assertIn("سطر هادئ", self.studio.answer("قبل النوم"))
         self.assertEqual(self.started[-1], "madar-v3-snap-render@night.service")
 
+    def test_faith_commands_render_their_sacred_kind(self):
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            13, "نص الحديث", kind="hadith", title="حديث شريف"
+        )
+        reply = self.studio.answer("حديث")
+        self.assertEqual(self.started, ["madar-v3-snap-render@hadith.service"], "guard:kind-unit")
+        self.assertTrue(reply.startswith("حديث شريف"))
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            14, "نص الدعاء", kind="dua", title="دعاء"
+        )
+        self.assertIn("نص الدعاء", self.studio.answer("دعاء"))
+        self.assertEqual(self.started[-1], "madar-v3-snap-render@dua.service")
+
     def test_preview_is_the_pending_still(self):
         self.assertEqual(self.studio.answer("معاينة"), listener.NO_CLIP)
         self.runtime.rendered(2)

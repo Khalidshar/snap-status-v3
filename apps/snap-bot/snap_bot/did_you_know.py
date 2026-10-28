@@ -48,6 +48,8 @@ DEFAULT_KIND = "did_you_know"
 # Each kind is one reviewed catalog with its own on-screen title. A loader returns facts
 # shaped like the did_you_know catalog: id, category, text, source, source_url, verified_at.
 KINDS: dict[str, tuple[str, Callable[[date], list[dict[str, Any]]]]] = {}
+# Sacred kinds carry verbatim faith text: no proofreading, wrapping or display edits.
+SACRED_KINDS: set[str] = set()
 
 
 class FactsExhausted(ValueError):
@@ -117,11 +119,19 @@ def load_facts(path: str | Path = CATALOG, today: date | None = None) -> list[di
     return facts
 
 
-def register_kind(kind: str, title: str, loader: Callable[[date], list[dict[str, Any]]]) -> None:
+def register_kind(
+    kind: str,
+    title: str,
+    loader: Callable[[date], list[dict[str, Any]]],
+    *,
+    sacred: bool = False,
+) -> None:
     if not re.fullmatch("[a-z][a-z_]{1,23}", kind) or kind in KINDS:
         raise ValueError("Invalid or duplicate content kind")
     safe_text(title, 40)
     KINDS[kind] = (title, loader)
+    if sacred:
+        SACRED_KINDS.add(kind)
 
 
 def load_kind(kind: str, today: date | None = None) -> list[dict[str, Any]]:
@@ -145,7 +155,7 @@ def make_content(fact: dict[str, Any], now: float, kind: str = DEFAULT_KIND) -> 
         raise ValueError("Unknown content kind")
     value: dict[str, Any] = {
         "type": "did_you_know",
-        "sacred": False,
+        "sacred": kind in SACRED_KINDS,
         "language": "ar",
         "title": KINDS[kind][0],
         "body": fact["text"],
@@ -176,9 +186,18 @@ def content_kind(value: dict[str, Any]) -> str:
     return kind
 
 
-def validate_content(value: dict[str, Any]) -> dict[str, Any]:
-    if value.get("type") != "did_you_know" or value.get("sacred") is not False:
+def is_sacred(value: dict[str, Any]) -> bool:
+    """The content's sacred flag, which must match its kind exactly."""
+    kind = content_kind(value)
+    if value.get("sacred") is not (kind in SACRED_KINDS):
         raise ValueError("Unapproved fact content")
+    return kind in SACRED_KINDS
+
+
+def validate_content(value: dict[str, Any]) -> dict[str, Any]:
+    if value.get("type") != "did_you_know":
+        raise ValueError("Unapproved fact content")
+    is_sacred(value)
     now = datetime.now(UTC).timestamp()
     kind = content_kind(value)
     fact = next((f for f in load_kind(kind) if f["id"] == value.get("fact_id")), None)
@@ -372,4 +391,4 @@ def choose_fact(
 
 register_kind(DEFAULT_KIND, "هل تعلم؟", lambda today: load_facts(CATALOG, today))
 # The variety kinds register themselves; imported last, after everything above exists.
-from . import variety_kinds  # noqa: E402,F401
+from . import sacred_kinds, variety_kinds  # noqa: E402,F401

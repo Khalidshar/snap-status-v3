@@ -6,9 +6,11 @@ import textwrap
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .did_you_know import validate_content
+from .did_you_know import is_sacred, validate_content
 
 SAFE = (130, 170, 950, 1580)
+# The sacred body image: centred between the title and the source line.
+SACRED_BODY = (130, 560, 820, 720)
 
 
 def drawing_text(text: str) -> str:
@@ -31,6 +33,8 @@ def fact_labels(
     content: dict[str, Any], profile: Mapping[str, Any] | None = None
 ) -> list[tuple[str, int, int, str, str]]:
     validate_content(content)
+    if is_sacred(content):
+        raise ValueError("Sacred text is drawn whole, never wrapped or stripped")
     profile = profile or {}
     line_width = profile.get("fact_line_width", 26)
     if line_width not in (20, 26):
@@ -56,6 +60,27 @@ def fact_labels(
         (line, body_size, first_y + 115 * i, "0xF6EEDE", "arabic") for i, line in enumerate(lines)
     ]
     labels += [
+        (content["attribution"], 40, 1320, "0xF6EEDE", "arabic"),
+        ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
+    ]
+    return [(drawing_text(text), size, y, color, role) for text, size, y, color, role in labels]
+
+
+def sacred_labels(
+    content: dict[str, Any], profile: Mapping[str, Any] | None = None
+) -> list[tuple[str, int, int, str, str]]:
+    """The fact card without body lines: the body is drawn whole, as one shaped image."""
+    if not is_sacred(content):
+        raise ValueError("Not sacred content")
+    validate_content(content)
+    title_size = (profile or {}).get("fact_title_font_size", 96)
+    if title_size not in (96, 104):
+        raise ValueError("Unsupported fact font size")
+    # Title and source carry no vowel marks, so drawtext shapes them safely.
+    labels = [
+        ("روّق مع خالد", 50, 210, "0xD6B26C", "arabic"),
+        ("@rawwag_khalid", 38, 290, "0xD6B26C", "latin"),
+        (content["title"], title_size, 430, "0xD6B26C", "arabic"),
         (content["attribution"], 40, 1320, "0xF6EEDE", "arabic"),
         ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
     ]
