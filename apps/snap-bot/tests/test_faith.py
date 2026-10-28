@@ -238,7 +238,11 @@ def test_exact_source_copy(kind: str, filename: str) -> None:
     items = json.loads((faith.DATA / filename).read_text())["items"]
     hashes = []
     for item in items:
-        original = {k: v for k, v in item.items() if k not in {"sha256", "period"}}
+        original = {
+            k: v
+            for k, v in item.items()
+            if k not in {"sha256", "period", "narrator", "narrator_url"}
+        }
         if kind != "hadith":
             original.pop("id")
         hashes.append(digest(json.dumps(original, ensure_ascii=False, sort_keys=True)))
@@ -296,3 +300,54 @@ def test_builder_requires_unicode_source_field() -> None:
         module.rows_from_json(json.dumps([base]).encode())[0]["aya_text_unicode"]
         == base["aya_text_unicode"]
     )
+
+
+@pytest.mark.parametrize("field", ("narrator", "narrator_url"))
+@pytest.mark.parametrize("value", (None, "", 7, "\u202e", "\x00", "\n", "   "))
+def test_hadith_narrator_metadata_required_and_safe(
+    synthetic_data: Path, field: str, value: object
+) -> None:
+    path = synthetic_data / "hadith.json"
+    obj = json.loads(path.read_text())
+    obj["items"][0][field] = value
+    path.write_text(json.dumps(obj))
+    with pytest.raises(ValueError):
+        faith.load("hadith")
+
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "http://sunnah.com/bukhari:1",
+        "https://sunnah.com.evil.test/bukhari:1",
+        "https://evil.test/bukhari:1",
+        "https://sunnah.com/",
+        "https://sunnah.com/bukhari:1?next=evil",
+        "https://sunnah.com/bukhari:1#fragment",
+    ),
+)
+def test_hadith_narrator_url_must_be_direct_trusted_source(synthetic_data: Path, url: str) -> None:
+    path = synthetic_data / "hadith.json"
+    obj = json.loads(path.read_text())
+    obj["items"][0]["narrator_url"] = url
+    path.write_text(json.dumps(obj))
+    with pytest.raises(ValueError, match="Unapproved hadith narrator URL"):
+        faith.load("hadith")
+
+
+def test_hadith_narrators_match_reviewed_sources() -> None:
+    expected = {
+        "bukhari_1": ("عمر بن الخطاب", "bukhari:1"),
+        "muslim_2564": ("أبو هريرة", "muslim:2564a"),
+        "bukhari_6018": ("أبو هريرة", "bukhari:6018"),
+        "muslim_2699": ("أبو هريرة", "muslim:2699a"),
+        "bukhari_13": ("أنس بن مالك", "bukhari:13"),
+        "muslim_2319": ("أبو هريرة", "muslim:2318a"),
+        "bukhari_6114": ("أبو هريرة", "bukhari:6114"),
+        "muslim_41": ("جابر بن عبد الله", "muslim:41"),
+    }
+    for item in faith.load("hadith"):
+        name, reference = expected[item["id"]]
+        assert item["narrator"] == name + " رضي الله عنه"
+        assert item["narrator_url"] == "https://sunnah.com/" + reference
+        assert digest(item["text"]) == item["sha256"]
