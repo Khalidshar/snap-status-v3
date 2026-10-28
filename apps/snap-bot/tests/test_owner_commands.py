@@ -142,6 +142,39 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertEqual(calls[0][1]["offset"], 3)
         self.assertEqual({m for m, _ in calls}, {"getUpdates", "sendMessage"})
 
+    def test_menu_and_start_send_the_registered_working_keyboard_offline(self):
+        for text in ("القائمة", "/start"):
+            calls = []
+
+            def transport(token, method, body=b""):
+                payload = json.loads(body or b"{}")
+                calls.append((method, payload))
+                return [update(15, text)] if method == "getUpdates" else {}
+
+            listener.poll_once("t", OWNER, self.studio, 0, transport)
+            message = calls[-1][1]
+            self.assertEqual(calls[-1][0], "sendMessage")
+            keyboard = message["reply_markup"]
+            self.assertTrue(keyboard["resize_keyboard"])
+            buttons = [button for row in keyboard["keyboard"] for button in row]
+            expected = {key for row in listener.KEYBOARD_ROWS for key in row}
+            self.assertEqual(len(buttons), 12)
+            resolved = set()
+            for button in buttons:
+                parsed = listener.menu.parse(button["text"])
+                self.assertEqual(parsed["kind"], "command")
+                command = parsed["command"]
+                self.assertEqual(button["text"], listener.menu.BY_KEY[command.key].label)
+                self.assertIn(command.key, listener.ACTIONS | listener.READ_ONLY)
+                self.assertTrue(callable(getattr(self.studio, command.key)))
+                resolved.add(command.key)
+            self.assertEqual(resolved, expected)
+
+    def test_keyboard_omits_a_disabled_handler(self):
+        with patch.object(listener, "ACTIONS", listener.ACTIONS - {"tech"}):
+            labels = [b["text"] for row in listener.reply_keyboard()["keyboard"] for b in row]
+        self.assertNotIn(listener.menu.BY_KEY["tech"].label, labels)
+
     def test_credentials_come_from_the_main_channel_only(self):
         with patch.dict("os.environ", {"TG_TOKEN": "", "TG_CHAT": "77"}, clear=False):
             with self.assertRaises(ValueError):
@@ -216,7 +249,8 @@ class ClipCycleTests(unittest.TestCase):
     def test_send_needs_yes_then_sends_that_clip_once(self):
         sha = self.runtime.rendered(3)
         self.assertEqual(self.studio.answer("نعم"), "لا يوجد أمر ينتظر التأكيد.")
-        self.assertIn("نعم", self.studio.answer("أرسل"))
+        self.assertIn("نعم", self.studio.answer(listener.menu.BY_KEY["send"].label))
+        self.assertEqual(self.started, [], "guard:keyboard-send-needs-yes")
         self.assertEqual(self.runtime.approved, [], "guard:send-needs-yes")
 
         def ack(unit):
