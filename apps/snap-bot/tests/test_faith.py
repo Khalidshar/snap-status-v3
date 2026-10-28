@@ -25,6 +25,7 @@ def test_bundled_kind(kind: str) -> None:
             "adhkar_pm": 11,
             "hadith": 8,
             "dua": 5,
+            "fast": 7,
             "verse": 46,
             "friday": 3,
             "kahf": 1,
@@ -38,7 +39,7 @@ def test_bundled_kind(kind: str) -> None:
 def synthetic_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Exercise all paths without inventing or accepting any religious text."""
     original = faith.DATA
-    for filename in ("adhkar.json", "hadith.json", "duas.json"):
+    for filename in ("adhkar.json", "hadith.json", "duas.json", "fast.json"):
         (tmp_path / filename).write_bytes((original / filename).read_bytes())
     adhkar = json.loads((tmp_path / "adhkar.json").read_text())
     refs = {(i["surah"], a) for i in adhkar["items"] if i["type"] == "quran" for a in i["ayahs"]}
@@ -88,7 +89,7 @@ def test_all_loader_paths_with_synthetic_subset(synthetic_data: Path, kind: str)
 
 
 @pytest.mark.parametrize(
-    "filename", ("adhkar.json", "hadith.json", "duas.json", "quran_subset.json")
+    "filename", ("adhkar.json", "hadith.json", "duas.json", "fast.json", "quran_subset.json")
 )
 def test_any_single_character_change_fails(synthetic_data: Path, filename: str) -> None:
     path = synthetic_data / filename
@@ -103,6 +104,7 @@ def test_any_single_character_change_fails(synthetic_data: Path, filename: str) 
             "adhkar.json": "adhkar_am",
             "hadith.json": "hadith",
             "duas.json": "dua",
+            "fast.json": "fast",
             "quran_subset.json": "verse",
         }[filename]
         with pytest.raises(ValueError, match="hash mismatch"):
@@ -296,3 +298,74 @@ def test_builder_requires_unicode_source_field() -> None:
         module.rows_from_json(json.dumps([base]).encode())[0]["aya_text_unicode"]
         == base["aya_text_unicode"]
     )
+
+
+# Locked after comparison with the linked source excerpts; never recompute expectations.
+FAST_HASHES = {
+    "fast-01": "9d6389ff7c43cd932c277eb893c548d82519e19bce42b9b16758b2adbf641223",
+    "fast-02": "f4161d3f11bf56789147313cac34fd7747db8662535b94923c0c5153d2980a5f",
+    "fast-03": "3c17c038368b136d99ad6b734089c924de9b6c26a1ee58940c864febaf1ce9ea",
+    "fast-04": "cbab22422c586c93d3409346fd706d887438724765b388b4833b00e3359db0ec",
+    "fast-05": "3f2969d9947989410a81e332c26e124a1fc7e9882b74a9dc3a1f7a4466d4bc9d",
+    "fast-06": "2cedec823addf03d3aab2d826bed3943ced68f9b5a25adadab4f7c0b942a86a5",
+    "fast-07": "d6d9235ea6336c6d38f96c8ae8ab729a7f03653147f4155a8e16898a99e11ed0",
+}
+
+
+def test_fast_pinned_hashes() -> None:
+    items = faith.load("fast")
+    assert {item["id"]: digest(item["text"]) for item in items} == FAST_HASHES
+    assert all(item["sha256"] == FAST_HASHES[item["id"]] for item in items)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("grade", "حسن"),
+        ("verification_url", "https://example.com/1"),
+        ("verification_url", ""),
+        ("topic", ""),
+    ],
+)
+def test_fast_metadata_fails_closed(synthetic_data: Path, field: str, value: str) -> None:
+    path = synthetic_data / "fast.json"
+    data = json.loads(path.read_text())
+    data["items"][0][field] = value
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError):
+        faith.load("fast")
+
+
+@pytest.mark.parametrize("index", (5, 6))
+@pytest.mark.parametrize(
+    "field,value",
+    (
+        ("grade_by", None),
+        ("grade_by", ""),
+        ("grade_by", "مجهول"),
+        ("grade_source", None),
+        ("grade_source", "   "),
+        ("grade_url", "https://example.com/grade"),
+        ("grade_url", ""),
+        ("grade", "حسن"),
+    ),
+)
+def test_sunan_fast_requires_verified_sahih_grading(
+    synthetic_data: Path, index: int, field: str, value: object
+) -> None:
+    path = synthetic_data / "fast.json"
+    data = json.loads(path.read_text())
+    data["items"][index][field] = value
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError):
+        faith.load("fast")
+
+
+def test_sunan_fast_reviewed_references() -> None:
+    added = faith.load("fast")[5:]
+    assert [(i["topic"], i["verification_url"]) for i in added] == [
+        ("الاثنين والخميس", "https://sunnah.com/tirmidhi:745"),
+        ("الأيام البيض", "https://sunnah.com/abudawud:2449"),
+    ]
+    assert all(i["grade"] == "صحيح" and i["grade_by"] == "الألباني" for i in added)
+    assert all(i["grade_source"] and i["grade_url"] for i in added)

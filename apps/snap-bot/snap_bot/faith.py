@@ -14,10 +14,11 @@ from typing import Any
 
 DATA = Path(__file__).with_name("data") / "faith"
 SOURCE_REPO = "Khalidshar/status-bot@b445281"
+FAST_SOURCE_REPO = "Khalidshar/snap-status-v3"
 OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v30.zip"
 OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
 PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
-KINDS = ("adhkar_am", "adhkar_pm", "hadith", "dua", "verse", "friday", "kahf")
+KINDS = ("adhkar_am", "adhkar_pm", "hadith", "dua", "verse", "friday", "kahf", "fast")
 GRADES = ("صحيح", "حسن صحيح", "حسن")
 
 
@@ -54,7 +55,7 @@ def _document(filename: str, kind: str) -> dict[str, Any]:
         or obj.get("language") != "ar"
         or obj.get("sacred") is not True
         or obj.get("kind") != kind
-        or obj.get("source_repo") != SOURCE_REPO
+        or obj.get("source_repo") != (FAST_SOURCE_REPO if kind == "fast" else SOURCE_REPO)
         or not isinstance(obj.get("items"), list)
         or not obj["items"]
     ):
@@ -155,11 +156,34 @@ def load(kind: str) -> list[dict[str, Any]]:
     filename = "duas.json" if catalog == "dua" else catalog + ".json"
     items: list[dict[str, Any]] = _document(filename, catalog)["items"]
     _ids(items)
-    if len(items) != {"adhkar": 20, "hadith": 8, "dua": 5}[catalog]:
+    if len(items) != {"adhkar": 20, "hadith": 8, "dua": 5, "fast": 7}[catalog]:
         raise ValueError("Incomplete faith catalog")
     index = _subset()[0] if catalog == "adhkar" else {}
     for item in items:
         _safe(item.get("source"))
+        if catalog == "fast":
+            if item.get("grade") != "صحيح":
+                raise ValueError("Unapproved fasting narration grade")
+            _safe(item.get("topic"))
+            url = _safe(item.get("verification_url"))
+            if not re.fullmatch(
+                r"https://sunnah\.com/(?:bukhari|muslim|tirmidhi|nasai|abudawud|ibnmajah):[0-9]+[a-z]?",
+                url,
+            ):
+                raise ValueError("Unapproved fasting source URL")
+            if re.fullmatch(
+                r"https://sunnah\.com/(?:tirmidhi|nasai|abudawud|ibnmajah):[0-9]+[a-z]?", url
+            ):
+                if _safe(item.get("grade_by")) != "الألباني":
+                    raise ValueError("Unapproved fasting grader")
+                if not _safe(item.get("grade_source")).strip():
+                    raise ValueError("Missing fasting grade source")
+                grade_url = _safe(item.get("grade_url"))
+                if not re.fullmatch(
+                    r"https://(?:dorar\.net/h/[A-Za-z0-9]+|sunnah\.com/(?:tirmidhi|nasai|abudawud|ibnmajah):[0-9]+[a-z]?)",
+                    grade_url,
+                ):
+                    raise ValueError("Unapproved fasting grade URL")
         if catalog == "adhkar":
             if (
                 item.get("period") not in ("am", "pm")
