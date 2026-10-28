@@ -62,9 +62,11 @@ def path() -> Path:
     return DIRECTORY / FILENAME
 
 
-AMIRI = Path(__file__).resolve().parents[3] / "assets/fonts/amiri/Amiri-Regular.ttf"
-# Existing Amiri Regular fingerprint from assets/fonts/manifest.json; no new font.
-AMIRI_SHA256 = "316c56966b5ceb7ccd7f6fc490b3c3b31033523cfabd3d591395642c4b86ea62"
+NASKH = (
+    Path(__file__).resolve().parents[3] / "assets/fonts/notonaskharabic/NotoNaskhArabic-Regular.ttf"
+)
+# Existing Noto Naskh Arabic Regular fingerprint from assets/fonts/manifest.json; no new font.
+NASKH_SHA256 = "0919edeba540a6b27875d4651f2bf26dcbae00324b4bb034f7a030f7f294d381"
 
 
 def font_for(kind_or_item: str | dict[str, Any]) -> Path:
@@ -94,10 +96,10 @@ def font_for(kind_or_item: str | dict[str, Any]) -> Path:
     if kind not in ("hadith", "dua"):
         raise ValueError("Unknown or mixed faith kind; pass an individual item")
     try:
-        if not AMIRI.is_file() or AMIRI.is_symlink():
-            raise ValueError("Missing Amiri-Regular.ttf at assets/fonts/amiri/Amiri-Regular.ttf")
-        if hashlib.sha256(AMIRI.read_bytes()).hexdigest() != AMIRI_SHA256:
-            raise ValueError("Amiri Regular SHA-256 mismatch")
+        if not NASKH.is_file() or NASKH.is_symlink():
+            raise ValueError("Missing Noto Naskh Arabic Regular font")
+        if hashlib.sha256(NASKH.read_bytes()).hexdigest() != NASKH_SHA256:
+            raise ValueError("Noto Naskh Arabic Regular SHA-256 mismatch")
     except OSError as error:
-        raise ValueError("Unreadable Amiri Regular font") from error
-    return AMIRI
+        raise ValueError("Unreadable Noto Naskh Arabic Regular font") from error
+    return NASKH

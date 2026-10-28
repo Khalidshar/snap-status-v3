@@ -98,7 +98,7 @@ def charsets() -> dict[str, str]:
         try:
             selected = quran_font.font_for(kind)
         except ValueError as error:
-            # Keep Quran coverage runnable even if the separate Amiri asset is missing.
+            # Keep Quran coverage runnable even if the separate Noto Naskh asset is missing.
             result[kind] = "ERROR: " + str(error)
             continue
         query = subprocess.run(
@@ -149,7 +149,7 @@ def test_non_quran_character_coverage(charsets: dict[str, str]) -> None:
         if kind in ("verse", "friday", "kahf"):
             continue
         texts.extend((i["id"], faith.text(i)) for i in faith.load(kind) if i.get("type") != "quran")
-    assert_covered(charsets["hadith"], texts, "Narrations / Amiri Regular")
+    assert_covered(charsets["hadith"], texts, "Narrations / Noto Naskh Arabic Regular")
 
 
 @pytest.mark.parametrize("kind", ("quran", "verse", "friday", "kahf"))
@@ -178,24 +178,24 @@ def test_quran_item_routes_to_hafs(item: dict) -> None:
         {"text": "synthetic routing fixture", "source": "fixture", "grade": "fixture"},
     ),
 )
-def test_non_quran_routes_only_to_existing_amiri(
+def test_non_quran_routes_only_to_existing_naskh(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str | dict
 ) -> None:
     # Synthetic bytes exercise routing only; never pretend to test glyph coverage.
-    asset = tmp_path / "Amiri-Regular.ttf"
+    asset = tmp_path / "NotoNaskhArabic-Regular.ttf"
     asset.write_bytes(b"routing fixture")
-    monkeypatch.setattr(quran_font, "AMIRI", asset)
-    monkeypatch.setattr(quran_font, "AMIRI_SHA256", hashlib.sha256(asset.read_bytes()).hexdigest())
+    monkeypatch.setattr(quran_font, "NASKH", asset)
+    monkeypatch.setattr(quran_font, "NASKH_SHA256", hashlib.sha256(asset.read_bytes()).hexdigest())
     assert quran_font.font_for(value) == asset
     asset.unlink()
-    with pytest.raises(ValueError, match="Missing Amiri"):
+    with pytest.raises(ValueError, match="Missing Noto Naskh"):
         quran_font.font_for(value)
 
 
-def test_changed_amiri_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    asset = tmp_path / "Amiri-Regular.ttf"
+def test_changed_naskh_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    asset = tmp_path / "NotoNaskhArabic-Regular.ttf"
     asset.write_bytes(b"modified font fixture")
-    monkeypatch.setattr(quran_font, "AMIRI", asset)
+    monkeypatch.setattr(quran_font, "NASKH", asset)
     with pytest.raises(ValueError, match="SHA-256 mismatch"):
         quran_font.font_for("hadith")
 
