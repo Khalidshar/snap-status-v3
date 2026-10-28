@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from .content_agents import proofread, translation_requirement
 from .did_you_know import safe_text
 
 KINDS = ("tech", "style", "riddle", "funny", "night")
@@ -29,6 +28,19 @@ HOSTS = {
     "www.productsafety.gov.au",
     "www.ised-isde.canada.ca",
 }
+
+
+def proofread(text: str) -> Any:
+    # Resolved on call: content_agents -> did_you_know -> variety_kinds -> catalogs is a cycle.
+    from .content_agents import proofread as check
+
+    return check(text)
+
+
+def translation_requirement(text: str) -> Any:
+    from .content_agents import translation_requirement as check
+
+    return check(text)
 
 
 def body(item: dict[str, Any], kind: str) -> str:

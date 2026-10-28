@@ -1,5 +1,7 @@
 """The four variety catalogs as fact kinds: every item renders through the same checks."""
 
+import subprocess
+import sys
 import time
 import unittest
 
@@ -28,6 +30,18 @@ class VarietyKindTests(unittest.TestCase):
                     labels = [label[0] for label in fact_labels(content)]
                     self.assertIn(dyk.KINDS[kind][0], labels)
                     self.assertLessEqual(len(content["attribution"]), 24, "guard:one-line")
+
+    def test_every_module_imports_first_without_a_cycle(self):
+        # The renderer starts from content_agents; a cycle there kills the sandbox.
+        for module in ("content_agents", "catalogs", "render", "did_you_know", "fact_layout"):
+            with self.subTest(module=module):
+                result = subprocess.run(  # fixed interpreter and module names
+                    [sys.executable, "-c", "import snap_bot." + module],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr[-500:])
 
     def test_original_items_credit_the_channel(self):
         fact = dyk.load_kind("night")[0]

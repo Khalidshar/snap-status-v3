@@ -128,7 +128,10 @@ class InstallerTests(unittest.TestCase):
         self.assertNotIn(str(installer.BASE / "current"), plan["writes"], "guard:no-activation")
         self.assertIs(plan["activates"], False)
         self.assertEqual(plan["systemd_actions"], [])
-        self.assertEqual(sorted(Path(x).name for x in plan["units"]), sorted(installer.UNITS))
+        self.assertEqual(
+            sorted(Path(x).name for x in plan["units"]),
+            sorted([*installer.UNITS, installer.KIND_RENDER_UNIT]),
+        )
         release = installer.RELEASES / self.commit
         self.assertEqual(
             plan["path_file"].splitlines(),
