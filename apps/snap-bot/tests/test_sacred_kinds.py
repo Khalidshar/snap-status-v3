@@ -11,7 +11,14 @@ from snap_bot import did_you_know as dyk
 from snap_bot import faith, sacred_kinds
 from snap_bot.arabic_agent import check_text, inspect_content
 from snap_bot.content_agents import CHECKS, AgentRejected, proofread, run_check
-from snap_bot.fact_layout import fact_labels, sacred_labels
+from snap_bot.fact_layout import (
+    HADITH_BODY,
+    PROPHET_LINE,
+    SACRED_BODY,
+    fact_labels,
+    sacred_body_box,
+    sacred_labels,
+)
 from studio_core.config import Config
 from studio_core.jobs import Repository
 
@@ -78,10 +85,44 @@ class SacredKindTests(unittest.TestCase):
             fact_labels(content)
         labels = [label[0] for label in sacred_labels(content)]
         self.assertIn("حديث شريف", labels)
-        self.assertEqual(len(labels), 5, "guard:no-body-lines")
+        self.assertEqual(len(labels), 6, "guard:no-body-lines")
         self.assertFalse(any(content["body"][:10] in label for label in labels))
         with self.assertRaises(ValueError):
             sacred_labels(contents("tech")[0])
+
+    def test_every_hadith_is_attributed_to_the_prophet(self):
+        for content in contents("hadith"):
+            with self.subTest(fact=content["fact_id"]):
+                labels = [label[0] for label in sacred_labels(content)]
+                self.assertEqual(labels[3], PROPHET_LINE, "guard:prophet-line")
+                self.assertIn("ﷺ", labels[3])
+                self.assertEqual(sacred_body_box(content), HADITH_BODY)
+        dua = contents("dua")[0]
+        self.assertNotIn(PROPHET_LINE, [label[0] for label in sacred_labels(dua)])
+        self.assertEqual(sacred_body_box(dua), SACRED_BODY)
+        # The line sits between the title and the verbatim body, never inside the body.
+        self.assertLess(575 + 64, HADITH_BODY[1])
+        self.assertNotIn(PROPHET_LINE, contents("hadith")[0]["body"])
+
+    def test_a_rendered_hadith_seeds_the_next_render_history(self):
+        # Every server render seeds the ledger history; a faith ID there must not block it.
+        import sqlite3
+
+        content = contents("hadith")[0]
+        entry = {
+            "fact_id": content["fact_id"],
+            "body_hash": hashlib.sha256(content["body"].encode()).hexdigest(),
+            "category": "hadith",
+            "at": 1.0,
+            "until": 2.0,
+            "kind": "hadith",
+        }
+        self.assertEqual(dyk.history_entry(entry)[0], "bukhari_1")
+        db = sqlite3.connect(":memory:")
+        dyk.seed_history(db, [entry, {**entry, "fact_id": "muslim_2564"}])
+        for bad in ("Bukhari_1", "x", "dyk 07", "a" * 41):
+            with self.subTest(fact_id=bad), self.assertRaises(ValueError):
+                dyk.history_entry({**entry, "fact_id": bad})
 
 
 class SacredPipelineTests(unittest.TestCase):

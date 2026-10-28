@@ -11,6 +11,13 @@ from .did_you_know import is_sacred, validate_content
 SAFE = (130, 170, 950, 1580)
 # The sacred body image: centred between the title and the source line.
 SACRED_BODY = (130, 560, 820, 720)
+# Every hadith is attributed to the Prophet ﷺ on its own line, above the verbatim text.
+PROPHET_LINE = "قال رسول الله ﷺ:"
+HADITH_BODY = (130, 680, 820, 600)
+
+
+def sacred_body_box(content: dict[str, Any]) -> tuple[int, int, int, int]:
+    return HADITH_BODY if content.get("kind") == "hadith" else SACRED_BODY
 
 
 def drawing_text(text: str) -> str:
@@ -87,6 +94,7 @@ def sacred_labels(
     labels = [
         *SACRED_IDENTITY,
         (content["title"], title_size, 430, "0xD6B26C", "arabic"),
+        *([(PROPHET_LINE, 64, 575, "0xD6B26C", "arabic")] if content["kind"] == "hadith" else []),
         (content["attribution"], 40, 1320, "0xF6EEDE", "arabic"),
         ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
     ]

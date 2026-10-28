@@ -11,6 +11,7 @@ import unicodedata
 from datetime import date
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 DATA = Path(__file__).with_name("data") / "faith"
 SOURCE_REPO = "Khalidshar/status-bot@b445281"
@@ -198,6 +199,19 @@ def load(kind: str) -> list[dict[str, Any]]:
             else:
                 _verified(item)
         else:
+            if catalog == "hadith":
+                narrator = _safe(item.get("narrator"))
+                if not narrator.strip():
+                    raise ValueError("Missing hadith narrator")
+                narrator_url = urlsplit(_safe(item.get("narrator_url")))
+                if (
+                    narrator_url.scheme != "https"
+                    or narrator_url.netloc not in {"sunnah.com", "dorar.net"}
+                    or not narrator_url.path.strip("/")
+                    or narrator_url.query
+                    or narrator_url.fragment
+                ):
+                    raise ValueError("Unapproved hadith narrator URL")
             if item.get("grade") not in GRADES:
                 raise ValueError("Unapproved narration grade")
             _verified(item)

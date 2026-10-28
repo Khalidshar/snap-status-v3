@@ -40,12 +40,12 @@ from . import brand_frame
 from .did_you_know import is_sacred, validate_content
 from .fact_audio import ambient_source, measure_audio
 from .fact_layout import (
-    SACRED_BODY,
     card_filters,
     display_text,
     fact_labels,
     label_y,
     measure_label,
+    sacred_body_box,
     sacred_labels,
 )
 from .fact_motion import background_filters, glow_filter, label_filter, reveal_windows
@@ -66,6 +66,7 @@ def video_filename(content_type: object) -> str:
 
 def sacred_body(
     body: str,
+    box: tuple[int, int, int, int],
     profile: dict[str, Any],
     design: Path,
     card: str,
@@ -79,7 +80,7 @@ def sacred_body(
     version = run([profile["pango_view"], "--version"], 5).stdout.strip()
     if version != profile["pango_version"]:
         raise ValueError("pango-view version mismatch")
-    left, top, width, height = SACRED_BODY
+    left, top, width, height = box
     image = design / "body.png"
     size = sacred_text.render_text_png(
         body,
@@ -216,9 +217,9 @@ def render(
     body_window = (0.0, 0.0)
     if sacred:
         labels = sacred_labels(content, profile)
-        # The body image takes the one body slot of the reveal: title, body, then source.
+        # The body image takes the last body slot of the reveal, after the Prophet ﷺ line.
         windows = reveal_windows(len(labels) + 1, profile["duration_seconds"])
-        body_window = windows.pop(3)
+        body_window = windows.pop(len(labels) - 2)
     elif is_fact:
         labels = fact_labels(content, profile)
     if is_fact and not sacred:
@@ -272,7 +273,15 @@ def render(
         filters.append(filter_value)
     script = ",".join(filters)
     if sacred:
-        script = sacred_body(content["body"], profile, design, script, body_window, safe_boxes)
+        script = sacred_body(
+            content["body"],
+            sacred_body_box(content),
+            profile,
+            design,
+            script,
+            body_window,
+            safe_boxes,
+        )
     filter_path = design / "filters.txt"
     write_once(filter_path, script.encode())
     output = work / "output" / video_filename(content["type"])
@@ -368,7 +377,8 @@ def render(
                 "-nostdin",
                 "-y",
                 "-ss",
-                "1",
+                # Facts: the first frame of the reading hold, when every line is on screen.
+                f"{max(end for _, end in windows) + 0.3:g}" if is_fact else "1",
                 "-i",
                 str(output),
                 "-frames:v",

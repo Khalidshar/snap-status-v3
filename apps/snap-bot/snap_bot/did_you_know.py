@@ -289,7 +289,8 @@ def history_entry(entry: Any) -> tuple[str, str, str, float, float, str]:
     kind = entry.get("kind", DEFAULT_KIND)
     if (
         not isinstance(entry["fact_id"], str)
-        or not re.fullmatch("[a-z][a-z_]{1,23}-[0-9]{2}", entry["fact_id"])
+        # Catalog IDs: dyk-07, tech-01, and the faith IDs bukhari_1 or muslim_2564.
+        or not re.fullmatch("[a-z][a-z0-9_-]{1,39}", entry["fact_id"])
         or not isinstance(entry["body_hash"], str)
         or not re.fullmatch("[0-9a-f]{64}", entry["body_hash"])
         or not isinstance(entry["category"], str)
