@@ -50,6 +50,21 @@ def narration_line(content: dict[str, Any]) -> str:
     return f"رواه {match[1]} ({match[2]})"
 
 
+def fast_narration_line(content: dict[str, Any]) -> str:
+    """«صحيح مسلم، ١١٦٢» → «رواه مسلم (١١٦٢)»; «سنن أبي داود، ٢٤٤٩» → «رواه أبو داود (٢٤٤٩)»."""
+    from . import faith
+
+    item = next((i for i in faith.load("fast") if i["id"] == content["fact_id"]), None)
+    if item is None:
+        raise ValueError("Unknown fasting reminder")
+    match = re.fullmatch(r"(?:صحيح|سنن) (.+)، ([٠-٩]+)", str(item["source"]))
+    if not match:
+        raise ValueError("Unknown fasting source format")
+    # The collector is the subject of «رواه»: أبي داود → أبو داود.
+    collector = re.sub(r"^أبي ", "أبو ", match[1])
+    return f"رواه {collector} ({match[2]})"
+
+
 def sacred_display_body(content: dict[str, Any]) -> str:
     """The verbatim body; a hadith is quoted in «», outside the unchanged text."""
     return "«" + content["body"] + "»" if content["kind"] == "hadith" else str(content["body"])
@@ -138,8 +153,12 @@ def sacred_labels(
             else [(content["title"], title_size, 430, "0xD6B26C", "arabic")]
         ),
         (
-            narration_line(content) if content["kind"] == "hadith" else content["attribution"],
-            44 if content["kind"] == "hadith" else 40,
+            narration_line(content)
+            if content["kind"] == "hadith"
+            else fast_narration_line(content)
+            if content["kind"] == "fast"
+            else content["attribution"],
+            44 if content["kind"] in ("hadith", "fast") else 40,
             1320,
             "0xF6EEDE",
             "arabic",

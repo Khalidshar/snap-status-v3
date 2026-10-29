@@ -158,7 +158,7 @@ class OwnerCommandTests(unittest.TestCase):
             self.assertTrue(keyboard["resize_keyboard"])
             buttons = [button for row in keyboard["keyboard"] for button in row]
             expected = {key for row in listener.KEYBOARD_ROWS for key in row}
-            self.assertEqual(len(buttons), 14)
+            self.assertEqual(len(buttons), 15)
             resolved = set()
             for button in buttons:
                 parsed = listener.menu.parse(button["text"])
@@ -274,6 +274,11 @@ class ClipCycleTests(unittest.TestCase):
         )
         self.assertIn("نص الدعاء", self.studio.answer("دعاء"))
         self.assertEqual(self.started[-1], "madar-v3-snap-render@dua.service")
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            15, "نص الصيام", kind="fast", title="تذكير الصيام"
+        )
+        self.assertIn("نص الصيام", self.studio.answer("صيام"))
+        self.assertEqual(self.started[-1], "madar-v3-snap-render@fast.service")
 
     def test_preview_is_the_pending_still(self):
         self.assertEqual(self.studio.answer("معاينة"), listener.NO_CLIP)

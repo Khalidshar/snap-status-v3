@@ -1,4 +1,4 @@
-"""Hadith and dua as sacred content kinds of the fact pipeline (commands 15 and 16).
+"""Hadith, dua and fasting reminders as sacred content kinds (commands 15, 16 and 20).
 
 The text is the exact faith.py text, sha256-checked on every load. Nothing rewrites,
 proofreads, wraps or strips it; the renderer draws it whole with HarfBuzz shaping.
@@ -13,6 +13,7 @@ from .did_you_know import register_kind
 TITLES = {
     "hadith": "حديث شريف",
     "dua": "دعاء",
+    "fast": "تذكير الصيام",
 }
 # The owner approved these catalogs, with the 2026-09-30 Quran package, on 2026-10-28.
 REVIEWED = "2026-10-28"

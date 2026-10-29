@@ -39,7 +39,7 @@ def contents(kind):
 
 class SacredKindTests(unittest.TestCase):
     def test_kinds_are_registered_as_sacred_with_plain_titles(self):
-        self.assertEqual(set(sacred_kinds.TITLES), {"hadith", "dua"})
+        self.assertEqual(set(sacred_kinds.TITLES), {"hadith", "dua", "fast"})
         self.assertLessEqual(set(sacred_kinds.TITLES), dyk.SACRED_KINDS)
         for kind in ("tech", "night", dyk.DEFAULT_KIND):
             self.assertNotIn(kind, dyk.SACRED_KINDS, "guard:only-faith-is-sacred")
@@ -143,6 +143,21 @@ class SacredKindTests(unittest.TestCase):
         for bad in ("Bukhari_1", "x", "dyk 07", "a" * 41):
             with self.subTest(fact_id=bad), self.assertRaises(ValueError):
                 dyk.history_entry({**entry, "fact_id": bad})
+
+    def test_fasting_reminders_are_verbatim_with_their_collector(self):
+        lines = {}
+        for content in contents("fast"):
+            with self.subTest(fact=content["fact_id"]):
+                labels = [label[0] for label in sacred_labels(content)]
+                self.assertEqual(labels[2], "تذكير الصيام")
+                self.assertNotIn(PROPHET_LINE, labels, "guard:some-are-companions-words")
+                self.assertEqual(sacred_display_body(content), content["body"])
+                self.assertEqual(inspect_content(content)["checks"], ["verbatim_sha256"])
+                lines[content["fact_id"]] = labels[3]
+        self.assertEqual(lines["fast-01"], "رواه مسلم (١١٦٢)")
+        self.assertEqual(lines["fast-02"], "رواه البخاري (١٩٨١)")
+        self.assertEqual(lines["fast-06"], "رواه الترمذي (٧٤٥)")
+        self.assertEqual(lines["fast-07"], "رواه أبو داود (٢٤٤٩)", "guard:collector-nominative")
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "Linux FFmpeg shaped-text measurement")
