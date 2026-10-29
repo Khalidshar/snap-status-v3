@@ -28,7 +28,11 @@ def narrator_line(content: dict[str, Any]) -> str:
     item = next((i for i in faith.load("hadith") if i["id"] == content["fact_id"]), None)
     if item is None:
         raise ValueError("Unknown hadith")
-    return "عن " + str(item["narrator"])
+    narrator = str(item["narrator"])
+    # After «عن» the name is genitive: أبو هريرة → عن أبي هريرة.
+    if narrator.startswith("أبو "):
+        narrator = "أبي " + narrator.removeprefix("أبو ")
+    return "عن " + narrator
 
 
 def drawing_text(text: str) -> str:

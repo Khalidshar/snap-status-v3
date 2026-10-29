@@ -107,6 +107,9 @@ class SacredKindTests(unittest.TestCase):
         self.assertLess(490 + 76, HADITH_BODY[1])
         first = [label[0] for label in sacred_labels(contents("hadith")[0])]
         self.assertEqual(first[2], "عن عمر بن الخطاب رضي الله عنه")
+        lines = {sacred_labels(c)[2][0] for c in contents("hadith")}
+        self.assertIn("عن أبي هريرة رضي الله عنه", lines, "guard:genitive-after-an")
+        self.assertFalse(any("عن أبو" in line for line in lines))
         self.assertNotIn(PROPHET_LINE, contents("hadith")[0]["body"])
 
     def test_a_rendered_hadith_seeds_the_next_render_history(self):
