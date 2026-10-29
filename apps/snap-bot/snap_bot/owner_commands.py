@@ -59,6 +59,7 @@ KIND_RENDER_UNIT = "madar-v3-snap-render@{kind}.service"
 RENDER_KINDS = {"facts": "did_you_know", "tech": "tech", "style": "style", "funny": "funny",
                 "night": "night", "hadith": "hadith", "dua": "dua", "fast": "fast"}  # fmt: skip
 SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
+SENT = "✅ أُرسل "
 NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
 
 
@@ -124,7 +125,7 @@ def describe_event(event: dict[str, Any]) -> str:
     kind = event.get("kind")
     if kind == "ACK":
         return (
-            "✅ أُرسل "
+            SENT
             + sha
             + " إلى "
             + str(event.get("bot"))
@@ -299,7 +300,9 @@ class Studio:
                 return "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
         if safe_path(HALT).exists():
             return self.describe(clip) + "\n\n" + SEND_HALTED
-        return str(clip["title"]) + "\n" + str(clip["body"]) + "\n\n" + self.deliver(clip["sha"])
+        outcome = self.deliver(clip["sha"])
+        # The clip itself is the reply: a sent clip needs no text; any failure is reported.
+        return "" if outcome.startswith(SENT) else outcome
 
     def facts(self) -> str:
         return self.make("did_you_know")
@@ -452,6 +455,8 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
     cursor, texts = owner_messages(updates, owner, time.time())
     for text in texts:
         reply = studio.answer(text)
+        if not reply:
+            continue  # the sent clip was the whole answer
         if isinstance(reply, dict):
             body, kind = photo_body(owner, Path(reply["photo"]).read_bytes(), reply["caption"])
             transport(token, "sendPhoto", body, kind)
