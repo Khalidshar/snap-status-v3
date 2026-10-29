@@ -61,7 +61,7 @@ pango_view = "/usr/bin/pango-view"
 pango_version = "pango-view (pango) 1.52.1"
 sacred_font = "assets/fonts/notonaskharabic/NotoNaskhArabic-Regular.ttf"
 sacred_font_sha256 = "0919edeba540a6b27875d4651f2bf26dcbae00324b4bb034f7a030f7f294d381"
-sacred_font_size = 52
+sacred_font_size = 60
 # The approved personal frame (brand_frame.py); every fact video is framed before QA.
 brand_frame = "rawwag"
 

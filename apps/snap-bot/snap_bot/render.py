@@ -40,6 +40,7 @@ from . import brand_frame
 from .did_you_know import is_sacred, validate_content
 from .fact_audio import ambient_source, measure_audio
 from .fact_layout import (
+    SACRED_BODY,
     card_filters,
     display_text,
     fact_labels,
@@ -48,6 +49,7 @@ from .fact_layout import (
     sacred_body_box,
     sacred_display_body,
     sacred_labels,
+    stack_sacred,
 )
 from .fact_motion import background_filters, glow_filter, label_filter, reveal_windows
 from .font_admission import admit_font, choose_font, fallback_fonts, font_paths
@@ -65,23 +67,17 @@ def video_filename(content_type: object) -> str:
     return "weather.mp4" if content_type == "weather" else "did-you-know.mp4"
 
 
-def sacred_body(
-    body: str,
-    box: tuple[int, int, int, int],
-    profile: dict[str, Any],
-    design: Path,
-    card: str,
-    window: tuple[float, float],
-    safe_boxes: list[dict[str, int]],
-) -> str:
-    """Overlay the verbatim body, shaped whole by pango (drawtext misplaces vowel marks)."""
+def sacred_body_image(
+    body: str, box: tuple[int, int, int, int], profile: dict[str, Any], design: Path
+) -> tuple[Path, tuple[int, int]]:
+    """The verbatim body, shaped whole by pango (drawtext misplaces vowel marks)."""
     from . import sacred_text
 
     font = admit_font(profile["sacred_font"], profile["sacred_font_sha256"], profile)
     version = run([profile["pango_view"], "--version"], 5).stdout.strip()
     if version != profile["pango_version"]:
         raise ValueError("pango-view version mismatch")
-    left, top, width, height = box
+    _, _, width, height = box
     image = design / "body.png"
     size = sacred_text.render_text_png(
         body,
@@ -95,7 +91,20 @@ def sacred_body(
     )
     if not 0 < size[0] <= width or not 0 < size[1] <= height:
         raise ValueError("Sacred text exceeds its card")
-    y = top + (height - size[1]) // 2
+    return image, size
+
+
+def sacred_body(
+    image: Path,
+    size: tuple[int, int],
+    y: int,
+    profile: dict[str, Any],
+    card: str,
+    window: tuple[float, float],
+    safe_boxes: list[dict[str, int]],
+) -> str:
+    """Overlay the body image at its stacked row, fading in on its reveal window."""
+    left, _, width, _ = SACRED_BODY
     safe_boxes.append(
         {"x": left + (width - size[0]) // 2, "y": y, "width": size[0], "height": size[1]}
     )
@@ -229,6 +238,11 @@ def render(
         windows = []
     design = work / "design" / run_id
     design.mkdir(mode=0o750)
+    if sacred:
+        body_image, body_size = sacred_body_image(
+            sacred_display_body(content), sacred_body_box(content), profile, design
+        )
+        labels, body_top = stack_sacred(labels, body_size[1])
     safe_boxes = []
     filters = card_filters(profile["fps"])
     if is_fact:
@@ -275,13 +289,7 @@ def render(
     script = ",".join(filters)
     if sacred:
         script = sacred_body(
-            sacred_display_body(content),
-            sacred_body_box(content),
-            profile,
-            design,
-            script,
-            body_window,
-            safe_boxes,
+            body_image, body_size, body_top, profile, script, body_window, safe_boxes
         )
     filter_path = design / "filters.txt"
     write_once(filter_path, script.encode())

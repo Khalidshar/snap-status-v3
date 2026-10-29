@@ -194,6 +194,53 @@ def sacred_labels(
     return [(drawing_text(text), size, y, color, role) for text, size, y, color, role in labels]
 
 
+# Sacred cards stack their lines with fixed gaps and centre the whole block inside the
+# frame, instead of fixed rows that leave tall empty bands around a short text.
+CARD_TOP, CARD_BOTTOM = 360, 1560
+HEADER_GAP, BODY_GAP, FOOTER_GAP = 22, 56, 64
+
+
+def line_height(size: int) -> int:
+    return round(size * 1.35)
+
+
+def stack_sacred(
+    labels: list[tuple[str, int, int, str, str]], body_height: int
+) -> tuple[list[tuple[str, int, int, str, str]], int]:
+    """Re-place the header, body, source and follow lines as one centred block.
+
+    labels are sacred_labels(): identity (2), header lines, source, follow. Returns the
+    labels with new rows and the body's top row.
+    """
+    identity, header, source, follow = labels[:2], labels[2:-2], labels[-2], labels[-1]
+    if not header or not 0 < body_height <= CARD_BOTTOM - CARD_TOP:
+        raise ValueError("Invalid sacred layout")
+    heights = [line_height(label[1]) for label in header]
+    total = (
+        sum(heights)
+        + HEADER_GAP * (len(header) - 1)
+        + BODY_GAP
+        + body_height
+        + FOOTER_GAP
+        + line_height(source[1])
+        + FOOTER_GAP
+        + line_height(follow[1])
+    )
+    y = max(CARD_TOP, (CARD_TOP + CARD_BOTTOM - total) // 2)
+    if y + total > CARD_BOTTOM:
+        raise ValueError("Sacred text exceeds its card")
+    placed = list(identity)
+    for label, height in zip(header, heights, strict=True):
+        placed.append((label[0], label[1], y, label[3], label[4]))
+        y += height + HEADER_GAP
+    body_top = y - HEADER_GAP + BODY_GAP
+    y = body_top + body_height + FOOTER_GAP
+    placed.append((source[0], source[1], y, source[3], source[4]))
+    y += line_height(source[1]) + FOOTER_GAP
+    placed.append((follow[0], follow[1], y, follow[3], follow[4]))
+    return placed, body_top
+
+
 def label_y(label: Sequence[Any]) -> str:
     # Equal baseline grid, independent of each shaped line's ascent/descenders.
     return f"{label[2] + label[1]}-ascent"
