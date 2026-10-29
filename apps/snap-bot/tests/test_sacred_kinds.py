@@ -1,8 +1,10 @@
 """Hadith and dua through the fact pipeline: verbatim text, never proofread or stripped."""
 
 import hashlib
+import shutil
 import tempfile
 import time
+import tomllib
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -15,11 +17,15 @@ from snap_bot.fact_layout import (
     HADITH_BODY,
     PROPHET_LINE,
     SACRED_BODY,
+    display_text,
     fact_labels,
+    label_y,
+    measure_label,
     sacred_body_box,
     sacred_display_body,
     sacred_labels,
 )
+from snap_bot.font_admission import font_paths
 from studio_core.config import Config
 from studio_core.jobs import Repository
 
@@ -137,6 +143,28 @@ class SacredKindTests(unittest.TestCase):
         for bad in ("Bukhari_1", "x", "dyk 07", "a" * 41):
             with self.subTest(fact_id=bad), self.assertRaises(ValueError):
                 dyk.history_entry({**entry, "fact_id": bad})
+
+
+@unittest.skipUnless(shutil.which("ffmpeg"), "Linux FFmpeg shaped-text measurement")
+class SacredLabelSafeAreaTests(unittest.TestCase):
+    def test_every_hadith_label_fits_the_safe_area(self):
+        # The renderer measures each drawtext label; one wide narrator line failed every render.
+        profile = tomllib.loads((ROOT / "config/snap/did_you_know.toml").read_text("utf-8"))[
+            "slice"
+        ]["profile"]
+        profile = {**profile, "ffmpeg": shutil.which("ffmpeg")}
+        font, _ = font_paths(profile)
+        with tempfile.TemporaryDirectory() as tmp:
+            for content in contents("hadith"):
+                for index, label in enumerate(sacred_labels(content, profile)[2:5]):
+                    with self.subTest(fact=content["fact_id"], label=index):
+                        path = Path(tmp) / f"{content['fact_id']}-{index}.txt"
+                        path.write_text(display_text(label[0], "arabic"), encoding="utf-8")
+                        measure_label(
+                            profile,
+                            f"drawtext=fontfile={font}:textfile={path}:expansion=none:text_shaping=1"
+                            f":fontsize={label[1]}:fontcolor=white:x=(w-text_w)/2:y={label_y(label)}",
+                        )
 
 
 class SacredPipelineTests(unittest.TestCase):

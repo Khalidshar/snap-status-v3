@@ -130,7 +130,8 @@ def sacred_labels(
         *SACRED_IDENTITY,
         *(
             [
-                (narrator_line(content), 52, 400, "0xF6EEDE", "arabic"),
+                # 42 px keeps the longest narrator (عمر بن الخطاب) inside SAFE; 52 px did not.
+                (narrator_line(content), 42, 405, "0xF6EEDE", "arabic"),
                 (PROPHET_LINE, 76, 490, "0xD6B26C", "arabic"),
             ]
             if content["kind"] == "hadith"
