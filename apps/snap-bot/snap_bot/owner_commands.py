@@ -33,10 +33,25 @@ from .telegram_egress import api
 
 OFFSET = STATE / "commands" / "offset.json"
 PENDING = STATE / "commands" / "pending.json"
+HALT = STATE / "HALT"
+SEND_HALTED = "الإرسال موقوف، اكتب «شغّل» لإعادته"
 FRESH_SECONDS = 900
 NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم."
 READ_ONLY = {"status", "last", "agents", "schedule", "report", "dash"}
-ACTIONS = {"facts", "preview", "send", "cancel", "tech", "style", "funny", "night", "hadith", "dua"}
+ACTIONS = {
+    "halt",
+    "unhalt",
+    "facts",
+    "preview",
+    "send",
+    "cancel",
+    "tech",
+    "style",
+    "funny",
+    "night",
+    "hadith",
+    "dua",
+}
 RENDER_UNIT = "madar-v3-snap-render.service"
 KIND_RENDER_UNIT = "madar-v3-snap-render@{kind}.service"
 # Menu command key -> content kind it renders.
@@ -52,6 +67,7 @@ KEYBOARD_ROWS = (
     ("funny", "night", "hadith"),
     ("dua", "preview", "send"),
     ("cancel", "status", "last"),
+    ("halt", "unhalt"),
 )
 
 
@@ -305,7 +321,26 @@ class Studio:
             return NO_CLIP
         return {"photo": clip["still"], "caption": self.describe(clip)}
 
+    def halt(self) -> str:
+        path = safe_path(HALT)
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        path.touch(mode=0o600, exist_ok=True)
+        state = self.state()
+        state["confirm"] = None
+        self.save(state)
+        return SEND_HALTED
+
+    def unhalt(self) -> str:
+        # Resuming never approves a clip or revives an earlier confirmation.
+        state = self.state()
+        state["confirm"] = None
+        self.save(state)
+        safe_path(HALT).unlink(missing_ok=True)
+        return "تم تشغيل الإرسال. اكتب «أرسل» ثم «نعم» لإرسال المقطع."
+
     def send(self) -> str:
+        if safe_path(HALT).exists():
+            return SEND_HALTED
         clip = self.pending()
         if not clip:
             return NO_CLIP
@@ -330,6 +365,8 @@ class Studio:
         confirm = state["confirm"]
         state["confirm"] = None
         self.save(state)
+        if safe_path(HALT).exists():
+            return SEND_HALTED
         if not isinstance(confirm, dict) or not 0 <= time.time() - confirm.get("at", 0) < (
             menu.CONFIRM_SECONDS
         ):

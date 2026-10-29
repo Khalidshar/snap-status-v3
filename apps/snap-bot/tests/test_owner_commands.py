@@ -117,7 +117,7 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertIn("لا توجد جدولة", self.studio.answer("مواعيد الجدولة"))
 
     def test_commands_outside_the_clip_cycle_do_nothing_yet(self):
-        for text in ("🛑 إيقاف كامل", "أضف هل تعلم: نص", "خبر عاجل", "⏸ إيقاف الجدولة"):
+        for text in ("أضف هل تعلم: نص", "خبر عاجل", "⏸ إيقاف الجدولة"):
             self.assertIn("لم يصل إلى v3", self.studio.answer(text), text)
         self.assertEqual(self.runtime.appended, [], "guard:read-only")
 
@@ -158,7 +158,7 @@ class OwnerCommandTests(unittest.TestCase):
             self.assertTrue(keyboard["resize_keyboard"])
             buttons = [button for row in keyboard["keyboard"] for button in row]
             expected = {key for row in listener.KEYBOARD_ROWS for key in row}
-            self.assertEqual(len(buttons), 12)
+            self.assertEqual(len(buttons), 14)
             resolved = set()
             for button in buttons:
                 parsed = listener.menu.parse(button["text"])
@@ -190,6 +190,9 @@ class ClipCycleTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
+        halt_patch = patch.object(listener, "HALT", self.root / "HALT")
+        halt_patch.start()
+        self.addCleanup(halt_patch.stop)
         self.runtime = FakeRuntime(root=self.root)
         self.started = []
         self.on_start = {}
@@ -202,6 +205,39 @@ class ClipCycleTests(unittest.TestCase):
             return 0
 
         self.studio = listener.Studio(self.runtime, start, self.root / "commands/pending.json")
+
+    def test_halt_blocks_send_but_allows_render_and_preview(self):
+        self.assertEqual(self.studio.answer("أوقف"), listener.SEND_HALTED)
+        self.assertTrue(listener.HALT.is_file())
+        self.assertEqual(self.studio.answer("أرسل"), listener.SEND_HALTED)
+        self.on_start["madar-v3-snap-render.service"] = lambda unit: self.runtime.rendered(21)
+        self.assertIn("نص المعلومة", self.studio.answer("هل تعلم"))
+        self.assertIn("photo", self.studio.answer("معاينة"))
+        self.assertEqual(self.studio.answer("أرسل"), listener.SEND_HALTED)
+        self.assertEqual(self.runtime.approved, [])
+        self.assertEqual(self.started, [listener.RENDER_UNIT])
+
+    def test_halt_revokes_confirmation_and_unhalt_never_sends(self):
+        self.runtime.rendered(22)
+        self.assertIn("نعم", self.studio.answer("أرسل"))
+        self.studio.answer("أوقف")
+        self.studio.answer("أوقف")  # idempotent
+        self.assertEqual(self.studio.answer("نعم"), listener.SEND_HALTED)
+        self.assertIn("تم تشغيل", self.studio.answer("شغّل"))
+        self.assertFalse(listener.HALT.exists())
+        self.studio.answer("شغّل")  # idempotent
+        self.assertEqual(self.studio.answer("نعم"), "لا يوجد أمر ينتظر التأكيد.")
+        self.assertEqual(self.runtime.approved, [])
+        self.assertEqual(self.started, [])
+        self.assertIn("نعم", self.studio.answer("أرسل"))
+
+    def test_external_halt_blocks_an_already_pending_yes(self):
+        self.runtime.rendered(23)
+        self.studio.answer("أرسل")
+        listener.HALT.touch()
+        self.assertEqual(self.studio.answer("نعم"), listener.SEND_HALTED)
+        self.assertEqual(self.runtime.approved, [])
+        self.assertEqual(self.started, [])
 
     def test_facts_renders_once_and_reuses_the_pending_clip(self):
         self.on_start["madar-v3-snap-render.service"] = lambda unit: self.runtime.rendered(1)
