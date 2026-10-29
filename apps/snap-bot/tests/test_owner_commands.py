@@ -41,7 +41,9 @@ class FakeRuntime:
         self.approved.append((sha, channel, owner_chat))
         self.list.append({"kind": "HUMAN_FRAME", "video_sha": sha, "time": time.time()})
 
-    def rendered(self, n, body="نص المعلومة", expires=600, kind=None, title="هل تعلم؟"):
+    def rendered(
+        self, n, body="نص المعلومة", expires=600, kind=None, title="هل تعلم؟", commit=None
+    ):
         """A kept preview exactly as the server render leaves it."""
         sha, preview, job = f"{n:064x}", f"{n:032x}", f"{n + 9:032x}"
         directory = self.root / "previews" / preview
@@ -63,7 +65,13 @@ class FakeRuntime:
             encoding="utf-8",
         )
         self.list.append(
-            {"kind": "RENDERED", "video_sha": sha, "preview_id": preview, "time": time.time()}
+            {
+                "kind": "RENDERED",
+                "video_sha": sha,
+                "preview_id": preview,
+                "time": time.time(),
+                "commit": commit or listener.source_info()[0],
+            }
         )
         return sha
 
@@ -190,9 +198,12 @@ class ClipCycleTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
-        halt_patch = patch.object(listener, "HALT", self.root / "HALT")
-        halt_patch.start()
-        self.addCleanup(halt_patch.stop)
+        for active in (
+            patch.object(listener, "HALT", self.root / "HALT"),
+            patch.object(listener, "source_info", return_value=("2d0191a" + "0" * 33, 1000)),
+        ):
+            active.start()
+            self.addCleanup(active.stop)
         self.runtime = FakeRuntime(root=self.root)
         self.started = []
         self.on_start = {}
@@ -270,6 +281,18 @@ class ClipCycleTests(unittest.TestCase):
         with patch.object(self.studio, "answer", return_value="⚠️ تعذّر"):
             listener.poll_once("t", OWNER, self.studio, 0, transport)
         self.assertEqual(calls, ["getUpdates", "sendMessage"], "guard:failures-are-reported")
+
+    def test_a_clip_from_an_earlier_release_is_skipped_and_rendered_afresh(self):
+        # The server refuses to approve it ("Evidence or release changed"); offering it
+        # again made «صيام» fail on every try until it expired.
+        self.runtime.rendered(25, kind="fast", title="تذكير الصيام", commit="f" * 40)
+        self.assertIsNone(self.studio.pending(), "guard:stale-release-skipped")
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            26, "نص الصيام", kind="fast", title="تذكير الصيام"
+        )
+        self.studio.answer("صيام")
+        self.assertEqual(self.started[0], "madar-v3-snap-render@fast.service")
+        self.assertEqual(self.runtime.approved, [(f"{26:064x}", "main", True)])
 
     def test_a_waiting_clip_of_the_same_kind_is_sent_not_rendered_again(self):
         sha = self.runtime.rendered(24)

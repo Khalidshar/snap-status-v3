@@ -226,7 +226,12 @@ class Studio:
         os.replace(temporary, path)
 
     def pending(self) -> dict[str, Any] | None:
-        """The newest rendered clip that is unsent, unapproved, not cancelled and unexpired."""
+        """The newest rendered clip that is unsent, unapproved, not cancelled and unexpired.
+
+        A clip rendered by an earlier release can never be approved (verify() refuses it),
+        so it is skipped and the next command renders a fresh one.
+        """
+        commit, _ = source_info()
         events = self.runtime.events()
         cancelled = set(self.state()["cancelled"])
         decided = {
@@ -237,6 +242,8 @@ class Studio:
         for event in reversed(events):
             sha = event.get("video_sha")
             if event.get("kind") != "RENDERED" or sha in decided or sha in cancelled:
+                continue
+            if event.get("commit") != commit:
                 continue
             clip = self.clip(event)
             if clip and clip["expires_at"] > time.time():
