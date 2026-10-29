@@ -1,8 +1,10 @@
 """Hadith and dua through the fact pipeline: verbatim text, never proofread or stripped."""
 
 import hashlib
+import shutil
 import tempfile
 import time
+import tomllib
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -15,11 +17,15 @@ from snap_bot.fact_layout import (
     HADITH_BODY,
     PROPHET_LINE,
     SACRED_BODY,
+    display_text,
     fact_labels,
+    label_y,
+    measure_label,
     sacred_body_box,
     sacred_display_body,
     sacred_labels,
 )
+from snap_bot.font_admission import font_paths
 from studio_core.config import Config
 from studio_core.jobs import Repository
 
@@ -33,7 +39,7 @@ def contents(kind):
 
 class SacredKindTests(unittest.TestCase):
     def test_kinds_are_registered_as_sacred_with_plain_titles(self):
-        self.assertEqual(set(sacred_kinds.TITLES), {"hadith", "dua"})
+        self.assertEqual(set(sacred_kinds.TITLES), {"hadith", "dua", "fast"})
         self.assertLessEqual(set(sacred_kinds.TITLES), dyk.SACRED_KINDS)
         for kind in ("tech", "night", dyk.DEFAULT_KIND):
             self.assertNotIn(kind, dyk.SACRED_KINDS, "guard:only-faith-is-sacred")
@@ -137,6 +143,43 @@ class SacredKindTests(unittest.TestCase):
         for bad in ("Bukhari_1", "x", "dyk 07", "a" * 41):
             with self.subTest(fact_id=bad), self.assertRaises(ValueError):
                 dyk.history_entry({**entry, "fact_id": bad})
+
+    def test_fasting_reminders_are_verbatim_with_their_collector(self):
+        lines = {}
+        for content in contents("fast"):
+            with self.subTest(fact=content["fact_id"]):
+                labels = [label[0] for label in sacred_labels(content)]
+                self.assertEqual(labels[2], "تذكير الصيام")
+                self.assertNotIn(PROPHET_LINE, labels, "guard:some-are-companions-words")
+                self.assertEqual(sacred_display_body(content), content["body"])
+                self.assertEqual(inspect_content(content)["checks"], ["verbatim_sha256"])
+                lines[content["fact_id"]] = labels[3]
+        self.assertEqual(lines["fast-01"], "رواه مسلم (١١٦٢)")
+        self.assertEqual(lines["fast-02"], "رواه البخاري (١٩٨١)")
+        self.assertEqual(lines["fast-06"], "رواه الترمذي (٧٤٥)")
+        self.assertEqual(lines["fast-07"], "رواه أبو داود (٢٤٤٩)", "guard:collector-nominative")
+
+
+@unittest.skipUnless(shutil.which("ffmpeg"), "Linux FFmpeg shaped-text measurement")
+class SacredLabelSafeAreaTests(unittest.TestCase):
+    def test_every_hadith_label_fits_the_safe_area(self):
+        # The renderer measures each drawtext label; one wide narrator line failed every render.
+        profile = tomllib.loads((ROOT / "config/snap/did_you_know.toml").read_text("utf-8"))[
+            "slice"
+        ]["profile"]
+        profile = {**profile, "ffmpeg": shutil.which("ffmpeg")}
+        font, _ = font_paths(profile)
+        with tempfile.TemporaryDirectory() as tmp:
+            for content in contents("hadith"):
+                for index, label in enumerate(sacred_labels(content, profile)[2:5]):
+                    with self.subTest(fact=content["fact_id"], label=index):
+                        path = Path(tmp) / f"{content['fact_id']}-{index}.txt"
+                        path.write_text(display_text(label[0], "arabic"), encoding="utf-8")
+                        measure_label(
+                            profile,
+                            f"drawtext=fontfile={font}:textfile={path}:expansion=none:text_shaping=1"
+                            f":fontsize={label[1]}:fontcolor=white:x=(w-text_w)/2:y={label_y(label)}",
+                        )
 
 
 class SacredPipelineTests(unittest.TestCase):

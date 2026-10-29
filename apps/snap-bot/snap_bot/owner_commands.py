@@ -51,12 +51,13 @@ ACTIONS = {
     "night",
     "hadith",
     "dua",
+    "fast",
 }
 RENDER_UNIT = "madar-v3-snap-render.service"
 KIND_RENDER_UNIT = "madar-v3-snap-render@{kind}.service"
 # Menu command key -> content kind it renders.
 RENDER_KINDS = {"facts": "did_you_know", "tech": "tech", "style": "style", "funny": "funny",
-                "night": "night", "hadith": "hadith", "dua": "dua"}  # fmt: skip
+                "night": "night", "hadith": "hadith", "dua": "dua", "fast": "fast"}  # fmt: skip
 SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
 NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
 
@@ -65,8 +66,9 @@ NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصن�
 KEYBOARD_ROWS = (
     ("facts", "tech", "style"),
     ("funny", "night", "hadith"),
-    ("dua", "preview", "send"),
-    ("cancel", "status", "last"),
+    ("dua", "fast", "preview"),
+    ("send", "cancel", "status"),
+    ("last",),
     ("halt", "unhalt"),
 )
 
@@ -314,6 +316,9 @@ class Studio:
 
     def dua(self) -> str:
         return self.make("dua")
+
+    def fast(self) -> str:
+        return self.make("fast")
 
     def preview(self) -> Any:
         clip = self.pending()
