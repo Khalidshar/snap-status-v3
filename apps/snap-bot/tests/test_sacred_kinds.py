@@ -14,16 +14,22 @@ from snap_bot import faith, sacred_kinds
 from snap_bot.arabic_agent import check_text, inspect_content
 from snap_bot.content_agents import CHECKS, AgentRejected, proofread, run_check
 from snap_bot.fact_layout import (
+    BODY_GAP,
+    CARD_BOTTOM,
+    CARD_TOP,
+    FOOTER_GAP,
     HADITH_BODY,
     PROPHET_LINE,
     SACRED_BODY,
     display_text,
     fact_labels,
     label_y,
+    line_height,
     measure_label,
     sacred_body_box,
     sacred_display_body,
     sacred_labels,
+    stack_sacred,
 )
 from snap_bot.font_admission import font_paths
 from studio_core.config import Config
@@ -169,6 +175,25 @@ class SacredKindTests(unittest.TestCase):
         )
         self.assertEqual(cards["fast-06"][0], "عن عائشة رضي الله عنها قالت:", "guard:feminine")
         self.assertEqual(cards["fast-07"][-1], "رواه أبو داود (٢٤٤٩)", "guard:collector-nominative")
+
+    def test_sacred_lines_stack_as_one_centred_block(self):
+        for kind in ("hadith", "fast", "dua"):
+            for height in (60, 300, 520):
+                with self.subTest(kind=kind, height=height):
+                    labels, body_top = stack_sacred(sacred_labels(contents(kind)[0]), height)
+                    header, source, follow = labels[2:-2], labels[-2], labels[-1]
+                    rows = [label[2] for label in labels[2:]]
+                    self.assertEqual(rows, sorted(rows), "guard:top-to-bottom")
+                    end = header[-1][2] + line_height(header[-1][1])
+                    self.assertEqual(body_top - end, BODY_GAP, "guard:no-gap-above-body")
+                    self.assertEqual(source[2] - (body_top + height), FOOTER_GAP)
+                    bottom = follow[2] + line_height(follow[1])
+                    self.assertGreaterEqual(header[0][2], CARD_TOP)
+                    self.assertLessEqual(bottom, CARD_BOTTOM)
+                    middle = (header[0][2] + bottom) / 2
+                    self.assertAlmostEqual(middle, (CARD_TOP + CARD_BOTTOM) / 2, delta=1)
+        with self.assertRaises(ValueError):
+            stack_sacred(sacred_labels(contents("hadith")[0]), 1100)
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "Linux FFmpeg shaped-text measurement")
