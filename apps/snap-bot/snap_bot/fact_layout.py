@@ -18,27 +18,51 @@ HADITH_BODY = (130, 620, 820, 660)
 
 
 def sacred_body_box(content: dict[str, Any]) -> tuple[int, int, int, int]:
-    return HADITH_BODY if content.get("kind") == "hadith" else SACRED_BODY
+    return HADITH_BODY if content.get("kind") in ("hadith", "fast") else SACRED_BODY
 
 
 # Hadith cards follow the usual Saudi publishing style (الدرر السنية, binbaz.org.sa):
 # «عن أبي هريرة رضي الله عنه قال: قال رسول الله ﷺ: «...»» and «رواه البخاري (6018)».
-def _hadith_item(content: dict[str, Any]) -> dict[str, Any]:
+def _faith_item(content: dict[str, Any]) -> dict[str, Any]:
     from . import faith
 
-    item = next((i for i in faith.load("hadith") if i["id"] == content["fact_id"]), None)
+    item = next((i for i in faith.load(content["kind"]) if i["id"] == content["fact_id"]), None)
     if item is None:
-        raise ValueError("Unknown hadith")
+        raise ValueError("Unknown faith item")
     return item
+
+
+def _hadith_item(content: dict[str, Any]) -> dict[str, Any]:
+    return _faith_item(content)
+
+
+def _after_an(narrator: str) -> str:
+    # After «عن» the name is genitive: أبو هريرة → عن أبي هريرة.
+    return "أبي " + narrator.removeprefix("أبو ") if narrator.startswith("أبو ") else narrator
+
+
+def _asked(content: dict[str, Any]) -> bool:
+    """The text opens «سُئِلَ ... فقال»: it continues «أن رسول الله ﷺ», not «قال رسول الله ﷺ:»."""
+    return str(content["body"]).startswith("سُئِلَ")
 
 
 def narrator_line(content: dict[str, Any]) -> str:
     """«عن أبي هريرة رضي الله عنه قال:», from the reviewed faith catalog, never from content."""
-    narrator = str(_hadith_item(content)["narrator"])
-    # After «عن» the name is genitive: أبو هريرة → عن أبي هريرة.
-    if narrator.startswith("أبو "):
-        narrator = "أبي " + narrator.removeprefix("أبو ")
-    return "عن " + narrator + " قال:"
+    item = _faith_item(content)
+    line = "عن " + _after_an(str(item["narrator"]))
+    if content["kind"] == "fast" and item["speaker"] == "prophet" and _asked(content):
+        return line
+    return line + (" قالت:" if str(item["narrator"]).endswith("عنها") else " قال:")
+
+
+def fast_header(content: dict[str, Any]) -> list[tuple[str, int, int, str, str]]:
+    """Fasting cards open like a hadith; a Companion's own words get no Prophet ﷺ line."""
+    # 36 px keeps the longest fasting narrator (قتادة بن ملحان القيسي) inside SAFE.
+    header = [(narrator_line(content), 36, 410, "0xF6EEDE", "arabic")]
+    if _faith_item(content)["speaker"] == "prophet":
+        line = "أن رسول الله ﷺ" if _asked(content) else PROPHET_LINE
+        header.append((line, 76, 490, "0xD6B26C", "arabic"))
+    return header
 
 
 def narration_line(content: dict[str, Any]) -> str:
@@ -150,6 +174,8 @@ def sacred_labels(
                 (PROPHET_LINE, 76, 490, "0xD6B26C", "arabic"),
             ]
             if content["kind"] == "hadith"
+            else fast_header(content)
+            if content["kind"] == "fast"
             else [(content["title"], title_size, 430, "0xD6B26C", "arabic")]
         ),
         (

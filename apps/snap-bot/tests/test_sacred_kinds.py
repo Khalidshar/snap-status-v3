@@ -144,20 +144,31 @@ class SacredKindTests(unittest.TestCase):
             with self.subTest(fact_id=bad), self.assertRaises(ValueError):
                 dyk.history_entry({**entry, "fact_id": bad})
 
-    def test_fasting_reminders_are_verbatim_with_their_collector(self):
-        lines = {}
+    def test_fasting_reminders_open_with_narrator_and_speaker(self):
+        cards = {}
         for content in contents("fast"):
             with self.subTest(fact=content["fact_id"]):
                 labels = [label[0] for label in sacred_labels(content)]
-                self.assertEqual(labels[2], "تذكير الصيام")
-                self.assertNotIn(PROPHET_LINE, labels, "guard:some-are-companions-words")
+                self.assertNotIn("تذكير الصيام", labels, "guard:no-title-like-hadith")
                 self.assertEqual(sacred_display_body(content), content["body"])
                 self.assertEqual(inspect_content(content)["checks"], ["verbatim_sha256"])
-                lines[content["fact_id"]] = labels[3]
-        self.assertEqual(lines["fast-01"], "رواه مسلم (١١٦٢)")
-        self.assertEqual(lines["fast-02"], "رواه البخاري (١٩٨١)")
-        self.assertEqual(lines["fast-06"], "رواه الترمذي (٧٤٥)")
-        self.assertEqual(lines["fast-07"], "رواه أبو داود (٢٤٤٩)", "guard:collector-nominative")
+                cards[content["fact_id"]] = labels[2:-1]
+        self.assertEqual(
+            cards["fast-01"],
+            ["عن أبي قتادة الأنصاري رضي الله عنه", "أن رسول الله ﷺ", "رواه مسلم (١١٦٢)"],
+            "guard:asked-continues-an-rasul",
+        )
+        self.assertEqual(
+            cards["fast-05"],
+            ["عن أبي أيوب الأنصاري رضي الله عنه قال:", PROPHET_LINE, "رواه مسلم (١١٦٤)"],
+        )
+        self.assertEqual(
+            cards["fast-02"],
+            ["عن أبي هريرة رضي الله عنه قال:", "رواه البخاري (١٩٨١)"],
+            "guard:companion-words-no-prophet-line",
+        )
+        self.assertEqual(cards["fast-06"][0], "عن عائشة رضي الله عنها قالت:", "guard:feminine")
+        self.assertEqual(cards["fast-07"][-1], "رواه أبو داود (٢٤٤٩)", "guard:collector-nominative")
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "Linux FFmpeg shaped-text measurement")
@@ -170,8 +181,8 @@ class SacredLabelSafeAreaTests(unittest.TestCase):
         profile = {**profile, "ffmpeg": shutil.which("ffmpeg")}
         font, _ = font_paths(profile)
         with tempfile.TemporaryDirectory() as tmp:
-            for content in contents("hadith"):
-                for index, label in enumerate(sacred_labels(content, profile)[2:5]):
+            for content in contents("hadith") + contents("fast"):
+                for index, label in enumerate(sacred_labels(content, profile)[2:-1]):
                     with self.subTest(fact=content["fact_id"], label=index):
                         path = Path(tmp) / f"{content['fact_id']}-{index}.txt"
                         path.write_text(display_text(label[0], "arabic"), encoding="utf-8")
