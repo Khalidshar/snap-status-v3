@@ -46,6 +46,7 @@ from .fact_layout import (
     label_y,
     measure_label,
     sacred_body_box,
+    sacred_display_body,
     sacred_labels,
 )
 from .fact_motion import background_filters, glow_filter, label_filter, reveal_windows
@@ -274,7 +275,7 @@ def render(
     script = ",".join(filters)
     if sacred:
         script = sacred_body(
-            content["body"],
+            sacred_display_body(content),
             sacred_body_box(content),
             profile,
             design,

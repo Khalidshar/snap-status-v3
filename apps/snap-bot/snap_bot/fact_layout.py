@@ -21,14 +21,38 @@ def sacred_body_box(content: dict[str, Any]) -> tuple[int, int, int, int]:
     return HADITH_BODY if content.get("kind") == "hadith" else SACRED_BODY
 
 
-def narrator_line(content: dict[str, Any]) -> str:
-    """«عن أبي هريرة رضي الله عنه», from the reviewed faith catalog, never from content."""
+# Hadith cards follow the usual Saudi publishing style (الدرر السنية, binbaz.org.sa):
+# «عن أبي هريرة رضي الله عنه قال: قال رسول الله ﷺ: «...»» and «رواه البخاري (6018)».
+def _hadith_item(content: dict[str, Any]) -> dict[str, Any]:
     from . import faith
 
     item = next((i for i in faith.load("hadith") if i["id"] == content["fact_id"]), None)
     if item is None:
         raise ValueError("Unknown hadith")
-    return "عن " + str(item["narrator"])
+    return item
+
+
+def narrator_line(content: dict[str, Any]) -> str:
+    """«عن أبي هريرة رضي الله عنه قال:», from the reviewed faith catalog, never from content."""
+    narrator = str(_hadith_item(content)["narrator"])
+    # After «عن» the name is genitive: أبو هريرة → عن أبي هريرة.
+    if narrator.startswith("أبو "):
+        narrator = "أبي " + narrator.removeprefix("أبو ")
+    return "عن " + narrator + " قال:"
+
+
+def narration_line(content: dict[str, Any]) -> str:
+    """«صحيح البخاري • حديث 6018» → «رواه البخاري (6018)»."""
+    source = str(_hadith_item(content)["source"])
+    match = re.fullmatch(r"صحيح (\S+) • حديث ([0-9]+)", source)
+    if not match:
+        raise ValueError("Unknown hadith source format")
+    return f"رواه {match[1]} ({match[2]})"
+
+
+def sacred_display_body(content: dict[str, Any]) -> str:
+    """The verbatim body; a hadith is quoted in «», outside the unchanged text."""
+    return "«" + content["body"] + "»" if content["kind"] == "hadith" else str(content["body"])
 
 
 def drawing_text(text: str) -> str:
@@ -112,7 +136,13 @@ def sacred_labels(
             if content["kind"] == "hadith"
             else [(content["title"], title_size, 430, "0xD6B26C", "arabic")]
         ),
-        (content["attribution"], 40, 1320, "0xF6EEDE", "arabic"),
+        (
+            narration_line(content) if content["kind"] == "hadith" else content["attribution"],
+            44 if content["kind"] == "hadith" else 40,
+            1320,
+            "0xF6EEDE",
+            "arabic",
+        ),
         ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
     ]
     return [(drawing_text(text), size, y, color, role) for text, size, y, color, role in labels]
