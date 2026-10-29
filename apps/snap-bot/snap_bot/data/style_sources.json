@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-29",
+  "sources": [],
+  "candidates": [
+    {
+      "url": "https://news.adidas.com/RSS/brands/originals",
+      "name": "أديداس أوريجينالز",
+      "language": "en",
+      "section": "brands",
+      "official_feed_page": "https://news.adidas.com/list-of-feeds",
+      "permission_url": "https://news.adidas.com/list-of-feeds",
+      "permission_scope": "RSS syndication; headlines with source and link only",
+      "verification": "Web retrieval reports application/rss+xml; local HTTP fetch returned 403. Server reachability remains untested.",
+      "status": "pending_reachability_validation"
+    },
+    {
+      "url": "https://news.adidas.com/RSS/brands/sportswear",
+      "name": "أديداس سبورتسوير",
+      "language": "en",
+      "section": "brands",
+      "official_feed_page": "https://news.adidas.com/list-of-feeds",
+      "permission_url": "https://news.adidas.com/list-of-feeds",
+      "permission_scope": "RSS syndication; headlines with source and link only",
+      "verification": "Web retrieval reports application/rss+xml; local HTTP fetch returned 403. Server reachability remains untested.",
+      "status": "pending_reachability_validation"
+    }
+  ],
+  "approval_note": "No feed passed both raw XML reachability validation and republication permission checks in this environment. Candidates are never returned by sources()."
+}
