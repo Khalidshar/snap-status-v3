@@ -84,7 +84,7 @@ class SacredKindTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             fact_labels(content)
         labels = [label[0] for label in sacred_labels(content)]
-        self.assertIn("حديث شريف", labels)
+        self.assertNotIn("حديث شريف", labels, "guard:owner-dropped-the-title")
         self.assertEqual(len(labels), 6, "guard:no-body-lines")
         self.assertFalse(any(content["body"][:10] in label for label in labels))
         with self.assertRaises(ValueError):
@@ -94,14 +94,19 @@ class SacredKindTests(unittest.TestCase):
         for content in contents("hadith"):
             with self.subTest(fact=content["fact_id"]):
                 labels = [label[0] for label in sacred_labels(content)]
+                self.assertTrue(labels[2].startswith("عن "), "guard:narrator-first")
+                self.assertTrue(labels[2].endswith("رضي الله عنه"))
                 self.assertEqual(labels[3], PROPHET_LINE, "guard:prophet-line")
                 self.assertIn("ﷺ", labels[3])
                 self.assertEqual(sacred_body_box(content), HADITH_BODY)
         dua = contents("dua")[0]
         self.assertNotIn(PROPHET_LINE, [label[0] for label in sacred_labels(dua)])
+        self.assertIn("دعاء", [label[0] for label in sacred_labels(dua)])
         self.assertEqual(sacred_body_box(dua), SACRED_BODY)
-        # The line sits between the title and the verbatim body, never inside the body.
-        self.assertLess(575 + 64, HADITH_BODY[1])
+        # The line sits above the verbatim body, never inside it.
+        self.assertLess(490 + 76, HADITH_BODY[1])
+        first = [label[0] for label in sacred_labels(contents("hadith")[0])]
+        self.assertEqual(first[2], "عن عمر بن الخطاب رضي الله عنه")
         self.assertNotIn(PROPHET_LINE, contents("hadith")[0]["body"])
 
     def test_a_rendered_hadith_seeds_the_next_render_history(self):
