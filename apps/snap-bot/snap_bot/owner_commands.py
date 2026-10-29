@@ -284,17 +284,22 @@ class Studio:
         )
 
     def make(self, kind: str) -> str:
-        """Render one clip of this kind, or show the pending clip when it is the same kind."""
-        clip = self.pending()
-        if clip and clip["kind"] == kind:
-            return "عندك مقطع ينتظر قرارك:\n\n" + self.describe(clip)
-        unit = RENDER_UNIT if kind == "did_you_know" else KIND_RENDER_UNIT.format(kind=kind)
-        if self.start(unit) != 0:
-            return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص " + unit + " على السيرفر."
+        """The owner's command is the decision: render one clip of this kind and send it.
+
+        A pending clip of the same kind is sent instead of rendering another. «أوقف» keeps
+        the clip waiting; «معاينة», «أرسل» and «ألغِ» still work on a waiting clip.
+        """
         clip = self.pending()
         if not clip or clip["kind"] != kind:
-            return "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
-        return self.describe(clip)
+            unit = RENDER_UNIT if kind == "did_you_know" else KIND_RENDER_UNIT.format(kind=kind)
+            if self.start(unit) != 0:
+                return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص " + unit + " على السيرفر."
+            clip = self.pending()
+            if not clip or clip["kind"] != kind:
+                return "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
+        if safe_path(HALT).exists():
+            return self.describe(clip) + "\n\n" + SEND_HALTED
+        return str(clip["title"]) + "\n" + str(clip["body"]) + "\n\n" + self.deliver(clip["sha"])
 
     def facts(self) -> str:
         return self.make("did_you_know")
@@ -379,7 +384,10 @@ class Studio:
         clip = self.pending()
         if not clip or clip["sha"] != confirm.get("sha"):
             return "تغيّر المقطع المنتظر، فلم يُرسل شيء. اكتب «أرسل» من جديد."
-        sha = clip["sha"]
+        return self.deliver(clip["sha"])
+
+    def deliver(self, sha: str) -> str:
+        """Approve one clip from the owner chat and send it to the main channel, once."""
         try:
             self.runtime.approve(sha, "main", owner_chat=True)
         except Exception as error:

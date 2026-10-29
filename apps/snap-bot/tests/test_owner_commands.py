@@ -239,46 +239,63 @@ class ClipCycleTests(unittest.TestCase):
         self.assertEqual(self.runtime.approved, [])
         self.assertEqual(self.started, [])
 
-    def test_facts_renders_once_and_reuses_the_pending_clip(self):
+    def test_a_content_command_renders_and_sends_in_one_step(self):
+        sha = f"{1:064x}"
+
+        def ack(unit):
+            self.runtime.list.append(
+                {"kind": "ACK", "video_sha": sha, "bot": "khalid_s2ss_bot", "message_id": 950,
+                 "time": time.time()}
+            )  # fmt: skip
+
         self.on_start["madar-v3-snap-render.service"] = lambda unit: self.runtime.rendered(1)
-        first = self.studio.answer("هل تعلم")
-        self.assertIn("نص المعلومة", first)
-        self.assertEqual(self.started, [listener.RENDER_UNIT])
-        again = self.studio.answer("7")
-        self.assertIn("ينتظر قرارك", again)
-        self.assertEqual(self.started, [listener.RENDER_UNIT], "guard:no-wasted-render")
+        self.on_start["madar-v3-snap-send-main"] = ack
+        reply = self.studio.answer("هل تعلم")
+        self.assertIn("نص المعلومة", reply)
+        self.assertIn("رسالة 950", reply, "guard:sent-without-yes")
+        self.assertEqual(self.runtime.approved, [(sha, "main", True)], "guard:main-only")
+        self.assertEqual(self.started, [listener.RENDER_UNIT, listener.SEND_UNIT.format(sha=sha)])
+        self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP, "guard:sent-once")
+
+    def test_a_waiting_clip_of_the_same_kind_is_sent_not_rendered_again(self):
+        sha = self.runtime.rendered(24)
+        self.studio.answer("7")
+        self.assertEqual(
+            self.started, [listener.SEND_UNIT.format(sha=sha)], "guard:no-wasted-render"
+        )
+        self.assertEqual(self.runtime.approved, [(sha, "main", True)])
 
     def test_variety_commands_render_their_own_kind(self):
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
             11, "نصيحة تقنية", kind="tech", title="تقنية"
         )
         reply = self.studio.answer("8")
-        self.assertEqual(self.started, ["madar-v3-snap-render@tech.service"], "guard:kind-unit")
+        self.assertEqual(self.started[0], "madar-v3-snap-render@tech.service", "guard:kind-unit")
         self.assertTrue(reply.startswith("تقنية"), "guard:title-from-content")
-        self.assertIn("ينتظر قرارك", self.studio.answer("التقنية"), "guard:same-kind-reuse")
+        self.assertEqual(self.started[-1], listener.SEND_UNIT.format(sha=f"{11:064x}"))
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
             12, "سطر هادئ", kind="night", title="قبل النوم"
         )
         self.assertIn("سطر هادئ", self.studio.answer("قبل النوم"))
-        self.assertEqual(self.started[-1], "madar-v3-snap-render@night.service")
+        self.assertEqual(self.started[-2], "madar-v3-snap-render@night.service")
 
     def test_faith_commands_render_their_sacred_kind(self):
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
             13, "نص الحديث", kind="hadith", title="حديث شريف"
         )
         reply = self.studio.answer("حديث")
-        self.assertEqual(self.started, ["madar-v3-snap-render@hadith.service"], "guard:kind-unit")
+        self.assertEqual(self.started[0], "madar-v3-snap-render@hadith.service", "guard:kind-unit")
         self.assertTrue(reply.startswith("حديث شريف"))
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
             14, "نص الدعاء", kind="dua", title="دعاء"
         )
         self.assertIn("نص الدعاء", self.studio.answer("دعاء"))
-        self.assertEqual(self.started[-1], "madar-v3-snap-render@dua.service")
+        self.assertEqual(self.started[-2], "madar-v3-snap-render@dua.service")
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
             15, "نص الصيام", kind="fast", title="تذكير الصيام"
         )
         self.assertIn("نص الصيام", self.studio.answer("صيام"))
-        self.assertEqual(self.started[-1], "madar-v3-snap-render@fast.service")
+        self.assertEqual(self.started[-2], "madar-v3-snap-render@fast.service")
 
     def test_preview_is_the_pending_still(self):
         self.assertEqual(self.studio.answer("معاينة"), listener.NO_CLIP)
