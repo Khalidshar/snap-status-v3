@@ -17,6 +17,7 @@ from snap_bot.fact_layout import (
     SACRED_BODY,
     fact_labels,
     sacred_body_box,
+    sacred_display_body,
     sacred_labels,
 )
 from studio_core.config import Config
@@ -95,7 +96,10 @@ class SacredKindTests(unittest.TestCase):
             with self.subTest(fact=content["fact_id"]):
                 labels = [label[0] for label in sacred_labels(content)]
                 self.assertTrue(labels[2].startswith("عن "), "guard:narrator-first")
-                self.assertTrue(labels[2].endswith("رضي الله عنه"))
+                self.assertTrue(labels[2].endswith("رضي الله عنه قال:"))
+                self.assertRegex(labels[4], r"^رواه (البخاري|مسلم) \([0-9]+\)$", "guard:rawah")
+                quoted = sacred_display_body(content)
+                self.assertEqual(quoted, "«" + content["body"] + "»", "guard:quotes-outside-text")
                 self.assertEqual(labels[3], PROPHET_LINE, "guard:prophet-line")
                 self.assertIn("ﷺ", labels[3])
                 self.assertEqual(sacred_body_box(content), HADITH_BODY)
@@ -106,9 +110,11 @@ class SacredKindTests(unittest.TestCase):
         # The line sits above the verbatim body, never inside it.
         self.assertLess(490 + 76, HADITH_BODY[1])
         first = [label[0] for label in sacred_labels(contents("hadith")[0])]
-        self.assertEqual(first[2], "عن عمر بن الخطاب رضي الله عنه")
+        self.assertEqual(first[2], "عن عمر بن الخطاب رضي الله عنه قال:")
+        self.assertEqual(first[4], "رواه البخاري (1)")
+        self.assertEqual(sacred_display_body(dua), dua["body"], "guard:dua-unquoted")
         lines = {sacred_labels(c)[2][0] for c in contents("hadith")}
-        self.assertIn("عن أبي هريرة رضي الله عنه", lines, "guard:genitive-after-an")
+        self.assertIn("عن أبي هريرة رضي الله عنه قال:", lines, "guard:genitive-after-an")
         self.assertFalse(any("عن أبو" in line for line in lines))
         self.assertNotIn(PROPHET_LINE, contents("hadith")[0]["body"])
 
