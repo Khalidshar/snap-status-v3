@@ -163,6 +163,10 @@ def load(kind: str) -> list[dict[str, Any]]:
     for item in items:
         _safe(item.get("source"))
         if catalog == "fast":
+            if not _safe(item.get("narrator")).strip():
+                raise ValueError("Missing fasting narrator")
+            if item.get("speaker") not in ("prophet", "companion"):
+                raise ValueError("Invalid fasting speaker")
             if item.get("grade") != "صحيح":
                 raise ValueError("Unapproved fasting narration grade")
             _safe(item.get("topic"))

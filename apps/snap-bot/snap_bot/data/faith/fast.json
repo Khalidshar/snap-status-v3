@@ -12,7 +12,9 @@
       "source": "صحيح مسلم، ١١٦٢",
       "grade": "صحيح",
       "verification_url": "https://sunnah.com/muslim:1162e",
-      "topic": "الاثنين"
+      "topic": "الاثنين",
+      "narrator": "أبو قتادة الأنصاري رضي الله عنه",
+      "speaker": "prophet"
     },
     {
       "id": "fast-02",
@@ -21,7 +23,9 @@
       "source": "صحيح البخاري، ١٩٨١",
       "grade": "صحيح",
       "verification_url": "https://sunnah.com/bukhari:1981",
-      "topic": "ثلاثة أيام من كل شهر"
+      "topic": "ثلاثة أيام من كل شهر",
+      "narrator": "أبو هريرة رضي الله عنه",
+      "speaker": "companion"
     },
     {
       "id": "fast-03",
@@ -30,7 +34,9 @@
       "source": "صحيح مسلم، ١١٦٢",
       "grade": "صحيح",
       "verification_url": "https://sunnah.com/muslim:1162a",
-      "topic": "عرفة"
+      "topic": "عرفة",
+      "narrator": "أبو قتادة رضي الله عنه",
+      "speaker": "prophet"
     },
     {
       "id": "fast-04",
@@ -39,7 +45,9 @@
       "source": "صحيح مسلم، ١١٦٢",
       "grade": "صحيح",
       "verification_url": "https://sunnah.com/muslim:1162a",
-      "topic": "عاشوراء"
+      "topic": "عاشوراء",
+      "narrator": "أبو قتادة رضي الله عنه",
+      "speaker": "prophet"
     },
     {
       "id": "fast-05",
@@ -48,7 +56,9 @@
       "source": "صحيح مسلم، ١١٦٤",
       "grade": "صحيح",
       "verification_url": "https://sunnah.com/muslim:1164a",
-      "topic": "الست من شوال"
+      "topic": "الست من شوال",
+      "narrator": "أبو أيوب الأنصاري رضي الله عنه",
+      "speaker": "prophet"
     },
     {
       "id": "fast-06",
@@ -60,7 +70,9 @@
       "grade_source": "صحيح الترمذي، ٧٤٥",
       "grade_url": "https://dorar.net/h/ZLu1ku0H",
       "grade": "صحيح",
-      "sha256": "2cedec823addf03d3aab2d826bed3943ced68f9b5a25adadab4f7c0b942a86a5"
+      "sha256": "2cedec823addf03d3aab2d826bed3943ced68f9b5a25adadab4f7c0b942a86a5",
+      "narrator": "عائشة رضي الله عنها",
+      "speaker": "companion"
     },
     {
       "id": "fast-07",
@@ -72,7 +84,9 @@
       "grade_source": "حكم الألباني على سنن أبي داود، ٢٤٤٩",
       "grade_url": "https://sunnah.com/abudawud:2449",
       "grade": "صحيح",
-      "sha256": "d6d9235ea6336c6d38f96c8ae8ab729a7f03653147f4155a8e16898a99e11ed0"
+      "sha256": "d6d9235ea6336c6d38f96c8ae8ab729a7f03653147f4155a8e16898a99e11ed0",
+      "narrator": "قتادة بن ملحان القيسي رضي الله عنه",
+      "speaker": "companion"
     }
   ]
 }

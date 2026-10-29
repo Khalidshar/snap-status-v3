@@ -426,3 +426,76 @@ def test_hadith_narrators_match_reviewed_sources() -> None:
         assert item["narrator"] == name + " رضي الله عنه"
         assert item["narrator_url"] == "https://sunnah.com/" + reference
         assert digest(item["text"]) == item["sha256"]
+
+
+# Pinned before adding narrator/speaker; every earlier field stays byte-identical.
+FAST_LEGACY_ITEM_HASHES = [
+    "72f29d9c8aa36323c915ed991142484ec0aed3dd434d66ce5f66bb5f3e0f1d59",
+    "48718da7c8264a0464ecfa3137355901f31b02e8b072cc6bdd62b2b27f43a5e8",
+    "725f26bef4cc78970896e09765ad2436a341034f1e5db810b67086a7a6727f17",
+    "8c16ebc9862b055a78b154a999c6ce7564f506c6d56e97419cc93bc2a465c2b4",
+    "f87141f4fa75bb85f91e777f39824d8d8cd41a7e2ea90c4ceb1b0fe021e78d8c",
+    "7c8314262609a3de194e3e54b5d18e18751dce1642a78be67e7d8f0bc8c95d82",
+    "758ad6e39f46e142d2992d7879ae9cd170843031ab2d92893ae51566f48753e5",
+]
+
+
+def test_fast_narrator_additions_preserve_original_records() -> None:
+    hashes = []
+    for item in faith.load("fast"):
+        original = {k: v for k, v in item.items() if k not in {"narrator", "speaker"}}
+        hashes.append(digest(json.dumps(original, ensure_ascii=False, sort_keys=True)))
+    assert hashes == FAST_LEGACY_ITEM_HASHES
+
+
+@pytest.mark.parametrize("index", range(7))
+@pytest.mark.parametrize(
+    "field,value",
+    (
+        ("narrator", None),
+        ("narrator", ""),
+        ("narrator", "   "),
+        ("narrator", 42),
+        ("narrator", "راوٍ\u202e"),
+        ("narrator", "راوٍ\n"),
+        ("speaker", None),
+        ("speaker", ""),
+        ("speaker", "Prophet"),
+        ("speaker", "other"),
+        ("speaker", []),
+    ),
+)
+def test_fast_narrator_and_speaker_fail_closed(
+    synthetic_data: Path, index: int, field: str, value: object
+) -> None:
+    path = synthetic_data / "fast.json"
+    obj = json.loads(path.read_text())
+    obj["items"][index][field] = value
+    path.write_text(json.dumps(obj))
+    with pytest.raises(ValueError):
+        faith.load("fast")
+
+
+@pytest.mark.parametrize("field", ("narrator", "speaker"))
+def test_fast_narrator_and_speaker_cannot_be_missing(synthetic_data: Path, field: str) -> None:
+    path = synthetic_data / "fast.json"
+    obj = json.loads(path.read_text())
+    del obj["items"][0][field]
+    path.write_text(json.dumps(obj))
+    with pytest.raises(ValueError):
+        faith.load("fast")
+
+
+def test_fast_narrators_and_speakers_match_linked_sources() -> None:
+    expected = [
+        ("أبو قتادة الأنصاري رضي الله عنه", "prophet", "https://sunnah.com/muslim:1162e"),
+        ("أبو هريرة رضي الله عنه", "companion", "https://sunnah.com/bukhari:1981"),
+        ("أبو قتادة رضي الله عنه", "prophet", "https://sunnah.com/muslim:1162a"),
+        ("أبو قتادة رضي الله عنه", "prophet", "https://sunnah.com/muslim:1162a"),
+        ("أبو أيوب الأنصاري رضي الله عنه", "prophet", "https://sunnah.com/muslim:1164a"),
+        ("عائشة رضي الله عنها", "companion", "https://sunnah.com/tirmidhi:745"),
+        ("قتادة بن ملحان القيسي رضي الله عنه", "companion", "https://sunnah.com/abudawud:2449"),
+    ]
+    assert [
+        (i["narrator"], i["speaker"], i["verification_url"]) for i in faith.load("fast")
+    ] == expected
