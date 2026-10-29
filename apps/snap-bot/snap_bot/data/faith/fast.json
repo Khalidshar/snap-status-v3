@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": true,
+  "kind": "fast",
+  "source_repo": "Khalidshar/snap-status-v3",
+  "items": [
+    {
+      "id": "fast-01",
+      "text": "سُئِلَ عَنْ صَوْمِ الاِثْنَيْنِ فَقَالَ \" فِيهِ وُلِدْتُ وَفِيهِ أُنْزِلَ عَلَىَّ \"",
+      "sha256": "9d6389ff7c43cd932c277eb893c548d82519e19bce42b9b16758b2adbf641223",
+      "source": "صحيح مسلم، ١١٦٢",
+      "grade": "صحيح",
+      "verification_url": "https://sunnah.com/muslim:1162e",
+      "topic": "الاثنين"
+    },
+    {
+      "id": "fast-02",
+      "text": "أَوْصَانِي خَلِيلِي صلى الله عليه وسلم بِثَلاَثٍ صِيَامِ ثَلاَثَةِ أَيَّامٍ مِنْ كُلِّ شَهْرٍ، وَرَكْعَتَىِ الضُّحَى، وَأَنْ أُوتِرَ قَبْلَ أَنْ أَنَامَ",
+      "sha256": "f4161d3f11bf56789147313cac34fd7747db8662535b94923c0c5153d2980a5f",
+      "source": "صحيح البخاري، ١٩٨١",
+      "grade": "صحيح",
+      "verification_url": "https://sunnah.com/bukhari:1981",
+      "topic": "ثلاثة أيام من كل شهر"
+    },
+    {
+      "id": "fast-03",
+      "text": "صِيَامُ يَوْمِ عَرَفَةَ أَحْتَسِبُ عَلَى اللَّهِ أَنْ يُكَفِّرَ السَّنَةَ الَّتِي قَبْلَهُ وَالسَّنَةَ الَّتِي بَعْدَهُ",
+      "sha256": "3c17c038368b136d99ad6b734089c924de9b6c26a1ee58940c864febaf1ce9ea",
+      "source": "صحيح مسلم، ١١٦٢",
+      "grade": "صحيح",
+      "verification_url": "https://sunnah.com/muslim:1162a",
+      "topic": "عرفة"
+    },
+    {
+      "id": "fast-04",
+      "text": "وَصِيَامُ يَوْمِ عَاشُورَاءَ أَحْتَسِبُ عَلَى اللَّهِ أَنْ يُكَفِّرَ السَّنَةَ الَّتِي قَبْلَهُ",
+      "sha256": "cbab22422c586c93d3409346fd706d887438724765b388b4833b00e3359db0ec",
+      "source": "صحيح مسلم، ١١٦٢",
+      "grade": "صحيح",
+      "verification_url": "https://sunnah.com/muslim:1162a",
+      "topic": "عاشوراء"
+    },
+    {
+      "id": "fast-05",
+      "text": "مَنْ صَامَ رَمَضَانَ ثُمَّ أَتْبَعَهُ سِتًّا مِنْ شَوَّالٍ كَانَ كَصِيَامِ الدَّهْرِ",
+      "sha256": "3f2969d9947989410a81e332c26e124a1fc7e9882b74a9dc3a1f7a4466d4bc9d",
+      "source": "صحيح مسلم، ١١٦٤",
+      "grade": "صحيح",
+      "verification_url": "https://sunnah.com/muslim:1164a",
+      "topic": "الست من شوال"
+    },
+    {
+      "id": "fast-06",
+      "text": "كَانَ النَّبِيُّ صلى الله عليه وسلم يَتَحَرَّى صَوْمَ الاِثْنَيْنِ وَالْخَمِيسِ",
+      "source": "سنن الترمذي، ٧٤٥",
+      "topic": "الاثنين والخميس",
+      "verification_url": "https://sunnah.com/tirmidhi:745",
+      "grade_by": "الألباني",
+      "grade_source": "صحيح الترمذي، ٧٤٥",
+      "grade_url": "https://dorar.net/h/ZLu1ku0H",
+      "grade": "صحيح",
+      "sha256": "2cedec823addf03d3aab2d826bed3943ced68f9b5a25adadab4f7c0b942a86a5"
+    },
+    {
+      "id": "fast-07",
+      "text": "كَانَ رَسُولُ اللَّهِ صلى الله عليه وسلم يَأْمُرُنَا أَنْ نَصُومَ الْبِيضَ ثَلاَثَ عَشْرَةَ وَأَرْبَعَ عَشْرَةَ وَخَمْسَ عَشْرَةَ",
+      "source": "سنن أبي داود، ٢٤٤٩",
+      "topic": "الأيام البيض",
+      "verification_url": "https://sunnah.com/abudawud:2449",
+      "grade_by": "الألباني",
+      "grade_source": "حكم الألباني على سنن أبي داود، ٢٤٤٩",
+      "grade_url": "https://sunnah.com/abudawud:2449",
+      "grade": "صحيح",
+      "sha256": "d6d9235ea6336c6d38f96c8ae8ab729a7f03653147f4155a8e16898a99e11ed0"
+    }
+  ]
+}
