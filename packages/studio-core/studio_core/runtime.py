@@ -2,8 +2,10 @@
 
 import argparse
 import json
+import subprocess
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from studio_core import __version__ as CORE_VERSION
@@ -22,6 +24,7 @@ class AppSpec:
     feature_flag: str
     default_content_type: str
     create_job: Callable[[str, str], Job]
+    news_renderer: Callable[[Path, Path], dict[str, Any]] | None = None
 
 
 def _emit(payload: dict[str, Any]) -> None:
@@ -49,6 +52,17 @@ def _build_parser(spec: AppSpec) -> argparse.ArgumentParser:
     )
     check.add_argument("--command", dest="source_command", required=True)
     check.add_argument("--network-config", required=True, type=str)
+    collect = commands.add_parser(
+        "news-collect", help="Collect one live Arabic news review; no delivery"
+    )
+    collect.add_argument("--command", dest="source_command", required=True)
+    collect.add_argument("--network-config", type=Path, required=True)
+    collect.add_argument("--output", type=Path, required=True)
+    render = commands.add_parser(
+        "news-render", help="Render an offline silent news review; no delivery"
+    )
+    render.add_argument("--input", dest="news_input", type=Path, required=True)
+    render.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -87,9 +101,23 @@ def run_cli(spec: AppSpec, argv: Sequence[str] | None = None) -> int:
         _emit({**base, "ok": False, "error": f"{spec.feature_flag} kill switch is off"})
         return EXIT_DISABLED
 
-    if args.command == "source-check":
-        from pathlib import Path
+    if args.command in {"news-collect", "news-render"}:
+        from studio_core.sources.preview import prepare
 
+        try:
+            if args.command == "news-collect":
+                result = prepare(spec.name, args.source_command, args.network_config, args.output)
+            elif spec.news_renderer is not None:
+                result = spec.news_renderer(args.news_input, args.output)
+            else:
+                raise ValueError("No app news renderer")
+        except (OSError, ValueError, KeyError, TypeError, RuntimeError, subprocess.SubprocessError):
+            _emit({**base, "ok": False, "error": "تعذّرت معاينة الخبر؛ لم يُرسل شيء."})
+            return EXIT_CONFIG_ERROR
+        _emit({**base, "ok": True, **result})
+        return EXIT_OK
+
+    if args.command == "source-check":
         from studio_core.config import Config
         from studio_core.network.client import NetworkClient
         from studio_core.sources.audit import audit

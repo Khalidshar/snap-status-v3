@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 from snap_bot import __version__
 from snap_bot.main import create_job
+from snap_bot.news_preview import render as render_news
 from studio_core.runtime import AppSpec, run_cli
 
 SPEC = AppSpec(
@@ -10,6 +11,7 @@ SPEC = AppSpec(
     feature_flag="snap_enabled",
     default_content_type="news",
     create_job=create_job,
+    news_renderer=render_news,
 )
 
 
