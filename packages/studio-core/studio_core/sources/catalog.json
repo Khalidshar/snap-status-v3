@@ -1,0 +1,1409 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-30",
+  "sources": [
+    {
+      "id": "aawsat",
+      "name": "الشرق الأوسط",
+      "url": "https://aawsat.com/feed",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "bbc-ar",
+      "name": "بي بي سي عربي",
+      "url": "https://feeds.bbci.co.uk/arabic/rss.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "france24-ar",
+      "name": "فرانس ٢٤ عربي",
+      "url": "https://www.france24.com/ar/rss",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "skynews-ar",
+      "name": "سكاي نيوز عربية",
+      "url": "https://www.skynewsarabia.com/web/rss",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "hadath",
+      "name": "الحدث",
+      "url": "https://www.alhadath.net/.mrss/alhadath.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "hadath-yemen",
+      "name": "الحدث – اليمن",
+      "url": "https://www.alhadath.net/.mrss/alhadath/yemen.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "hadath-syria",
+      "name": "الحدث – سوريا",
+      "url": "https://www.alhadath.net/.mrss/alhadath/syria.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "hadath-iraq",
+      "name": "الحدث – العراق",
+      "url": "https://www.alhadath.net/.mrss/alhadath/iraq.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "hadath-egypt",
+      "name": "الحدث – مصر",
+      "url": "https://www.alhadath.net/.mrss/alhadath/egypt.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "hadath-maghreb",
+      "name": "الحدث المغرب العربي",
+      "url": "https://www.alhadath.net/.mrss/alhadath/maghreb.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "football",
+        "markets",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "aitnews",
+      "name": "البوابة التقنية",
+      "url": "https://aitnews.com/feed/",
+      "commands": [
+        "tech",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "مصدر التقنية في البوت القديم؛ يحتاج تحقق XML وشروط الاستخدام. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-bot/blob/87554fae19ba1059e667dd3716783040c61e990e/config.yaml"
+    },
+    {
+      "id": "tech-wd",
+      "name": "عالم التقنية",
+      "url": "https://www.tech-wd.com/wd/feed/",
+      "commands": [
+        "tech",
+        "brief"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "مصدر التقنية في البوت القديم؛ يحتاج تحقق XML وشروط الاستخدام. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-bot/blob/87554fae19ba1059e667dd3716783040c61e990e/config.yaml"
+    },
+    {
+      "id": "sayidaty",
+      "name": "سيدتي",
+      "url": "https://www.sayidaty.net/rss.xml",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "قيود النسخ والتوزيع؛ لا يُفعّل دون إذن مناسب.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "elle-ar",
+      "name": "إيل العربية",
+      "url": "https://ellearabia.com/",
+      "commands": [
+        "style"
+      ],
+      "kind": "website",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "لم تثبت خلاصة رسمية؛ هذا رابط الموقع وليس RSS.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "bazaar-ar",
+      "name": "بازار العربية",
+      "url": "https://ar.harpersbazaararabia.com/feed",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "لم يكتمل تحقق XML أو الإذن. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "bazaar-ar-en",
+      "name": "بازار أريبيا",
+      "url": "https://www.harpersbazaararabia.com/feed",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "الجلب السابق ٤٠٣؛ لا ترجمة معتمدة. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "vogue-ar",
+      "name": "فوغ العربية",
+      "url": "https://www.voguearabia.com/feed/rss",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "und",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "لغة المحتوى الخام غير مثبتة؛ قيود التوزيع والترجمة.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "laha",
+      "name": "لها",
+      "url": "https://www.lahamag.com/",
+      "commands": [
+        "style"
+      ],
+      "kind": "website",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "رابط الموقع فقط؛ رابط RSS السابق أعاد ٤٠٤.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "vogue",
+      "name": "فوغ",
+      "url": "https://www.vogue.com/feed/rss",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "تحليل RSS نجح سابقًا؛ إذن الاستخدام غير متحقق، والترجمة غير معتمدة. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "wwd",
+      "name": "دبليو دبليو دي",
+      "url": "https://wwd.com/feed/",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "قيود الجمع الآلي والتوزيع، وتحويل إلى حاجز وصول؛ لا تجاوز.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "allure",
+      "name": "ألور",
+      "url": "https://www.allure.com/feed/rss",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "تحليل RSS نجح سابقًا؛ إذن الاستخدام والترجمة غير متحققين. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "fragrantica",
+      "name": "فراغرانتيكا",
+      "url": "https://www.fragrantica.com/",
+      "commands": [
+        "style"
+      ],
+      "kind": "website",
+      "language": "en",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "لم تثبت خلاصة أخبار رسمية؛ رابط الموقع فقط.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "elcompanies",
+      "name": "إستي لودر",
+      "url": "https://www.elcompanies.com/tools/urlproxy/urlproxy.aspx?settingname=newsroom-rss",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "قيود إعادة النشر والجمع والروابط الداخلية.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "fashionunited",
+      "name": "فاشن يونايتد",
+      "url": "https://fashionunited.com/rss-news",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "قيود النسخ والتوزيع؛ XML غير متحقق.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "adidas-originals",
+      "name": "أديداس أوريجينالز",
+      "url": "https://news.adidas.com/RSS/brands/originals",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "candidate",
+      "permission": "headline_syndication",
+      "note": "إذن RSS موثّق، وتحليل XML نجح في بيئة التطوير يوم ٣٠ أكتوبر؛ الترجمة العربية وشبكة الإنتاج لم تعتمدا.",
+      "evidence": "https://news.adidas.com/list-of-feeds"
+    },
+    {
+      "id": "adidas-sportswear",
+      "name": "أديداس سبورتسوير",
+      "url": "https://news.adidas.com/RSS/brands/sportswear",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "candidate",
+      "permission": "headline_syndication",
+      "note": "إذن RSS موثّق، وتحليل XML نجح في بيئة التطوير يوم ٣٠ أكتوبر؛ الترجمة العربية وشبكة الإنتاج لم تعتمدا.",
+      "evidence": "https://news.adidas.com/list-of-feeds"
+    },
+    {
+      "id": "bazaar",
+      "name": "هاربرز بازار",
+      "url": "https://www.harpersbazaar.com/rss/all.xml/",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "مصدر إضافي في snap.py القديم؛ يحتاج فحصًا حاليًا. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "elle",
+      "name": "إيل",
+      "url": "https://www.elle.com/rss/all.xml/",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "en",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "مصدر إضافي في snap.py القديم؛ يحتاج فحصًا حاليًا. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
+    },
+    {
+      "id": "facts-catalog",
+      "name": "كتالوج هل تعلم",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/did_you_know.ar.json",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "tech-catalog",
+      "name": "كتالوج التقنية",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/tech.ar.json",
+      "commands": [
+        "tech"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "style-catalog",
+      "name": "كتالوج الأناقة",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/style.ar.json",
+      "commands": [
+        "style"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/style.ar.json"
+    },
+    {
+      "id": "riddle-catalog",
+      "name": "كتالوج الألغاز",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/riddle.ar.json",
+      "commands": [
+        "riddle"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/riddle.ar.json"
+    },
+    {
+      "id": "funny-catalog",
+      "name": "كتالوج المواقف الطريفة",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/funny.ar.json",
+      "commands": [
+        "funny"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/funny.ar.json"
+    },
+    {
+      "id": "night-catalog",
+      "name": "كتالوج قبل النوم",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/night.ar.json",
+      "commands": [
+        "night"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/night.ar.json"
+    },
+    {
+      "id": "adhkar-catalog",
+      "name": "كتالوج الأذكار",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/faith/adhkar.json",
+      "commands": [
+        "adhkar_am",
+        "adhkar_pm"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/faith/adhkar.json"
+    },
+    {
+      "id": "dua-catalog",
+      "name": "كتالوج الدعاء",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/faith/duas.json",
+      "commands": [
+        "dua"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/faith/duas.json"
+    },
+    {
+      "id": "hadith-catalog",
+      "name": "كتالوج الحديث",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/faith/hadith.json",
+      "commands": [
+        "hadith"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/faith/hadith.json"
+    },
+    {
+      "id": "quran-catalog",
+      "name": "النص القرآني المقفل",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/faith/quran_subset.json",
+      "commands": [
+        "verse",
+        "friday",
+        "kahf"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/faith/quran_subset.json"
+    },
+    {
+      "id": "fast-catalog",
+      "name": "كتالوج الصيام",
+      "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/faith/fast.json",
+      "commands": [
+        "fast"
+      ],
+      "kind": "catalog",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع بيانات قائم يملكه تطبيق السناب؛ لا يثبت هذا التسجيل نقله أو تشغيله في تطبيق الحالات.",
+      "evidence": "apps/snap-bot/snap_bot/data/faith/fast.json"
+    },
+    {
+      "id": "qurancomplex",
+      "name": "مجمع الملك فهد",
+      "url": "https://qurancomplex.gov.sa/",
+      "commands": [
+        "verse",
+        "friday",
+        "kahf",
+        "adhkar_am",
+        "adhkar_pm"
+      ],
+      "kind": "reference",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع مراجعة فقط؛ المحتوى الديني يبقى مقفلًا والصوت البشري يحتاج مطابقة وترخيصًا. الطقس يستخدم عقده الحالي ولا يمر بمحلل RSS.",
+      "evidence": "docs/COMMAND-SOURCES-20261030.md"
+    },
+    {
+      "id": "binbaz",
+      "name": "موقع الشيخ ابن باز",
+      "url": "https://binbaz.org.sa/",
+      "commands": [
+        "adhkar_am",
+        "adhkar_pm",
+        "hadith",
+        "dua",
+        "fast"
+      ],
+      "kind": "reference",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع مراجعة فقط؛ المحتوى الديني يبقى مقفلًا والصوت البشري يحتاج مطابقة وترخيصًا. الطقس يستخدم عقده الحالي ولا يمر بمحلل RSS.",
+      "evidence": "docs/COMMAND-SOURCES-20261030.md"
+    },
+    {
+      "id": "dorar",
+      "name": "الدرر السنية",
+      "url": "https://dorar.net/",
+      "commands": [
+        "hadith",
+        "dua",
+        "fast"
+      ],
+      "kind": "reference",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع مراجعة فقط؛ المحتوى الديني يبقى مقفلًا والصوت البشري يحتاج مطابقة وترخيصًا. الطقس يستخدم عقده الحالي ولا يمر بمحلل RSS.",
+      "evidence": "docs/COMMAND-SOURCES-20261030.md"
+    },
+    {
+      "id": "sunnah",
+      "name": "مراجع الروايات الحالية",
+      "url": "https://sunnah.com/",
+      "commands": [
+        "hadith",
+        "dua",
+        "fast"
+      ],
+      "kind": "reference",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع مراجعة فقط؛ المحتوى الديني يبقى مقفلًا والصوت البشري يحتاج مطابقة وترخيصًا. الطقس يستخدم عقده الحالي ولا يمر بمحلل RSS.",
+      "evidence": "docs/COMMAND-SOURCES-20261030.md"
+    },
+    {
+      "id": "hisnmuslim",
+      "name": "حصن المسلم",
+      "url": "https://www.hisnmuslim.com/",
+      "commands": [
+        "adhkar_am",
+        "adhkar_pm",
+        "dua"
+      ],
+      "kind": "reference",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع مراجعة فقط؛ المحتوى الديني يبقى مقفلًا والصوت البشري يحتاج مطابقة وترخيصًا. الطقس يستخدم عقده الحالي ولا يمر بمحلل RSS.",
+      "evidence": "docs/COMMAND-SOURCES-20261030.md"
+    },
+    {
+      "id": "mp3quran",
+      "name": "المكتبة الصوتية للقرآن",
+      "url": "https://www.mp3quran.net/ar/api",
+      "commands": [
+        "verse",
+        "friday",
+        "kahf",
+        "adhkar_am",
+        "adhkar_pm"
+      ],
+      "kind": "human_audio",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع مراجعة فقط؛ المحتوى الديني يبقى مقفلًا والصوت البشري يحتاج مطابقة وترخيصًا. الطقس يستخدم عقده الحالي ولا يمر بمحلل RSS.",
+      "evidence": "docs/COMMAND-SOURCES-20261030.md"
+    },
+    {
+      "id": "qurancomplex-audio",
+      "name": "تلاوات مجمع الملك فهد",
+      "url": "https://qurancomplex.gov.sa/quran-audios/",
+      "commands": [
+        "verse",
+        "friday",
+        "kahf"
+      ],
+      "kind": "human_audio",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مرجع مراجعة فقط؛ المحتوى الديني يبقى مقفلًا والصوت البشري يحتاج مطابقة وترخيصًا. الطقس يستخدم عقده الحالي ولا يمر بمحلل RSS.",
+      "evidence": "docs/COMMAND-SOURCES-20261030.md"
+    },
+    {
+      "id": "open-meteo",
+      "name": "أوبن ميتيو",
+      "url": "https://api.open-meteo.com/v1/forecast",
+      "commands": [
+        "brief"
+      ],
+      "kind": "weather",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مصدر الطقس الحالي؛ المقاييس والمدينة والترخيص في config لكل تطبيق. لا يُعرض سعر سهم بوصفه خبرًا اقتصاديًا.",
+      "evidence": "config/snap/weather.toml"
+    },
+    {
+      "id": "met-no",
+      "name": "الأرصاد النرويجية",
+      "url": "https://api.met.no/weatherapi/locationforecast/2.0/compact",
+      "commands": [
+        "brief"
+      ],
+      "kind": "weather",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "مصدر الطقس الحالي؛ المقاييس والمدينة والترخيص في config لكل تطبيق. لا يُعرض سعر سهم بوصفه خبرًا اقتصاديًا.",
+      "evidence": "config/snap/weather.toml"
+    },
+    {
+      "id": "catalog-ref-48",
+      "name": "NASA",
+      "url": "https://science.nasa.gov/venus/facts/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-49",
+      "name": "NASA",
+      "url": "https://science.nasa.gov/saturn/facts/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-50",
+      "name": "NASA",
+      "url": "https://science.nasa.gov/mars/facts/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-51",
+      "name": "NASA",
+      "url": "https://science.nasa.gov/moon/facts/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-52",
+      "name": "NASA",
+      "url": "https://science.nasa.gov/sun/facts/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-53",
+      "name": "Smithsonian",
+      "url": "https://howthingsfly.si.edu/ask-an-explainer/i-know-birds-can-fly-why-not-penguins",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-54",
+      "name": "NHGRI",
+      "url": "https://www.genome.gov/about-genomics/fact-sheets/Chromosomes-Fact-Sheet",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-55",
+      "name": "CERN",
+      "url": "https://home.cern/science/computing/birth-web",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-56",
+      "name": "RFC 4291",
+      "url": "https://www.rfc-editor.org/rfc/rfc4291",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-57",
+      "name": "NIST",
+      "url": "https://www.nist.gov/si-redefinition/second-introduction",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-58",
+      "name": "Smithsonian",
+      "url": "https://ocean.si.edu/ocean-life/invertebrates/octopuses-squids-and-relatives",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-59",
+      "name": "Smithsonian",
+      "url": "https://www.si.edu/spotlight/bats/batfacts",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-60",
+      "name": "بحث علمي / PubMed",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/18652388/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-61",
+      "name": "Smithsonian",
+      "url": "https://www.si.edu/object/silgoi_68308",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-62",
+      "name": "NOAA",
+      "url": "https://oceanservice.noaa.gov/facts/dolphin.html",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-63",
+      "name": "NIAMS",
+      "url": "https://www.niams.nih.gov/health-topics/what-bone",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-64",
+      "name": "NIH",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK20361/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-65",
+      "name": "NEI",
+      "url": "https://www.nei.nih.gov/eye-health-information/healthy-vision/how-eyes-work",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-66",
+      "name": "NIDCD",
+      "url": "https://www.nidcd.nih.gov/research/extramural/balance-program",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-67",
+      "name": "NIDCD",
+      "url": "https://www.nidcd.nih.gov/news/multimedia/journey-of-smell-to-brain-text-version",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-68",
+      "name": "UNESCO",
+      "url": "https://whc.unesco.org/en/list/1699/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-69",
+      "name": "UNESCO",
+      "url": "https://whc.unesco.org/en/list/1563/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-70",
+      "name": "UNESCO",
+      "url": "https://whc.unesco.org/en/list/1377/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-71",
+      "name": "UNESCO",
+      "url": "https://whc.unesco.org/en/list/1263/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-72",
+      "name": "GPS.gov",
+      "url": "https://www.gps.gov/trilateration",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-73",
+      "name": "DENSO WAVE",
+      "url": "https://www.qrcode.com/en/about/error_correction.html",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-74",
+      "name": "NFC Forum",
+      "url": "https://nfc-forum.org/learn/what-nfc-does/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-75",
+      "name": "E Ink",
+      "url": "https://www.eink.com/tech/detail/Benefits",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-76",
+      "name": "Bluetooth SIG",
+      "url": "https://www.bluetooth.com/learn-about-bluetooth/key-attributes/range/",
+      "commands": [
+        "facts",
+        "brief"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/did_you_know.ar.json"
+    },
+    {
+      "id": "catalog-ref-77",
+      "name": "المركز الوطني البريطاني للأمن السيبراني",
+      "url": "https://www.ncsc.gov.uk/guidance/setting-2-step-verification-2sv",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-78",
+      "name": "وكالة الأمن السيبراني الأمريكية",
+      "url": "https://www.cisa.gov/sites/default/files/2024-09/Secure-Our-World-Passwords-Tip-Sheet.pdf",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-79",
+      "name": "وكالة الأمن السيبراني الأمريكية",
+      "url": "https://www.cisa.gov/sites/default/files/publications/phishing_and_spoofing_tip_sheet_2022_092022.pdf",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-80",
+      "name": "دعم أبل",
+      "url": "https://support.apple.com/en-ae/105105",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-81",
+      "name": "دعم أبل",
+      "url": "https://support.apple.com/en-us/118431",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-82",
+      "name": "دعم أبل",
+      "url": "https://support.apple.com/en-us/108429",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-83",
+      "name": "دعم جوجل",
+      "url": "https://support.google.com/android/answer/7431795",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-84",
+      "name": "دعم جوجل",
+      "url": "https://support.google.com/android/answer/9431959",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-85",
+      "name": "دعم مايكروسوفت",
+      "url": "https://support.microsoft.com/en-us/privacy/microsoft-copilot/transparency-note",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-86",
+      "name": "دعم مايكروسوفت",
+      "url": "https://support.microsoft.com/en-us/microsoft-copilot/privacy-faq-for-microsoft-copilot",
+      "commands": [
+        "tech"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/tech.ar.json"
+    },
+    {
+      "id": "catalog-ref-87",
+      "name": "جامعة بوردو",
+      "url": "https://extension.purdue.edu/county/tippecanoe/_docs/4h_documents/consumerclothingmanuals1.pdf",
+      "commands": [
+        "style"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/style.ar.json"
+    },
+    {
+      "id": "catalog-ref-88",
+      "name": "جامعة كارولاينا الشمالية في شارلوت",
+      "url": "https://career.charlotte.edu/students/professional-attire",
+      "commands": [
+        "style"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/style.ar.json"
+    },
+    {
+      "id": "catalog-ref-89",
+      "name": "جامعة بريناو",
+      "url": "https://www.brenau.edu/student-life/career-development/dressing-for-the-interview/",
+      "commands": [
+        "style"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/style.ar.json"
+    },
+    {
+      "id": "catalog-ref-90",
+      "name": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101",
+      "commands": [
+        "style"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/style.ar.json"
+    },
+    {
+      "id": "catalog-ref-91",
+      "name": "الأكاديمية الأمريكية للأمراض الجلدية",
+      "url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips",
+      "commands": [
+        "style"
+      ],
+      "kind": "reference",
+      "language": "en",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "إسناد محفوظ من الكتالوج العربي الحالي؛ لا يُجلب أو يُترجم تلقائيًا.",
+      "evidence": "apps/snap-bot/snap_bot/data/style.ar.json"
+    }
+  ]
+}

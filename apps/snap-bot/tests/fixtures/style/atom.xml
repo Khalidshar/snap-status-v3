@@ -1,0 +1,5 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Fixture</title>
+<entry><title>New fashion collection</title><link rel="self" href="https://example.com/self"/><link href="https://example.com/collection"/><published>2026-10-29T10:00:00Z</published><category term="Fashion"/></entry>
+<entry><title>New lipstick launch</title><link href="https://example.com/lipstick"/><updated>2026-10-29T09:00:00+00:00</updated></entry>
+<entry><title type="html">New beauty launch</title><link href="https://example.com/rejected"/><updated>2026-10-29T11:00:00Z</updated></entry>
+</feed>
