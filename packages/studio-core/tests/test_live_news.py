@@ -70,7 +70,8 @@ def test_each_live_command_collects_only_its_own_fresh_arabic_headline(command):
     validate(content, NOW)
     assert content["headline"] == HEADLINES[command]
     assert content["command"] == command and content["publication_enabled"] is False
-    assert content["audio_review"] == "PENDING_HUMAN_AUDIO"
+    assert content["audio_review"] == "ORIGINAL_SOURCE_AUDIO_OR_SILENT"
+    assert content["media_policy"] == "SOURCE_VIDEO_ELSE_SOURCE_TEXT"
     assert result["external_delivery"] is False
     assert len(client.calls) == len(set(client.calls))
 
@@ -132,6 +133,7 @@ def test_date_label_uses_riyadh_arabic_twelve_hour_time_without_zone_label():
         ("published_label", "تاريخ مزيف"),
         ("publication_enabled", True),
         ("audio_review", "APPROVED"),
+        ("media_policy", "GENERATED_STOCK_VIDEO"),
         ("expires_at", NOW + 86400),
         ("command", "hadith"),
         ("fingerprint", "0" * 64),

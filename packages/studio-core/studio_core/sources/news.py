@@ -155,6 +155,10 @@ MONTHS = (
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 
 
+AUDIO_POLICY = "ORIGINAL_SOURCE_AUDIO_OR_SILENT"
+MEDIA_POLICY = "SOURCE_VIDEO_ELSE_SOURCE_TEXT"
+
+
 class NewsUnavailable(ValueError):
     pass
 
@@ -314,7 +318,8 @@ def collect(
         "language": "ar",
         "sacred": False,
         "publication_enabled": False,
-        "audio_review": "PENDING_HUMAN_AUDIO",
+        "audio_review": AUDIO_POLICY,
+        "media_policy": MEDIA_POLICY,
         **selected,
         "fetched_at": now,
         "expires_at": min(now + 1800, selected["published_at"] + MAX_AGE[key]),
@@ -332,7 +337,8 @@ def validate(content: dict[str, Any], now: float) -> None:
         or content.get("language") != "ar"
         or content.get("sacred") is not False
         or content.get("publication_enabled") is not False
-        or content.get("audio_review") != "PENDING_HUMAN_AUDIO"
+        or content.get("audio_review") != AUDIO_POLICY
+        or content.get("media_policy") != MEDIA_POLICY
         or content.get("content_hash") != digest(content)
     ):
         raise ValueError("Invalid news review")
