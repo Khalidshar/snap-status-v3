@@ -99,6 +99,26 @@ class GraphTransport:
         require(isinstance(credentials, GraphCredentials), "WA_CREDENTIALS_INVALID")
         self.credentials = credentials
 
+    def send_text(self, text: str) -> ApiResponse:
+        require(
+            isinstance(text, str) and 0 < len(text) <= 4096,
+            "WA_TEXT_INVALID",
+        )
+        return graph_post(
+            self.credentials,
+            "messages",
+            json_bytes(
+                {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": self.credentials.recipient,
+                    "type": "text",
+                    "text": {"body": text, "preview_url": False},
+                }
+            ),
+            "application/json",
+        )
+
     def upload_video(self, video: bytes) -> ApiResponse:
         require(type(video) is bytes and 0 < len(video) <= MAX_VIDEO, "WA_VIDEO_SIZE_INVALID")
         boundary = "statusv2" + uuid.uuid4().hex

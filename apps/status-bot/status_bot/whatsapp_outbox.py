@@ -18,6 +18,7 @@ from studio_core.jobs import Repository
 from studio_core.observability.agent_runs import digest
 
 from .agents import PLAN_SHA
+from .command_inbox import enqueue, initialize
 from .weather import content_hash
 from .whatsapp_contract import (
     DeliveryBlocked,
@@ -75,6 +76,7 @@ class WhatsAppOutbox:
         self.repo, self.identity = repository, identity
         with self.repo.transaction() as db:
             self.scope(db)
+            initialize(db)
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS whatsapp_outbox(
                   id TEXT PRIMARY KEY, job_id TEXT UNIQUE NOT NULL REFERENCES jobs(id),
@@ -463,6 +465,7 @@ class WhatsAppOutbox:
         )
         now = self.repo.clock()
         inbound: list[Any] = []
+        commands: list[dict[str, Any]] = []
         receipts: list[Any] = []
         for entry in value["entry"]:
             require(
@@ -517,6 +520,7 @@ class WhatsAppOutbox:
                                 and identifier(item.get("id"), r"wamid\.[A-Za-z0-9+/=_-]{1,250}")
                             ):
                                 inbound.append(at)
+                                commands.append(item)
                         elif item.get("recipient_id") == self.identity.recipient:
                             require(
                                 identifier(item.get("id"), r"wamid\.[A-Za-z0-9+/=_-]{1,250}")
@@ -539,6 +543,8 @@ class WhatsAppOutbox:
         require(len(inbound) + len(receipts) <= 512, "WA_WEBHOOK_INVALID")
         with self.repo.transaction() as db:
             self.scope(db)
+            for item in commands:
+                enqueue(db, self.identity, item, now)
             if inbound:
                 db.execute(
                     "INSERT INTO whatsapp_windows VALUES(?,?) ON CONFLICT(identity_binding) "
