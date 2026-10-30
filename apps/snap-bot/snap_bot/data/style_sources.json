@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "reviewed_at": "2026-10-29",
+  "reviewed_at": "2026-10-30",
   "sources": [],
   "candidates": [
     {
@@ -11,8 +11,8 @@
       "official_feed_page": "https://news.adidas.com/list-of-feeds",
       "permission_url": "https://news.adidas.com/list-of-feeds",
       "permission_scope": "RSS syndication; headlines with source and link only",
-      "verification": "Web retrieval reports application/rss+xml; local HTTP fetch returned 403. Server reachability remains untested.",
-      "status": "pending_reachability_validation"
+      "verification": "Public RSS XML parsed successfully in development on 2026-10-30; see docs/source-probes-20261030.json. Production egress remains untested; Arabic translation is not approved.",
+      "status": "pending_arabic_translation"
     },
     {
       "url": "https://news.adidas.com/RSS/brands/sportswear",
@@ -22,9 +22,9 @@
       "official_feed_page": "https://news.adidas.com/list-of-feeds",
       "permission_url": "https://news.adidas.com/list-of-feeds",
       "permission_scope": "RSS syndication; headlines with source and link only",
-      "verification": "Web retrieval reports application/rss+xml; local HTTP fetch returned 403. Server reachability remains untested.",
-      "status": "pending_reachability_validation"
+      "verification": "Public RSS XML parsed successfully in development on 2026-10-30; see docs/source-probes-20261030.json. Production egress remains untested; Arabic translation is not approved.",
+      "status": "pending_arabic_translation"
     }
   ],
-  "approval_note": "No feed passed both raw XML reachability validation and republication permission checks in this environment. Candidates are never returned by sources()."
+  "approval_note": "Adidas XML and its RSS syndication page are verified in development. Arabic translation and production egress validation remain pending, so sources stays empty. The shared command inventory is in studio_core/sources/catalog.json."
 }

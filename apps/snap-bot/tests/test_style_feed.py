@@ -99,7 +99,7 @@ def test_catalog_excludes_unverified_candidates() -> None:
         assert 0 < len(source["name"]) <= 20
         assert source["language"] in {"ar", "en"}
         assert source["permission_url"] and source["official_feed_page"]
-        assert source["status"] == "pending_reachability_validation"
+        assert source["status"] == "pending_arabic_translation"
 
 
 def test_nested_title_and_naive_date_rejected() -> None:
