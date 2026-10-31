@@ -189,7 +189,7 @@ def sacred_labels(
             if content["kind"] == "hadith"
             else fast_header(content)
             if content["kind"] == "fast"
-            else [("قال الله تعالى:", 76, 430, "0xD6B26C", "arabic")]
+            else [("قال الله تعالى:", 76, 430, "0xD6B26C", "amiri")]
             if content["kind"] == "verse"
             else [
                 (content["title"], 76, 430, "0xD6B26C", "arabic"),

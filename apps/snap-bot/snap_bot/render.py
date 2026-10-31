@@ -299,6 +299,12 @@ def render(
         filters.remove(CARD_BORDER)
     y: int | str
     label_font: Path
+    # Kufi joins «عا» so the alef of «تعالى» reads as missing; such lines use the
+    # pinned system Amiri, admitted with its fingerprint and license.
+    amiri = font
+    if any(label[4] == "amiri" for label in labels):
+        amiri = sacred_cards.ornament_font(profile)
+        charsets[amiri] = run([profile["fc_query"], "--format=%{charset}", str(amiri)], 5).stdout
     for index, label in enumerate(labels):
         if index < framed_skip:
             continue
@@ -306,7 +312,7 @@ def render(
         if len(text) > 110 or any(ord(c) < 32 for c in text):
             raise ValueError("Unsafe label")
         label_font = (
-            {"arabic": font, "latin": latin_font}[label[4]]
+            {"arabic": font, "latin": latin_font, "amiri": amiri}[label[4]]
             if is_fact
             else latin_font
             if index in (1, 3, 7, 8)
@@ -314,7 +320,12 @@ def render(
         )
         label_font = choose_font(text, label_font, charsets, fallbacks, ensure_glyphs)
         text = display_text(
-            text, label[4] if is_fact else "latin" if index in (1, 3, 7, 8) else "arabic"
+            text,
+            ("arabic" if label[4] == "amiri" else label[4])
+            if is_fact
+            else "latin"
+            if index in (1, 3, 7, 8)
+            else "arabic",
         )
         path = design / f"text{index}.txt"
         write_once(path, text.encode("utf-8"))
