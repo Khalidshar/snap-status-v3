@@ -175,6 +175,38 @@ def fingerprint(text: str) -> str:
     return hashlib.sha256(normalize(_plain(text)).encode()).hexdigest()
 
 
+# Google News titles end « - <publisher>». Sports and food sites also say «موضة».
+GOOGLE_EXCLUDED = ("Kooora", "كووورة", "يلا كورة", "سبورت", "الرياضية", "kora")
+STYLE_EXCLUDED = ("رونالدو", "ميسي", "الدوري", "مباراة", "اللحوم", "غذائية", "سيارة", "سيارات")
+
+
+def google_headline(title: str) -> tuple[str, str]:
+    """«عطر جديد من ديور - مجلة هي» → («عطر جديد من ديور», «مجلة هي»)."""
+    headline, separator, publisher = title.rpartition(" - ")
+    headline, publisher = headline.strip(), publisher.strip()
+    if (
+        not separator
+        or not headline
+        or not 1 <= len(publisher) <= 40
+        or any(word.casefold() in publisher.casefold() for word in GOOGLE_EXCLUDED)
+    ):
+        raise ValueError("Unusable Google News headline")
+    # The publisher may be a Latin domain (www.hiamag.com); the headline must be Arabic.
+    return headline, publisher.removeprefix("www.")
+
+
+def _publisher_ok(value: object, source: Any) -> bool:
+    """A catalog source names itself; Google News names the original publisher."""
+    if not source.id.startswith("gnews-"):
+        return bool(value == source.name)
+    return (
+        isinstance(value, str)
+        and 1 <= len(value) <= 40
+        and value == value.strip()
+        and not any(word.casefold() in value.casefold() for word in GOOGLE_EXCLUDED)
+    )
+
+
 def matches(key: str, text: str) -> bool:
     if key not in TITLES:
         raise ValueError("Unsupported live news command")
@@ -199,6 +231,8 @@ def matches(key: str, text: str) -> bool:
         return "عاجل" in text or (
             any(word in text for word in WORDS[key]) and any(word in text for word in security)
         )
+    if key == "style" and any(word in text for word in STYLE_EXCLUDED):
+        return False
     return key in {"news", "tech"} or any(word in text for word in WORDS[key])
 
 
@@ -280,7 +314,9 @@ def collect(
             )
             for item in items:
                 try:
-                    title = item["title"]
+                    title, publisher = item["title"], source.name
+                    if source.id.startswith("gnews-"):
+                        title, publisher = google_headline(title)
                     at = datetime.fromisoformat(item["date"]).timestamp()
                     mark = fingerprint(title)
                     if (
@@ -295,7 +331,7 @@ def collect(
                         {
                             "headline": title,
                             "source_id": source.id,
-                            "source": source.name,
+                            "source": publisher,
                             "source_url": _link(item["link"], source),
                             "published_at": at,
                             "published_label": published_label(at),
@@ -363,7 +399,7 @@ def validate(content: dict[str, Any], now: float) -> None:
         or not matches(key, title)
         or content.get("fingerprint") != fingerprint(title)
         or content.get("title") != TITLES[key]
-        or content.get("source") != source.name
+        or not _publisher_ok(content.get("source"), source)
         or content.get("published_label") != published_label(at)
         or _link(content["source_url"], source) != content["source_url"]
     ):

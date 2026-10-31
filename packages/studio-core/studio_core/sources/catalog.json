@@ -3,6 +3,20 @@
   "reviewed_at": "2026-10-30",
   "sources": [
     {
+      "id": "gnews-style",
+      "name": "أخبار Google",
+      "url": "https://news.google.com/rss/search?q=%D8%B9%D8%B7%D8%B1+OR+%D8%B9%D8%B7%D9%88%D8%B1+OR+%D9%85%D9%83%D9%8A%D8%A7%D8%AC+OR+%D8%A3%D8%B2%D9%8A%D8%A7%D8%A1+OR+%D9%85%D9%88%D8%B6%D8%A9+OR+%D8%AA%D8%AC%D9%85%D9%8A%D9%84+when:7d&hl=ar&gl=SA&ceid=SA:ar",
+      "commands": [
+        "style"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "headline_syndication",
+      "note": "بحث أخبار Google العربية (السعودية) عن العطور والمكياج والأزياء خلال ٧ أيام؛ يُنسخ العنوان واسم الناشر والرابط فقط. وصل من السيرفر ٢٠٠ في ٣١ أكتوبر.",
+      "evidence": "https://news.google.com/rss"
+    },
+    {
       "id": "aawsat",
       "name": "الشرق الأوسط",
       "url": "https://aawsat.com/feed",
