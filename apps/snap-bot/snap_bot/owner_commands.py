@@ -54,12 +54,16 @@ ACTIONS = {
     "hadith",
     "dua",
     "fast",
+    "verse",
+    "adhkar_am",
+    "adhkar_pm",
 }
 RENDER_UNIT = "madar-v3-snap-render.service"
 KIND_RENDER_UNIT = "madar-v3-snap-render@{kind}.service"
 # Menu command key -> content kind it renders.
 RENDER_KINDS = {"facts": "did_you_know", "tech": "tech", "style": "style", "funny": "funny",
-                "night": "night", "hadith": "hadith", "dua": "dua", "fast": "fast"}  # fmt: skip
+                "night": "night", "hadith": "hadith", "dua": "dua", "fast": "fast",
+                "verse": "verse", "adhkar_am": "adhkar_am", "adhkar_pm": "adhkar_pm"}  # fmt: skip
 SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
 SENT = "✅ أُرسل "
 NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
@@ -70,6 +74,7 @@ KEYBOARD_ROWS = (
     ("facts", "tech", "style"),
     ("funny", "night", "hadith"),
     ("dua", "fast", "preview"),
+    ("verse", "adhkar_am", "adhkar_pm"),
     ("send", "cancel", "status"),
     ("last",),
     ("halt", "unhalt"),
@@ -340,6 +345,15 @@ class Studio:
 
     def fast(self) -> str:
         return self.make("fast")
+
+    def verse(self) -> str:
+        return self.make("verse")
+
+    def adhkar_am(self) -> str:
+        return self.make("adhkar_am")
+
+    def adhkar_pm(self) -> str:
+        return self.make("adhkar_pm")
 
     def preview(self) -> Any:
         clip = self.pending()

@@ -36,7 +36,7 @@ from studio_core.renderer import (
     write_once as write_once,
 )
 
-from . import brand_frame
+from . import brand_frame, sacred_cards
 from .did_you_know import is_sacred, validate_content
 from .fact_audio import ambient_source, measure_audio
 from .fact_layout import (
@@ -115,6 +115,36 @@ def sacred_body(
         f"fade=t=in:st={start:g}:d={end - start:g}:alpha=1[body];"
         f"[in]{card}[card];[card][body]overlay=x=(W-w)/2:y={y}:format=auto[out]"
     )
+
+
+def sacred_sequence(
+    images: list[tuple[Path, tuple[int, int]]],
+    y: int,
+    height: int,
+    seconds: float,
+    profile: dict[str, Any],
+    card: str,
+    window: tuple[float, float],
+    safe_boxes: list[dict[str, int]],
+) -> str:
+    """Consecutive full pages, with no overlap, crop, stretching or omitted text."""
+    script = f"[in]{card}[pagecard0];"
+    for index, (image, size) in enumerate(images):
+        top = y + (height - size[1]) // 2
+        safe_boxes.append(
+            {"x": 130 + (820 - size[0]) // 2, "y": top, "width": size[0], "height": size[1]}
+        )
+        fade = (
+            f",fade=t=in:st={window[0]:g}:d={window[1] - window[0]:g}:alpha=1" if index == 0 else ""
+        )
+        output = "out" if index == len(images) - 1 else f"pagecard{index + 1}"
+        script += (
+            f"movie={image},format=rgba,loop=loop=-1:size=1:start=0,"
+            f"setpts=N/({profile['fps']}*TB){fade}[page{index}];"
+            f"[pagecard{index}][page{index}]overlay=x=(W-w)/2:y={top}:format=auto:"
+            f"enable='gte(t,{index * seconds:g})*lt(t,{(index + 1) * seconds:g})'[{output}];"
+        )
+    return script.rstrip(";")
 
 
 def render(
@@ -239,10 +269,22 @@ def render(
     design = work / "design" / run_id
     design.mkdir(mode=0o750)
     if sacred:
-        body_image, body_size = sacred_body_image(
-            sacred_display_body(content), sacred_body_box(content), profile, design
-        )
-        labels, body_top = stack_sacred(labels, body_size[1])
+        if content.get("kind") in sacred_cards.KINDS:
+            if (
+                run([profile["pango_view"], "--version"], 5).stdout.strip()
+                != profile["pango_version"]
+            ):
+                raise ValueError("pango-view version mismatch")
+            page_parts, page_images = sacred_cards.images(content, profile, design)
+            page_seconds = profile["duration_seconds"]
+            page_height = max(size[1] for _, size in page_images)
+            labels, body_top = stack_sacred(labels, page_height)
+            profile = {**profile, "duration_seconds": page_seconds * len(page_images)}
+        else:
+            body_image, body_size = sacred_body_image(
+                sacred_display_body(content), sacred_body_box(content), profile, design
+            )
+            labels, body_top = stack_sacred(labels, body_size[1])
     safe_boxes = []
     filters = card_filters(profile["fps"])
     if is_fact:
@@ -288,9 +330,21 @@ def render(
         filters.append(filter_value)
     script = ",".join(filters)
     if sacred:
-        script = sacred_body(
-            body_image, body_size, body_top, profile, script, body_window, safe_boxes
-        )
+        if content.get("kind") in sacred_cards.KINDS:
+            script = sacred_sequence(
+                page_images,
+                body_top,
+                page_height,
+                page_seconds,
+                profile,
+                script,
+                body_window,
+                safe_boxes,
+            )
+        else:
+            script = sacred_body(
+                body_image, body_size, body_top, profile, script, body_window, safe_boxes
+            )
     filter_path = design / "filters.txt"
     write_once(filter_path, script.encode())
     output = work / "output" / video_filename(content["type"])
@@ -313,7 +367,10 @@ def render(
                 "-f",
                 "lavfi",
                 "-i",
-                ambient_source(profile["duration_seconds"]),
+                ambient_source(
+                    profile["duration_seconds"],
+                    page_count=len(page_images) if content.get("kind") in sacred_cards.KINDS else 1,
+                ),
                 "-map",
                 "0:v:0",
                 "-map",
@@ -353,7 +410,12 @@ def render(
     ]
     if output.exists():
         # Explicit same-attempt retry uses already published bytes, not another encode.
-        qa = validate(output, profile, fact=is_fact)
+        qa = validate(
+            output,
+            profile,
+            fact=is_fact,
+            page_count=len(page_images) if content.get("kind") in sacred_cards.KINDS else 1,
+        )
     else:
         if brand:
             # QA, the hash and preview.png all describe the framed video the owner reviews.
@@ -370,7 +432,12 @@ def render(
             )
         else:
             run(args, profile["timeout_seconds"])
-        qa = validate(partial, profile, fact=is_fact)
+        qa = validate(
+            partial,
+            profile,
+            fact=is_fact,
+            page_count=len(page_images) if content.get("kind") in sacred_cards.KINDS else 1,
+        )
         publish_once(partial, output)
     digest = file_sha256(output)
     preview = work / "output/preview.png"
@@ -411,6 +478,8 @@ def render(
         "latin_font_sha256": profile["latin_font_sha256"],
         "glyph_coverage": "PASS",
     }
+    if content.get("kind") in sacred_cards.KINDS:
+        result["sacred_pagination"] = sacred_cards.evidence(content, page_parts, page_seconds)
     if is_fact:
         if brand:
             safe_boxes = [brand_frame.framed_box(box, brand["clip_box"]) for box in safe_boxes]
@@ -429,7 +498,9 @@ def render(
     return result
 
 
-def validate(path: Path, profile: dict[str, Any], *, fact: bool = False) -> dict[str, Any]:
+def validate(
+    path: Path, profile: dict[str, Any], *, fact: bool = False, page_count: int = 1
+) -> dict[str, Any]:
     value = json.loads(
         run(
             [
@@ -453,7 +524,13 @@ def validate(path: Path, profile: dict[str, Any], *, fact: bool = False) -> dict
         raise ValueError("Video stream missing")
     stream = videos[0]
     duration = float(value["format"]["duration"])
-    if fact and duration > 12:
+    if (
+        type(page_count) is not int
+        or not 1 <= page_count <= sacred_cards.MAX_PAGES
+        or (not fact and page_count != 1)
+    ):
+        raise ValueError("Invalid page count")
+    if fact and duration > 12 * page_count:
         raise ValueError("Fact video exceeds duration limit")
     if (
         stream["width"] != profile["width"]

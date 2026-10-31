@@ -6,11 +6,13 @@ from collections.abc import Callable
 from typing import Any
 
 
-def ambient_source(duration: float) -> str:
+def ambient_source(duration: float, *, page_count: int = 1) -> str:
     if (
         not isinstance(duration, (int, float))
         or isinstance(duration, bool)
-        or not 8 <= duration <= 12
+        or type(page_count) is not int
+        or not 1 <= page_count <= 15
+        or not 8 <= duration / page_count <= 12
     ):
         raise ValueError("Invalid ambient duration")
     # Static A-minor pad; only a 40-second amplitude cycle, no notes or beats.

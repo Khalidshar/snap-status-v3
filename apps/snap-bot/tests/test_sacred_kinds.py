@@ -45,7 +45,9 @@ def contents(kind):
 
 class SacredKindTests(unittest.TestCase):
     def test_kinds_are_registered_as_sacred_with_plain_titles(self):
-        self.assertEqual(set(sacred_kinds.TITLES), {"hadith", "dua", "fast"})
+        self.assertEqual(
+            set(sacred_kinds.TITLES), {"hadith", "dua", "fast", "verse", "adhkar_am", "adhkar_pm"}
+        )
         self.assertLessEqual(set(sacred_kinds.TITLES), dyk.SACRED_KINDS)
         for kind in ("tech", "night", dyk.DEFAULT_KIND):
             self.assertNotIn(kind, dyk.SACRED_KINDS, "guard:only-faith-is-sacred")
@@ -57,14 +59,17 @@ class SacredKindTests(unittest.TestCase):
                 with self.subTest(kind=kind, fact=content["fact_id"]):
                     item = items[content["fact_id"]]
                     self.assertIs(content["sacred"], True)
-                    self.assertEqual(content["body"], item["text"], "guard:verbatim")
+                    self.assertEqual(content["body"], faith.text(item), "guard:verbatim")
                     self.assertEqual(
-                        hashlib.sha256(content["body"].encode()).hexdigest(), item["sha256"]
+                        hashlib.sha256(content["body"].encode()).hexdigest(),
+                        sacred_kinds.verbatim(kind, item["id"], faith.text(item)),
                     )
                     self.assertEqual(dyk.validate_content(content)["id"], content["fact_id"])
                     report = inspect_content(content)
                     self.assertEqual(report["checks"], ["verbatim_sha256"])
-                    self.assertEqual(report["sha256"], item["sha256"])
+                    self.assertEqual(
+                        report["sha256"], hashlib.sha256(faith.text(item).encode()).hexdigest()
+                    )
 
     def test_one_changed_letter_is_refused_everywhere(self):
         content = contents("hadith")[0]
@@ -206,7 +211,13 @@ class SacredLabelSafeAreaTests(unittest.TestCase):
         profile = {**profile, "ffmpeg": shutil.which("ffmpeg")}
         font, _ = font_paths(profile)
         with tempfile.TemporaryDirectory() as tmp:
-            for content in contents("hadith") + contents("fast"):
+            for content in (
+                contents("hadith")
+                + contents("fast")
+                + contents("verse")
+                + contents("adhkar_am")
+                + contents("adhkar_pm")
+            ):
                 for index, label in enumerate(sacred_labels(content, profile)[2:-1]):
                     with self.subTest(fact=content["fact_id"], label=index):
                         path = Path(tmp) / f"{content['fact_id']}-{index}.txt"
