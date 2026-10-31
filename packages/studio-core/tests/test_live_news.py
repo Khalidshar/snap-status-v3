@@ -308,3 +308,22 @@ def test_real_news_review_is_arabic_branded_9_by_16_and_cannot_be_sent(package, 
     assert (tmp_path / "render/preview.png").is_file()
     repeated = subprocess.run(argv, capture_output=True, text=True, timeout=30, check=False)  # noqa: S603
     assert repeated.returncode == 2
+
+
+def test_google_news_style_names_the_publisher_and_drops_sports():
+    from studio_core.sources.news import google_headline, matches
+
+    assert google_headline("عطر جديد من ديور للشتاء - مجلة هي") == (
+        "عطر جديد من ديور للشتاء",
+        "مجلة هي",
+    )
+    assert google_headline("أزياء نانسي عجرم في حفل دبي - www.hiamag.com")[1] == "hiamag.com"
+    for bad in ("بلا ناشر", "موضة رونالدو في دوري روشن - Kooora", " - مجلة هي"):
+        try:
+            google_headline(bad)
+        except ValueError:
+            continue
+        raise AssertionError(bad)
+    assert matches("style", "اتجاهات جديدة للمكياج هذا الموسم")
+    assert not matches("style", "موضة رونالدو في الدوري")
+    assert not matches("style", "اللحوم الحمراء موضة غذائية جديدة")

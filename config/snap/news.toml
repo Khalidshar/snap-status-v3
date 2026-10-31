@@ -24,7 +24,7 @@ BACKGROUND = 1200
 retention_seconds = 86400
 [network]
 socket = "/var/lib/madar/snap/news/egress.sock"
-hosts = ["aawsat.com", "aitnews.com", "ar.harpersbazaararabia.com", "feeds.bbci.co.uk", "www.alhadath.net", "www.france24.com", "www.skynewsarabia.com", "www.tech-wd.com"]
+hosts = ["aawsat.com", "news.google.com", "aitnews.com", "ar.harpersbazaararabia.com", "feeds.bbci.co.uk", "www.alhadath.net", "www.france24.com", "www.skynewsarabia.com", "www.tech-wd.com"]
 user_agent = "SnapStudioV2/0.2 github.com/Khalidshar"
 timeout_seconds = 8
 max_bytes = 2097152
