@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from test_sacred_render import _alpha_pixels
 
-from snap_bot import faith, sacred_cards
+from snap_bot import faith, quran_font, sacred_cards
 from snap_bot.did_you_know import load_kind, make_content
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -20,6 +20,46 @@ def bounds(pixels):
     assert pixels, "Expected visible ink"
     xs, ys = zip(*pixels, strict=True)
     return min(xs), min(ys), max(xs) + 1, max(ys) + 1
+
+
+def test_bracket_font_is_only_the_pinned_system_amiri():
+    profile = tomllib.loads((ROOT / "config/snap/did_you_know.toml").read_text())["slice"][
+        "profile"
+    ]
+    selected = sacred_cards.ornament_font(profile)
+    assert selected == sacred_cards.AMIRI_REGULAR
+    assert (
+        hashlib.sha256(selected.read_bytes()).hexdigest()
+        == profile["font_files"]["system:Amiri-Regular"]
+    )
+    family = subprocess.run(
+        [profile["fc_query"], "--format=%{family}", str(selected)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert family == "Amiri"
+    fact = load_kind("verse")[0]
+    content = make_content(fact, 0, "verse")
+    evidence = sacred_cards.evidence(content, [content["body"]], 8)
+    assert evidence["font_sha256"] == quran_font.FONT_SHA256
+    assert evidence["ornament_font_sha256"] == profile["font_files"]["system:Amiri-Regular"]
+
+
+@pytest.mark.parametrize("problem", ("missing", "changed_bytes", "changed_pin"))
+def test_bracket_font_has_no_unverified_or_naskh_fallback(tmp_path, monkeypatch, problem):
+    profile = tomllib.loads((ROOT / "config/snap/did_you_know.toml").read_text())["slice"][
+        "profile"
+    ]
+    font = tmp_path / "Amiri-Regular.ttf"
+    if problem != "missing":
+        raw = sacred_cards.AMIRI_REGULAR.read_bytes()
+        font.write_bytes(raw[:-1] + bytes([raw[-1] ^ 1]) if problem == "changed_bytes" else raw)
+    if problem == "changed_pin":
+        profile["font_files"]["system:Amiri-Regular"] = "0" * 64
+    monkeypatch.setattr(sacred_cards, "AMIRI_REGULAR", font)
+    with pytest.raises(ValueError):
+        sacred_cards.ornament_font(profile)
 
 
 @pytest.mark.skipif(not shutil.which("pango-view"), reason="Linux Pango pixel measurement")
@@ -109,3 +149,22 @@ def test_brackets_touch_first_and_last_lines_in_pixels(tmp_path, sample, font_si
             assert 0.75 * text_height <= bracket_height <= text_height
             assert abs((text[1] + text[3]) - (bracket[1] + bracket[3])) <= 2
             assert 0 <= bracket[0] < bracket[2] <= 820 and 0 <= bracket[1] < bracket[3] <= height
+            # Both ornaments have their outer tips facing away from the text:
+            # the middle hook embraces the body on the inside in RTL.
+            middle_y = (bracket[1] + bracket[3]) // 2
+            edge_rows = list(range(bracket[1], bracket[1] + max(1, bracket_height // 6))) + list(
+                range(bracket[3] - max(1, bracket_height // 6), bracket[3])
+            )
+            middle = [
+                x
+                for y in range(middle_y - bracket_height // 10, middle_y + bracket_height // 10 + 1)
+                for x in range(bracket[0], bracket[2])
+                if raw_quoted[y * width + x]
+            ]
+            tips = [
+                x
+                for y in edge_rows
+                for x in range(bracket[0], bracket[2])
+                if raw_quoted[y * width + x]
+            ]
+            assert min(middle) < min(tips) if index == 0 else max(middle) > max(tips)

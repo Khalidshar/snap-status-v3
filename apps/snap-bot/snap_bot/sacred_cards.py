@@ -3,6 +3,7 @@
 import hashlib
 import json
 import subprocess
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -17,9 +18,27 @@ from .fact_layout import (
     sacred_labels,
     stack_sacred,
 )
+from .font_admission import admit_font
 
 KINDS = {"verse", "adhkar_am", "adhkar_pm"}
 MAX_PAGES = 15  # At most 180 seconds with the existing 12-second page profile.
+AMIRI_REGULAR = Path("/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf")
+
+
+def ornament_font(profile: dict[str, Any] | None = None) -> Path:
+    """Admit only the registered system Amiri bytes and their pinned license."""
+    if profile is None:
+        root = Path(__file__).resolve().parents[3]
+        profile = tomllib.loads((root / "config/snap/did_you_know.toml").read_text())["slice"][
+            "profile"
+        ]
+    expected = profile.get("font_files", {}).get("system:Amiri-Regular")
+    if not isinstance(expected, str):
+        raise ValueError("Missing approved Amiri fingerprint")
+    try:
+        return admit_font(AMIRI_REGULAR, expected, profile)
+    except OSError as error:
+        raise ValueError("Missing approved system Amiri font") from error
 
 
 def images(
@@ -122,12 +141,12 @@ def ink_boxes(
 def ornaments(
     image: Path, size: tuple[int, int], profile: dict[str, Any], width: int, height: int
 ) -> tuple[Path, tuple[int, int]]:
-    """The KFGQPC font lacks FD3E/FD3F: draw only these decorative glyphs in Naskh.
+    """The KFGQPC font lacks FD3E/FD3F: draw only these decorative glyphs in Amiri.
 
     The Quran body remains a separate, unmodified KFGQPC image. Neither glyph
     fallback nor substitutions are used for any character of the source text.
     """
-    font = quran_font.font_for("hadith")
+    font = ornament_font(profile)
     ensure_glyphs(
         "\ufd3f\ufd3e", run([profile["fc_query"], "--format=%{charset}", str(font)], 5).stdout
     )
@@ -204,10 +223,8 @@ def ornaments(
 
 def evidence(content: dict[str, Any], parts: list[str], seconds: float) -> dict[str, Any]:
     font = quran_font.font_for(_faith_item(content))
-    ornament_font = (
-        quran_font.font_for("hadith")
-        if page_display_body(content, content["body"]) != content["body"]
-        else None
+    ornament_path = (
+        ornament_font() if page_display_body(content, content["body"]) != content["body"] else None
     )
     return {
         "kind": content["kind"],
@@ -215,8 +232,8 @@ def evidence(content: dict[str, Any], parts: list[str], seconds: float) -> dict[
         "pages": parts,
         "page_seconds": seconds,
         "font_sha256": hashlib.sha256(font.read_bytes()).hexdigest(),
-        "ornament_font_sha256": hashlib.sha256(ornament_font.read_bytes()).hexdigest()
-        if ornament_font
+        "ornament_font_sha256": hashlib.sha256(ornament_path.read_bytes()).hexdigest()
+        if ornament_path
         else None,
     }
 
