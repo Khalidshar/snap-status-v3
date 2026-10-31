@@ -8,8 +8,12 @@ import hashlib
 import json
 import re
 import unicodedata
+from collections.abc import Mapping
+from copy import deepcopy
 from datetime import date
+from functools import lru_cache
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -79,7 +83,7 @@ def _ids(items: list[Any]) -> None:
                 _safe(value)
 
 
-def _references(item: dict[str, Any], index: dict[tuple[int, int], str]) -> str:
+def _references(item: dict[str, Any], index: Mapping[tuple[int, int], str]) -> str:
     surah = item.get("surah")
     ayahs = item.get("ayahs")
     if (
@@ -99,7 +103,37 @@ def _references(item: dict[str, Any], index: dict[tuple[int, int], str]) -> str:
         raise ValueError("Missing referenced ayah") from error
 
 
-def _subset() -> tuple[dict[tuple[int, int], str], dict[str, Any]]:
+SubsetStamp = tuple[Path, int, int, int, int, int]
+
+
+def _subset_stamp() -> SubsetStamp:
+    path = DATA / "quran_subset.json"
+    try:
+        stat = path.stat()
+        return (
+            path.resolve(),
+            stat.st_dev,
+            stat.st_ino,
+            stat.st_mtime_ns,
+            stat.st_ctime_ns,
+            stat.st_size,
+        )
+    except OSError as error:
+        raise ValueError("Missing or unreadable faith data: quran_subset.json") from error
+
+
+def _subset() -> tuple[Mapping[tuple[int, int], str], dict[str, Any]]:
+    """Reuse a fully verified snapshot only while the backing file is unchanged."""
+    stamp = _subset_stamp()
+    result = _validated_subset(stamp)
+    if _subset_stamp() != stamp:
+        raise ValueError("Quran subset changed during verification")
+    return result
+
+
+@lru_cache(maxsize=4)
+def _validated_subset(stamp: SubsetStamp) -> tuple[Mapping[tuple[int, int], str], dict[str, Any]]:
+    # All original package, hash and collection checks run on every cache miss.
     obj = _document("quran_subset.json", "quran_subset")
     if (
         obj.get("zip_url") != OFFICIAL_URL
@@ -142,7 +176,9 @@ def _subset() -> tuple[dict[tuple[int, int], str], dict[str, Any]]:
     kahf = collections["kahf"][0]
     if kahf["surah"] != 18 or kahf["ayahs"] != list(range(1, 11)):
         raise ValueError("Invalid Kahf reference")
-    return index, collections
+    if _subset_stamp() != stamp:
+        raise ValueError("Quran subset changed during verification")
+    return MappingProxyType(index), collections
 
 
 def load(kind: str) -> list[dict[str, Any]]:
@@ -151,7 +187,8 @@ def load(kind: str) -> list[dict[str, Any]]:
         raise ValueError("Unknown faith kind")
     if kind in {"verse", "friday", "kahf"}:
         _, collections = _subset()
-        result: list[dict[str, Any]] = collections[kind]
+        # Callers must never be able to modify the private cached collections.
+        result: list[dict[str, Any]] = deepcopy(collections[kind])
         return result
     catalog = "adhkar" if kind.startswith("adhkar_") else kind
     filename = "duas.json" if catalog == "dua" else catalog + ".json"

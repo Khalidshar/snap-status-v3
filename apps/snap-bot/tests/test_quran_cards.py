@@ -84,6 +84,8 @@ def test_media_rechecks_every_page_font_hash_and_duration():
 
 @pytest.mark.parametrize("kind", sorted(sacred_cards.KINDS))
 def test_new_kind_passes_every_content_agent_verbatim(tmp_path, kind):
+    # Keep the original ownership budget: a cold Quran snapshot must pass too.
+    faith._validated_subset.cache_clear()
     from dataclasses import replace
 
     from snap_bot.content_agents import CHECKS, run_check

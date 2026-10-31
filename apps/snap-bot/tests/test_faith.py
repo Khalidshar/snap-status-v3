@@ -3,8 +3,10 @@
 import hashlib
 import importlib.util
 import json
+import os
 from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -86,6 +88,65 @@ def synthetic_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.mark.parametrize("kind", faith.KINDS)
 def test_all_loader_paths_with_synthetic_subset(synthetic_data: Path, kind: str) -> None:
     assert faith.load(kind)
+
+
+def test_subset_hashes_are_verified_once_for_a_complete_verse_load(synthetic_data: Path) -> None:
+    faith._validated_subset.cache_clear()
+    with patch.object(faith, "_verified", wraps=faith._verified) as verified:
+        items = faith.load("verse")
+        for item in items:
+            assert faith.text(item) == "synthetic test fixture"
+        assert verified.call_count == 90
+        assert faith.load("verse") == items
+        assert verified.call_count == 90
+
+
+@pytest.mark.parametrize("change", ("same_size", "new_size", "restored_mtime"))
+def test_cached_subset_rejects_a_changed_letter(synthetic_data: Path, change: str) -> None:
+    path = synthetic_data / "quran_subset.json"
+    faith._validated_subset.cache_clear()
+    item = faith.load("verse")[0]
+    assert faith.text(item) == "synthetic test fixture"  # prime and reuse the cache
+    before = path.stat()
+    raw = path.read_text()
+    replacement = "synthetic test fixturx" if change != "new_size" else "synthetic test fixturex"
+    changed = raw.replace('"synthetic test fixture"', json.dumps(replacement), 1)
+    assert changed != raw
+    path.write_text(changed)
+    if change != "new_size":
+        assert path.stat().st_size == before.st_size
+    if change == "restored_mtime":
+        os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+    else:
+        os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns + 1_000_000))
+    with pytest.raises(ValueError, match="hash mismatch"):
+        faith.text(item)
+    with pytest.raises(ValueError, match="hash mismatch"):
+        faith.load("verse")
+
+
+def test_loaded_collections_cannot_change_cached_references(synthetic_data: Path) -> None:
+    item = faith.load("verse")[0]
+    item["ayahs"].append(999)
+    item["id"] = "changed"
+    loaded = faith.load("verse")[0]
+    assert loaded["id"] != "changed" and loaded["ayahs"] == [1]
+    assert faith.text(loaded) == "synthetic test fixture"
+
+
+def test_subset_changed_during_validation_is_rejected(synthetic_data: Path) -> None:
+    faith._validated_subset.cache_clear()
+    original = faith._document
+    path = synthetic_data / "quran_subset.json"
+
+    def change_after_read(filename, kind):
+        value = original(filename, kind)
+        path.write_text(path.read_text() + " ")
+        return value
+
+    with patch.object(faith, "_document", side_effect=change_after_read):
+        with pytest.raises(ValueError, match="changed during verification"):
+            faith.load("verse")
 
 
 @pytest.mark.parametrize(
