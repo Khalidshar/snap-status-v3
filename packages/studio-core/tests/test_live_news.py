@@ -318,6 +318,7 @@ def test_google_news_style_names_the_publisher_and_drops_sports():
         "مجلة هي",
     )
     assert google_headline("أزياء نانسي عجرم في حفل دبي - www.hiamag.com")[1] == "hiamag.com"
+    assert google_headline("فستان الأميرات يعود - https://www.youlyou.com/")[1] == "youlyou.com"
     for bad in ("بلا ناشر", "موضة رونالدو في دوري روشن - Kooora", " - مجلة هي"):
         try:
             google_headline(bad)
