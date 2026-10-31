@@ -25,6 +25,8 @@ from pathlib import Path
 from typing import Any
 
 from studio_core import commands as menu
+from studio_core.sources.live import LiveNews
+from studio_core.sources.news import TITLES
 
 from .actions_preview import ROOT
 from .agent_contract_map import BOUND, LOCAL_TOOLS
@@ -117,6 +119,10 @@ def owner_messages(updates: Any, owner: str, now: float) -> tuple[int, list[str]
             continue
         texts.append(text)
     return cursor, texts
+
+
+def live_news() -> LiveNews:
+    return LiveNews("snap-bot", ROOT / "config/snap/news.toml", STATE / "news-history.sqlite3")
 
 
 def describe_event(event: dict[str, Any]) -> str:
@@ -459,8 +465,32 @@ def credentials() -> tuple[str, str, str]:
 def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: Any = api) -> int:
     body = json.dumps({"offset": offset, "timeout": 25, "allowed_updates": ["message"]}).encode()
     updates = transport(token, "getUpdates", body)
-    cursor, texts = owner_messages(updates, owner, time.time())
-    for text in texts:
+    cursor, _ = owner_messages(updates, owner, time.time())
+    # Preserve Telegram update IDs as durable idempotency keys, even after a crash
+    # before the polling cursor is committed. Filtering stays owner-only above.
+    news_enabled = os.environ.get("MADAR_LIVE_NEWS") == "1"
+    for update in updates if isinstance(updates, list) else []:
+        uid = update.get("update_id") if isinstance(update, dict) else None
+        if type(uid) is not int or uid < offset:
+            continue
+        _, accepted = owner_messages([update], owner, time.time())
+        if not accepted:
+            continue
+        text = accepted[0]
+        parsed = menu.parse(text)
+        if news_enabled and parsed["kind"] == "command" and parsed["command"].key in TITLES:
+
+            def send_news(text: str) -> None:
+                transport(
+                    token, "sendMessage", json.dumps({"chat_id": owner, "text": text}).encode()
+                )
+
+            try:
+                live_news().reply(parsed["command"].key, str(uid), send_news)
+            except Exception:
+                # No replay of a possibly accepted response, and no silent catalog fallback.
+                print("OWNER_NEWS_BLOCKED_OR_UNKNOWN", file=sys.stderr)
+            continue
         reply = studio.answer(text)
         if not reply:
             continue  # the sent clip was the whole answer

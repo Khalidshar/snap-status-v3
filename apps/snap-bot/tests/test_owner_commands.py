@@ -408,5 +408,36 @@ class ClipCycleTests(unittest.TestCase):
         self.assertTrue(kind.startswith("multipart/form-data; boundary="))
 
 
+class LiveNewsPollingTests(unittest.TestCase):
+    def test_news_keeps_update_identity_owner_filter_and_command_order(self):
+        order = []
+        studio = type("StudioStub", (), {"answer": lambda _, text: order.append(text) or "تم"})()
+        news = type(
+            "NewsStub",
+            (),
+            {"reply": lambda _, key, event, send: order.append((key, event)) or send("خبر عربي")},
+        )()
+        updates = [
+            update(10, "الحالة"),
+            update(11, "أخبار السعودية"),
+            update(12, "أخبار العالم", sender="88"),
+            update(13, "آخر مقطع"),
+        ]
+        sent = []
+
+        def transport(token, method, body=b"", kind=None):
+            if method == "getUpdates":
+                return updates
+            sent.append(json.loads(body)["text"])
+
+        with (
+            patch.dict("os.environ", {"MADAR_LIVE_NEWS": "1"}),
+            patch.object(listener, "live_news", return_value=news),
+        ):
+            self.assertEqual(listener.poll_once("t", OWNER, studio, 10, transport), 14)
+        self.assertEqual(order, ["الحالة", ("saudi", "11"), "آخر مقطع"])
+        self.assertEqual(sent, ["تم", "خبر عربي", "تم"])
+
+
 if __name__ == "__main__":
     unittest.main()
