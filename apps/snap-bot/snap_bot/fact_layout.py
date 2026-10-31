@@ -91,7 +91,18 @@ def fast_narration_line(content: dict[str, Any]) -> str:
 
 def sacred_display_body(content: dict[str, Any]) -> str:
     """The verbatim body; a hadith is quoted in «», outside the unchanged text."""
+    if content["kind"] in ("verse", "adhkar_am", "adhkar_pm"):
+        return page_display_body(content, content["body"])
     return "«" + content["body"] + "»" if content["kind"] == "hadith" else str(content["body"])
+
+
+def page_display_body(content: dict[str, Any], page: str) -> str:
+    item = _faith_item(content)
+    return (
+        "\ufd3f" + page + "\ufd3e"
+        if content["kind"] == "verse" or item.get("type") == "quran"
+        else page
+    )
 
 
 def drawing_text(text: str) -> str:
@@ -158,6 +169,8 @@ def sacred_labels(
     content: dict[str, Any], profile: Mapping[str, Any] | None = None
 ) -> list[tuple[str, int, int, str, str]]:
     """The fact card without body lines: the body is drawn whole, as one shaped image."""
+    from .sacred_kinds import reference
+
     if not is_sacred(content):
         raise ValueError("Not sacred content")
     validate_content(content)
@@ -176,6 +189,13 @@ def sacred_labels(
             if content["kind"] == "hadith"
             else fast_header(content)
             if content["kind"] == "fast"
+            else [("قال الله تعالى:", 76, 430, "0xD6B26C", "arabic")]
+            if content["kind"] == "verse"
+            else [
+                (content["title"], 76, 430, "0xD6B26C", "arabic"),
+                (repetition_line(_faith_item(content)["count"]), 38, 510, "0xF6EEDE", "arabic"),
+            ]
+            if content["kind"] in ("adhkar_am", "adhkar_pm")
             else [(content["title"], title_size, 430, "0xD6B26C", "arabic")]
         ),
         (
@@ -183,6 +203,10 @@ def sacred_labels(
             if content["kind"] == "hadith"
             else fast_narration_line(content)
             if content["kind"] == "fast"
+            else _faith_item(content)["source"]
+            if content["kind"] in ("adhkar_am", "adhkar_pm")
+            else reference(_faith_item(content))
+            if content["kind"] == "verse"
             else content["attribution"],
             44 if content["kind"] in ("hadith", "fast") else 40,
             1320,
@@ -192,6 +216,18 @@ def sacred_labels(
         ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
     ]
     return [(drawing_text(text), size, y, color, role) for text, size, y, color, role in labels]
+
+
+def repetition_line(count: int) -> str:
+    if count == 1:
+        return "يقرأ مرة واحدة"
+    if count == 2:
+        return "يقرأ مرتين"
+    return (
+        "يقرأ "
+        + str(count).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+        + (" مرات" if count <= 10 else " مرة")
+    )
 
 
 # Sacred cards stack their lines with fixed gaps and centre the whole block inside the

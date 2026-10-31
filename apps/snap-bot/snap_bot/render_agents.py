@@ -22,6 +22,7 @@ from .agent_contract_map import (
 from .content_agents import AgentRejected
 from .n1_artifacts import verified_bytes
 from .owned_contract_adapter import arabic_evidence, check_chain, digest
+from .sacred_cards import duration as sacred_duration
 
 # The same limits render.validate enforces; the voice agent holds them independently.
 LOUDNESS_LUFS = (-19.0, -17.0)
@@ -106,6 +107,10 @@ def check_media(result: Any, settings: Any) -> dict[str, Any]:
     except (OSError, ValueError) as cause:
         raise AgentRejected("MEDIA_DIGEST_MISMATCH") from cause
     qa = result["qa"]
+    try:
+        expected_duration = sacred_duration(result, profile.get("duration_seconds", 0))
+    except (ValueError, TypeError, KeyError) as cause:
+        raise AgentRejected("MEDIA_SACRED_PAGES_CHANGED") from cause
     if qa.get("bytes") != len(data) or len(data) > profile.get("max_bytes", 0):
         raise AgentRejected("MEDIA_SIZE_MISMATCH")
     if (
@@ -113,7 +118,7 @@ def check_media(result: Any, settings: Any) -> dict[str, Any]:
         != (profile.get("width"), profile.get("height"), "h264")
         or not _number(qa.get("duration"))
         or not _number(profile.get("duration_seconds"))
-        or abs(qa["duration"] - profile["duration_seconds"]) > 0.25
+        or abs(qa["duration"] - expected_duration) > 0.25
     ):
         raise AgentRejected("MEDIA_PROFILE_MISMATCH")
     boxes = mp4_boxes(data)
