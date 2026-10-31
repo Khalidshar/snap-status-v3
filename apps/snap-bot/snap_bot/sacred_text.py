@@ -1,5 +1,6 @@
 """Lossless text pagination and isolated Pango PNGs. No network or video rendering."""
 
+import json
 import os
 import re
 import shutil
@@ -70,6 +71,7 @@ def render_text_png(
     width_px: int = 820,
     font_size: int = 44,
     color: str = "#F6EEDE",
+    layout_path: Path | None = None,
 ) -> tuple[int, int]:
     """Render exact UTF-8 through Pango, then admit the PNG within the height cap.
 
@@ -84,6 +86,10 @@ def render_text_png(
         raise ValueError("Invalid text color")
     font = Path(font_path).resolve(strict=True)
     output = Path(out_path).absolute()
+    if layout_path is not None:
+        layout_path = Path(layout_path).absolute()
+        if layout_path in (output, font):
+            raise ValueError("Invalid layout output path")
     if not font.is_file() or output.resolve() == font:
         raise ValueError("Invalid font or output path")
     executable = shutil.which(str(pango_view))
@@ -144,6 +150,7 @@ def render_text_png(
             f"--font={family} {font_size}",
             f"--foreground={color}",
             f"--output={image}",
+            *([f"--serialize-to={root / 'layout.json'}"] if layout_path else []),
             "--",
             str(input_file),
         ]
@@ -158,5 +165,16 @@ def render_text_png(
         dimensions = _dimensions(image)
         if dimensions[1] > max_height_px:
             raise ValueError("Sacred text image exceeds maximum height")
+        if layout_path is not None:
+            metadata = json.loads((root / "layout.json").read_text())
+            rendered = metadata["output"]
+            if (
+                metadata.get("text") != text
+                or rendered.get("unknown-glyphs") != 0
+                or rendered.get("is-ellipsized") is not False
+                or not rendered.get("lines")
+            ):
+                raise ValueError("Invalid Pango line layout")
+            os.replace(root / "layout.json", layout_path)
         os.replace(image, output)
         return dimensions
