@@ -1,6 +1,8 @@
 """Lossless, measured pages for Quran and mixed adhkar cards. No delivery or network."""
 
 import hashlib
+import json
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -50,6 +52,7 @@ def images(
                     width_px=width - 120 if quoted else width,
                     max_height_px=height,
                     font_size=profile.get("sacred_font_size", 60),
+                    layout_path=image.with_suffix(".layout.json") if quoted else None,
                 )
                 if quoted:
                     image, size = ornaments(image, size, profile, width, height)
@@ -68,6 +71,54 @@ def images(
     raise ValueError("Sacred text cannot fit without changing its characters")
 
 
+def ink_boxes(
+    image: Path, size: tuple[int, int], line_count: int, profile: dict[str, Any]
+) -> list[tuple[int, int, int, int]]:
+    """Visible alpha bounds in each uniform Pango line band, in actual pixels."""
+    width, height = size
+    if not 1 <= line_count <= height or not 0 < width <= 1024 or not 0 < height <= 2048:
+        raise ValueError("Invalid sacred image measurement")
+    raw = subprocess.run(  # noqa: S603  # fixed FFmpeg argv, no shell or network
+        [
+            profile["ffmpeg"],
+            "-v",
+            "error",
+            "-nostdin",
+            "-i",
+            str(image),
+            "-vf",
+            "alphaextract",
+            "-frames:v",
+            "1",
+            "-threads",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "gray",
+            "-",
+        ],
+        capture_output=True,
+        check=True,
+        timeout=30,
+    ).stdout
+    if len(raw) != width * height:
+        raise ValueError("Invalid sacred alpha measurement")
+    boxes = []
+    for line in range(line_count):
+        left, top, right, bottom = width, height, -1, -1
+        for y in range(round(line * height / line_count), round((line + 1) * height / line_count)):
+            row = raw[y * width : (y + 1) * width]
+            for x, alpha in enumerate(row):
+                if alpha:
+                    left, right = min(left, x), max(right, x)
+                    top, bottom = min(top, y), max(bottom, y)
+        if right < left:
+            raise ValueError("Empty sacred text line")
+        boxes.append((left, top, right - left + 1, bottom - top + 1))
+    return boxes
+
+
 def ornaments(
     image: Path, size: tuple[int, int], profile: dict[str, Any], width: int, height: int
 ) -> tuple[Path, tuple[int, int]]:
@@ -80,27 +131,46 @@ def ornaments(
     ensure_glyphs(
         "\ufd3f\ufd3e", run([profile["fc_query"], "--format=%{charset}", str(font)], 5).stdout
     )
+    layout = json.loads(image.with_suffix(".layout.json").read_text())
+    lines = ink_boxes(image, size, len(layout["output"]["lines"]), profile)
+    first, last = lines[0], lines[-1]
+    body_x = (width - size[0]) // 2
     marks = []
-    for index, mark in enumerate(("\ufd3f", "\ufd3e")):
-        path = image.with_name(image.stem + f"-bracket-{index}.png")
-        dims = sacred_text.render_text_png(
-            mark,
-            font,
-            path,
-            pango_view=profile["pango_view"],
-            width_px=60,
-            font_size=60,
-            max_height_px=height,
-        )
-        if dims[0] > 60:
+    placements = []
+    for index, (mark, line) in enumerate(zip(("\ufd3f", "\ufd3e"), (first, last), strict=True)):
+        font_size = profile.get("sacred_font_size", 60)
+        desired_height = round(line[3] * 0.9)
+        # Match visible glyph heights, not em sizes: the two fonts have very
+        # different metrics. No scaling or stretching of the glyph image.
+        for trial in range(3):
+            path = image.with_name(image.stem + f"-bracket-{index}-{trial}.png")
+            dims = sacred_text.render_text_png(
+                mark,
+                font,
+                path,
+                pango_view=profile["pango_view"],
+                width_px=240,
+                font_size=font_size,
+                max_height_px=height,
+            )
+            box = ink_boxes(path, dims, 1, profile)[0]
+            if trial and 0.75 * line[3] <= box[3] <= line[3]:
+                break
+            font_size = max(1, round(font_size * desired_height / box[3]))
+        else:
+            raise ValueError("Decorative bracket cannot match Quran line height")
+        left = body_x + line[0] + line[2] + 12 if index == 0 else body_x + line[0] - 12 - box[2]
+        top = line[1] + (line[3] - box[3]) // 2
+        if left < 0 or left + box[2] > width or top < 0 or top + box[3] > size[1]:
             raise ValueError("Sacred text exceeds its card")
-        marks.append((path, dims))
-    total_height = max(size[1], *(dims[1] for _, dims in marks))
+        placements.append((left - box[0], top - box[1]))
+        marks.append(path)
+    total_height = size[1]
     output = image.with_name(image.stem + "-quoted.png")
     graph = (
-        f"[0:v]pad={width}:{total_height}:(ow-iw)/2:(oh-ih)/2:color=black@0[c];"
-        f"[c][1:v]overlay=x={width - 60}:y=(H-h)/2:format=auto[a];"
-        "[a][2:v]overlay=x=0:y=(H-h)/2:format=auto[out]"
+        f"[0:v]pad={width}:{total_height}:{body_x}:0:color=black@0[c];"
+        f"[c][1:v]overlay=x={placements[0][0]}:y={placements[0][1]}:format=auto[a];"
+        f"[a][2:v]overlay=x={placements[1][0]}:y={placements[1][1]}:format=auto[out]"
     )
     run(
         [
@@ -114,9 +184,9 @@ def ornaments(
             "-i",
             str(image),
             "-i",
-            str(marks[0][0]),
+            str(marks[0]),
             "-i",
-            str(marks[1][0]),
+            str(marks[1]),
             "-filter_complex",
             graph,
             "-map",
