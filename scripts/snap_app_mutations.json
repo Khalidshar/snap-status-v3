@@ -2945,7 +2945,7 @@
   "hunks": [
    {
     "file": "render_agents.py",
-    "old": "        or abs(qa[\"duration\"] - profile[\"duration_seconds\"]) > 0.25\n",
+    "old": "        or abs(qa[\"duration\"] - expected_duration) > 0.25\n",
     "new": "        or False\n"
    }
   ]
