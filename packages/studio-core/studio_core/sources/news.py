@@ -198,7 +198,7 @@ def google_headline(title: str) -> tuple[str, str]:
 def _publisher_ok(value: object, source: Any) -> bool:
     """A catalog source names itself; Google News names the original publisher."""
     if not source.id.startswith("gnews-"):
-        return value == source.name
+        return bool(value == source.name)
     return (
         isinstance(value, str)
         and 1 <= len(value) <= 40
