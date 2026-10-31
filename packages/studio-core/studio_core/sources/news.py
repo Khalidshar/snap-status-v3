@@ -192,7 +192,12 @@ def google_headline(title: str) -> tuple[str, str]:
     ):
         raise ValueError("Unusable Google News headline")
     # The publisher may be a Latin domain (www.hiamag.com); the headline must be Arabic.
-    return headline, publisher.removeprefix("www.")
+    for prefix in ("https://", "http://", "www."):
+        publisher = publisher.removeprefix(prefix)
+    publisher = publisher.rstrip("/")
+    if not publisher:
+        raise ValueError("Unusable Google News headline")
+    return headline, publisher
 
 
 def _publisher_ok(value: object, source: Any) -> bool:
