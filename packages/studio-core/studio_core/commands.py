@@ -77,6 +77,14 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("menu", "📋 القائمة", ("مساعدة", "الأوامر", "اوامر"), False),
         ("add_fact", "➕ أضف معلومة", (), False),  # noqa: RUF001  # the menu's emoji
     )),
+    ("agent_tools", "🤖 أدوات الوكلاء", (
+        ("manager", "مدير المحتوى", (), False),
+        ("analyst", "محلل الأداء", (), False),
+        ("writer", "كاتب المحتوى", (), False),
+        ("reviewer", "مراجع المحتوى", (), False),
+        ("fixer", "مصلح المسودة", (), False),
+        ("content_repair", "إصلاح المحتوى", (), False),
+    )),
 )  # fmt: skip
 
 
