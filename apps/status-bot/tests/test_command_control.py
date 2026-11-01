@@ -29,11 +29,7 @@ def test_halt_start_preserve_proof_and_other_bot(tmp_path):
     assert len(archives) == 1
     assert archives[0].read_text() == "retained-control-proof"
     assert runtime.append.call_count == 8
-    changes = [
-        c.kwargs["changed"]
-        for c in runtime.append.call_args_list
-        if c.args[0] == "CONTROL"
-    ]
+    changes = [c.kwargs["changed"] for c in runtime.append.call_args_list if c.args[0] == "CONTROL"]
     assert changes == [True, False, True, False]
 
 

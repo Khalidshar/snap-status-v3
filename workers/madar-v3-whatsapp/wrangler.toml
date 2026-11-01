@@ -1,0 +1,12 @@
+name = "madar-v3-whatsapp"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = true
+# Deploy on Workers Free only. Do not enable a paid plan or paid add-on.
+[vars]
+INBOX_HOST = "madar-v3-whatsapp.internal"
+# Secrets: VERIFY_TOKEN, APP_SECRET. Never put their values in this file.
+# Bind INBOX to the dedicated HTTP Workers VPC Service in the dashboard.
+# Its tunnel routes only to the local receiver bridge, not to the whole server.
+[observability]
+enabled = false

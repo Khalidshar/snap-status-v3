@@ -1,0 +1,15 @@
+[Unit]
+Description=Madar v3 independent outbound Cloudflare connector
+After=network-online.target madar-v3-whatsapp-origin.service
+Requires=madar-v3-whatsapp-origin.service
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate run --token-file /etc/madar/whatsapp-v3-tunnel.token
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+CapabilityBoundingSet=
+Restart=on-failure
