@@ -18,6 +18,8 @@ TITLES = {
     "verse": "آية اليوم",
     "adhkar_am": "أذكار الصباح",
     "adhkar_pm": "أذكار المساء",
+    "friday": "رسالة الجمعة",
+    "kahf": "سورة الكهف",
 }
 SURAH_NAMES = {
     2: "البقرة",
@@ -28,6 +30,7 @@ SURAH_NAMES = {
     15: "الحجر",
     16: "النحل",
     17: "الإسراء",
+    18: "الكهف",
     20: "طه",
     21: "الأنبياء",
     24: "النور",
@@ -41,6 +44,7 @@ SURAH_NAMES = {
     42: "الشورى",
     50: "ق",
     55: "الرحمن",
+    62: "الجمعة",
     65: "الطلاق",
     67: "الملك",
     89: "الفجر",
@@ -52,10 +56,16 @@ SURAH_NAMES = {
 }
 
 
-def reference(item: dict[str, Any]) -> str:
+def reference(item: dict[str, Any], *, compact: bool = False) -> str:
     """Display metadata only; never included in or substituted for the locked text."""
     digits = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
     ayahs = "، ".join(str(a).translate(digits) for a in item["ayahs"])
+    if (
+        compact
+        and len(item["ayahs"]) > 1
+        and item["ayahs"] == list(range(item["ayahs"][0], item["ayahs"][-1] + 1))
+    ):
+        ayahs = (str(item["ayahs"][0]) + "\u2013" + str(item["ayahs"][-1])).translate(digits)
     return (
         "سورة "
         + SURAH_NAMES[item["surah"]]
@@ -77,7 +87,11 @@ def loader(kind: str) -> Any:
                 "id": item["id"],
                 "category": kind,
                 "text": faith.text(item),
-                "source": reference(item) if kind == "verse" else item["source"],
+                "source": (
+                    reference(item, compact=kind == "kahf")
+                    if kind in {"verse", "friday", "kahf"}
+                    else item["source"]
+                ),
                 "source_url": item.get("verification_url", ""),
                 "verified_at": REVIEWED,
             }
