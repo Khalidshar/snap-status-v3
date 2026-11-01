@@ -17,7 +17,7 @@ class VarietyKindTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 self.assertEqual(dyk.KINDS[kind][0], title)
                 self.assertTrue(all("؀" <= c <= "ۿ" or c == " " for c in title))
-        self.assertNotIn("riddle", dyk.KINDS, "guard:riddle-waits-for-its-card")
+        self.assertIn("riddle", dyk.KINDS, "guard:riddle-has-its-timed-card")
 
     def test_every_item_passes_the_fact_checks_and_fits_the_card(self):
         now = time.time()
