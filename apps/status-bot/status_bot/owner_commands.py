@@ -22,12 +22,14 @@ from studio_core.sources.news import TITLES, NewsUnavailable
 from . import content_clips
 from .command_inbox import claim
 from .server_preview import GRAPH_VERSION, Runtime
-from .whatsapp_contract import DeliveryIdentity, require, response_id
+from .service_window import ensure as ensure_window
+from .service_window import text as window_text
+from .whatsapp_contract import DeliveryBlocked, DeliveryIdentity, require, response_id
 from .whatsapp_egress import GraphCredentials, GraphTransport
 from .whatsapp_outbox import WhatsAppOutbox
 
 
-def answer(text: str, runtime: Any) -> str:
+def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
     parsed = menu.parse(text)
     if text.startswith("s:") and text[2:] in {row[0] for row in menu.SECTIONS}:
         return menu.section_text(text[2:])
@@ -45,6 +47,7 @@ def answer(text: str, runtime: Any) -> str:
             "بوت الحالات يعمل على واتساب.\nالمقاطع التي قبلتها المنصة: "
             + str(accepted)
             + "\nالنشر كحالة يتم يدويًا."
+            + ("\n" + window_text(outbox) if outbox is not None else "")
         )
     return (
         "«"
@@ -59,6 +62,7 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         return False
 
     def send(text: str) -> None:
+        ensure_window(outbox)
         with outbox.repo.transaction() as db:
             db.execute(
                 "UPDATE whatsapp_commands SET state='SEND_INTENT' WHERE tag=?", (item["tag"],)
@@ -66,6 +70,7 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         response_id(transport.send_text(text), "send", outbox.identity.recipient)
 
     try:
+        ensure_window(outbox)
         parsed = menu.parse(item["text"])
         key = parsed["command"].key if parsed["kind"] == "command" else None
         if key in TITLES:
@@ -86,15 +91,21 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         elif key in content_clips.KINDS:
             content_clips.send(outbox, transport, item, key, runtime)
         else:
-            send(answer(item["text"], runtime))
+            send(answer(item["text"], runtime, outbox=outbox))
         with outbox.repo.transaction() as db:
             db.execute("UPDATE whatsapp_commands SET state='ACK' WHERE tag=?", (item["tag"],))
-    except Exception:
+    except Exception as error:
+        code = (
+            "WA_SERVICE_WINDOW_CLOSED"
+            if isinstance(error, DeliveryBlocked) and str(error) == "WA_SERVICE_WINDOW_CLOSED"
+            else "COMMAND_FAILED"
+        )
+        print("STATUS_COMMAND_BLOCKED:" + code, file=sys.stderr)
         # An interrupted POST remains consumed. Never replay an uncertain reply.
         with outbox.repo.transaction() as db:
             db.execute(
-                "UPDATE whatsapp_commands SET state='BLOCKED_OR_UNKNOWN',code='COMMAND_FAILED' WHERE tag=?",
-                (item["tag"],),
+                "UPDATE whatsapp_commands SET state='BLOCKED_OR_UNKNOWN',code=? WHERE tag=?",
+                (code, item["tag"]),
             )
     return True
 

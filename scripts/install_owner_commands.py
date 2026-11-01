@@ -81,6 +81,20 @@ def plan() -> dict[Path, str]:
     files[UNITS / "madar-v3-snap-commands.service.d/live-news.conf"] = (
         "[Service]\nEnvironment=MADAR_LIVE_NEWS=1\n"
     )
+    unit = (
+        service(
+            "snap",
+            "Madar isolated live-news clip renderer",
+            "-m snap_bot.news_clips %i",
+            network=False,
+        )
+        .replace("Type=simple", "Type=oneshot")
+        .replace("Restart=on-failure", "Restart=no")
+    )
+    unit = unit.replace(
+        "MemoryMax=256M", "MemoryMax=1536M\nTimeoutStartSec=300\nPrivateNetwork=yes"
+    )
+    files[UNITS / "madar-v3-snap-news-clip@.service"] = unit
     return files
 
 

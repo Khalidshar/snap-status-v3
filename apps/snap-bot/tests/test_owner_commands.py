@@ -454,6 +454,11 @@ class LiveNewsPollingTests(unittest.TestCase):
         with (
             patch.dict("os.environ", {"MADAR_LIVE_NEWS": "1"}),
             patch.object(listener, "live_news", return_value=news),
+            patch.object(
+                listener.command_news,
+                "reply",
+                side_effect=lambda svc, key, event, send, clip: news.reply(key, event, send),
+            ),
         ):
             self.assertEqual(listener.poll_once("t", OWNER, studio, 10, transport), 14)
         self.assertEqual(order, ["الحالة", ("saudi", "11"), "آخر مقطع"])
