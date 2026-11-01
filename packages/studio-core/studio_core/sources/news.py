@@ -220,7 +220,36 @@ STYLE_EXCLUDED = (
     "العقارية",
     "البورصة",
     "أسهم",
+    "أسعار الذهب",
+    "شراء الذهب",
 )
+# Owner request 2026-11-01: the ten strongest houses come first, never as a limit.
+TOP_BRANDS = (
+    "لويس فويتون",
+    "شانيل",
+    "هيرميس",
+    "غوتشي",
+    "ديور",
+    "كارتييه",
+    "رولكس",
+    "برادا",
+    "تيفاني",
+    "سان لوران",
+    "Louis Vuitton",
+    "Chanel",
+    "Hermès",
+    "Gucci",
+    "Dior",
+    "Cartier",
+    "Rolex",
+    "Prada",
+    "Tiffany",
+    "Saint Laurent",
+)
+
+
+def top_brand(key: str, title: str) -> bool:
+    return key == "style" and any(brand in title for brand in TOP_BRANDS)
 
 
 def google_headline(title: str) -> tuple[str, str]:
@@ -427,7 +456,14 @@ def collect(
     if not candidates:
         raise NewsUnavailable("لا يوجد خبر عربي حديث مناسب للأمر؛ لم يُستخدم محتوى ثابت بديل.")
     # No mutation of seen and no write to delivery history: review is not publication.
-    selected = max(candidates, key=lambda entry: (entry["published_at"], entry["fingerprint"]))
+    selected = max(
+        candidates,
+        key=lambda entry: (
+            top_brand(key, entry["headline"]),
+            entry["published_at"],
+            entry["fingerprint"],
+        ),
+    )
     content: dict[str, Any] = {
         "schema": 1,
         "type": "news_review",
