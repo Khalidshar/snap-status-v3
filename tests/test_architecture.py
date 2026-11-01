@@ -16,6 +16,10 @@ FORBIDDEN_IMPORTS = {
     "snap_bot": {"status_bot"},
     "status_bot": {"snap_bot"},
 }
+# Temporary owner-approved exception (Khalid, 2026-11-01, PR #67): WhatsApp clips reuse
+# the Snap renderer and agents until they move into studio-core. Only this file, only
+# snap_bot; remove the entry with that move.
+TEMPORARY_EXCEPTIONS = {"apps/status-bot/status_bot/content_clips.py": {"snap_bot"}}
 
 
 def _imported_roots(path: Path) -> set[str]:
@@ -34,6 +38,7 @@ def test_import_boundaries(package):
         f"{source.relative_to(REPO)} imports {root}"
         for source in PACKAGES[package].rglob("*.py")
         for root in _imported_roots(source) & FORBIDDEN_IMPORTS[package]
+        if root not in TEMPORARY_EXCEPTIONS.get(source.relative_to(REPO).as_posix(), set())
     ]
     assert not violations
 
