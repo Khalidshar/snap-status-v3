@@ -166,7 +166,7 @@ class OwnerCommandTests(unittest.TestCase):
             self.assertTrue(keyboard["resize_keyboard"])
             buttons = [button for row in keyboard["keyboard"] for button in row]
             expected = {key for row in listener.KEYBOARD_ROWS for key in row}
-            self.assertEqual(len(buttons), 20)
+            self.assertEqual(len(buttons), 21)
             resolved = set()
             for button in buttons:
                 parsed = listener.menu.parse(button["text"])
@@ -347,7 +347,9 @@ class ClipCycleTests(unittest.TestCase):
             )  # fmt: skip
 
         self.on_start["madar-v3-snap-send-main"] = ack
-        for number, key in enumerate(("verse", "adhkar_am", "adhkar_pm", "friday", "kahf"), 40):
+        for number, key in enumerate(
+            ("verse", "adhkar_am", "adhkar_pm", "friday", "kahf", "riddle"), 40
+        ):
             with self.subTest(kind=key):
                 self.on_start["madar-v3-snap-render"] = lambda unit, kind=key, n=number: (
                     self.runtime.rendered(n, kind=kind, title=listener.menu.BY_KEY[kind].label)

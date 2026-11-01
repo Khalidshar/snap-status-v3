@@ -91,6 +91,19 @@ def inspect_content(content: object) -> dict[str, Any]:
         return check_sacred(content.get("kind"), content.get("fact_id"), content.get("body"))
     if content.get("sacred") is not False:
         raise ValueError("ARABIC_CONTENT_INVALID")
+    if content.get("kind") == "riddle":
+        from .did_you_know import load_kind
+
+        fact = next((f for f in load_kind("riddle") if f["id"] == content.get("fact_id")), None)
+        if fact is None or fact["text"] != content.get("body"):
+            raise ValueError("ARABIC_RIDDLE_CHANGED")
+        reports = [check_text(part) for part in content["body"].split("\n")]
+        return {
+            "version": RULE_VERSION,
+            "decision": "PASS",
+            "checks": list(CHECKS),
+            "line_lengths": [n for report in reports for n in report["line_lengths"]],
+        }
     return check_text(content.get("body"))
 
 

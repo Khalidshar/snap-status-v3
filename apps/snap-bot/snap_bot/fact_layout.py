@@ -127,6 +127,10 @@ def fact_labels(
     validate_content(content)
     if is_sacred(content):
         raise ValueError("Sacred text is drawn whole, never wrapped or stripped")
+    if content.get("kind") == "riddle":
+        from .riddle_card import layout
+
+        return layout(content, (profile or {}).get("duration_seconds", 8))[0]
     profile = profile or {}
     line_width = profile.get("fact_line_width", 26)
     if line_width not in (20, 26):

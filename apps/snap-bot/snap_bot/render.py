@@ -36,7 +36,7 @@ from studio_core.renderer import (
     write_once as write_once,
 )
 
-from . import brand_frame, sacred_cards
+from . import brand_frame, riddle_card, sacred_cards
 from .did_you_know import is_sacred, validate_content
 from .fact_audio import ambient_source, measure_audio
 from .fact_layout import (
@@ -262,7 +262,10 @@ def render(
         body_window = windows.pop(len(labels) - 2)
     elif is_fact:
         labels = fact_labels(content, profile)
-    if is_fact and not sacred:
+    riddle = is_fact and content.get("kind") == "riddle"
+    if riddle:
+        labels, windows = riddle_card.layout(content, profile["duration_seconds"])
+    elif is_fact and not sacred:
         windows = reveal_windows(len(labels), profile["duration_seconds"])
     elif not is_fact:
         windows = []
@@ -337,7 +340,11 @@ def render(
                 safe_boxes.append(measure_label(profile, filter_value))
             except ValueError as error:
                 raise ValueError(f"{error}; label={text!r}; size={size}") from error
-            filter_value = label_filter(filter_value, windows[index])
+            if riddle:
+                start, end = windows[index]
+                filter_value += f":enable='gte(t,{start:g})*lt(t,{end:g})'"
+            else:
+                filter_value = label_filter(filter_value, windows[index])
         filters.append(filter_value)
     script = ",".join(filters)
     if sacred:
@@ -465,7 +472,11 @@ def render(
                 "-y",
                 "-ss",
                 # Facts: the first frame of the reading hold, when every line is on screen.
-                f"{max(end for _, end in windows) + 0.3:g}" if is_fact else "1",
+                "0.5"
+                if riddle
+                else f"{max(end for _, end in windows) + 0.3:g}"
+                if is_fact
+                else "1",
                 "-i",
                 str(output),
                 "-frames:v",

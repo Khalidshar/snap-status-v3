@@ -1,8 +1,8 @@
-"""The reviewed variety catalogs as content kinds of the fact pipeline (commands 8, 9, 11, 12).
+"""The reviewed variety catalogs as content kinds of the fact pipeline.
 
 Each item becomes a fact shaped like the did_you_know catalog, with its kind as its only
-category. Titles are plain Arabic: the card font has no emoji glyphs. The riddle catalog
-waits for its own two-part card.
+category. Titles are plain Arabic: the card font has no emoji glyphs.
+Riddles use a timed question/countdown/answer card.
 """
 
 from datetime import date
@@ -16,6 +16,7 @@ TITLES = {
     "style": "أناقة وجمال",
     "funny": "مواقف طريفة",
     "night": "قبل النوم",
+    "riddle": "لغز اليوم",
 }
 # Short display names keep the attribution on one line of the card, like NASA or UNESCO.
 SHORT_SOURCES = {

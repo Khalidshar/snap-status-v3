@@ -315,7 +315,11 @@ def arabic_evidence(row: Any, content_sha: str, content_hash: str | None = None)
                 "type": "did_you_know",
                 "sacred": kind in SACRED_KINDS,
                 "body": saved["body"],
-                **({"kind": kind, "fact_id": saved["fact_id"]} if kind in SACRED_KINDS else {}),
+                **(
+                    {"kind": kind, "fact_id": saved["fact_id"]}
+                    if kind in SACRED_KINDS or kind == "riddle"
+                    else {}
+                ),
             }
         ):
             raise ValueError("Arabic proof changed")
