@@ -58,7 +58,7 @@ def filters(fps: int) -> list[str]:
         "scale=1080:1920:force_original_aspect_ratio=increase",
         "crop=1080:1920",
         f"fps={fps}",
-        "eq=brightness=-0.10:saturation=0.85",
-        "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.35:t=fill",
+        "eq=brightness=-0.14:saturation=0.80",
+        "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.50:t=fill",
         "format=yuv420p",
     ]
