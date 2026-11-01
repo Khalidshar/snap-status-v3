@@ -89,6 +89,8 @@ def test_verified_command_route_blocks_content_without_starting_services(tmp_pat
         with (
             patch.object(command_control, "HALT", marker),
             patch("status_bot.owner_commands.claim", side_effect=rows),
+            # The owner's message keeps the 24 h window open; test_service_window owns that rule.
+            patch("status_bot.owner_commands.ensure_window"),
         ):
             assert process_one(case.outbox, transport, Mock(), runtime)
             assert command_control.halted()
