@@ -241,6 +241,39 @@ def matches(key: str, text: str) -> bool:
     return key in {"news", "tech"} or any(word in text for word in WORDS[key])
 
 
+def google_matches(key: str, text: str) -> bool:
+    """Search feeds must still prove their category; a query alone is not evidence."""
+    if key == "tech":
+        words = (
+            "تقني",
+            "تكنولوج",
+            "ذكاء",
+            "اصطناع",
+            "حاسوب",
+            "حواسيب",
+            "هاتف",
+            "هواتف",
+            "برمج",
+            "تطبيق",
+            "معالج",
+            "شريحة",
+            "رقمي",
+            "أبل",
+            "آيفون",
+            "جوجل",
+            "مايكروسوفت",
+            "سامسونج",
+            "أندرويد",
+            "إنترنت",
+            "سيبراني",
+            "روبوت",
+        )
+        return any(word in text for word in words) and not any(
+            word in text for word in SPORTS_EXCLUDED
+        )
+    return matches(key, text)
+
+
 def published_label(timestamp: float) -> str:
     d = datetime.fromtimestamp(timestamp, ZoneInfo("Asia/Riyadh"))
     time = f"{d.hour % 12 or 12}:{d.minute:02d} {'ص' if d.hour < 12 else 'م'}"
@@ -328,6 +361,7 @@ def collect(
                         not 1 <= len(title) <= 180
                         or not arabic(title)
                         or not matches(key, title)
+                        or (source.id.startswith("gnews-") and not google_matches(key, title))
                         or not 0 <= now - at < MAX_AGE[key]
                         or mark in seen
                     ):
@@ -402,6 +436,7 @@ def validate(content: dict[str, Any], now: float) -> None:
         or not 1 <= len(title) <= 180
         or not arabic(title)
         or not matches(key, title)
+        or (source.id.startswith("gnews-") and not google_matches(key, title))
         or content.get("fingerprint") != fingerprint(title)
         or content.get("title") != TITLES[key]
         or not _publisher_ok(content.get("source"), source)
