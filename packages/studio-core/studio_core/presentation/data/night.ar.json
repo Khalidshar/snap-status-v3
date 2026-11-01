@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": false,
+  "kind": "night",
+  "items": [
+    {
+      "id": "night-01",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "يمكن أن تنتهي هذه الصفحة، وتبقى للغد مساحة جديدة."
+    },
+    {
+      "id": "night-02",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "دع تفاصيل اليوم تستقر، كما يستقر الغبار بعد إغلاق النافذة."
+    },
+    {
+      "id": "night-03",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "ليس عليك أن تحمل كل الأسئلة إلى وسادتك."
+    },
+    {
+      "id": "night-04",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "لحظة هدوء صغيرة قد تجعل نهاية اليوم ألطف."
+    },
+    {
+      "id": "night-05",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "تأمل شيئًا بسيطًا أعجبك اليوم، ولو كان لون السماء."
+    },
+    {
+      "id": "night-06",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "بعض الخطوات الصغيرة لا نلاحظ أثرها إلا بعد وقت."
+    },
+    {
+      "id": "night-07",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "للغد صفحته، ولهذه الليلة سكونها."
+    },
+    {
+      "id": "night-08",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "يمكن أن تنتظر القائمة قليلًا بينما تستمتع بالهدوء."
+    },
+    {
+      "id": "night-09",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "اترك في نهاية يومك مساحة لكلمة لطيفة مع نفسك."
+    },
+    {
+      "id": "night-10",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "لا تحتاج كل فكرة إلى قرار هذه الليلة."
+    },
+    {
+      "id": "night-11",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "تخيل نافذة تطل على بحر هادئ، وموج يصل ببطء."
+    },
+    {
+      "id": "night-12",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "ربما كان أجمل ما في اليوم لحظة لم تخطط لها."
+    },
+    {
+      "id": "night-13",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "يكفي أحيانًا أن تلاحظ ما أنجزته دون مقارنة."
+    },
+    {
+      "id": "night-14",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "للتفاصيل البسيطة مكان في الذاكرة أيضًا."
+    },
+    {
+      "id": "night-15",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "تخيل طريقًا هادئًا تحفه أشجار ساكنة."
+    },
+    {
+      "id": "night-16",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "انتهى يوم، وبقيت إمكانية البداية من جديد."
+    },
+    {
+      "id": "night-17",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "يمكن أن تكون نهاية اليوم أخف من بدايته."
+    },
+    {
+      "id": "night-18",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "احتفظ بذكرى لطيفة، واترك بقية التفاصيل تستريح."
+    },
+    {
+      "id": "night-19",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "في هدوء المكان، تبدو الأشياء الصغيرة أوضح."
+    },
+    {
+      "id": "night-20",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "لست مطالبًا بترتيب العالم قبل إغلاق عينيك."
+    },
+    {
+      "id": "night-21",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "دع نافذة الخيال تفتح على منظر تحبه."
+    },
+    {
+      "id": "night-22",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "ربما يكفي اليوم أنك حاولت خطوة أخرى."
+    },
+    {
+      "id": "night-23",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "الأشياء الجميلة لا تحتاج دائمًا إلى ضجيج."
+    },
+    {
+      "id": "night-24",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "تخيل ضوءًا خافتًا ينساب فوق جدار هادئ."
+    },
+    {
+      "id": "night-25",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "لكل يوم إيقاعه، وهذه لحظة التمهل."
+    },
+    {
+      "id": "night-26",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "يمكن أن يكون الصمت مساحة مريحة بين فكرتين."
+    },
+    {
+      "id": "night-27",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "تذكر ابتسامة مرت اليوم، ولو كانت عابرة."
+    },
+    {
+      "id": "night-28",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "اترك للغد فرصة أن يفاجئك بشيء لطيف."
+    },
+    {
+      "id": "night-29",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "قد تبدأ الحكايات الجديدة بخطوة هادئة جدًا."
+    },
+    {
+      "id": "night-30",
+      "source": "original",
+      "verified_at": "2026-10-28",
+      "text": "هذه اللحظة الصغيرة لا تحتاج إلى استعجال."
+    }
+  ]
+}

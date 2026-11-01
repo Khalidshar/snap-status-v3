@@ -20,6 +20,7 @@ from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, NewsUnavailable
 
 from . import content_clips
+from .command_control import STOPPED, change, halted, status_text
 from .command_inbox import claim
 from .server_preview import GRAPH_VERSION, Runtime
 from .service_window import ensure as ensure_window
@@ -47,6 +48,8 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
             "بوت الحالات يعمل على واتساب.\nالمقاطع التي قبلتها المنصة: "
             + str(accepted)
             + "\nالنشر كحالة يتم يدويًا."
+            + "\n"
+            + status_text()
             + ("\n" + window_text(outbox) if outbox is not None else "")
         )
     return (
@@ -73,7 +76,17 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         ensure_window(outbox)
         parsed = menu.parse(item["text"])
         key = parsed["command"].key if parsed["kind"] == "command" else None
-        if key in TITLES:
+        if key in {"halt", "unhalt"}:
+            send(change(key == "halt", runtime, item["tag"]))
+        elif (
+            parsed["kind"] == "command"
+            and (
+                parsed["command"].section in {"news", "general", "faith", "brief"} or key == "send"
+            )
+            and halted()
+        ):
+            send(STOPPED)
+        elif key in TITLES:
             try:
                 sent = command_news.reply(
                     news,

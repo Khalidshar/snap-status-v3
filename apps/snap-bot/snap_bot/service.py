@@ -200,7 +200,11 @@ def execute(
         repo.transition(
             job["id"], token, "PROCESSING", {"source": content["source"], "fallbacks": failures}
         )
-        stage_input(settings, repo, job["id"], token, attempt, content)
+        staged = stage_input(settings, repo, job["id"], token, attempt, content)
+        if settings["profile"].get("footage"):
+            from .footage import prepare
+
+            prepare(content, staged.parent / "background", Path("/run/madar/snap-video.sock"))
         for state in ("DOWNLOADING", "DESIGNING", "RENDERING"):
             repo.transition(job["id"], token, state)
 

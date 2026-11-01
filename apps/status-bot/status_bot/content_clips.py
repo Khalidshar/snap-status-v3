@@ -9,18 +9,27 @@ import subprocess
 import time
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from snap_bot import command_cards
-from snap_bot.arabic_agent import check_content
-from snap_bot.content_agents import CHECKS, run_check
-from snap_bot.did_you_know import WINDOW_SECONDS, choose_fact, seed_history, validate_content
-from snap_bot.render import render as shared_render
-from snap_bot.render_agents import check_media, check_voice
+from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.jobs.component_lock import ComponentLocks
+from studio_core.network.client import NetworkClient
+from studio_core.network.video import VideoPolicy
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
+from studio_core.presentation import command_cards, footage
+from studio_core.presentation.arabic_agent import check_content
+from studio_core.presentation.content_agents import CHECKS, run_check
+from studio_core.presentation.did_you_know import (
+    WINDOW_SECONDS,
+    choose_fact,
+    seed_history,
+    validate_content,
+)
+from studio_core.presentation.media_checks import check_media, check_voice
+from studio_core.presentation.render import render as shared_render
 from studio_core.renderer import write_once
+from studio_core.sources import event_video
 from studio_core.sources.news import validate as validate_news
 
 from .server_preview import STATE, safe_path
@@ -112,15 +121,23 @@ def render_event(tag: str, root: Path = ROOT) -> None:
         parts = command_cards.lines(content["headline"])
         if len(parts) > 9:
             raise ValueError("Headline exceeds card")
-        result = command_cards.render(
-            [
-                (content["title"], 52, 430),
-                *[(s, 46, 600 + i * 75) for i, s in enumerate(parts)],
-                ("المصدر: " + content["source"], 34, 1340),
-                (content["published_label"], 26, 1430),
-            ],
-            directory / "news",
-        )
+        original = directory / "media/original.json"
+        if original.exists():
+            result = command_cards.original(content, original, directory / "news")
+        else:
+            result = command_cards.render(
+                [
+                    (content["title"], 52, 430),
+                    *[(s, 46, 600 + i * 75) for i, s in enumerate(parts)],
+                    ("المصدر: " + content["source"], 34, 1340),
+                    (content["published_label"], 26, 1430),
+                ],
+                directory / "news",
+                backdrop=footage.pinned(
+                    {**content, "body": content["headline"]},
+                    directory / "media/background/footage.json",
+                ),
+            )
         result["content_hash"] = content["content_hash"]
         result["video_path"] = "news/video.mp4"
     else:
@@ -257,6 +274,19 @@ def build(
     source_path.parent.mkdir(parents=True, mode=0o700)
     write_once(source_path, json.dumps(content, ensure_ascii=False).encode())
     os.chmod(source_path, 0o640)
+    socket = Path("/run/madar/status-video.sock")
+    if news:
+        policy = json.loads(
+            (Path(__file__).resolve().parents[3] / "config/media/source-video.json").read_text()
+        )
+        client = NetworkClient(cast(Config, VideoPolicy(socket)))
+        original = event_video.prepare(content, directory / "media", client, policy)
+        if original is None:
+            footage.prepare(
+                {**content, "body": content["headline"]}, directory / "media/background", socket
+            )
+    elif settings["profile"].get("footage"):
+        footage.prepare(content, source_path.parent / "background", socket)
     write_once(
         directory / "request.json",
         json.dumps(
@@ -293,7 +323,10 @@ def build(
         if not news:
             check_voice(checked)
         else:
-            require(result.get("audio_policy") == "SILENT", "WA_AUDIO_POLICY_CHANGED")
+            require(
+                result.get("audio_policy") in {"SILENT", "ORIGINAL_SOURCE"},
+                "WA_AUDIO_POLICY_CHANGED",
+            )
         return result
 
     result = stage("voice", result, verify_voice, lambda r: r == result)

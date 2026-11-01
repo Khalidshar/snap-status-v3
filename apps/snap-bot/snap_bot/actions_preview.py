@@ -222,7 +222,7 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             "NoNewPrivileges=yes",
             "RestrictAddressFamilies=AF_UNIX",
             "ReadWritePaths=" + str(spool) + " " + str(socket_dir),
-            "InaccessiblePaths=" + str(state),
+            "InaccessiblePaths=" + str(state) + " -/run/madar",
             "RuntimeMaxSec=300",
         ]
         args = ["sudo", "-n", "systemd-run", "--quiet", "--collect", "--unit=" + unit]
