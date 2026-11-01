@@ -36,7 +36,7 @@ from studio_core.renderer import (
     write_once as write_once,
 )
 
-from . import brand_frame, riddle_card, sacred_cards
+from . import brand_frame, footage, riddle_card, sacred_cards
 from .did_you_know import is_sacred, validate_content
 from .fact_audio import ambient_source, measure_audio
 from .fact_layout import (
@@ -205,6 +205,10 @@ def render(
     if frame_name not in (None, "rawwag"):
         raise ValueError("Unknown brand frame")
     brand = brand_frame.load_brand() if frame_name else None
+    # Owner decision 2026-11-01: a licensed moving backdrop fills the frame's window.
+    if settings["profile"].get("footage") not in (None, "rawwag-v1"):
+        raise ValueError("Unknown footage profile")
+    backdrop = footage.choose(content) if brand and settings["profile"].get("footage") else None
     isolation = proof(settings["egress_socket"])
     spool.mkdir(parents=True, exist_ok=True, mode=0o750)
     root = spool / job_id
@@ -300,6 +304,8 @@ def render(
         if labels[1][0] != "@rawwag_khalid" or "خالد" not in labels[0][0]:
             raise ValueError("Unexpected fact identity labels")
         filters.remove(CARD_BORDER)
+    if backdrop:
+        filters = footage.filters(profile["fps"])
     y: int | str
     label_font: Path
     # Kufi joins «عا» so the alef of «تعالى» reads as missing; such lines use the
@@ -376,10 +382,16 @@ def render(
         "-y",
         "-threads",
         "1",
-        "-f",
-        "lavfi",
-        "-i",
-        f"color=c=0x0B3D2E:s={profile['width']}x{profile['height']}:r={profile['fps']}:d={profile['duration_seconds']}",
+        *(
+            ["-stream_loop", "-1", "-i", backdrop["path"]]
+            if backdrop
+            else [
+                "-f",
+                "lavfi",
+                "-i",
+                f"color=c=0x0B3D2E:s={profile['width']}x{profile['height']}:r={profile['fps']}:d={profile['duration_seconds']}",
+            ]
+        ),
         *(
             [
                 "-f",
@@ -510,6 +522,10 @@ def render(
                 "overlay_sha256": brand["overlay"]["sha256"],
                 "clip_box": brand["clip_box"],
             }
+            if backdrop:
+                result["footage"] = {
+                    k: backdrop[k] for k in ("file", "sha256", "provider", "source", "license")
+                }
         result.update(
             {"content_type": "did_you_know", "safe_area": {"result": "PASS", "boxes": safe_boxes}}
         )

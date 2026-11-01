@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "approved": "2026-11-01",
+  "decision": "docs/DECISIONS.md — قرار ١ نوفمبر ٢٠٢٦ (Pexels ← Pixabay ← Coverr ← Mixkit ← محلي)",
+  "normalized": "720x1280, 24 fps, ≤15 s, no audio, H.264 CRF 27 (ffmpeg 6.1.1)",
+  "pools": {
+    "calm": "sacred kinds",
+    "night": "night",
+    "day": "everything else"
+  },
+  "clips": [
+    {
+      "file": "mixkit-1164.mp4",
+      "sha256": "6a5ba9fbfb47ba3d82815a55eaad65c1e6be8b5e33b94c3721894496ad09cf47",
+      "pool": "night",
+      "title": "Waves in the water",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/waves-in-the-water-1164/",
+      "license": "Mixkit Stock Video Free License"
+    },
+    {
+      "file": "mixkit-1168.mp4",
+      "sha256": "5e0a1d4f4d7f23c310e0669c54ee4e3ad7e96f6a98162a14ca30a26d4b8f3e1e",
+      "pool": "day",
+      "title": "Pink flowers wave in the breeze",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/pink-flowers-wave-in-the-breeze-1168/",
+      "license": "Mixkit Stock Video Free License"
+    },
+    {
+      "file": "mixkit-1170.mp4",
+      "sha256": "302048b57db5c3b2c61bed8eefbb87e31dd83181aba61255027e24fa1ff17735",
+      "pool": "calm",
+      "title": "Sun setting or rising over palm trees",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/sun-setting-or-rising-over-palm-trees-1170/",
+      "license": "Mixkit Stock Video Free License"
+    },
+    {
+      "file": "mixkit-1183.mp4",
+      "sha256": "0f6e01a45f67da7198bb373fc034c505442b46fcbbec84e75ce9c2ad2c307041",
+      "pool": "calm",
+      "title": "Sun over hills",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/sun-over-hills-1183/",
+      "license": "Mixkit Stock Video Free License"
+    },
+    {
+      "file": "mixkit-1197.mp4",
+      "sha256": "79db3172ee9f804d97a3dc3d1e69633f5931d685dbc9985646d0a1a3b35a006d",
+      "pool": "calm",
+      "title": "Wooden pier over a body of water",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/wooden-pier-over-a-body-of-water-1197/",
+      "license": "Mixkit Stock Video Free License"
+    },
+    {
+      "file": "mixkit-1968.mp4",
+      "sha256": "59163737a4e843cc556d72429053ade0c298050122bf4d99cd5c18332a6676d2",
+      "pool": "night",
+      "title": "Black background with smoke foreground",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/black-background-with-smoke-foreground-1968/",
+      "license": "Mixkit Stock Video Free License"
+    },
+    {
+      "file": "mixkit-51500.mp4",
+      "sha256": "a7030de4db6c9901fe15c7af201231eb18ca2de45e56ae7160539c89d4d794cf",
+      "pool": "day",
+      "title": "Aerial view of turquoise waves",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/aerial-view-of-the-beautiful-turquoise-waves-crashing-on-the-51500/",
+      "license": "Mixkit Stock Video Free License"
+    },
+    {
+      "file": "mixkit-51506.mp4",
+      "sha256": "ed8497360319a0930b9f3a83a16acc671b676101d6b62e28f3c0be2ce5fe7096",
+      "pool": "day",
+      "title": "Aerial view of sea waves crash at a rock",
+      "provider": "Mixkit",
+      "source": "https://mixkit.co/free-stock-video/aerial-view-of-sea-waves-crash-at-a-rock-51506/",
+      "license": "Mixkit Stock Video Free License"
+    }
+  ]
+}
