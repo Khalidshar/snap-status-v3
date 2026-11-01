@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from snap_bot import did_you_know as dyk
-from snap_bot import faith, sacred_kinds
+from snap_bot import faith, sacred_cards, sacred_kinds
 from snap_bot.arabic_agent import check_text, inspect_content
 from snap_bot.content_agents import CHECKS, AgentRejected, proofread, run_check
 from snap_bot.fact_layout import (
@@ -46,7 +46,8 @@ def contents(kind):
 class SacredKindTests(unittest.TestCase):
     def test_kinds_are_registered_as_sacred_with_plain_titles(self):
         self.assertEqual(
-            set(sacred_kinds.TITLES), {"hadith", "dua", "fast", "verse", "adhkar_am", "adhkar_pm"}
+            set(sacred_kinds.TITLES),
+            {"hadith", "dua", "fast", "verse", "adhkar_am", "adhkar_pm", "friday", "kahf"},
         )
         self.assertLessEqual(set(sacred_kinds.TITLES), dyk.SACRED_KINDS)
         for kind in ("tech", "night", dyk.DEFAULT_KIND):
@@ -217,14 +218,19 @@ class SacredLabelSafeAreaTests(unittest.TestCase):
                 + contents("verse")
                 + contents("adhkar_am")
                 + contents("adhkar_pm")
+                + contents("friday")
+                + contents("kahf")
             ):
                 for index, label in enumerate(sacred_labels(content, profile)[2:-1]):
                     with self.subTest(fact=content["fact_id"], label=index):
+                        label_font = (
+                            sacred_cards.ornament_font(profile) if label[4] == "amiri" else font
+                        )
                         path = Path(tmp) / f"{content['fact_id']}-{index}.txt"
                         path.write_text(display_text(label[0], "arabic"), encoding="utf-8")
                         measure_label(
                             profile,
-                            f"drawtext=fontfile={font}:textfile={path}:expansion=none:text_shaping=1"
+                            f"drawtext=fontfile={label_font}:textfile={path}:expansion=none:text_shaping=1"
                             f":fontsize={label[1]}:fontcolor=white:x=(w-text_w)/2:y={label_y(label)}",
                         )
 

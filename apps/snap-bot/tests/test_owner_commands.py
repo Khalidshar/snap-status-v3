@@ -166,7 +166,7 @@ class OwnerCommandTests(unittest.TestCase):
             self.assertTrue(keyboard["resize_keyboard"])
             buttons = [button for row in keyboard["keyboard"] for button in row]
             expected = {key for row in listener.KEYBOARD_ROWS for key in row}
-            self.assertEqual(len(buttons), 18)
+            self.assertEqual(len(buttons), 20)
             resolved = set()
             for button in buttons:
                 parsed = listener.menu.parse(button["text"])
@@ -340,12 +340,19 @@ class ClipCycleTests(unittest.TestCase):
         self.assertIn("نص المعلومة", reply["caption"])
 
     def test_quran_and_adhkar_commands_render_and_send_their_own_kind(self):
-        for number, key in enumerate(("verse", "adhkar_am", "adhkar_pm"), 40):
+        def ack(unit):
+            self.runtime.list.append(
+                {"kind": "ACK", "video_sha": unit.split("@", 1)[1].removesuffix(".service"),
+                 "bot": "khalid_s2ss_bot", "message_id": 950, "time": time.time()}
+            )  # fmt: skip
+
+        self.on_start["madar-v3-snap-send-main"] = ack
+        for number, key in enumerate(("verse", "adhkar_am", "adhkar_pm", "friday", "kahf"), 40):
             with self.subTest(kind=key):
                 self.on_start["madar-v3-snap-render"] = lambda unit, kind=key, n=number: (
                     self.runtime.rendered(n, kind=kind, title=listener.menu.BY_KEY[kind].label)
                 )
-                self.studio.answer(listener.menu.BY_KEY[key].label)
+                self.assertEqual(self.studio.answer(listener.menu.BY_KEY[key].label), "")
                 self.assertEqual(self.started[-2], "madar-v3-snap-render@" + key + ".service")
                 self.assertEqual(self.started[-1], listener.SEND_UNIT.format(sha=f"{number:064x}"))
                 self.assertIn(key, listener.ACTIONS)

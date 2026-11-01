@@ -20,7 +20,7 @@ from .fact_layout import (
 )
 from .font_admission import admit_font
 
-KINDS = {"verse", "adhkar_am", "adhkar_pm"}
+KINDS = {"verse", "adhkar_am", "adhkar_pm", "friday", "kahf"}
 MAX_PAGES = 15  # At most 180 seconds with the existing 12-second page profile.
 AMIRI_REGULAR = Path("/usr/share/fonts/opentype/fonts-hosny-amiri/Amiri-Regular.ttf")
 

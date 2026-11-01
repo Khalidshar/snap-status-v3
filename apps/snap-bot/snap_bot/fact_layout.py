@@ -91,7 +91,7 @@ def fast_narration_line(content: dict[str, Any]) -> str:
 
 def sacred_display_body(content: dict[str, Any]) -> str:
     """The verbatim body; a hadith is quoted in «», outside the unchanged text."""
-    if content["kind"] in ("verse", "adhkar_am", "adhkar_pm"):
+    if content["kind"] in ("verse", "adhkar_am", "adhkar_pm", "friday", "kahf"):
         return page_display_body(content, content["body"])
     return "«" + content["body"] + "»" if content["kind"] == "hadith" else str(content["body"])
 
@@ -100,7 +100,7 @@ def page_display_body(content: dict[str, Any], page: str) -> str:
     item = _faith_item(content)
     return (
         "\ufd3f" + page + "\ufd3e"
-        if content["kind"] == "verse" or item.get("type") == "quran"
+        if content["kind"] in ("verse", "friday", "kahf") or item.get("type") == "quran"
         else page
     )
 
@@ -189,7 +189,12 @@ def sacred_labels(
             if content["kind"] == "hadith"
             else fast_header(content)
             if content["kind"] == "fast"
-            else [("قال الله تعالى:", 76, 430, "0xD6B26C", "arabic")]
+            else [
+                (content["title"], 76, 405, "0xD6B26C", "amiri"),
+                ("قال الله تعالى:", 60, 490, "0xD6B26C", "amiri"),
+            ]
+            if content["kind"] in ("friday", "kahf")
+            else [("قال الله تعالى:", 76, 430, "0xD6B26C", "amiri")]
             if content["kind"] == "verse"
             else [
                 (content["title"], 76, 430, "0xD6B26C", "arabic"),
@@ -205,8 +210,8 @@ def sacred_labels(
             if content["kind"] == "fast"
             else _faith_item(content)["source"]
             if content["kind"] in ("adhkar_am", "adhkar_pm")
-            else reference(_faith_item(content))
-            if content["kind"] == "verse"
+            else reference(_faith_item(content), compact=content["kind"] == "kahf")
+            if content["kind"] in ("verse", "friday", "kahf")
             else content["attribution"],
             44 if content["kind"] in ("hadith", "fast") else 40,
             1320,

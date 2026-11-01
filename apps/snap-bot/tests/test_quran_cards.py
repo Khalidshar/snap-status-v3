@@ -39,7 +39,7 @@ def test_every_new_item_preserves_exact_source_hash_and_font(kind):
         selected = quran_font.font_for(item)
         assert selected == (
             quran_font.path()
-            if kind == "verse" or item.get("type") == "quran"
+            if kind in {"verse", "friday", "kahf"} or item.get("type") == "quran"
             else quran_font.NASKH
         )
         displayed = page_display_body(value, text)
@@ -121,6 +121,10 @@ def test_all_quran_and_adhkar_pages_are_measured_inside_card(tmp_path, kind):
         value = content(kind, item["id"])
         parts, images = sacred_cards.images(value, profile, directory)
         assert " ".join(parts) == faith.text(item)
+        assert len(parts) <= 15
+        if kind == "kahf":
+            assert len(parts) > 1
+            assert " ".join(parts).count("\u06dd") == 10
         height = max(size[1] for _, size in images)
         labels, top = stack_sacred(sacred_labels(value, profile), height)
         for image, (width, measured_height) in images:
@@ -181,7 +185,10 @@ def test_real_ffmpeg_shows_each_page_in_its_own_interval(tmp_path):
 
 
 @pytest.mark.skipif(not shutil.which("pango-view"), reason="Linux Pango and FFmpeg")
-def test_complete_paginated_video_passes_media_and_voice_agents():
+@pytest.mark.parametrize(
+    "kind,identifier", [("adhkar_am", "adhkar-am-01"), ("friday", "friday-02"), ("kahf", "kahf-01")]
+)
+def test_complete_paginated_video_passes_media_and_voice_agents(kind, identifier):
     from dataclasses import replace
     from types import SimpleNamespace
     from unittest.mock import patch
@@ -199,7 +206,7 @@ def test_complete_paginated_video_passes_media_and_voice_agents():
         f.config = replace(f.config, lease_seconds=600)
         f.repo.config = f.config
         f.repo.heartbeat(f.job, f.owner["lease_token"])
-        value = content("adhkar_am", "adhkar-am-01")
+        value = content(kind, identifier)
         fixture.set_content(value)
         profile = tomllib.loads((ROOT / "config/snap/did_you_know.toml").read_text())["slice"][
             "profile"
@@ -225,3 +232,15 @@ def test_complete_paginated_video_passes_media_and_voice_agents():
         f.adopt(result)
     finally:
         fixture.doCleanups()
+
+
+@pytest.mark.parametrize("kind", ["friday", "kahf"])
+def test_quran_headings_use_the_pinned_amiri_role(kind):
+    for item in faith.load(kind):
+        value = content(kind, item["id"])
+        headers = sacred_labels(value)[2:-2]
+        assert [row[0] for row in headers] == [value["title"], "قال الله تعالى:"]
+        assert all(row[4] == "amiri" for row in headers)
+        assert value["body"] == faith.text(item)
+    if kind == "kahf":
+        assert sacred_labels(value)[-2][0] == "سورة الكهف • الآيات ١\u2013١٠"
