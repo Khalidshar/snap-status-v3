@@ -5,6 +5,7 @@ import json
 import math
 import re
 import unicodedata
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -323,6 +324,8 @@ def collect(
     now: float,
     *,
     seen: frozenset[str] = frozenset(),
+    source_ids: frozenset[str] | None = None,
+    predicate: Callable[[str], bool] | None = None,
 ) -> dict[str, Any]:
     key = command_key(command)
     if key not in TITLES or type(now) not in (int, float) or not math.isfinite(now):
@@ -330,6 +333,8 @@ def collect(
     candidates: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
     for source in for_command(key):
+        if source_ids is not None and source.id not in source_ids:
+            continue
         # Candidates may be fetched for PRIVATE REVIEW, never treated as publication approval.
         if source.kind != "rss" or source.status != "candidate" or source.language != "ar":
             continue
@@ -364,6 +369,7 @@ def collect(
                         or (source.id.startswith("gnews-") and not google_matches(key, title))
                         or not 0 <= now - at < MAX_AGE[key]
                         or mark in seen
+                        or (predicate is not None and not predicate(title))
                     ):
                         continue
                     candidates.append(

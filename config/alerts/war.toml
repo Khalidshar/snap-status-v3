@@ -1,0 +1,3 @@
+# Disabled on installation. Shehana reviews actual source permissions before enabling.
+enabled = false
+approved_sources = []
