@@ -113,6 +113,13 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
 
         inventory = json.loads((REPO / "config/status/agent-registry.json").read_text())["agents"]
         last = {r[0]: r[1] for r in agents or []}
+        ledger = db.parent / "agent-status.sqlite"
+        observed = {}
+        if rows(ledger, "SELECT app FROM scope") == [(scope,)]:
+            for role, state, at in rows(ledger, "SELECT role,state,at FROM runs ORDER BY id") or []:
+                observed[role] = {"state": state, "at": at}
+            last.update({role: row["state"] for role, row in observed.items()})
+
         item: dict[str, Any] = {
             "active": active,
             "jobs": aggregate(counts),
@@ -121,6 +128,7 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
             "agents": [
                 {
                     "name": a["name"],
+                    "at": observed.get(a["id"], {}).get("at"),
                     "state": last.get(a["id"], "UNKNOWN")
                     if last.get(a["id"])
                     in {"PASS", "FAIL", "RUNNING", "STARTED", "SUCCEEDED", "FAILED"}
