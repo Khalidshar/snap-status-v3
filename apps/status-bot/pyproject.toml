@@ -3,13 +3,17 @@ name = "status-bot"
 version = "0.1.0"
 description = "Status Bot V2 runtime."
 requires-python = ">=3.11"
-dependencies = ["studio-core"]
+dependencies = [
+    "snap-bot",
+    "studio-core",
+]
 
 [project.scripts]
 status-bot = "status_bot.cli:main"
 
 [tool.uv.sources]
 studio-core = { workspace = true }
+snap-bot = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]
