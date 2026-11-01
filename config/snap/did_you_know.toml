@@ -64,6 +64,8 @@ sacred_font_sha256 = "0919edeba540a6b27875d4651f2bf26dcbae00324b4bb034f7a030f7f2
 sacred_font_size = 60
 # The approved personal frame (brand_frame.py); every fact video is framed before QA.
 brand_frame = "rawwag"
+# Licensed moving backdrop inside the frame window (footage.py, owner decision 2026-11-01).
+footage = "rawwag-v1"
 
 
 fact_body_font_size = 68
