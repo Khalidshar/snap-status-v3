@@ -208,7 +208,12 @@ def render(
     # Owner decision 2026-11-01: a licensed moving backdrop fills the frame's window.
     if settings["profile"].get("footage") not in (None, "rawwag-v1"):
         raise ValueError("Unknown footage profile")
-    backdrop = footage.choose(content) if brand and settings["profile"].get("footage") else None
+    prepared = content_path.parent / "background/footage.json"
+    backdrop = (
+        (footage.pinned(content, prepared) if prepared.exists() else footage.choose(content))
+        if brand and settings["profile"].get("footage")
+        else None
+    )
     isolation = proof(settings["egress_socket"])
     spool.mkdir(parents=True, exist_ok=True, mode=0o750)
     root = spool / job_id
