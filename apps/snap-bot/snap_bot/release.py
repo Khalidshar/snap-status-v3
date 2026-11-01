@@ -63,7 +63,7 @@ REQUIRED = (
 # Exact runtime dependencies: anything else would need a hash-locked install step.
 DEPENDENCIES = {
     "apps/snap-bot/pyproject.toml": ["studio-core"],
-    "apps/status-bot/pyproject.toml": ["studio-core"],
+    "apps/status-bot/pyproject.toml": ["snap-bot", "studio-core"],
     "packages/studio-core/pyproject.toml": [],
 }
 

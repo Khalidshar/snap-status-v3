@@ -37,7 +37,11 @@ def lines(text: str, width: int = 26) -> list[str]:
 
 
 def render(
-    labels: list[tuple[str, int, int]], root: Path, *, settings: dict[str, Any] | None = None
+    labels: list[tuple[str, int, int]],
+    root: Path,
+    *,
+    settings: dict[str, Any] | None = None,
+    backdrop: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     settings = settings or profile()
     isolation = proof("/run/madar-command-card-no-egress.sock")
@@ -52,6 +56,12 @@ def render(
         raise ValueError("Card tool version changed")
     charset = run([settings["fc_query"], "--format=%{charset}", str(font)], 5).stdout
     filters = []
+    if backdrop:
+        from .footage import filters as backdrop_filters
+
+        if hashlib.sha256(Path(backdrop["path"]).read_bytes()).hexdigest() != backdrop["sha256"]:
+            raise ValueError("Background changed")
+        filters.extend(backdrop_filters(24))
     boxes = []
     for i, (text, requested, y) in enumerate(labels):
         if not text or len(text) > 100 or any(ord(c) < 32 for c in text):
@@ -83,10 +93,11 @@ def render(
             "error",
             "-nostdin",
             "-n",
-            "-f",
-            "lavfi",
-            "-i",
-            "color=c=0x0B3D2E:s=1080x1920:r=24:d=8",
+            *(
+                ["-stream_loop", "-1", "-i", backdrop["path"]]
+                if backdrop
+                else ["-f", "lavfi", "-i", "color=c=0x0B3D2E:s=1080x1920:r=24:d=8"]
+            ),
             "-filter_script:v",
             str(graph),
             "-t",
@@ -141,3 +152,34 @@ def render(
         "audio_policy": "SILENT",
         "tool_version": version,
     }
+
+
+def original(content: dict[str, Any], manifest: Path, root: Path) -> dict[str, Any]:
+    """Preserve the whole event video and its audio inside the approved window."""
+    from studio_core.sources.event_video import verify
+
+    source = verify(content, manifest)
+    root.mkdir(mode=0o700)
+    isolation = proof("/run/denied-source-video.sock")
+    result = brand_frame.compose(source, root / "video.mp4", normalize_audio=False)
+    run(
+        [
+            "/usr/bin/ffmpeg",
+            "-v",
+            "error",
+            "-nostdin",
+            "-n",
+            "-i",
+            str(root / "video.mp4"),
+            "-frames:v",
+            "1",
+            str(root / "preview.png"),
+        ],
+        30,
+    )
+    result.update(
+        network_isolation=isolation,
+        safe_area={"result": "PASS", "boxes": []},
+        audio_policy="ORIGINAL_SOURCE",
+    )
+    return result

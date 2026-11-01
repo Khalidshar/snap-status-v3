@@ -1,0 +1,20 @@
+[Unit]
+Description=Madar v3 WhatsApp loopback origin bridge
+After=madar-v3-status-command-webhook.service
+Requires=madar-v3-status-command-webhook.service
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/madar/current
+ExecStart=/opt/madar/current/.venv/bin/python -m status_bot.tunnel_origin
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET
+IPAddressDeny=any
+IPAddressAllow=localhost
+Restart=on-failure
