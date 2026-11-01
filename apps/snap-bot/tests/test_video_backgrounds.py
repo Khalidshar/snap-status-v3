@@ -101,7 +101,7 @@ def test_authorization_only_to_api():
             "2" if name == "Content-Length" else "application/json"
         )
         reply.read.return_value = b"{}"
-        policy = VideoPolicy(Path("/unused"), secrets={"PEXELS_API_KEY": "fixture"})
+        policy = VideoPolicy(Path("/unused"), secrets={"PEXELS_KEY": "fixture"})
         fetch_video("https://api.pexels.com/v1/videos/search", policy)
         assert conn.return_value.request.call_args.kwargs["headers"]["Authorization"] == "fixture"
         assert "fixture" not in repr(policy)

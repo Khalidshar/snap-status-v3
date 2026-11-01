@@ -18,9 +18,9 @@ from studio_core.network.egress import (
 )
 
 API = {
-    "api.pexels.com": ("PEXELS_API_KEY", "/v1/videos/search", "Authorization", ""),
-    "pixabay.com": ("PIXABAY_API_KEY", "/api/videos/", "", ""),
-    "api.coverr.co": ("COVERR_API_KEY", "/videos", "Authorization", "Bearer "),
+    "api.pexels.com": ("PEXELS_KEY", "/v1/videos/search", "Authorization", ""),
+    "pixabay.com": ("PIXABAY_KEY", "/api/videos/", "", ""),
+    "api.coverr.co": ("COVERR_KEY", "/videos", "Authorization", "Bearer "),
 }
 HOSTS = (*API, "videos.pexels.com", "cdn.pixabay.com", "storage.coverr.co")
 
