@@ -12,14 +12,17 @@ import time
 from pathlib import Path
 from typing import Any
 
+from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, NewsUnavailable
 
+from . import content_clips
+from .command_control import STOPPED, change, halted, status_text
 from .command_inbox import claim
-from .server_preview import GRAPH_VERSION, Runtime
+from .server_preview import GRAPH_VERSION, STATE, Runtime
 from .service_window import ensure as ensure_window
 from .service_window import text as window_text
 from .whatsapp_contract import DeliveryBlocked, DeliveryIdentity, require, response_id
@@ -45,6 +48,8 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
             "بوت الحالات يعمل على واتساب.\nالمقاطع التي قبلتها المنصة: "
             + str(accepted)
             + "\nالنشر كحالة يتم يدويًا."
+            + "\n"
+            + status_text()
             + ("\n" + window_text(outbox) if outbox is not None else "")
         )
     return (
@@ -55,6 +60,9 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
 
 
 def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
+    from studio_core.jobs.panel_queue import transfer_status
+
+    transfer_status(STATE / "panel-commands.sqlite", outbox)
     item = claim(outbox.repo, outbox.identity)
     if item is None:
         return False
@@ -71,13 +79,33 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         ensure_window(outbox)
         parsed = menu.parse(item["text"])
         key = parsed["command"].key if parsed["kind"] == "command" else None
-        if key in TITLES:
+        if key in {"halt", "unhalt"}:
+            send(change(key == "halt", runtime, item["tag"]))
+        elif (
+            parsed["kind"] == "command"
+            and (
+                parsed["command"].section in {"news", "general", "faith", "brief"} or key == "send"
+            )
+            and halted()
+        ):
+            send(STOPPED)
+        elif key in TITLES:
             try:
-                sent = news.reply(key, item["tag"], send)
+                sent = command_news.reply(
+                    news,
+                    key,
+                    item["tag"],
+                    send,
+                    lambda content: content_clips.send(
+                        outbox, transport, item, key, runtime, source=content
+                    ),
+                )
                 if not sent:
                     raise ValueError("Command already consumed")
             except NewsUnavailable:
                 send("لا يوجد خبر عربي حديث مناسب الآن؛ لم يُستبدل بمحتوى قديم.")
+        elif key in content_clips.KINDS:
+            content_clips.send(outbox, transport, item, key, runtime)
         else:
             send(answer(item["text"], runtime, outbox=outbox))
         with outbox.repo.transaction() as db:

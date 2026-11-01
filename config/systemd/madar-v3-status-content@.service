@@ -1,0 +1,20 @@
+[Unit]
+Description=Madar isolated WhatsApp content clip
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/madar/current
+ExecStart=/opt/madar/current/.venv/bin/python -m status_bot.content_clips %i
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+NoNewPrivileges=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/madar/status
+MemoryMax=1536M
+TimeoutStartSec=900

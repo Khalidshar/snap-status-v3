@@ -15,6 +15,8 @@ from typing import Any
 from urllib.parse import quote
 
 from studio_core.commands import COMMANDS
+from studio_core.jobs.panel_queue import enqueue
+from studio_core.sources import load as load_sources
 
 REPO = Path(__file__).resolve().parents[1]
 STATE = Path("/var/lib/madar")
@@ -50,7 +52,8 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
         "at": time.time(),
         "apps": {},
         "commands": [
-            {"number": c.number, "label": c.label, "confirm": c.confirm} for c in COMMANDS
+            {"number": c.number, "key": c.key, "label": c.label, "confirm": c.confirm}
+            for c in COMMANDS
         ],
     }
     for app, db in databases.items():
@@ -71,7 +74,7 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
         )
         agents = rows(
             db,
-            "SELECT role,status,MAX(started_at) FROM agent_runs WHERE app=? GROUP BY role",
+            "SELECT role,status,started_at FROM agent_runs WHERE app=? ORDER BY started_at,run_id",
             (scope,),
         )
         # Export only known fields and enum values, never job/message/user payloads.
@@ -148,6 +151,8 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
         # Show a safe, bounded event classification; never expose arbitrary log values.
         log = STATE / app / "events.jsonl"
         events = []
+        clips = []
+        errors = []
         if log.is_file() and not log.is_symlink():
             with log.open("rb") as stream:
                 stream.seek(max(0, log.stat().st_size - 65536))
@@ -156,11 +161,35 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
                 try:
                     value = json.loads(line)
                     kind = value.get("kind")
+                    sha = value.get("video_sha")
+                    if (
+                        isinstance(sha, str)
+                        and len(sha) == 64
+                        and all(c in "0123456789abcdef" for c in sha)
+                    ):
+                        clips.append(
+                            {
+                                "sha": sha,
+                                "state": kind
+                                if kind in {"ACK", "RENDERED", "APPROVED"}
+                                else "UNKNOWN",
+                            }
+                        )
+                    if kind in {"FAILED", "BLOCKED_OR_UNKNOWN", "SEND_FAILED"}:
+                        errors.append("FAILED")
                     if kind in {"RENDERED", "ACK", "SENT", "APPROVED", "FAILED"}:
                         events.append(kind)
                 except (ValueError, AttributeError):
                     continue
         item["events"] = events
+        item["clips"] = clips[-5:]
+        item["errors"] = errors
+        item["sources"] = [
+            {"name": source.name, "state": "excluded" if source.status == "excluded" else "unknown"}
+            for source in load_sources()
+            if source.kind == "rss"
+            and any(k in source.commands for k in ("urgent", "news", "football"))
+        ]
         result["apps"][app] = item
     usage = shutil.disk_usage(STATE if STATE.exists() else REPO)
     result["resources"] = {
@@ -242,44 +271,30 @@ class Handler(BaseHTTPRequestHandler):
         ):
             self.reply(403, b"{}")
             return
-        if self.path != "/api/control" or not self.server.controls:
+        if self.path != "/api/command" or not self.server.controls:
             self.reply(403, b"{}")
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if self.headers.get("Transfer-Encoding") or not 0 < length <= 256:
+            if self.headers.get("Transfer-Encoding") or not 0 < length <= 512:
                 raise ValueError("INVALID_REQUEST")
             value = json.loads(self.rfile.read(length))
-            if (
-                set(value) != {"app", "action"}
-                or value["app"] not in UNITS
-                or value["action"] not in {"start", "stop"}
-            ):
+            if set(value) != {"app", "command", "request_id"} or value["app"] not in UNITS:
                 raise ValueError("INVALID_REQUEST")
-            app, action = value["app"], value["action"]
-            if action == "start" and (STATE / app / "HALT").exists():
-                raise ValueError("HALT_ACTIVE")
-            with self.server.control_lock:
-                # Intent is durable before side effects; no automatic retries.
-                log = STATE / app / "panel-audit.jsonl"
-                if any(p.is_symlink() for p in (log, *log.parents)):
-                    raise ValueError("UNSAFE_LOG")
-                with log.open("a") as stream:
-                    stream.write(
-                        json.dumps({"at": time.time(), "action": action, "unit": UNITS[app]}) + "\n"
-                    )
-                    stream.flush()
-                    os.fsync(stream.fileno())
-                success = ctl(action, UNITS[app])
-            self.reply(200 if success else 409, json.dumps({"ok": success}).encode())
-        except (ValueError, KeyError, TypeError, OSError, subprocess.SubprocessError):
-            self.reply(409, b'{"ok":false}')
+            result = enqueue(
+                STATE / value["app"] / "panel-commands.sqlite",
+                value["command"],
+                value["request_id"],
+            )
+            self.reply(202, json.dumps({"queued": result}).encode())
+        except (ValueError, KeyError, TypeError, OSError, sqlite3.Error):
+            self.reply(409, b'{"queued":false}')
 
 
 def main() -> None:
     os.umask(0o077)
     parser = argparse.ArgumentParser(description="لوحة تحكم v3 المحلية الخاصة")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=8876)
     parser.add_argument("--snap-db", type=Path, default=STATE / "snap/jobs.sqlite")
     parser.add_argument("--status-db", type=Path, default=STATE / "status/commands/jobs.sqlite")
     parser.add_argument("--enable-controls", action="store_true")

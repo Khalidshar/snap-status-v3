@@ -65,44 +65,38 @@ def test_missing_is_unknown_and_window_owner_scope(server):
 
 
 def test_control_defaults_and_csrf(server):
-    data = b'{"app":"snap","action":"start"}'
+    data = b'{"app":"snap","command":"facts","request_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
     with patch.object(panel, "ctl") as ctl:
         with pytest.raises(urllib.error.HTTPError) as exc:
-            get(server, "/api/control", body=data, origin=server.origin)
+            get(server, "/api/command", body=data, origin=server.origin)
         assert exc.value.code == 403
         server.controls = True
         with pytest.raises(urllib.error.HTTPError) as exc:
-            get(server, "/api/control", body=data, origin="https://foreign.example")
+            get(server, "/api/command", body=data, origin="https://foreign.example")
         assert exc.value.code == 403
         ctl.assert_not_called()
 
 
-def test_arbitrary_unit_and_halt_blocked(server, tmp_path):
+def test_command_queue_idempotency(server, tmp_path):
     server.controls = True
-    (tmp_path / "snap").mkdir()
-    (tmp_path / "snap/HALT").touch()
+    body = b'{"app":"snap","command":"facts","request_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
     with patch.object(panel, "STATE", tmp_path), patch.object(panel, "ctl") as ctl:
-        for body in [
-            b'{"app":"snap","action":"restart"}',
-            b'{"app":"snap","action":"start"}',
-            b'{"app":"V1","action":"stop"}',
-        ]:
-            with pytest.raises(urllib.error.HTTPError) as exc:
-                get(server, "/api/control", body=body, origin=server.origin)
-            assert exc.value.code == 409
+        with get(server, "/api/command", body=body, origin=server.origin) as reply:
+            assert json.loads(reply.read())["queued"]
+        with get(server, "/api/command", body=body, origin=server.origin) as reply:
+            assert not json.loads(reply.read())["queued"]
         ctl.assert_not_called()
+    with sqlite3.connect(tmp_path / "snap/panel-commands.sqlite") as db:
+        assert db.execute("SELECT count(*) FROM panel_commands").fetchone()[0] == 1
 
 
-def test_control_audits_intent_and_stays_in_allowlist(server, tmp_path):
-    server.controls = True
-    (tmp_path / "snap").mkdir()
-    with (
-        patch.object(panel, "STATE", tmp_path),
-        patch.object(panel, "ctl", return_value=True) as ctl,
-    ):
-        with get(
-            server, "/api/control", body=b'{"app":"snap","action":"stop"}', origin=server.origin
-        ) as reply:
-            assert json.loads(reply.read())["ok"]
-        ctl.assert_called_once_with("stop", panel.UNITS["snap"])
-        assert json.loads((tmp_path / "snap/panel-audit.jsonl").read_text())["action"] == "stop"
+def test_command_unknown_not_replayed(tmp_path):
+    from studio_core.jobs import panel_queue
+
+    path = tmp_path / "queue.sqlite"
+    panel_queue.enqueue(path, "facts", "a" * 32)
+    item = panel_queue.claim(path)
+    assert item["command"] == "facts"
+    assert panel_queue.claim(path) is None
+    panel_queue.finish(path, "a" * 32, False)
+    assert panel_queue.claim(path) is None
