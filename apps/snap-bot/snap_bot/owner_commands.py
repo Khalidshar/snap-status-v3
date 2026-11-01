@@ -24,10 +24,12 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES
 
+from . import news_clips
 from .actions_preview import ROOT
 from .agent_contract_map import BOUND, LOCAL_TOOLS
 from .server_preview import STATE, Runtime, channel_bot, safe_path, source_info
@@ -513,8 +515,20 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
                     token, "sendMessage", json.dumps({"chat_id": owner, "text": text}).encode()
                 )
 
+            def send_clip(content: dict[str, Any], event: str = str(uid)) -> None:
+                news_clips.deliver(content, event, token, owner, transport, studio.runtime, HALT)
+
             try:
-                live_news().reply(parsed["command"].key, str(uid), send_news)
+                if HALT.exists():
+                    send_news(SEND_HALTED)
+                    continue
+                command_news.reply(
+                    live_news(),
+                    parsed["command"].key,
+                    str(uid),
+                    send_news,
+                    send_clip,
+                )
             except Exception:
                 # No replay of a possibly accepted response, and no silent catalog fallback.
                 print("OWNER_NEWS_BLOCKED_OR_UNKNOWN", file=sys.stderr)
