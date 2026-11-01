@@ -18,6 +18,7 @@ from studio_core.jobs import Repository
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, NewsUnavailable
 
+from .command_control import STOPPED, change, halted, status_text
 from .command_inbox import claim
 from .server_preview import GRAPH_VERSION, Runtime
 from .whatsapp_contract import DeliveryIdentity, require, response_id
@@ -43,6 +44,8 @@ def answer(text: str, runtime: Any) -> str:
             "بوت الحالات يعمل على واتساب.\nالمقاطع التي قبلتها المنصة: "
             + str(accepted)
             + "\nالنشر كحالة يتم يدويًا."
+            + "\n"
+            + status_text()
         )
     return (
         "«"
@@ -66,7 +69,18 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
     try:
         parsed = menu.parse(item["text"])
         key = parsed["command"].key if parsed["kind"] == "command" else None
-        if key in TITLES:
+        if key in {"halt", "unhalt"}:
+            send(change(key == "halt", runtime, item["tag"]))
+        elif (
+            parsed["kind"] == "command"
+            and (
+                parsed["command"].section in {"news", "general", "faith", "brief"}
+                or key == "send"
+            )
+            and halted()
+        ):
+            send(STOPPED)
+        elif key in TITLES:
             try:
                 sent = news.reply(key, item["tag"], send)
                 if not sent:
