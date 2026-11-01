@@ -19,7 +19,9 @@ LICENSES = {"Mixkit": "Mixkit Stock Video Free License"}
 
 
 def load(root: Path = ROOT) -> list[dict[str, Any]]:
-    clips = json.loads((root / "manifest.json").read_text(encoding="utf-8"))["clips"]
+    clips: list[dict[str, Any]] = json.loads((root / "manifest.json").read_text(encoding="utf-8"))[
+        "clips"
+    ]
     for clip in clips:
         path = root / clip["file"]
         if (
