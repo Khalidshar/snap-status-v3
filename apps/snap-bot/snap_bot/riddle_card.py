@@ -33,11 +33,7 @@ def layout(
     for second, digit in enumerate("٥٤٣٢١", 1):
         labels.append((digit, 96, 1180, "0xD6B26C", "arabic"))
         windows.append((float(second), float(second + 1)))
-    labels.extend(
-        [
-            (content["attribution"], 40, 1320, "0xF6EEDE", "arabic"),
-            ("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"),
-        ]
-    )
-    windows.extend([(0.0, duration)] * 2)
+    # Riddles are original: the brand at the top already names the source.
+    labels.append(("تابعني للمزيد", 56, 1480, "0xF6EEDE", "arabic"))
+    windows.append((0.0, duration))
     return labels, windows

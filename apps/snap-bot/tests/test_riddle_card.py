@@ -72,6 +72,8 @@ def test_five_seconds_of_countdown_then_answer_only(duration):
         assert "الإجابة" in visible(6)
         assert " ".join(visible(6)[3:]).startswith(answer)
         assert not any(digit in visible(6) for digit in "٥٤٣٢١")
+        assert [row[0] for row in labels].count("روّق مع خالد") == 1
+        assert value["attribution"] not in [row[0] for row in labels]
     for bad in [7, 13]:
         with pytest.raises(ValueError):
             riddle_card.layout(value, bad)
