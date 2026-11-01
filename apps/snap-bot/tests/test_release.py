@@ -41,7 +41,9 @@ def layout(snap_deps: str = '["studio-core"]') -> dict[str, str]:
     files = {name: "" for name in installer.REQUIRED}
     files["apps/snap-bot/pyproject.toml"] = "[project]\ndependencies = " + snap_deps + "\n"
     files["packages/studio-core/pyproject.toml"] = "[project]\ndependencies = []\n"
-    files["apps/status-bot/pyproject.toml"] = '[project]\ndependencies = ["snap-bot", "studio-core"]\n'
+    files["apps/status-bot/pyproject.toml"] = (
+        '[project]\ndependencies = ["snap-bot", "studio-core"]\n'
+    )
     return files
 
 
