@@ -302,7 +302,7 @@ def render(
     # Kufi joins «عا» so the alef of «تعالى» reads as missing; such lines use the
     # pinned system Amiri, admitted with its fingerprint and license.
     amiri = font
-    if any(label[4] == "amiri" for label in labels):
+    if is_fact and any(label[4] == "amiri" for label in labels):
         amiri = sacred_cards.ornament_font(profile)
         charsets[amiri] = run([profile["fc_query"], "--format=%{charset}", str(amiri)], 5).stdout
     for index, label in enumerate(labels):
