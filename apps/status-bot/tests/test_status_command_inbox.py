@@ -88,9 +88,20 @@ class CommandInboxTests(unittest.TestCase):
         transport = fixtures.OfflineTransport(self.identity)
         transport.send_text = Mock(return_value=transport.send_video.return_value)
         news = SimpleNamespace(reply=lambda command, event, send: send("عنوان عربي") or True)
-        self.assertTrue(process_one(self.outbox, transport, news, None))
+        with (
+            patch(
+                "status_bot.owner_commands.command_news.reply",
+                side_effect=lambda svc, key, event, text, clip: (
+                    clip({"headline": "عنوان عربي"}) or True
+                ),
+            ),
+            patch("status_bot.owner_commands.content_clips.send") as clip,
+        ):
+            self.assertTrue(process_one(self.outbox, transport, news, None))
         self.assertEqual(self.rows()[0]["state"], "ACK")
-        transport.send_text.assert_called_once_with("عنوان عربي")
+        clip.assert_called_once()
+        self.assertEqual(clip.call_args.args[3], "saudi")
+        transport.send_text.assert_not_called()
         transport.send_video.assert_not_called()
 
     def test_unimplemented_video_commands_do_not_issue_approvals(self):

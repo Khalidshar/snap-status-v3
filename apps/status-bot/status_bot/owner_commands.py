@@ -12,12 +12,14 @@ import time
 from pathlib import Path
 from typing import Any
 
+from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, NewsUnavailable
 
+from . import content_clips
 from .command_inbox import claim
 from .server_preview import GRAPH_VERSION, Runtime
 from .whatsapp_contract import DeliveryIdentity, require, response_id
@@ -68,11 +70,21 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         key = parsed["command"].key if parsed["kind"] == "command" else None
         if key in TITLES:
             try:
-                sent = news.reply(key, item["tag"], send)
+                sent = command_news.reply(
+                    news,
+                    key,
+                    item["tag"],
+                    send,
+                    lambda content: content_clips.send(
+                        outbox, transport, item, key, runtime, source=content
+                    ),
+                )
                 if not sent:
                     raise ValueError("Command already consumed")
             except NewsUnavailable:
                 send("لا يوجد خبر عربي حديث مناسب الآن؛ لم يُستبدل بمحتوى قديم.")
+        elif key in content_clips.KINDS:
+            content_clips.send(outbox, transport, item, key, runtime)
         else:
             send(answer(item["text"], runtime))
         with outbox.repo.transaction() as db:

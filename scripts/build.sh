@@ -22,7 +22,11 @@ require uv
 log "Building wheels into dist/"
 rm -rf dist
 uv build --package studio-core --out-dir dist
-for app in "${apps[@]}"; do uv build --package "$app" --out-dir dist; done
+build_apps=("${apps[@]}")
+if [[ " ${apps[*]} " == *" status-bot "* && " ${apps[*]} " != *" snap-bot "* ]]; then
+  build_apps+=(snap-bot)
+fi
+for app in "${build_apps[@]}"; do uv build --package "$app" --out-dir dist; done
 
 ((docker_build)) || exit 0
 require docker

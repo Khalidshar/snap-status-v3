@@ -540,11 +540,15 @@ name = "status-bot"
 version = "0.1.0"
 source = { editable = "apps/status-bot" }
 dependencies = [
+    { name = "snap-bot" },
     { name = "studio-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "studio-core", editable = "packages/studio-core" }]
+requires-dist = [
+    { name = "snap-bot", editable = "apps/snap-bot" },
+    { name = "studio-core", editable = "packages/studio-core" },
+]
 
 [[package]]
 name = "studio-core"
