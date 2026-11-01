@@ -166,15 +166,18 @@ class OwnerCommandTests(unittest.TestCase):
             self.assertTrue(keyboard["resize_keyboard"])
             buttons = [button for row in keyboard["keyboard"] for button in row]
             expected = {key for row in listener.KEYBOARD_ROWS for key in row}
-            self.assertEqual(len(buttons), 21)
+            self.assertEqual(len(buttons), 22)
             resolved = set()
             for button in buttons:
                 parsed = listener.menu.parse(button["text"])
                 self.assertEqual(parsed["kind"], "command")
                 command = parsed["command"]
                 self.assertEqual(button["text"], listener.menu.BY_KEY[command.key].label)
-                self.assertIn(command.key, listener.ACTIONS | listener.READ_ONLY)
-                self.assertTrue(callable(getattr(self.studio, command.key)))
+                self.assertIn(
+                    command.key, listener.ACTIONS | listener.READ_ONLY | listener.COMMAND_ACTIONS
+                )
+                if command.key not in listener.COMMAND_ACTIONS:
+                    self.assertTrue(callable(getattr(self.studio, command.key)))
                 resolved.add(command.key)
             self.assertEqual(resolved, expected)
 
