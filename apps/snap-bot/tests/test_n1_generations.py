@@ -170,6 +170,12 @@ class Generations(unittest.TestCase):
         child = self.describe("e" * 32, parent="a" * 32)
 
         def blocked(desc, env):
+            # Check admission before waking the sealing thread: a scheduler delay
+            # must not let deletion of the authority lock escape this guard.
+            self.assertTrue(
+                any(call.args == (self.authority.path,) for call in lock_spy.call_args_list),
+                "guard:seal-admission-lock",
+            )
             entered.set()
             gate.wait(3)
             return actual(desc, env)
@@ -187,7 +193,10 @@ class Generations(unittest.TestCase):
             except Exception as error:
                 errors.append(error)
 
-        with patch.object(self.physical, "append", side_effect=blocked):
+        with (
+            patch.object(self.physical, "lock", wraps=self.physical.lock) as lock_spy,
+            patch.object(self.physical, "append", side_effect=blocked),
+        ):
             first = threading.Thread(target=append)
             second = threading.Thread(target=seal)
             first.start()

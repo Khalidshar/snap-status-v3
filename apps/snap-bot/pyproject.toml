@@ -3,7 +3,9 @@ name = "snap-bot"
 version = "0.1.0"
 description = "Snap Bot V2 runtime."
 requires-python = ">=3.11"
-dependencies = ["studio-core"]
+dependencies = [
+    "studio-core",
+]
 
 [project.scripts]
 snap-bot = "snap_bot.cli:main"

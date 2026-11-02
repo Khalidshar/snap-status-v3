@@ -5,6 +5,7 @@ import json
 import math
 import re
 import unicodedata
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -85,6 +86,13 @@ WORDS = {
         "دوري روشن",
         "الدوري السعودي",
         "الدوري المصري",
+        "الدوري المغربي",
+        "البطولة المغربية",
+        "البطولة الاحترافية المغربية",
+        "الرجاء المغربي",
+        "الوداد المغربي",
+        "الجيش الملكي",
+        "نهضة بركان",
         "دوري أبطال",
         "الدوري الأوروبي",
         "الدوري الإنجليزي",
@@ -134,6 +142,30 @@ WORDS = {
         "حقائب",
         "ماركات",
         "مجوهرات",
+        # Brands, shows, models and celebrity looks (owner request 2026-11-01).
+        "شانيل",
+        "ديور",
+        "غوتشي",
+        "لويس فويتون",
+        "برادا",
+        "هيرميس",
+        "فيرساتشي",
+        "بربري",
+        "فالنتينو",
+        "إيلي صعب",
+        "زهير مراد",
+        "كارتييه",
+        "بولغري",
+        "لانكوم",
+        "إستي لودر",
+        "عطر جديد",
+        "مجموعة جديدة",
+        "أسبوع الموضة",
+        "عرض أزياء",
+        "عروض الأزياء",
+        "عارضة",
+        "السجادة الحمراء",
+        "إطلالة",
     ),
 }
 SPORTS_EXCLUDED = ("كرة السلة", "كرة اليد", "كرة الطائرة", "التنس", "الفورمولا", "الجولف")
@@ -177,7 +209,55 @@ def fingerprint(text: str) -> str:
 
 # Google News titles end « - <publisher>». Sports and food sites also say «موضة».
 GOOGLE_EXCLUDED = ("Kooora", "كووورة", "يلا كورة", "سبورت", "الرياضية", "kora")
-STYLE_EXCLUDED = ("رونالدو", "ميسي", "الدوري", "مباراة", "اللحوم", "غذائية", "سيارة", "سيارات")
+STYLE_EXCLUDED = (
+    "رونالدو",
+    "ميسي",
+    "الدوري",
+    "مباراة",
+    "اللحوم",
+    "غذائية",
+    "سيارة",
+    "سيارات",
+    # Same names, other businesses: the EFG Hermes bank, brokerage and property finance.
+    "إي اف چي",
+    "إي إف چي",
+    "إي إف جي",
+    "اي اف جي",
+    "السمسرة",
+    "تمويل",
+    "العقارية",
+    "البورصة",
+    "أسهم",
+    "أسعار الذهب",
+    "شراء الذهب",
+)
+# Owner request 2026-11-01: the ten strongest houses come first, never as a limit.
+TOP_BRANDS = (
+    "لويس فويتون",
+    "شانيل",
+    "هيرميس",
+    "غوتشي",
+    "ديور",
+    "كارتييه",
+    "رولكس",
+    "برادا",
+    "تيفاني",
+    "سان لوران",
+    "Louis Vuitton",
+    "Chanel",
+    "Hermès",
+    "Gucci",
+    "Dior",
+    "Cartier",
+    "Rolex",
+    "Prada",
+    "Tiffany",
+    "Saint Laurent",
+)
+
+
+def top_brand(key: str, title: str) -> bool:
+    return key == "style" and any(brand in title for brand in TOP_BRANDS)
 
 
 def google_headline(title: str) -> tuple[str, str]:
@@ -323,6 +403,8 @@ def collect(
     now: float,
     *,
     seen: frozenset[str] = frozenset(),
+    source_ids: frozenset[str] | None = None,
+    predicate: Callable[[str], bool] | None = None,
 ) -> dict[str, Any]:
     key = command_key(command)
     if key not in TITLES or type(now) not in (int, float) or not math.isfinite(now):
@@ -330,6 +412,8 @@ def collect(
     candidates: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
     for source in for_command(key):
+        if source_ids is not None and source.id not in source_ids:
+            continue
         # Candidates may be fetched for PRIVATE REVIEW, never treated as publication approval.
         if source.kind != "rss" or source.status != "candidate" or source.language != "ar":
             continue
@@ -364,6 +448,7 @@ def collect(
                         or (source.id.startswith("gnews-") and not google_matches(key, title))
                         or not 0 <= now - at < MAX_AGE[key]
                         or mark in seen
+                        or (predicate is not None and not predicate(title))
                     ):
                         continue
                     candidates.append(
@@ -389,7 +474,14 @@ def collect(
     if not candidates:
         raise NewsUnavailable("لا يوجد خبر عربي حديث مناسب للأمر؛ لم يُستخدم محتوى ثابت بديل.")
     # No mutation of seen and no write to delivery history: review is not publication.
-    selected = max(candidates, key=lambda entry: (entry["published_at"], entry["fingerprint"]))
+    selected = max(
+        candidates,
+        key=lambda entry: (
+            top_brand(key, entry["headline"]),
+            entry["published_at"],
+            entry["fingerprint"],
+        ),
+    )
     content: dict[str, Any] = {
         "schema": 1,
         "type": "news_review",

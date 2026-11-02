@@ -227,6 +227,14 @@ class InstallerTests(unittest.TestCase):
 
     def test_main_channel_refusals(self):
         main = "/etc/madar/snap-telegram-main.env"
+        for incomplete in ({"main_env": main}, {"main_bot_name": "rawwag_main_bot"}):
+            with (
+                self.subTest(incomplete=incomplete),
+                self.assertRaisesRegex(
+                    ValueError, "Main channel needs its env file and bot", msg="guard:main-channel"
+                ),
+            ):
+                self.plan(**incomplete)
         for kwargs in (
             {"main_env": main},
             {"main_bot_name": "rawwag_main_bot"},
