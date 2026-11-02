@@ -228,6 +228,9 @@ def test_complete_paginated_video_passes_media_and_voice_agents(kind, identifier
         assert result["qa"]["duration"] == len(pages) * profile["duration_seconds"]
         assert check_media(result, f.settings)["decision"] == "PASS"
         assert check_voice(result)["decision"] == "PASS"
+        # Owner decision 2 Nov: no tone or music under religious text.
+        assert result["qa"]["audio"] == "silent_sacred"
+        assert result["qa"]["audio_qa"]["max_volume_db"] <= -80
         f.rendering()
         f.adopt(result)
     finally:
@@ -244,3 +247,24 @@ def test_quran_headings_use_the_pinned_amiri_role(kind):
         assert value["body"] == faith.text(item)
     if kind == "kahf":
         assert sacred_labels(value)[-2][0] == "سورة الكهف • الآيات ١\u2013١٠"
+
+
+def test_voice_agents_refuse_tone_under_religious_text():
+    from snap_bot.render_agents import check_voice as snap_voice
+    from studio_core.presentation.content_agents import AgentRejected
+    from studio_core.presentation.media_checks import check_voice as shared_voice
+
+    for check in (snap_voice, shared_voice):
+        silent = {"qa": {"audio": "silent_sacred", "audio_qa": {"max_volume_db": -91.0}}}
+        assert check(silent)["audio"] == "silent_sacred"
+        for audio_qa in ({"max_volume_db": -20.0}, {}, None):
+            with pytest.raises(AgentRejected):
+                check({"qa": {"audio": "silent_sacred", "audio_qa": audio_qa}})
+
+
+def test_silent_source_is_pure_silence():
+    from studio_core.presentation.fact_audio import silent_source
+
+    assert silent_source(8) == "anullsrc=r=48000:cl=stereo:d=8"
+    with pytest.raises(ValueError):
+        silent_source(0)

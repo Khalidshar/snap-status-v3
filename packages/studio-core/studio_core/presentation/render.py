@@ -39,7 +39,7 @@ from studio_core.weather import content_hash as calculate_content_hash
 
 from . import brand_frame, footage, riddle_card, sacred_cards
 from .did_you_know import is_sacred, validate_content
-from .fact_audio import ambient_source, measure_audio
+from .fact_audio import ambient_source, measure_audio, measure_silence, silent_source
 from .fact_layout import (
     SACRED_BODY,
     card_filters,
@@ -59,6 +59,10 @@ ALLOWED_CONTENT = {"weather", "did_you_know"}
 # fact_labels() draws the identity (name, handle) first; card_filters() ends with the border.
 FRAMED_SKIP_LABELS = 2
 CARD_BORDER = "drawbox=x=80:y=340:w=920:h=1240:color=0xD6B26C:t=2"
+
+
+# Digital silence measures about -91 dBFS; anything audible is refused.
+SILENT_MAX_DB = -80.0
 
 
 def video_filename(content_type: object) -> str:
@@ -195,6 +199,9 @@ def render(
     is_fact = content["type"] == "did_you_know"
     if is_fact:
         validate_content(content)
+    # Owner decision 2 Nov: no tone or music under Quran, adhkar, hadith or dua.
+    silent = is_fact and is_sacred(content)
+    if is_fact:
         profile = settings["profile"]
         if (profile["width"], profile["height"]) != (1080, 1920) or not 8 <= profile[
             "duration_seconds"
@@ -402,7 +409,9 @@ def render(
                 "-f",
                 "lavfi",
                 "-i",
-                ambient_source(
+                silent_source(profile["duration_seconds"])
+                if silent
+                else ambient_source(
                     profile["duration_seconds"],
                     page_count=len(page_images) if content.get("kind") in sacred_cards.KINDS else 1,
                 ),
@@ -450,6 +459,7 @@ def render(
             profile,
             fact=is_fact,
             page_count=len(page_images) if content.get("kind") in sacred_cards.KINDS else 1,
+            silent=silent,
         )
     else:
         if brand:
@@ -472,6 +482,7 @@ def render(
             profile,
             fact=is_fact,
             page_count=len(page_images) if content.get("kind") in sacred_cards.KINDS else 1,
+            silent=silent,
         )
         publish_once(partial, output)
     digest = file_sha256(output)
@@ -542,7 +553,12 @@ def render(
 
 
 def validate(
-    path: Path, profile: dict[str, Any], *, fact: bool = False, page_count: int = 1
+    path: Path,
+    profile: dict[str, Any],
+    *,
+    fact: bool = False,
+    page_count: int = 1,
+    silent: bool = False,
 ) -> dict[str, Any]:
     value = json.loads(
         run(
@@ -602,6 +618,11 @@ def validate(
         audio_duration = float(audio.get("duration", "nan"))
         if not abs(audio_duration - float(stream.get("duration", duration))) <= 0.1:
             raise ValueError("Ambient audio duration differs from video")
+    if fact and silent:
+        audio_qa = {"max_volume_db": measure_silence(path, profile, run)}
+        if audio_qa["max_volume_db"] > SILENT_MAX_DB:
+            raise ValueError("Religious clip audio is not silent")
+    elif fact:
         audio_qa = measure_audio(path, profile, run)
         if not -19 <= audio_qa["integrated_lufs"] <= -17 or audio_qa["true_peak_dbtp"] > -1.5:
             raise ValueError("Ambient audio loudness/peak exceeds limits")
@@ -630,7 +651,11 @@ def validate(
         "duration": duration,
         "bytes": path.stat().st_size,
         "codec": "h264",
-        "audio": "generated_ambient" if fact else "not_required_for_weather_card",
+        "audio": (
+            ("silent_sacred" if silent else "generated_ambient")
+            if fact
+            else "not_required_for_weather_card"
+        ),
         **({"audio_qa": audio_qa} if fact else {}),
         "visual_review": "PENDING",
     }
