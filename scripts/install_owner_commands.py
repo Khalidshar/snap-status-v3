@@ -13,6 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 UNITS = Path("/etc/systemd/system")
 WA_ENV = "/etc/madar/status-whatsapp.env"
+MEDIA_ENV = "/etc/madar/media.env"
+VIDEO_SOCKET = "/run/madar/snap-video.sock"
 
 
 def service(
@@ -50,8 +52,31 @@ WantedBy=multi-user.target
 """
 
 
+def video_unit() -> str:
+    """Root-only video RPC; secrets belong solely to this network process."""
+    unit = service(
+        "snap",
+        "Madar isolated Snap video gateway",
+        "-m studio_core.network.video --socket " + VIDEO_SOCKET,
+        network=True,
+    )
+    unit = unit.replace(
+        "ReadWritePaths=/var/lib/madar/snap",
+        "ReadWritePaths=/run/madar\n"
+        "RuntimeDirectory=madar\n"
+        "RuntimeDirectoryMode=0700\n"
+        "RuntimeDirectoryPreserve=yes\n"
+        "EnvironmentFile=" + MEDIA_ENV,
+    )
+    # Two simultaneous bounded 50-MiB transfers plus base64/JSON transport copies.
+    unit = unit.replace("MemoryMax=256M", "MemoryMax=1G\nTasksMax=16\nLimitNOFILE=128")
+    # Installation must not advertise boot enablement or automatic retry.
+    unit = unit.replace("Restart=on-failure\nRestartSec=5", "Restart=no")
+    return unit.split("[Install]", 1)[0]
+
+
 def plan() -> dict[Path, str]:
-    files = {}
+    files = {UNITS / "madar-v3-snap-video.service": video_unit()}
     for app in ("snap", "status"):
         files[UNITS / f"madar-v3-{app}-news-egress.service"] = service(
             app,
@@ -111,6 +136,10 @@ def main() -> None:
             or not re.fullmatch("[0-9a-f]{40}", manifest["commit"])
         ):
             raise ValueError("Active installed release required")
+        # #72 must be present in the active release before installing its launcher.
+        # Never open media.env: systemd loads it only when an operator starts the unit.
+        if not (ROOT / "packages/studio-core/studio_core/network/video.py").is_file():
+            raise ValueError("Video gateway module missing; merge and install #72 first")
         # Validate every target before the first write; never replace a different unit.
         for path, value in files.items():
             if any(p.is_symlink() for p in (path, *path.parents)):
