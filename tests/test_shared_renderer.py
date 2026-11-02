@@ -43,6 +43,9 @@ def test_card_output_pixels_equivalent_through_both_import_routes(tmp_path):
 
     def deterministic_encode(args, timeout):
         if args[0] == "/usr/bin/ffmpeg":
+            # The frame's gradients source otherwise picks a random seed for each
+            # encode. Compare identical fixtures, retaining the same pixel tolerance.
+            args = [arg + ":seed=1" if arg.startswith("gradients=") else arg for arg in args]
             args = [*args[:-1], "-threads", "1", "-filter_complex_threads", "1", args[-1]]
         return actual_run(args, timeout)
 
@@ -52,8 +55,7 @@ def test_card_output_pixels_equivalent_through_both_import_routes(tmp_path):
     ):
         snap_cards.render([("نص عربي ثابت", 44, 700)], tmp_path / "snap", settings=profile)
         core_cards.render([("نص عربي ثابت", 44, 700)], tmp_path / "core", settings=profile)
-    # The pre-existing multithreaded brand encoder is not bit-exact across runs.
-    # Compare decoded pixels, as required by the architecture's golden tolerance.
+    # Compare decoded pixels from the seeded fixture with the original golden tolerance.
     images = []
     for name in ("snap", "core"):
         images.append(
