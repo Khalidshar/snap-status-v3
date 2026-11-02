@@ -1,0 +1,19 @@
+[Unit]
+Description=Madar %i Quran Foundation egress (manual installation only)
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/madar/current
+EnvironmentFile=/etc/madar/quran.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/madar/current/.venv/bin/python -m studio_core.network.quran --socket /run/madar/%i-quran.sock
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+ReadWritePaths=/run/madar
+MemoryMax=256M
