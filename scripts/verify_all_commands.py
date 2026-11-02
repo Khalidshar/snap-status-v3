@@ -536,7 +536,16 @@ def media_checks(app: str, key: str, work: Path, content: dict, result: dict, vi
         else:
             name = "madar-v3-snap-render@.service"
         state = (
-            run(["/usr/bin/systemctl", "show", name, "--property=LoadState", "--value"], 30)
+            run(
+                [
+                    "/usr/bin/systemctl",
+                    "show",
+                    name.replace("@.service", "@verification.service"),
+                    "--property=LoadState",
+                    "--value",
+                ],
+                30,
+            )
             .stdout.decode()
             .strip()
         )
