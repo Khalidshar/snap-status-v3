@@ -19,7 +19,7 @@ from studio_core.jobs import Repository
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, NewsUnavailable
 
-from . import content_clips
+from . import content_clips, daily_brief, tool_commands
 from .command_control import STOPPED, change, halted, status_text
 from .command_inbox import claim
 from .server_preview import GRAPH_VERSION, STATE, Runtime
@@ -89,6 +89,12 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
             and halted()
         ):
             send(STOPPED)
+        elif key == "brief":
+            daily_brief.send(outbox, transport, news, item, runtime)
+        elif key == "agents":
+            send(tool_commands.status(outbox))
+        elif key in tool_commands.NAMES:
+            send(tool_commands.execute(key, outbox))
         elif key in TITLES:
             try:
                 sent = command_news.reply(

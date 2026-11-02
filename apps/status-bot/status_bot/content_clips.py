@@ -9,18 +9,28 @@ import subprocess
 import time
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from snap_bot import command_cards
-from snap_bot.arabic_agent import check_content
-from snap_bot.content_agents import CHECKS, run_check
-from snap_bot.did_you_know import WINDOW_SECONDS, choose_fact, seed_history, validate_content
-from snap_bot.render import render as shared_render
-from snap_bot.render_agents import check_media, check_voice
+from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.jobs.component_lock import ComponentLocks
+from studio_core.network.client import NetworkClient
+from studio_core.network.video import VideoPolicy
+from studio_core.observability import role_status
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
+from studio_core.presentation import command_cards, footage
+from studio_core.presentation.arabic_agent import check_content
+from studio_core.presentation.content_agents import CHECKS, run_check
+from studio_core.presentation.did_you_know import (
+    WINDOW_SECONDS,
+    choose_fact,
+    seed_history,
+    validate_content,
+)
+from studio_core.presentation.media_checks import check_media, check_voice
+from studio_core.presentation.render import render as shared_render
 from studio_core.renderer import write_once
+from studio_core.sources import event_video
 from studio_core.sources.news import validate as validate_news
 
 from .server_preview import STATE, safe_path
@@ -87,7 +97,11 @@ def window(outbox: Any) -> None:
 
 
 def valid(value: Any, news: bool) -> bool:
-    if news:
+    if isinstance(value, dict) and "faith" in value and "dates" in value:
+        from studio_core.sources.daily_brief import validate_brief
+
+        validate_brief(value, time.time())
+    elif news:
         validate_news(value, time.time())
     else:
         validate_content(value)
@@ -108,19 +122,34 @@ def render_event(tag: str, root: Path = ROOT) -> None:
     content, settings = request["content"], request["settings"]
     valid(content, request["news"])
     # The offline worker never sees the WhatsApp identity, token or signing keys.
-    if request["news"]:
+    if request.get("brief"):
+        from studio_core.presentation.daily_brief import render
+
+        result = render(
+            content, directory / "brief", app="status-bot-v2", media=directory / "brief-media"
+        )
+        result["video_path"] = "brief/video.mp4"
+    elif request["news"]:
         parts = command_cards.lines(content["headline"])
         if len(parts) > 9:
             raise ValueError("Headline exceeds card")
-        result = command_cards.render(
-            [
-                (content["title"], 52, 430),
-                *[(s, 46, 600 + i * 75) for i, s in enumerate(parts)],
-                ("المصدر: " + content["source"], 34, 1340),
-                (content["published_label"], 26, 1430),
-            ],
-            directory / "news",
-        )
+        original = directory / "media/original.json"
+        if original.exists():
+            result = command_cards.original(content, original, directory / "news")
+        else:
+            result = command_cards.render(
+                [
+                    (content["title"], 52, 430),
+                    *[(s, 46, 600 + i * 75) for i, s in enumerate(parts)],
+                    ("المصدر: " + content["source"], 34, 1340),
+                    (content["published_label"], 26, 1430),
+                ],
+                directory / "news",
+                backdrop=footage.pinned(
+                    {**content, "body": content["headline"]},
+                    directory / "media/background/footage.json",
+                ),
+            )
         result["content_hash"] = content["content_hash"]
         result["video_path"] = "news/video.mp4"
     else:
@@ -147,9 +176,13 @@ def build(
     start: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any], bytes]:
     require(identifier(item.get("tag"), "[0-9a-f]{64}"), "WA_COMMAND_INVALID")
-    news = source is not None
-    require((source.get("command") == key) if news else key in KINDS, "WA_COMMAND_KIND_INVALID")
-    command = "news" if news else "did_you_know"
+    brief = key == "brief"
+    news = source is not None and not brief
+    require(
+        brief or ((source.get("command") == key) if news else key in KINDS),
+        "WA_COMMAND_KIND_INVALID",
+    )
+    command = "brief" if brief else "news" if news else "did_you_know"
     directory = safe_path(root / item["tag"])
     directory.mkdir(parents=True, mode=0o700, exist_ok=False)
     config = replace(
@@ -167,7 +200,7 @@ def build(
         raise ValueError("Content job not claimable")
     args = claim["id"], claim["lease_token"], claim["attempt"]
     repo.transition(args[0], args[1], "RESEARCHING")
-    if not news:
+    if not news and not brief:
         with outbox.repo.connect() as db:
             rows = db.execute(
                 "SELECT content_json,state,at,acked_at FROM command_videos WHERE tag<>? AND binding=? AND content_json IS NOT NULL",
@@ -206,29 +239,73 @@ def build(
             (previous,) if previous else (),
             900 if role == "design" else 30,
         )
-        result = run_agent(
-            repo,
-            *args,
-            contract,
-            payload,
-            callback,
-            lambda v: isinstance(v, dict),
-            lambda value, payload: output(value),
-            bind_dependency=bind,
-        )
+        ledger = outbox.repo.config.data_root / "agent-status.sqlite"
+        role_status.record(ledger, "status-bot-v2", role, "RUNNING")
+        try:
+            result = run_agent(
+                repo,
+                *args,
+                contract,
+                payload,
+                callback,
+                lambda v: isinstance(v, dict),
+                lambda value, payload: output(value),
+                bind_dependency=bind,
+            )
+        except Exception:
+            role_status.record(ledger, "status-bot-v2", role, "FAILED")
+            raise
+        role_status.record(ledger, "status-bot-v2", role, "SUCCEEDED")
         previous = role
         return result
+
+    def check_brief(value: dict[str, Any]) -> dict[str, Any]:
+        valid(value, False)
+        for part in ("saudi", "tech"):
+            check_news("proofreading", value[part], expected=part)
+            check_news("translation", value[part], expected=part)
+        return value
+
+    def check_news(role: str, value: dict[str, Any], expected: str | None = None) -> dict[str, Any]:
+        valid(value, True)
+        require(value["command"] == (expected or key), "WA_NEWS_ROTATION_MISMATCH")
+        if role == "memory":
+            with outbox.repo.connect() as db:
+                prior = db.execute(
+                    "SELECT content_json FROM command_videos WHERE tag<>? AND binding=? AND at>? AND content_json IS NOT NULL",
+                    (item["tag"], outbox.identity.binding, outbox.repo.clock() - 30 * 86400),
+                ).fetchall()
+            require(
+                not any(json.loads(r[0]).get("fingerprint") == value["fingerprint"] for r in prior),
+                "WA_NEWS_REPEAT",
+            )
+        elif role == "proofreading":
+            from .agents import proofread
+
+            proofread(value["headline"])
+        elif role in {"arabic", "translation"}:
+            from studio_core.presentation.arabic_agent import check_text
+
+            for part in command_cards.lines(value["headline"], width=100):
+                check_text(part.strip())
+        return value
 
     content = stage(
         "fact_source",
         {"kind": key},
-        lambda: source if news else choose_fact(repo, *args, kind=KINDS[key])[0],
+        lambda: source if (news or brief) else choose_fact(repo, *args, kind=KINDS[key])[0],
         lambda v: valid(v, news),
     )
     content = stage(
         "arabic",
         content,
-        lambda: content if news else check_content(content),
+        lambda: (
+            check_brief(content)
+            if brief
+            else check_news("arabic", content)
+            if news
+            else check_content(content)
+        ),
         lambda v: valid(v, news),
     )
     for role in CHECKS:
@@ -236,7 +313,13 @@ def build(
         content = stage(
             role,
             content,
-            lambda role=role, value=current: value if news else run_check(role, repo, *args, value),
+            lambda role=role, value=current: (
+                check_brief(value)
+                if brief
+                else check_news(role, value)
+                if news
+                else run_check(role, repo, *args, value)
+            ),
             lambda v, expected=current: v == expected and valid(v, news),
         )
     with outbox.repo.transaction() as db:
@@ -257,6 +340,26 @@ def build(
     source_path.parent.mkdir(parents=True, mode=0o700)
     write_once(source_path, json.dumps(content, ensure_ascii=False).encode())
     os.chmod(source_path, 0o640)
+    socket = Path("/run/madar/status-video.sock")
+    if brief:
+        for part in ("saudi", "tech"):
+            footage.prepare(
+                {**content[part], "body": content[part]["headline"]},
+                directory / "brief-media" / part,
+                socket,
+            )
+    elif news:
+        policy = json.loads(
+            (Path(__file__).resolve().parents[3] / "config/media/source-video.json").read_text()
+        )
+        client = NetworkClient(cast(Config, VideoPolicy(socket)))
+        original = event_video.prepare(content, directory / "media", client, policy)
+        if original is None:
+            footage.prepare(
+                {**content, "body": content["headline"]}, directory / "media/background", socket
+            )
+    elif settings["profile"].get("footage"):
+        footage.prepare(content, source_path.parent / "background", socket)
     write_once(
         directory / "request.json",
         json.dumps(
@@ -266,6 +369,7 @@ def build(
                 "content": content,
                 "settings": settings,
                 "news": news,
+                "brief": brief,
             },
             ensure_ascii=False,
         ).encode(),
@@ -290,16 +394,24 @@ def build(
     checked = {k: v for k, v in result.items() if k != "video_path"}
 
     def verify_voice() -> Any:
-        if not news:
+        if not news and not brief:
             check_voice(checked)
         else:
-            require(result.get("audio_policy") == "SILENT", "WA_AUDIO_POLICY_CHANGED")
+            require(
+                result.get("audio_policy") in {"SILENT", "ORIGINAL_SOURCE", "BRIEF_MIX"},
+                "WA_AUDIO_POLICY_CHANGED",
+            )
         return result
 
     result = stage("voice", result, verify_voice, lambda r: r == result)
 
     def verify_media() -> Any:
-        if not news:
+        if brief:
+            require(
+                isinstance(result.get("duration"), (int, float)) and 30 <= result["duration"] <= 60,
+                "WA_BRIEF_DURATION_INVALID",
+            )
+        if not news and not brief:
             check_media(checked, settings)
         video = read_bound(directory, result["video_path"], MAX_VIDEO)
         require(
@@ -333,7 +445,7 @@ def complete(outbox: Any, item: dict[str, Any], root: Path) -> None:
         replace(
             outbox.repo.config,
             data_root=directory / "state",
-            command_allowlist=("did_you_know", "news"),
+            command_allowlist=("did_you_know", "news", "brief"),
             lease_seconds=1200,
         ),
         clock=outbox.repo.clock,

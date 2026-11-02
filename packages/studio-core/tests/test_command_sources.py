@@ -30,7 +30,9 @@ def test_sources_follow_the_bots_existing_exact_command_matching(name):
     assert for_command(name) != for_command("tech")
 
 
-@pytest.mark.parametrize("name", ["أحتاج الأناقة", "أخبار", "لا توقف شي", "37", ""])
+@pytest.mark.parametrize(
+    "name", ["أحتاج الأناقة", "أخبار", "لا توقف شي", str(len(COMMANDS) + 1), ""]
+)
 def test_unknown_sentences_and_section_titles_are_never_guessed(name):
     with pytest.raises(ValueError):
         plan(name)
@@ -85,7 +87,7 @@ class FakeClient:
 def test_audit_reads_each_news_candidate_once_without_returning_headlines():
     client = FakeClient()
     checked = audit("موجز", client)
-    assert len(checked) == len(client.calls) == 10
+    assert len(checked) == len(client.calls) == 11
     assert all(c["result"] == "XML_VERIFIED" and c["valid_items"] == 1 for c in checked)
     assert "Headline" not in json.dumps(checked)
     assert all(c["publication_enabled"] is False for c in checked)
@@ -117,7 +119,7 @@ def test_audit_does_not_fetch_excluded_sources_or_turn_websites_into_feeds():
 )
 def test_feed_failures_are_sanitized_and_never_retried(client):
     checks = audit("tech", client)
-    assert len(checks) == len(client.calls) == 2
+    assert len(checks) == len(client.calls) == 3
     assert all(check["result"] == "UNVERIFIED" for check in checks)
     assert "private-token" not in json.dumps(checks)
 
@@ -172,5 +174,5 @@ def test_source_check_cli_does_not_report_failed_feeds_as_success(package, reach
     assert code == (0 if reachable else 2)
     assert output["ok"] is reachable
     assert output["external_delivery"] is False
-    assert len(fake.calls) == 2
+    assert len(fake.calls) == 3
     assert "private-token" not in json.dumps(output)

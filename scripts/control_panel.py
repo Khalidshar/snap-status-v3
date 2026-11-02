@@ -254,7 +254,7 @@ class Handler(BaseHTTPRequestHandler):
                 "/app.js": ("app.js", "text/javascript"),
                 "/style.css": ("style.css", "text/css"),
             }[self.path]
-            self.reply(200, (REPO / "apps/control-panel" / name).read_bytes(), mime)
+            self.reply(200, (REPO / "scripts/control_panel_ui" / name).read_bytes(), mime)
         elif self.path == "/api/snapshot" and self.authorized():
             try:
                 self.reply(

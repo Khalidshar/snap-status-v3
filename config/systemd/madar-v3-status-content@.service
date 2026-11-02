@@ -9,6 +9,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 UMask=0077
 NoNewPrivileges=yes
 PrivateNetwork=yes
+InaccessiblePaths=-/run/madar
 PrivateTmp=yes
 PrivateDevices=yes
 ProtectSystem=strict

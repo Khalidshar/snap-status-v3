@@ -53,13 +53,30 @@ def analyse(db: sqlite3.Connection) -> dict[str, Any]:
     return {"runs": len(rows), "outcomes": outcomes, "causes": causes}
 
 
-def write(temperature_c: float, wind_kmh: float) -> str:
+def write(temperature_c: float | dict[str, Any], wind_kmh: float = 0.0) -> str:
     """كاتب المحتوى: the bulletin body in the exact wording the source agent produces."""
+    if isinstance(temperature_c, dict):
+        import time
+
+        from studio_core.presentation.did_you_know import validate_content
+        from studio_core.sources.news import validate
+
+        if temperature_c.get("type") == "news_review":
+            validate(temperature_c, time.time())
+            return str(temperature_c["headline"])
+        validate_content(temperature_c)
+        return str(temperature_c["body"])
     return f"الحرارة {temperature_c:.1f} درجة مئوية\nالرياح {wind_kmh:.1f} كم في الساعة"
 
 
 def review(content: Any, city: str) -> dict[str, Any]:
     """المراجع: every reason the chain would refuse this content, without raising."""
+    if content.get("type") in {"did_you_know", "news_review"}:
+        try:
+            write(content)
+            return {"decision": "PASS", "problems": []}
+        except ValueError:
+            return {"decision": "REJECT", "problems": ["CONTENT_INVALID"]}
     problems = []
     for check in (
         lambda: check_rotation(content, city),

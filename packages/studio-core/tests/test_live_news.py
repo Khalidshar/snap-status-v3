@@ -151,7 +151,7 @@ def test_source_failures_are_bounded_and_secret_free():
     client = Feed(HEADLINES["tech"], failure=True)
     with pytest.raises(NewsUnavailable) as error:
         collect("tech", client, NOW)
-    assert len(client.calls) == 2
+    assert len(client.calls) == 3  # Two original technology feeds plus Google fallback.
     assert "token-that" not in str(error.value)
 
 
@@ -328,3 +328,15 @@ def test_google_news_style_names_the_publisher_and_drops_sports():
     assert matches("style", "اتجاهات جديدة للمكياج هذا الموسم")
     assert not matches("style", "موضة رونالدو في الدوري")
     assert not matches("style", "اللحوم الحمراء موضة غذائية جديدة")
+
+
+def test_style_puts_the_ten_strongest_houses_first_without_limiting_others():
+    from studio_core.sources import news
+
+    assert news.top_brand("style", "شانيل تكشف عن مجموعة جديدة")
+    assert news.top_brand("style", "حقيبة Prada Buckle بحجم أصغر")
+    assert not news.top_brand("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")
+    assert not news.top_brand("news", "شانيل")
+    assert news.matches("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")
+    assert not news.matches("style", "إي اف چي هيرميس ترتب تمويلًا لشركة عقارية")
+    assert not news.matches("style", "تجار المجوهرات يؤجلون شراء الذهب")

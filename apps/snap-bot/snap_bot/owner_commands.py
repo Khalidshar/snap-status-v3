@@ -29,7 +29,7 @@ from studio_core import commands as menu
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES
 
-from . import news_clips
+from . import brief, news_clips
 from .actions_preview import ROOT
 from .agent_contract_map import BOUND, LOCAL_TOOLS
 from .server_preview import STATE, Runtime, channel_bot, safe_path, source_info
@@ -41,6 +41,7 @@ HALT = STATE / "HALT"
 SEND_HALTED = "الإرسال موقوف، اكتب «شغّل» لإعادته"
 FRESH_SECONDS = 900
 NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم."
+COMMAND_ACTIONS = {"brief"}
 READ_ONLY = {"status", "last", "agents", "schedule", "report", "dash"}
 ACTIONS = {
     "halt",
@@ -82,6 +83,7 @@ KEYBOARD_ROWS = (
     ("dua", "fast", "preview"),
     ("verse", "adhkar_am", "adhkar_pm"),
     ("friday", "kahf", "riddle"),
+    ("brief",),
     ("send", "cancel", "status"),
     ("last",),
     ("halt", "unhalt"),
@@ -90,7 +92,7 @@ KEYBOARD_ROWS = (
 
 def reply_keyboard() -> dict[str, Any]:
     """Expose the requested v3 shortcuts only while their handlers are enabled."""
-    enabled = ACTIONS | READ_ONLY
+    enabled = ACTIONS | READ_ONLY | COMMAND_ACTIONS
     rows = [
         [{"text": menu.BY_KEY[key].label} for key in row if key in enabled] for row in KEYBOARD_ROWS
     ]
@@ -508,6 +510,29 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
             continue
         text = accepted[0]
         parsed = menu.parse(text)
+        if parsed["kind"] == "command" and parsed["command"].key == "brief":
+
+            def text_reply(message: str) -> None:
+                transport(
+                    token, "sendMessage", json.dumps({"chat_id": owner, "text": message}).encode()
+                )
+
+            def video_reply(raw: bytes) -> None:
+                from studio_core.delivery.evidence import multipart
+
+                body, kind = multipart(owner, raw, "", "brief.mp4")
+                result = transport(token, "sendVideo", body, kind)
+                if (
+                    str(result.get("chat", {}).get("id")) != owner
+                    or type(result.get("message_id")) is not int
+                ):
+                    raise ValueError("Brief send unconfirmed")
+
+            try:
+                brief.reply(live_news(), str(uid), text_reply, video_reply, studio.runtime, HALT)
+            except Exception:
+                print("OWNER_BRIEF_BLOCKED_OR_UNKNOWN", file=sys.stderr)
+            continue
         if news_enabled and parsed["kind"] == "command" and parsed["command"].key in TITLES:
 
             def send_news(text: str) -> None:
