@@ -11,18 +11,23 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
-from snap_bot import command_cards, footage
-from snap_bot.arabic_agent import check_content
-from snap_bot.content_agents import CHECKS, run_check
-from snap_bot.did_you_know import WINDOW_SECONDS, choose_fact, seed_history, validate_content
-from snap_bot.render import render as shared_render
-from snap_bot.render_agents import check_media, check_voice
 from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.jobs.component_lock import ComponentLocks
 from studio_core.network.client import NetworkClient
 from studio_core.network.video import VideoPolicy
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
+from studio_core.presentation import command_cards, footage
+from studio_core.presentation.arabic_agent import check_content
+from studio_core.presentation.content_agents import CHECKS, run_check
+from studio_core.presentation.did_you_know import (
+    WINDOW_SECONDS,
+    choose_fact,
+    seed_history,
+    validate_content,
+)
+from studio_core.presentation.media_checks import check_media, check_voice
+from studio_core.presentation.render import render as shared_render
 from studio_core.renderer import write_once
 from studio_core.sources import event_video
 from studio_core.sources.news import validate as validate_news

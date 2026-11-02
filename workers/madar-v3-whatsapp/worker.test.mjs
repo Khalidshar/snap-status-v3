@@ -13,7 +13,9 @@ const post = (raw, sig) => new Request("https://madar-v3-whatsapp.workers.dev/we
 test("challenge matches only the private verification token", async () => {
   let calls = 0;
   const config = env(async () => {calls++; return new Response("OK");});
-  const query = new URLSearchParams({"hub.mode":"subscribe","hub.verify_token":verifyToken,"hub.challenge":"12345"});
+  const key = await crypto.subtle.importKey("raw", enc.encode(appSecret), {name:"HMAC", hash:"SHA-256"}, false, ["sign"]);
+  const derived = Buffer.from(await crypto.subtle.sign("HMAC", key, enc.encode("madar-v3-whatsapp-verify"))).toString("hex");
+  const query = new URLSearchParams({"hub.mode":"subscribe","hub.verify_token":derived,"hub.challenge":"12345"});
   const result = await worker.fetch(new Request("https://unit.test/?"+query), config);
   assert.equal(result.status,200); assert.equal(await result.text(),"12345"); assert.equal(calls,0);
   query.set("hub.verify_token","wrong");

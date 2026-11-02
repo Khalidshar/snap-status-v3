@@ -62,6 +62,7 @@ allowed-confusables = ["ا", "ه", "٠", "١", "٥", "٧", "٫"]
 # rules: nested with blocks scope each assertRaises, closures run inside their own loop
 # iteration, fixture literals are long, and fault injection asserts broad exceptions.
 "apps/snap-bot/snap_bot/*.py" = ["E501"]
+"packages/studio-core/studio_core/presentation/*.py" = ["E501"]
 "apps/snap-bot/tests/*.py" = ["S101", "S105", "S106", "S311", "S603", "S607", "S608", "SIM117", "B023", "E501", "B017"]
 "apps/status-bot/status_bot/*.py" = ["E501"]
 "apps/status-bot/tests/*.py" = ["S101", "S105", "S106", "S311", "S603", "S607", "S608", "SIM117", "B023", "E501", "B017"]
