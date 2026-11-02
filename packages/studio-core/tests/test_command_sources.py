@@ -91,7 +91,7 @@ def test_audit_reads_each_news_candidate_once_without_returning_headlines():
     assert all(c["result"] == "XML_VERIFIED" and c["valid_items"] == 1 for c in checked)
     assert "Headline" not in json.dumps(checked)
     assert all(c["publication_enabled"] is False for c in checked)
-    assert all(s.status == "candidate" for s in for_command("news"))
+    assert all(s.status == "approved" for s in for_command("news"))
 
 
 def test_audit_does_not_fetch_excluded_sources_or_turn_websites_into_feeds():
