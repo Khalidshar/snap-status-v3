@@ -80,8 +80,7 @@ def plan() -> dict[Path, str]:
     )
     # A crashed listener leaves its socket behind; the next start must not refuse it.
     files[UNITS / "madar-v3-status-command-webhook.service.d/stale-socket.conf"] = (
-        "[Service]\n"
-        "ExecStartPre=/bin/rm -f /var/lib/madar/status/command-webhook/incoming.sock\n"
+        "[Service]\nExecStartPre=/bin/rm -f /var/lib/madar/status/command-webhook/incoming.sock\n"
     )
     files[UNITS / "madar-v3-snap-commands.service.d/live-news.conf"] = (
         "[Service]\nEnvironment=MADAR_LIVE_NEWS=1\n"
