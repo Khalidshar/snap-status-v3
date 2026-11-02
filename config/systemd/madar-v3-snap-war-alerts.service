@@ -1,0 +1,20 @@
+[Unit]
+Description=Madar snap war-only alert check
+ConditionPathExists=/etc/madar/war-alerts.enabled
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/madar/current
+EnvironmentFile=/etc/madar/snap-telegram-main.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/madar/current/.venv/bin/python -m snap_bot.war_alerts --policy /opt/madar/current/config/alerts/war.toml
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/madar/snap
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+TimeoutStartSec=150
+Restart=no
