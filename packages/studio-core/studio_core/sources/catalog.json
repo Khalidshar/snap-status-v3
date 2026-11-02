@@ -11,7 +11,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "headline_syndication",
       "note": "بحث أخبار Google العربية (السعودية) عن كل ما يخص الموضة والجمال: دور الأزياء والماركات بلا تقييد بماركة، والعروض والعارضات وإطلالات المشاهير والمجوهرات والعطور والتجميل خلال ٧ أيام (طلب خالد ١ نوفمبر)؛ يُنسخ العنوان واسم الناشر والرابط فقط. وصل من السيرفر ٢٠٠ في ٣١ أكتوبر.",
       "evidence": "https://news.google.com/rss"
@@ -31,7 +31,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -51,7 +51,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -71,7 +71,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -91,7 +91,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -111,7 +111,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -131,7 +131,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -151,7 +151,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -171,7 +171,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -191,7 +191,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -211,7 +211,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
@@ -226,7 +226,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر التقنية في البوت القديم؛ يحتاج تحقق XML وشروط الاستخدام. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-bot/blob/87554fae19ba1059e667dd3716783040c61e990e/config.yaml"
@@ -241,7 +241,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر التقنية في البوت القديم؛ يحتاج تحقق XML وشروط الاستخدام. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-bot/blob/87554fae19ba1059e667dd3716783040c61e990e/config.yaml"
@@ -269,7 +269,7 @@
       ],
       "kind": "website",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "لم تثبت خلاصة رسمية؛ هذا رابط الموقع وليس RSS.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -283,7 +283,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "لم يكتمل تحقق XML أو الإذن. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -297,7 +297,7 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "الجلب السابق ٤٠٣؛ لا ترجمة معتمدة. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -325,7 +325,7 @@
       ],
       "kind": "website",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "رابط الموقع فقط؛ رابط RSS السابق أعاد ٤٠٤.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -339,7 +339,7 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "تحليل RSS نجح سابقًا؛ إذن الاستخدام غير متحقق، والترجمة غير معتمدة. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -367,7 +367,7 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "تحليل RSS نجح سابقًا؛ إذن الاستخدام والترجمة غير متحققين. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -381,7 +381,7 @@
       ],
       "kind": "website",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "لم تثبت خلاصة أخبار رسمية؛ رابط الموقع فقط.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -423,7 +423,7 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "headline_syndication",
       "note": "إذن RSS موثّق، وتحليل XML نجح في بيئة التطوير يوم ٣٠ أكتوبر؛ الترجمة العربية وشبكة الإنتاج لم تعتمدا.",
       "evidence": "https://news.adidas.com/list-of-feeds"
@@ -437,7 +437,7 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "headline_syndication",
       "note": "إذن RSS موثّق، وتحليل XML نجح في بيئة التطوير يوم ٣٠ أكتوبر؛ الترجمة العربية وشبكة الإنتاج لم تعتمدا.",
       "evidence": "https://news.adidas.com/list-of-feeds"
@@ -451,7 +451,7 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر إضافي في snap.py القديم؛ يحتاج فحصًا حاليًا. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -465,7 +465,7 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر إضافي في snap.py القديم؛ يحتاج فحصًا حاليًا. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/snap-status-v3/pull/52"
@@ -1428,7 +1428,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
@@ -1442,7 +1442,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
@@ -1456,7 +1456,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
@@ -1470,7 +1470,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
@@ -1484,7 +1484,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
@@ -1498,7 +1498,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
@@ -1512,7 +1512,7 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "candidate",
+      "status": "approved",
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
