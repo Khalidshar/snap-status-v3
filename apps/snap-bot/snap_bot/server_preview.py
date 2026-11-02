@@ -368,6 +368,22 @@ class Runtime:
                 "kind": kind,
             }
             data = render_bundle(directory, provenance)
+            # Project verified per-job observations into the app-local status ledger.
+            import sqlite3
+
+            from studio_core.observability.role_status import record
+
+            state_db = directory / "state/jobs.sqlite"
+            if state_db.is_file():
+                with sqlite3.connect(state_db) as db:
+                    rows = db.execute(
+                        "SELECT role,status FROM owned_agent_contracts WHERE job_id=? ORDER BY attempt",
+                        (data["job_id"],),
+                    ).fetchall()
+                for role, status in rows:
+                    if status in {"RUNNING", "SUCCEEDED", "FAILED", "UNKNOWN"}:
+                        record(self.root / "agent-status.sqlite", "snap-bot-v2", role, status)
+
             video_sha = sha(data["render"]["video_sha256"])
             if any(
                 x["kind"] == "RENDERED" and x.get("video_sha") == video_sha for x in self.events()

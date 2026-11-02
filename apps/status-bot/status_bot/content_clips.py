@@ -11,18 +11,24 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
-from snap_bot import command_cards, footage
-from snap_bot.arabic_agent import check_content
-from snap_bot.content_agents import CHECKS, run_check
-from snap_bot.did_you_know import WINDOW_SECONDS, choose_fact, seed_history, validate_content
-from snap_bot.render import render as shared_render
-from snap_bot.render_agents import check_media, check_voice
 from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.jobs.component_lock import ComponentLocks
 from studio_core.network.client import NetworkClient
 from studio_core.network.video import VideoPolicy
+from studio_core.observability import role_status
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
+from studio_core.presentation import command_cards, footage
+from studio_core.presentation.arabic_agent import check_content
+from studio_core.presentation.content_agents import CHECKS, run_check
+from studio_core.presentation.did_you_know import (
+    WINDOW_SECONDS,
+    choose_fact,
+    seed_history,
+    validate_content,
+)
+from studio_core.presentation.media_checks import check_media, check_voice
+from studio_core.presentation.render import render as shared_render
 from studio_core.renderer import write_once
 from studio_core.sources import event_video
 from studio_core.sources.news import validate as validate_news
@@ -218,18 +224,49 @@ def build(
             (previous,) if previous else (),
             900 if role == "design" else 30,
         )
-        result = run_agent(
-            repo,
-            *args,
-            contract,
-            payload,
-            callback,
-            lambda v: isinstance(v, dict),
-            lambda value, payload: output(value),
-            bind_dependency=bind,
-        )
+        ledger = outbox.repo.config.data_root / "agent-status.sqlite"
+        role_status.record(ledger, "status-bot-v2", role, "RUNNING")
+        try:
+            result = run_agent(
+                repo,
+                *args,
+                contract,
+                payload,
+                callback,
+                lambda v: isinstance(v, dict),
+                lambda value, payload: output(value),
+                bind_dependency=bind,
+            )
+        except Exception:
+            role_status.record(ledger, "status-bot-v2", role, "FAILED")
+            raise
+        role_status.record(ledger, "status-bot-v2", role, "SUCCEEDED")
         previous = role
         return result
+
+    def check_news(role: str, value: dict[str, Any]) -> dict[str, Any]:
+        valid(value, True)
+        require(value["command"] == key, "WA_NEWS_ROTATION_MISMATCH")
+        if role == "memory":
+            with outbox.repo.connect() as db:
+                prior = db.execute(
+                    "SELECT content_json FROM command_videos WHERE tag<>? AND binding=? AND at>? AND content_json IS NOT NULL",
+                    (item["tag"], outbox.identity.binding, outbox.repo.clock() - 30 * 86400),
+                ).fetchall()
+            require(
+                not any(json.loads(r[0]).get("fingerprint") == value["fingerprint"] for r in prior),
+                "WA_NEWS_REPEAT",
+            )
+        elif role == "proofreading":
+            from .agents import proofread
+
+            proofread(value["headline"])
+        elif role in {"arabic", "translation"}:
+            from studio_core.presentation.arabic_agent import check_text
+
+            for part in command_cards.lines(value["headline"], width=100):
+                check_text(part.strip())
+        return value
 
     content = stage(
         "fact_source",
@@ -240,7 +277,7 @@ def build(
     content = stage(
         "arabic",
         content,
-        lambda: content if news else check_content(content),
+        lambda: check_news("arabic", content) if news else check_content(content),
         lambda v: valid(v, news),
     )
     for role in CHECKS:
@@ -248,7 +285,9 @@ def build(
         content = stage(
             role,
             content,
-            lambda role=role, value=current: value if news else run_check(role, repo, *args, value),
+            lambda role=role, value=current: (
+                check_news(role, value) if news else run_check(role, repo, *args, value)
+            ),
             lambda v, expected=current: v == expected and valid(v, news),
         )
     with outbox.repo.transaction() as db:

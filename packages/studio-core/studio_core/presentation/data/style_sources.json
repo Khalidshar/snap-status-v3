@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "reviewed_at": "2026-10-30",
+  "sources": [],
+  "candidates": [
+    {
+      "url": "https://news.adidas.com/RSS/brands/originals",
+      "name": "أديداس أوريجينالز",
+      "language": "en",
+      "section": "brands",
+      "official_feed_page": "https://news.adidas.com/list-of-feeds",
+      "permission_url": "https://news.adidas.com/list-of-feeds",
+      "permission_scope": "RSS syndication; headlines with source and link only",
+      "verification": "Public RSS XML parsed successfully in development on 2026-10-30; see docs/source-probes-20261030.json. Production egress remains untested; Arabic translation is not approved.",
+      "status": "pending_arabic_translation"
+    },
+    {
+      "url": "https://news.adidas.com/RSS/brands/sportswear",
+      "name": "أديداس سبورتسوير",
+      "language": "en",
+      "section": "brands",
+      "official_feed_page": "https://news.adidas.com/list-of-feeds",
+      "permission_url": "https://news.adidas.com/list-of-feeds",
+      "permission_scope": "RSS syndication; headlines with source and link only",
+      "verification": "Public RSS XML parsed successfully in development on 2026-10-30; see docs/source-probes-20261030.json. Production egress remains untested; Arabic translation is not approved.",
+      "status": "pending_arabic_translation"
+    }
+  ],
+  "approval_note": "Adidas XML and its RSS syndication page are verified in development. Arabic translation and production egress validation remain pending, so sources stays empty. The shared command inventory is in studio_core/sources/catalog.json."
+}
