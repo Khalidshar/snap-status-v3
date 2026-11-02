@@ -328,8 +328,10 @@ class Source:
         if len(files) != 1:
             raise ValueError("QF_AUDIO_UNAVAILABLE")
         url = files[0]["url"]
-        if isinstance(url, str) and url.startswith("/"):
-            url = "https://verses.quran.com" + url
+        if isinstance(url, str) and re.fullmatch(r"/?[A-Za-z0-9_/-]+\.mp3", url):
+            if ".." in url:
+                raise ValueError("QF_AUDIO_URL_DENIED")
+            url = "https://verses.quran.com/" + url.lstrip("/")
         parsed = urlsplit(url)
         if (
             parsed.scheme != "https"

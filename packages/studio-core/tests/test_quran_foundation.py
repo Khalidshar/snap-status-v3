@@ -233,6 +233,22 @@ def test_prelive_stays_in_approved_dataset(tmp_path, catalog):
         qf.prepare(store, qf.Source(FixtureClient()), "a" * 32, 3, 8, catalog)
 
 
+@pytest.mark.parametrize("relative", ["Alafasy/mp3/002045.mp3", "/Alafasy/mp3/002045.mp3"])
+def test_documented_relative_audio_paths_use_only_qf_cdn(relative):
+    client = FixtureClient(audio=b"codec-fixture")
+    source = qf.Source(client)
+    original = source.snapshot
+
+    def snapshot(group, identifier):
+        rows = original(group, identifier)
+        rows[0]["url"] = relative
+        return rows
+
+    source.snapshot = snapshot
+    assert source.audio("2:45", {"id": 7, "name": "مشاري العفاسي"}) == b"codec-fixture"
+    assert client.urls[-1] == "https://verses.quran.com/Alafasy/mp3/002045.mp3"
+
+
 def test_pagination_restores_all_content_and_paragraphs():
     text = "نص  اختباري فقط " * 80 + "\n\n" + "فقرة اختبار " * 30
     result = pages(text)
@@ -400,12 +416,15 @@ def test_real_clip_keeps_whole_audio_then_tafsir_inside_frame(tmp_path, catalog,
     assert evidence["verse_seconds"] >= evidence["recitation_seconds"]
 
 
-def test_existing_religious_text_files_are_not_touched():
-    # Both application adapters expose exactly the same shared prepare contract.
-    from snap_bot.quran_clip import APP as snap_app
+def test_application_adapters_bind_their_own_app_and_store(tmp_path, catalog, monkeypatch):
     from snap_bot.quran_clip import prepare_clip as snap_prepare
-    from status_bot.quran_clip import APP as status_app
     from status_bot.quran_clip import prepare_clip as status_prepare
+    from studio_core.religious import quran_commands
 
-    assert snap_prepare is status_prepare and snap_app != status_app
-    assert time.time() > 0
+    monkeypatch.setattr(quran_commands, "NetworkClient", lambda _: FixtureClient())
+    for adapter, app in ((snap_prepare, "snap-bot-v2"), (status_prepare, "status-bot-v2")):
+        path = adapter(
+            tmp_path / app, "a" * 32, 2, 45, socket=tmp_path / (app + ".sock"), catalog=catalog
+        )
+        value = qf.verify_bundle(path, app, time.time())
+        assert value["app"] == app and value["audio_state"] == "SILENT_AUDIO_FAILED"
