@@ -54,6 +54,11 @@ def _number(value: object) -> bool:
 
 def check_voice(result: Any) -> dict[str, Any]:
     """الصوت: one generated ambient bed, measured loud enough and never clipping."""
+    if result.get("quran_foundation"):
+        from studio_core.religious.quran_pipeline import check_result
+
+        check_result(result)
+        return {"decision": "PASS", "audio": result["qa"]["audio"]}
     qa = result["qa"]
     if qa.get("audio") != "generated_ambient":
         raise AgentRejected("VOICE_AUDIO_NOT_AMBIENT")
@@ -125,7 +130,12 @@ def check_media(result: Any, settings: Any) -> dict[str, Any]:
         raise AgentRejected("MEDIA_DIGEST_MISMATCH") from cause
     qa = result["qa"]
     try:
-        expected_duration = sacred_duration(result, profile.get("duration_seconds", 0))
+        if result.get("quran_foundation"):
+            from studio_core.religious.quran_pipeline import check_result
+
+            expected_duration = check_result(result)
+        else:
+            expected_duration = sacred_duration(result, profile.get("duration_seconds", 0))
     except (ValueError, TypeError, KeyError) as cause:
         raise AgentRejected("MEDIA_SACRED_PAGES_CHANGED") from cause
     if qa.get("bytes") != len(data) or len(data) > profile.get("max_bytes", 0):

@@ -428,3 +428,199 @@ def test_application_adapters_bind_their_own_app_and_store(tmp_path, catalog, mo
         )
         value = qf.verify_bundle(path, app, time.time())
         assert value["app"] == app and value["audio_state"] == "SILENT_AUDIO_FAILED"
+
+
+def command_content():
+    from studio_core.presentation.did_you_know import load_kind, make_content
+
+    identifier = next(
+        i["id"] for i in faith.load("verse") if i["surah"] == 2 and i["ayahs"] == [45]
+    )
+    return make_content(
+        next(f for f in load_kind("verse") if f["id"] == identifier), time.time(), "verse"
+    )
+
+
+def test_command_feature_off_does_not_probe_or_touch_files(tmp_path, monkeypatch):
+    from studio_core.religious import quran_pipeline as pipeline
+
+    monkeypatch.delenv("MADAR_QURAN_AUDIO", raising=False)
+    monkeypatch.setattr(pipeline, "store_for", lambda _: pytest.fail("No store while disabled"))
+    monkeypatch.setattr(pipeline, "NetworkClient", lambda _: pytest.fail("No probe while disabled"))
+    assert pipeline.stage(command_content(), APP, "a" * 32, tmp_path / "content.json") is False
+    assert not list(tmp_path.iterdir())
+
+
+def test_missing_credentials_service_keeps_legacy_behavior(tmp_path, catalog, monkeypatch):
+    from studio_core.network import NetworkError
+    from studio_core.religious import quran_pipeline as pipeline
+
+    class Missing:
+        def get(self, _):
+            raise NetworkError("PROXY_UNAVAILABLE")
+
+    monkeypatch.setenv("MADAR_QURAN_AUDIO", "1")
+    monkeypatch.setattr(pipeline, "CATALOG", catalog)
+    monkeypatch.setattr(pipeline, "NetworkClient", lambda _: Missing())
+    monkeypatch.setattr(pipeline, "store_for", lambda _: pytest.fail("No state without service"))
+    assert pipeline.stage(command_content(), APP, "a" * 32, tmp_path / "content.json") is False
+
+
+def test_renderer_without_marker_delegates_exactly_to_existing_renderer(tmp_path, monkeypatch):
+    from studio_core.presentation import render as existing
+    from studio_core.religious import quran_pipeline as pipeline
+
+    expected = {"unchanged": object()}
+    arguments = []
+    monkeypatch.setattr(existing, "render", lambda *args: arguments.append(args) or expected)
+    config = SimpleNamespace(app=APP)
+    settings = {"input_root": str(tmp_path / "renders")}
+    assert pipeline.render(config, settings, "a" * 32, "b" * 64, 1) is expected
+    assert arguments == [(config, settings, "a" * 32, "b" * 64, 1)]
+
+
+@pytest.mark.parametrize("app", [APP, "status-bot-v2"])
+def test_enabled_command_reaches_owned_renderer_and_media_gates(
+    tmp_path, catalog, monkeypatch, app
+):
+    from studio_core.presentation.command_cards import profile
+    from studio_core.religious import quran_pipeline as pipeline
+
+    if shutil.which("pango-view") is None:
+        pytest.skip("Real Pango required")
+    monkeypatch.setenv("MADAR_QURAN_AUDIO", "1")
+    monkeypatch.setattr(pipeline, "BASE", tmp_path)
+    monkeypatch.setattr(pipeline, "CATALOG", catalog)
+    monkeypatch.setattr(
+        pipeline,
+        "NetworkClient",
+        lambda _: SimpleNamespace(
+            get=lambda _: SimpleNamespace(body=b'{"configured":true,"environment":"prelive"}')
+        ),
+    )
+    content, job = command_content(), "a" * 32
+    root = tmp_path / pipeline.short(app)
+    input_root = root / "inputs/renders"
+    source = input_root / job / "attempts/1/input/content.json"
+    source.parent.mkdir(parents=True)
+    source.write_text(json.dumps(content, ensure_ascii=False))
+    source.chmod(0o640)
+    actual_run = subprocess.run
+    calls = []
+
+    def start(argv, **kwargs):
+        if argv[0] in {"/usr/bin/systemctl", "/usr/bin/sudo"}:
+            calls.append(argv)
+            pipeline.prepare_selection(
+                pipeline.store_for(app), qf.Source(FixtureClient()), job, content, catalog
+            )
+            return SimpleNamespace(returncode=0)
+        return actual_run(argv, **kwargs)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(pipeline.subprocess, "run", start)
+        assert pipeline.stage(content, app, job, source) is True
+    assert (
+        len(calls) == 1
+        and calls[0][-1] == f"madar-v3-{pipeline.short(app)}-quran-prepare@{job}.service"
+    )
+    assert json.loads(source.read_bytes()) == content
+    settings = {
+        "input_root": str(input_root),
+        "spool_root": str(root / "spool/renders"),
+        "worker_uid": __import__("os").getuid(),
+        "profile": profile(),
+        "egress_socket": str(tmp_path / "no-egress.sock"),
+    }
+    settings["profile"]["ffmpeg_version"] = actual_run(
+        ["/usr/bin/ffmpeg", "-version"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()[0]
+    config = tmp_path / "settings.json"
+    config.write_text(json.dumps(settings))
+    worker = Path(__file__).with_name("quran_sandbox_worker.py")
+    process = actual_run(
+        [
+            sys.executable,
+            str(worker),
+            "pipeline",
+            str(config),
+            str(tmp_path),
+            app,
+            job,
+            content["content_hash"],
+        ],
+        capture_output=True,
+        text=True,
+        timeout=240,
+    )
+    assert process.returncode == 0, process.stderr
+    result = json.loads(process.stdout)
+    assert result["content_hash"] == content["content_hash"]
+    assert result["qa"]["audio"] == "SILENT_AUDIO_FAILED"
+    assert result["quran_foundation"]["text_sha256"] == qf.sha(content["body"].encode())
+    assert result["quran_foundation"]["app"] == app
+    assert all(result["network_isolation"].values())
+    with sqlite3.connect(pipeline.store_for(app).db) as db:
+        assert db.execute("SELECT COUNT(*) FROM copies").fetchone()[0] == 2
+
+
+def test_expired_delivery_copies_are_deleted_but_ledger_is_preserved(tmp_path, catalog):
+    now = [100.0]
+    store = qf.Store(tmp_path / "quran-snap", APP, lambda: now[0])
+    _, expires = store.reserve("a" * 32, json.loads(catalog.read_bytes()))
+    target = tmp_path / "snap/previews" / ("a" * 32) / "did-you-know.mp4"
+    store.track(target, "a" * 32, expires, qf.sha(b"fixture"))
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"fixture")
+    with pytest.raises(ValueError, match="OUTSIDE_APP"):
+        store.track(tmp_path / "snap/../status/video.mp4", "a" * 32, expires, qf.sha(b"fixture"))
+    now[0] = expires
+    store.sweep()
+    assert not target.exists() and store.db.exists()
+    with sqlite3.connect(store.db) as db:
+        assert db.execute("SELECT state FROM copies").fetchone()[0] == "PURGED"
+
+
+def test_same_existing_command_dispatchers_use_quran_aware_renderer():
+    from snap_bot import service
+    from status_bot import content_clips
+    from studio_core.religious.quran_pipeline import render
+
+    assert service.render is render and content_clips.shared_render is render
+
+
+def test_multiple_ayahs_keep_one_reader_and_exact_source_sequence(tmp_path, catalog):
+    from studio_core.presentation.did_you_know import load_kind, make_content
+    from studio_core.religious.quran_pipeline import prepare_selection
+
+    class Multiple(qf.Source):
+        def tafsir(self, verse):
+            raw = "نص اختباري وليس تفسيراً."
+            return {
+                "resource_id": 16,
+                "name": "التفسير الميسر",
+                "raw": raw,
+                "text": raw,
+                "raw_sha256": qf.sha(raw.encode()),
+                "sha256": qf.sha(raw.encode()),
+            }
+
+        def audio(self, verse, reciter):
+            raise ValueError("FIXTURE_NO_AUDIO")
+
+    content = make_content(
+        next(f for f in load_kind("verse") if f["id"] == "verse-16"), time.time(), "verse"
+    )
+    store = qf.Store(tmp_path / "quran-snap", APP)
+    # Production-shaped fixture only: no production connection or credentials.
+    selected = prepare_selection(store, Multiple(None, "production"), "a" * 32, content, catalog)
+    value = json.loads(selected.read_bytes())
+    bundles = [json.loads((selected.parent / e["file"]).read_bytes()) for e in value["bundles"]]
+    assert len(bundles) == 2
+    assert len({b["reciter"]["id"] for b in bundles}) == 1
+    assert " ".join(b["text"] for b in bundles) == content["body"]
+    next_reader, _ = store.reserve("b" * 32, json.loads(catalog.read_bytes()))
+    assert next_reader["id"] != bundles[0]["reciter"]["id"]

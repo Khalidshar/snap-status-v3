@@ -168,12 +168,17 @@ def adopt_render(
     quality_sha = hashlib.sha256(result_bytes).hexdigest()
     # Verification above is deliberately outside the retryable I/O boundary.
     output = Storage(config).workspace(job_id) / "output"
+    from studio_core.religious.quran_pipeline import track
+
+    track(result, output / filename, result["video_sha256"])
     staged: list[str] = []
     try:
         # Long copy and file fsync happen outside the short DB transaction.
         for value in (data, result_bytes, input_bytes):
             fd, temp = tempfile.mkstemp(dir=output, prefix=".adopt-")
             staged.append(temp)
+            if value is data:
+                track(result, Path(temp), result["video_sha256"])
             with os.fdopen(fd, "wb") as stream:
                 stream.write(value)
                 stream.flush()

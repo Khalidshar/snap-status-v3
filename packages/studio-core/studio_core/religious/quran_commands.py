@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -36,23 +35,27 @@ def prepare_clip(
 
 def main(app: str) -> None:
     parser = argparse.ArgumentParser(description="مقاطع التلاوة والتفسير — دون إرسال أو جدولة")
-    parser.add_argument("action", choices=["prepare", "render", "retention"])
+    parser.add_argument("action", choices=["prepare", "prepare-command", "render", "retention"])
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--job")
     parser.add_argument("--surah", type=int)
     parser.add_argument("--ayah", type=int)
     parser.add_argument("--environment", choices=["prelive", "production"], default="prelive")
     parser.add_argument("--catalog", type=Path, default=CATALOG)
+    parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
     if args.action == "retention":
         store = Store(args.root, app)
-        while True:
-            store.sweep()
-            time.sleep(30)  # Asset lifecycle only; never creates content or sends messages.
+        store.sweep()
+        return
     if args.job is None:
         parser.error("يلزم معرّف المقطع")
     result: Any
-    if args.action == "prepare":
+    if args.action == "prepare-command":
+        from studio_core.religious.quran_pipeline import prepare_command
+
+        result = {"bundle": str(prepare_command(app, args.job))}
+    elif args.action == "prepare":
         if args.surah is None or args.ayah is None:
             parser.error("يلزم رقم السورة والآية")
         socket = Path(

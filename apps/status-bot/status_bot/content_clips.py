@@ -28,7 +28,8 @@ from studio_core.presentation.did_you_know import (
     validate_content,
 )
 from studio_core.presentation.media_checks import check_media, check_voice
-from studio_core.presentation.render import render as shared_render
+from studio_core.religious.quran_pipeline import render as shared_render
+from studio_core.religious.quran_pipeline import stage as stage_quran
 from studio_core.renderer import write_once
 from studio_core.sources import event_video
 from studio_core.sources.news import validate as validate_news
@@ -358,7 +359,9 @@ def build(
             footage.prepare(
                 {**content, "body": content["headline"]}, directory / "media/background", socket
             )
-    elif settings["profile"].get("footage"):
+    elif not stage_quran(content, "status-bot-v2", args[0], source_path) and settings[
+        "profile"
+    ].get("footage"):
         footage.prepare(content, source_path.parent / "background", socket)
     write_once(
         directory / "request.json",
@@ -499,6 +502,10 @@ def send(
                     "UPDATE command_videos SET state='UPLOAD_INTENT',video_sha=? WHERE tag=?",
                     (result["video_sha256"], item["tag"]),
                 )
+            if result.get("quran_foundation"):
+                from studio_core.religious.quran_pipeline import check_result
+
+                check_result(result)
             media = response_id(transport.upload_video(video), "upload", outbox.identity.recipient)
             require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
             window(outbox)
@@ -508,6 +515,8 @@ def send(
                 db.execute(
                     "UPDATE command_videos SET state='SEND_INTENT' WHERE tag=?", (item["tag"],)
                 )
+            if result.get("quran_foundation"):
+                check_result(result)
             message = response_id(transport.send_video(media), "send", outbox.identity.recipient)
             with outbox.repo.transaction() as db:
                 db.execute(

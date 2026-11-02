@@ -37,6 +37,10 @@ def _number(value: object) -> bool:
 
 def check_voice(result: Any) -> dict[str, Any]:
     """الصوت: one generated ambient bed, measured loud enough and never clipping."""
+    if result.get("quran_foundation"):
+        from studio_core.presentation.media_checks import check_voice as shared_voice
+
+        return shared_voice(result)
     qa = result["qa"]
     if qa.get("audio") != "generated_ambient":
         raise AgentRejected("VOICE_AUDIO_NOT_AMBIENT")
@@ -96,6 +100,10 @@ def _under_root(root: Path, path: Path) -> None:
 
 def check_media(result: Any, settings: Any) -> dict[str, Any]:
     """التحقق من الوسائط: the adopted-to-be bytes are exactly what the result declares."""
+    if result.get("quran_foundation"):
+        from studio_core.presentation.media_checks import check_media as shared_media
+
+        return shared_media(result, settings)
     profile = settings.get("profile") or {}
     root = Path(settings["spool_root"])
     if not root.is_absolute() or root.name != "renders":

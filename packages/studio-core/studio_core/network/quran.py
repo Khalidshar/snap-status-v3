@@ -113,6 +113,14 @@ class QuranEgress:
             return token
 
     def fetch(self, url: str, _: Any = None) -> dict[str, Any]:
+        if url == "quran://ready":
+            data = json.dumps({"configured": True, "environment": self.policy.environment}).encode()
+            return {
+                "status": 200,
+                "content_type": "application/json",
+                "body": base64.b64encode(data).decode(),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
         _, api = ENVIRONMENTS[self.policy.environment]
         parsed = urlsplit(url)
         is_api = parsed.hostname == api

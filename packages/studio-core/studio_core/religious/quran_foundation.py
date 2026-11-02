@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[4]
 CATALOG = ROOT / "config/quran/reciters.json"
 APPS = {"snap-bot-v2", "status-bot-v2"}
 WEEK = 7 * 86400
-# Delete before the hard deadline, allowing a 30-second retention worker sweep.
+# Delete before the hard deadline; also refuse expired assets before every use.
 RETENTION = WEEK - 120
 TAFSIRS = (("ar-tafsir-muyassar", "التفسير الميسر"), ("ar-tafseer-al-saddi", "تفسير السعدي"))
 
@@ -38,7 +38,7 @@ def exact_ayah(surah: int, ayah: int) -> str:
 
 def safe_root(root: Path) -> Path:
     root = root.absolute()
-    if any(p.is_symlink() for p in (root, *root.parents)):
+    if ".." in root.parts or any(p.is_symlink() for p in (root, *root.parents)):
         raise ValueError("QF_UNSAFE_ROOT")
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     return root
@@ -64,6 +64,46 @@ class Store:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS clips(job TEXT PRIMARY KEY, reciter INTEGER NOT NULL, "
                 "created REAL NOT NULL, expires REAL NOT NULL, state TEXT NOT NULL)"
+            )
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS copies(path TEXT PRIMARY KEY, job TEXT NOT NULL, "
+                "expires REAL NOT NULL, sha TEXT NOT NULL, state TEXT NOT NULL)"
+            )
+
+    def copy_path(self, path: Path) -> Path:
+        path = path.absolute()
+        if ".." in path.parts:
+            raise ValueError("QF_COPY_OUTSIDE_APP")
+        short = "snap" if self.app == "snap-bot-v2" else "status"
+        app_root = self.root.parent / short
+        temporary = any(
+            re.fullmatch(r"madar-manual-[A-Za-z0-9_-]+", part) for part in path.parts
+        ) and path.is_relative_to(Path("/tmp"))  # noqa: S108 -- owned temporary workspaces only
+        coordinator = short == "snap" and path.is_relative_to(self.root.parent / "render-work")
+        if not (path.is_relative_to(app_root) or temporary or coordinator):
+            raise ValueError("QF_COPY_OUTSIDE_APP")
+        if path.name not in {"did-you-know.mp4", "preview.png", "video.mp4"} and not re.fullmatch(
+            r"\.adopt-[A-Za-z0-9_-]+", path.name
+        ):
+            raise ValueError("QF_COPY_TYPE_DENIED")
+        if any(p.is_symlink() for p in (path, *path.parents)):
+            raise ValueError("QF_UNSAFE_COPY")
+        return path
+
+    def track(self, path: Path, job: str, expires: float, digest: str) -> None:
+        path = self.copy_path(path)
+        with sqlite3.connect(self.db) as db:
+            row = db.execute("SELECT expires FROM clips WHERE job=?", (job,)).fetchone()
+            if not row or expires != row[0] or not re.fullmatch(r"[0-9a-f]{64}", digest):
+                raise ValueError("QF_COPY_BINDING_INVALID")
+            prior = db.execute(
+                "SELECT job,expires,sha FROM copies WHERE path=?", (str(path),)
+            ).fetchone()
+            if prior and prior != (job, expires, digest):
+                raise ValueError("QF_COPY_BINDING_CHANGED")
+            db.execute(
+                "INSERT OR IGNORE INTO copies VALUES(?,?,?,?,'LIVE')",
+                (str(path), job, expires, digest),
             )
 
     def reserve(self, job: str, catalog: dict[str, Any]) -> tuple[dict[str, Any], float]:
@@ -117,6 +157,15 @@ class Store:
     def sweep(self) -> int:
         removed = 0
         with sqlite3.connect(self.db) as db:
+            for name, digest in db.execute(
+                "SELECT path,sha FROM copies WHERE expires<=? AND state='LIVE'", (self.clock(),)
+            ).fetchall():
+                path = self.copy_path(Path(name))
+                if path.exists():
+                    if not path.is_file() or sha(path.read_bytes()) != digest:
+                        raise ValueError("QF_EXPIRED_COPY_CHANGED")
+                    path.unlink()
+                db.execute("UPDATE copies SET state='PURGED' WHERE path=?", (name,))
             for (job,) in db.execute(
                 "SELECT job FROM clips WHERE expires<=? AND state<>'PURGED'", (self.clock(),)
             ):
@@ -349,11 +398,29 @@ def prepare(
     store: Store, source: Source, job: str, surah: int, ayah: int, catalog: Path = CATALOG
 ) -> Path:
     store.sweep()
-    text = exact_ayah(surah, ayah)
+    exact_ayah(surah, ayah)
     if source.environment == "prelive" and surah not in {1, 2}:
         raise ValueError("QF_PRELIVE_SURAH_UNAVAILABLE")
     reciter, expires = store.reserve(job, json.loads(catalog.read_text()))
     directory = store.directory(job)
+    return download_ayah(store, source, job, surah, ayah, reciter, expires, directory)
+
+
+def download_ayah(
+    store: Store,
+    source: Source,
+    job: str,
+    surah: int,
+    ayah: int,
+    reciter: dict[str, Any],
+    expires: float,
+    directory: Path,
+) -> Path:
+    store.sweep()
+    text = exact_ayah(surah, ayah)
+    if source.environment == "prelive" and surah not in {1, 2}:
+        raise ValueError("QF_PRELIVE_SURAH_UNAVAILABLE")
+    directory = safe_root(directory)
     target = directory / "bundle.json"
     if target.exists():
         verify_bundle(target, store.app, store.clock())
@@ -366,6 +433,7 @@ def prepare(
     audio = directory / "recitation.mp3"
     duration = None
     try:
+        store.sweep()
         write_once(audio, source.audio(verse, reciter))
         duration = audio_duration(audio)
         audio_state = "HUMAN_RECITATION"

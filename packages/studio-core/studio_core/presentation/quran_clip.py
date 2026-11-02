@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from studio_core.religious.quran_foundation import sha, verify_bundle
-from studio_core.renderer import proof, run, write_once
+from studio_core.renderer import ensure_glyphs, proof, run, write_once
 
 from . import brand_frame, quran_font, sacred_text
 
@@ -40,6 +40,7 @@ def pages(text: str, limit: int = 240) -> list[dict[str, Any]]:
 
 
 def _image(text: str, font: Path, target: Path, size: int, height: int) -> tuple[int, int]:
+    ensure_glyphs(text, run(["/usr/bin/fc-query", "--format=%{charset}", str(font)], 5).stdout)
     return sacred_text.render_text_png(
         text,
         font,
@@ -51,12 +52,19 @@ def _image(text: str, font: Path, target: Path, size: int, height: int) -> tuple
     )
 
 
-def render(bundle: Path, app: str) -> dict[str, Any]:
+def render(bundle: Path, app: str, *, output_name: str = "render") -> dict[str, Any]:
     isolation = proof("/run/madar-quran-no-egress.sock")
     value = verify_bundle(bundle, app, time.time())
     if value["expires_at"] - time.time() < 1200:
         raise ValueError("QF_INSUFFICIENT_RENDER_LIFETIME")
-    root = bundle.parent / "render"
+    if not re.fullmatch(r"render(?:-[1-9][0-9]*)?", output_name):
+        raise ValueError("QF_RENDER_NAME_INVALID")
+    root = bundle.parent / output_name
+    if (root / "result.json").is_file():
+        prior: dict[str, Any] = json.loads((root / "result.json").read_bytes())
+        if prior.get("video_sha256") != sha((root / "video.mp4").read_bytes()):
+            raise ValueError("QF_RENDER_CHANGED")
+        return prior
     root.mkdir(mode=0o700, exist_ok=False)
     quran = quran_font.path()
     naskh = quran_font.font_for("hadith")

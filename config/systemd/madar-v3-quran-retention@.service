@@ -1,20 +1,20 @@
 [Unit]
 Description=Madar %i Quran asset lifetime worker (does not schedule content)
 [Service]
-Type=simple
+Type=oneshot
 User=root
 WorkingDirectory=/opt/madar/current
-ExecStart=/opt/madar/current/.venv/bin/python -m %i_bot.quran_clip retention --root /var/lib/madar/%i/quran
+ExecStart=/opt/madar/current/.venv/bin/python -m %i_bot.quran_clip retention --once --root /var/lib/madar/quran-%i
 Environment=PYTHONDONTWRITEBYTECODE=1
 UMask=0077
 NoNewPrivileges=yes
 PrivateNetwork=yes
 RestrictAddressFamilies=AF_UNIX
 InaccessiblePaths=-/run/madar -/etc/madar
-PrivateTmp=yes
+PrivateTmp=no
 PrivateDevices=yes
 ProtectSystem=strict
 ProtectHome=yes
 CapabilityBoundingSet=
-ReadWritePaths=/var/lib/madar/%i/quran
+ReadWritePaths=/var/lib/madar/quran-%i -/var/lib/madar/%i -/var/lib/madar/render-work /tmp
 MemoryMax=128M

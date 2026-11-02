@@ -25,7 +25,7 @@ def check(client: Any, now: float | None = None) -> list[dict[str, Any]]:
     rows = []
     for key in TITLES:
         for source in for_command(key):
-            if source.kind != "rss" or source.language != "ar" or source.status != "candidate":
+            if source.kind != "rss" or source.language != "ar" or source.status != "approved":
                 continue
             row: dict[str, Any] = {
                 "command": key,

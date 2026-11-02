@@ -54,10 +54,17 @@ def test_media_environment_is_not_shared_with_other_services():
 
 
 def test_default_only_prints_plan(tmp_path, capsys):
+    original_open = Path.open
+
+    def template_read_only(path, *args, **kwargs):
+        assert path.is_relative_to(installer.ROOT / "config/systemd")
+        assert kwargs.get("mode", args[0] if args else "r") == "r"
+        return original_open(path, *args, **kwargs)
+
     with (
         patch.object(installer, "UNITS", tmp_path / "units"),
         patch.object(sys, "argv", ["install_owner_commands.py"]),
-        patch.object(Path, "open", side_effect=AssertionError("No file content reads or writes")),
+        patch.object(Path, "open", template_read_only),
     ):
         installer.main()
     value = json.loads(capsys.readouterr().out)
@@ -73,6 +80,7 @@ def test_apply_rejects_missing_gateway_before_any_writes(tmp_path):
     (root / "madar-release.json").write_text(json.dumps({"commit": "a" * 40}))
     with (
         patch.object(installer, "ROOT", root),
+        patch.object(installer, "plan", return_value={}),
         patch.object(installer.os, "geteuid", return_value=0),
         patch.object(Path, "resolve", return_value=root),
         patch.object(sys, "argv", ["install_owner_commands.py", "--apply"]),
@@ -90,3 +98,20 @@ def test_apply_never_reads_media_environment_or_runs_a_process():
     calls = [ast.unparse(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)]
     assert not any(name.startswith(("subprocess.", "os.system", "os.popen")) for name in calls)
     assert not any(name.startswith("MEDIA_ENV.") for name in calls)
+
+
+def test_quran_services_are_installed_disabled_without_timers_or_secrets_in_renderers():
+    files = installer.plan()
+    for app in ("snap", "status"):
+        unit = files[installer.UNITS / f"madar-v3-{app}-quran-prepare@.service"]
+        assert (
+            f"ExecStartPre=+/usr/bin/systemctl start madar-v3-quran-retention@{app}.service" in unit
+        )
+        assert "EnvironmentFile" not in unit and "[Install]" not in unit
+        assert "PrivateNetwork=yes" in unit
+    retention = files[installer.UNITS / "madar-v3-quran-retention@.service"]
+    assert "Type=oneshot" in retention and "--once" in retention
+    assert "[Install]" not in retention and "Restart=" not in retention
+    assert all(not p.name.endswith(".timer") for p in files)
+    for name in ("madar-v3-snap-render@.service", "madar-v3-status-commands.service"):
+        assert "MADAR_QURAN_AUDIO=0" in files[installer.UNITS / (name + ".d/quran.conf")]

@@ -3,6 +3,10 @@ Description=Madar %i Quran Foundation egress (manual installation only)
 [Service]
 Type=simple
 User=root
+Group=ubuntu
+RuntimeDirectory=madar
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
 WorkingDirectory=/opt/madar/current
 EnvironmentFile=/etc/madar/quran.env
 Environment=PYTHONDONTWRITEBYTECODE=1

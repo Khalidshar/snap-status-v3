@@ -54,6 +54,21 @@ if __name__ == "__main__":
         from studio_core.renderer import proof
 
         print(json.dumps(proof("/run/madar-quran-test-no-egress.sock")))
+    elif sys.argv[1] == "pipeline":
+        from types import SimpleNamespace
+
+        from studio_core.religious import quran_pipeline
+
+        settings = json.loads(Path(sys.argv[2]).read_bytes())
+        quran_pipeline.BASE = Path(sys.argv[3])
+        result = quran_pipeline.render(
+            SimpleNamespace(app=sys.argv[4]), settings, sys.argv[5], sys.argv[6], 1
+        )
+        from studio_core.presentation.media_checks import check_media, check_voice
+
+        check_voice(result)
+        check_media(result, settings)
+        print(json.dumps(result))
     else:
         from studio_core.presentation.quran_clip import render
 
