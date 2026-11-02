@@ -584,6 +584,21 @@ def test_expired_delivery_copies_are_deleted_but_ledger_is_preserved(tmp_path, c
         assert db.execute("SELECT state FROM copies").fetchone()[0] == "PURGED"
 
 
+def test_interrupted_partial_copy_also_expires_without_deleting_audit(tmp_path, catalog):
+    now = [100.0]
+    store = qf.Store(tmp_path / "quran-snap", APP, lambda: now[0])
+    _, expires = store.reserve("a" * 32, json.loads(catalog.read_bytes()))
+    target = tmp_path / "snap/output/.adopt-fixture"
+    store.track(target, "a" * 32, expires, qf.sha(b"complete fixture"))
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"partial")
+    now[0] = expires
+    store.sweep()
+    assert not target.exists()
+    with sqlite3.connect(store.db) as db:
+        assert db.execute("SELECT state FROM copies").fetchone()[0] == "PURGED_CHANGED"
+
+
 def test_same_existing_command_dispatchers_use_quran_aware_renderer():
     from snap_bot import service
     from status_bot import content_clips
@@ -624,3 +639,52 @@ def test_multiple_ayahs_keep_one_reader_and_exact_source_sequence(tmp_path, cata
     assert " ".join(b["text"] for b in bundles) == content["body"]
     next_reader, _ = store.reserve("b" * 32, json.loads(catalog.read_bytes()))
     assert next_reader["id"] != bundles[0]["reciter"]["id"]
+
+
+def test_failed_attempts_do_not_cycle_back_to_last_successful_reader(tmp_path, catalog):
+    class Unavailable(qf.Source):
+        def tafsir(self, verse):
+            raise ValueError("FIXTURE_TAFSIR_UNAVAILABLE")
+
+    approved = json.loads(catalog.read_bytes())
+    approved["reciters"] = approved["reciters"][:3]
+    catalog.write_text(json.dumps(approved, ensure_ascii=False))
+    store = qf.Store(tmp_path / "quran-snap", APP)
+    first, _ = store.reserve("a" * 32, approved)
+    store.rendered("a" * 32)
+    for job in ("b" * 32, "c" * 32):
+        with pytest.raises(ValueError, match="TAFSIR_UNAVAILABLE"):
+            qf.prepare(store, Unavailable(None), job, 2, 45, catalog)
+    reader, _ = store.reserve("d" * 32, approved)
+    assert reader["id"] != first["id"]
+    with sqlite3.connect(store.db) as db:
+        assert db.execute("SELECT COUNT(*) FROM clips WHERE state='FAILED'").fetchone()[0] == 2
+
+
+def test_render_failure_keeps_audit_but_releases_reader_from_rotation(
+    tmp_path, catalog, monkeypatch
+):
+    from studio_core.religious import quran_pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "BASE", tmp_path)
+    store = pipeline.store_for(APP)
+    job = "a" * 32
+    store.reserve(job, json.loads(catalog.read_bytes()))
+    source = tmp_path / "input/renders" / job / "attempts/1/input/quran.json"
+    source.parent.mkdir(parents=True)
+    source.write_text("{}")
+
+    def fail(*_):
+        raise ValueError("FIXTURE_RENDER_FAILED")
+
+    monkeypatch.setattr(pipeline, "_render", fail)
+    with pytest.raises(ValueError, match="RENDER_FAILED"):
+        pipeline.render(
+            SimpleNamespace(app=APP),
+            {"input_root": str(tmp_path / "input/renders")},
+            job,
+            "b" * 64,
+            1,
+        )
+    with sqlite3.connect(store.db) as db:
+        assert db.execute("SELECT state FROM clips").fetchone()[0] == "FAILED"

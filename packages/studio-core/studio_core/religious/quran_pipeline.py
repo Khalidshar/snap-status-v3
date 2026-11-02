@@ -7,6 +7,7 @@ import re
 import stat
 import subprocess
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any, cast
 
@@ -58,26 +59,30 @@ def prepare_selection(
     store.sweep()
     reciter, expires = store.reserve(job, json.loads(catalog.read_text()))
     directory = store.directory(job)
-    bundles = []
-    for index, (surah, ayah) in enumerate(refs):
-        # One reservation/reader for the whole clip; every ayah recording stays whole.
-        path = download_ayah(
-            store, source, job, surah, ayah, reciter, expires, directory / str(index)
-        )
-        bundles.append({"file": f"{index}/bundle.json", "sha256": sha(path.read_bytes())})
-    selection = directory / "selection.json"
-    value = {
-        "schema": 1,
-        "app": store.app,
-        "job": job,
-        "content_hash": content["content_hash"],
-        "text_sha256": sha(content["body"].encode()),
-        "reciter": reciter,
-        "expires_at": expires,
-        "bundles": bundles,
-    }
-    write_once(selection, json.dumps(value, ensure_ascii=False, sort_keys=True).encode())
-    return selection
+    try:
+        bundles = []
+        for index, (surah, ayah) in enumerate(refs):
+            # One reservation/reader for the whole clip; every ayah recording stays whole.
+            path = download_ayah(
+                store, source, job, surah, ayah, reciter, expires, directory / str(index)
+            )
+            bundles.append({"file": f"{index}/bundle.json", "sha256": sha(path.read_bytes())})
+        selection = directory / "selection.json"
+        value = {
+            "schema": 1,
+            "app": store.app,
+            "job": job,
+            "content_hash": content["content_hash"],
+            "text_sha256": sha(content["body"].encode()),
+            "reciter": reciter,
+            "expires_at": expires,
+            "bundles": bundles,
+        }
+        write_once(selection, json.dumps(value, ensure_ascii=False, sort_keys=True).encode())
+        return selection
+    except Exception:
+        store.failed(job)
+        raise
 
 
 def prepare_command(app: str, job: str) -> Path:
@@ -131,7 +136,11 @@ def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> bool
             "--collect",
             *argv,
         ]
-    subprocess.run(argv, check=True, capture_output=True, timeout=900)  # noqa: S603
+    try:
+        subprocess.run(argv, check=True, capture_output=True, timeout=900)  # noqa: S603
+    except Exception:
+        store.failed(job)
+        raise
     selected = store.directory(job) / "selection.json"
     value = json.loads(selected.read_bytes())
     if value["content_hash"] != content["content_hash"] or value["app"] != app:
@@ -207,7 +216,7 @@ def _read(path: Path, limit: int, uid: int) -> bytes:
         return stream.read(limit + 1)
 
 
-def render(
+def _render(
     config: Config, settings: dict[str, Any], job_id: str, content_hash: str, attempt: int
 ) -> dict[str, Any]:
     from studio_core.presentation.render import render as legacy
@@ -365,4 +374,20 @@ def render(
         output / "render-result.json",
         json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2).encode(),
     )
+    store.rendered(job_id)
     return result
+
+
+def render(
+    config: Config, settings: dict[str, Any], job_id: str, content_hash: str, attempt: int
+) -> dict[str, Any]:
+    try:
+        return _render(config, settings, job_id, content_hash, attempt)
+    except Exception:
+        marker = (
+            Path(settings["input_root"]) / job_id / "attempts" / str(attempt) / "input/quran.json"
+        )
+        if marker.is_file():
+            with suppress(OSError, ValueError):
+                store_for(config.app).failed(job_id)
+        raise

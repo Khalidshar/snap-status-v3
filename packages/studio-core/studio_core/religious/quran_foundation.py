@@ -137,7 +137,10 @@ class Store:
                 if reciter is None:
                     raise ValueError("QF_RESERVED_RECITER_REMOVED")
                 return reciter, prior[1]
-            last = db.execute("SELECT reciter FROM clips ORDER BY rowid DESC LIMIT 1").fetchone()
+            last = db.execute(
+                "SELECT reciter FROM clips WHERE state NOT IN ('FAILED','PURGED_FAILED') "
+                "ORDER BY rowid DESC LIMIT 1"
+            ).fetchone()
             index = next((i for i, r in enumerate(reciters) if last and r["id"] == last[0]), -1)
             reciter = reciters[(index + 1) % len(reciters)]
             now = self.clock()
@@ -148,6 +151,20 @@ class Store:
             )
             db.commit()
         return reciter, expires
+
+    def failed(self, job: str) -> None:
+        with sqlite3.connect(self.db) as db:
+            db.execute(
+                "UPDATE clips SET state='FAILED' WHERE job=? AND state NOT IN "
+                "('RENDERED','PURGED','PURGED_FAILED')",
+                (job,),
+            )
+
+    def rendered(self, job: str) -> None:
+        with sqlite3.connect(self.db) as db:
+            db.execute(
+                "UPDATE clips SET state='RENDERED' WHERE job=? AND expires>?", (job, self.clock())
+            )
 
     def directory(self, job: str) -> Path:
         if not re.fullmatch(r"[0-9a-f]{32}", job):
@@ -161,20 +178,31 @@ class Store:
                 "SELECT path,sha FROM copies WHERE expires<=? AND state='LIVE'", (self.clock(),)
             ).fetchall():
                 path = self.copy_path(Path(name))
+                state = "PURGED"
                 if path.exists():
-                    if not path.is_file() or sha(path.read_bytes()) != digest:
-                        raise ValueError("QF_EXPIRED_COPY_CHANGED")
+                    if not path.is_file():
+                        raise ValueError("QF_UNSAFE_COPY")
+                    if sha(path.read_bytes()) != digest:
+                        # An interrupted copy may be partial. Its uniquely registered
+                        # app-local path still expires; keep the discrepancy in audit.
+                        state = "PURGED_CHANGED"
                     path.unlink()
-                db.execute("UPDATE copies SET state='PURGED' WHERE path=?", (name,))
+                db.execute("UPDATE copies SET state=? WHERE path=?", (state, name))
             for (job,) in db.execute(
-                "SELECT job FROM clips WHERE expires<=? AND state<>'PURGED'", (self.clock(),)
+                "SELECT job FROM clips WHERE expires<=? "
+                "AND state NOT IN ('PURGED','PURGED_FAILED')",
+                (self.clock(),),
             ):
                 path = self.payload / job
                 if path.is_symlink():
                     raise ValueError("QF_UNSAFE_PAYLOAD")
                 if path.exists():
                     shutil.rmtree(path)
-                db.execute("UPDATE clips SET state='PURGED' WHERE job=?", (job,))
+                db.execute(
+                    "UPDATE clips SET state=CASE WHEN state='FAILED' THEN 'PURGED_FAILED' "
+                    "ELSE 'PURGED' END WHERE job=?",
+                    (job,),
+                )
                 removed += 1
         return removed
 
@@ -403,7 +431,11 @@ def prepare(
         raise ValueError("QF_PRELIVE_SURAH_UNAVAILABLE")
     reciter, expires = store.reserve(job, json.loads(catalog.read_text()))
     directory = store.directory(job)
-    return download_ayah(store, source, job, surah, ayah, reciter, expires, directory)
+    try:
+        return download_ayah(store, source, job, surah, ayah, reciter, expires, directory)
+    except Exception:
+        store.failed(job)
+        raise
 
 
 def download_ayah(
@@ -463,7 +495,7 @@ def download_ayah(
         raise ValueError("QF_CLIP_EXPIRED")
     write_once(target, json.dumps(value, ensure_ascii=False, sort_keys=True).encode())
     with sqlite3.connect(store.db) as db:
-        db.execute("UPDATE clips SET state=? WHERE job=?", (audio_state, job))
+        db.execute("UPDATE clips SET state=? WHERE job=? AND state<>'FAILED'", (audio_state, job))
     return target
 
 

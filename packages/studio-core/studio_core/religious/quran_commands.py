@@ -80,7 +80,12 @@ def main(app: str) -> None:
 
         store = Store(args.root, app)
         store.sweep()
-        result = render(store.directory(args.job) / "bundle.json", app)
+        try:
+            result = render(store.directory(args.job) / "bundle.json", app)
+        except Exception:
+            store.failed(args.job)
+            raise
+        store.rendered(args.job)
     # Paths and hashes only. No source text, audio URL, upstream errors or credentials.
     print(
         json.dumps({k: result[k] for k in ("bundle", "video_sha256", "expires_at") if k in result})
