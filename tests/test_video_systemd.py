@@ -20,7 +20,8 @@ def test_video_launch_contract_and_permissions():
     assert "EnvironmentFile=/etc/madar/media.env\n" in unit
     assert (
         "ExecStart=/opt/madar/current/.venv/bin/python -m studio_core.network.video "
-        "--socket /run/madar/snap-video.sock\n" in unit
+        "--socket /run/madar/snap-video.sock "
+        "--source-policy /opt/madar/current/config/media/source-video.json\n" in unit
     )
     for directive in (
         "User=root",
@@ -47,7 +48,7 @@ def test_video_launch_contract_and_permissions():
 
 def test_media_environment_is_not_shared_with_other_services():
     for path, content in installer.plan().items():
-        if path.name != "madar-v3-snap-video.service":
+        if path.name not in {"madar-v3-snap-video.service", "madar-v3-status-video.service"}:
             assert "media.env" not in content
             assert "studio_core.network.video" not in content
 

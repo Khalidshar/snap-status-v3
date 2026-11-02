@@ -28,18 +28,27 @@ def check(case: dict[str, Any]) -> tuple[bool, str]:
     label = f"{case['tool']}: {case['label']}"
     with tempfile.TemporaryDirectory(prefix="v3-app-mutation-") as temp:
         # Keep the repository depth so parents[3] still finds root assets and config.
-        for shared in ("assets", "config"):
+        for shared in ("assets", "config", "scripts"):
             (Path(temp) / shared).symlink_to(ROOT / shared)
         package = Path(temp) / "apps" / "snap-bot"
         copy = package / "snap_bot"
         shutil.copytree(APP / "snap_bot", copy, ignore=shutil.ignore_patterns("__pycache__"))
+        core = Path(temp) / "packages/studio-core/studio_core"
+        shutil.copytree(
+            ROOT / "packages/studio-core/studio_core",
+            core,
+            ignore=shutil.ignore_patterns("__pycache__"),
+        )
         for hunk in case["hunks"]:
-            source = copy / hunk["file"]
+            shared_source = core / "presentation" / hunk["file"]
+            source = shared_source if shared_source.is_file() else copy / hunk["file"]
             text = source.read_text(encoding="utf-8")
             if text.count(hunk["old"]) != 1:
                 return False, f"Mutation target not unique: {label}"
             source.write_text(text.replace(hunk["old"], hunk["new"]), encoding="utf-8")
-        path = os.pathsep.join(filter(None, (str(package), os.environ.get("PYTHONPATH"))))
+        path = os.pathsep.join(
+            filter(None, (str(core.parent), str(package), os.environ.get("PYTHONPATH")))
+        )
         env = {**os.environ, "PYTHONPATH": path, "PYTHONDONTWRITEBYTECODE": "1"}
         # Fixed argv: this interpreter running the repository's own app tests.
         result = subprocess.run(  # noqa: S603

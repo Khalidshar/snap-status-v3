@@ -52,12 +52,14 @@ WantedBy=multi-user.target
 """
 
 
-def video_unit() -> str:
+def video_unit(app: str = "snap") -> str:
     """Root-only video RPC; secrets belong solely to this network process."""
     unit = service(
         "snap",
         "Madar isolated Snap video gateway",
-        "-m studio_core.network.video --socket " + VIDEO_SOCKET,
+        "-m studio_core.network.video --socket "
+        + VIDEO_SOCKET
+        + " --source-policy /opt/madar/current/config/media/source-video.json",
         network=True,
     )
     unit = unit.replace(
@@ -73,11 +75,11 @@ def video_unit() -> str:
     unit = unit.replace("MemoryMax=256M", "MemoryMax=1G\nTasksMax=16\nLimitNOFILE=128")
     # Installation must not advertise boot enablement or automatic retry.
     unit = unit.replace("Restart=on-failure\nRestartSec=5", "Restart=no")
-    return unit.split("[Install]", 1)[0]
+    return unit.split("[Install]", 1)[0].replace("snap-video.sock", app + "-video.sock")
 
 
 def plan() -> dict[Path, str]:
-    files = {UNITS / "madar-v3-snap-video.service": video_unit()}
+    files = {UNITS / f"madar-v3-{app}-video.service": video_unit(app) for app in ("snap", "status")}
     for app in ("snap", "status"):
         files[UNITS / f"madar-v3-{app}-news-egress.service"] = service(
             app,
@@ -104,6 +106,10 @@ def plan() -> dict[Path, str]:
         network=False,
         secret=True,
     )
+    # A crashed listener leaves its socket behind; the next start must not refuse it.
+    files[UNITS / "madar-v3-status-command-webhook.service.d/stale-socket.conf"] = (
+        "[Service]\nExecStartPre=/bin/rm -f /var/lib/madar/status/command-webhook/incoming.sock\n"
+    )
     files[UNITS / "madar-v3-snap-commands.service.d/live-news.conf"] = (
         "[Service]\nEnvironment=MADAR_LIVE_NEWS=1\n"
     )
@@ -118,7 +124,8 @@ def plan() -> dict[Path, str]:
         .replace("Restart=on-failure", "Restart=no")
     )
     unit = unit.replace(
-        "MemoryMax=256M", "MemoryMax=1536M\nTimeoutStartSec=300\nPrivateNetwork=yes"
+        "MemoryMax=256M",
+        "MemoryMax=1536M\nTimeoutStartSec=300\nPrivateNetwork=yes\nInaccessiblePaths=-/run/madar",
     )
     files[UNITS / "madar-v3-snap-news-clip@.service"] = unit
     return files

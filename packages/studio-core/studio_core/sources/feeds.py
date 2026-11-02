@@ -153,12 +153,24 @@ def parse_feed(
                 and not KEYWORDS.search(" ".join([title, *categories]))
             ):
                 continue
+            media = {}
+            enclosures = entry.findall(ATOM + "link") if atom else entry.findall("enclosure")
+            for enclosure in enclosures:
+                if enclosure.get("type") == "video/mp4" and (
+                    not atom or enclosure.get("rel") == "enclosure"
+                ):
+                    candidate = _url(enclosure.get("href" if atom else "url"))
+                    parsed = urlsplit(candidate)
+                    if parsed.scheme == "https" and not parsed.query and not parsed.fragment:
+                        media = {"video_url": candidate}
+                        break
             result.append(
                 {
                     "title": title,
                     "link": _url(link),
                     "date": _date(published),
                     "source": source["name"],
+                    **media,
                 }
             )
         except (ValueError, TypeError, StopIteration, OverflowError):

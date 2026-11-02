@@ -99,6 +99,23 @@ class InstallerTests(unittest.TestCase):
             self.commit = commit_tree(self.source, layout('["studio-core", "requests"]'))
             self.assertTrue(blocked(self.plan), "guard:no-unlocked-dependencies")
 
+    def test_actual_workspace_dependencies_match_release_policy(self):
+        installer.check_dependencies(ROOT, installer.git(ROOT, "ls-files").decode().splitlines())
+
+    def test_status_cross_app_or_third_party_dependency_refused(self):
+        for dependencies in ('["snap-bot", "studio-core"]', '["studio-core", "requests"]'):
+            with (
+                self.subTest(dependencies=dependencies),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                files = layout()
+                files["apps/status-bot/pyproject.toml"] = (
+                    "[project]\ndependencies = " + dependencies + "\n"
+                )
+                self.source = Path(directory)
+                self.commit = commit_tree(self.source, files)
+                self.assertTrue(blocked(self.plan), "guard:no-cross-app-or-unlocked-dependencies")
+
     def test_incomplete_layout_refused(self):
         with tempfile.TemporaryDirectory() as directory:
             files = layout()

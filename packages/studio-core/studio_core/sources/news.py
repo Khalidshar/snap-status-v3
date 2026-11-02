@@ -460,6 +460,11 @@ def collect(
                             "published_at": at,
                             "published_label": published_label(at),
                             "fingerprint": mark,
+                            **(
+                                {"source_video_url": item["video_url"]}
+                                if item.get("video_url")
+                                else {}
+                            ),
                         }
                     )
                 except (ValueError, OverflowError):

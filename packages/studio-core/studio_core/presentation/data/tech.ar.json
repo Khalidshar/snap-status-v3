@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "language": "ar",
+  "sacred": false,
+  "kind": "tech",
+  "items": [
+    {
+      "id": "tech-01",
+      "source": "المركز الوطني البريطاني للأمن السيبراني",
+      "verified_at": "2026-10-28",
+      "text": "فعّل التحقق بخطوتين ليحتاج الدخول إلى حسابك تحققًا إضافيًا بعد كلمة المرور.",
+      "source_url": "https://www.ncsc.gov.uk/guidance/setting-2-step-verification-2sv"
+    },
+    {
+      "id": "tech-02",
+      "source": "المركز الوطني البريطاني للأمن السيبراني",
+      "verified_at": "2026-10-28",
+      "text": "احم بريدك الإلكتروني بالتحقق بخطوتين؛ فقد يستخدم لاستعادة حساباتك الأخرى.",
+      "source_url": "https://www.ncsc.gov.uk/guidance/setting-2-step-verification-2sv"
+    },
+    {
+      "id": "tech-03",
+      "source": "المركز الوطني البريطاني للأمن السيبراني",
+      "verified_at": "2026-10-28",
+      "text": "تطبيق المصادقة أحد خيارات التحقق بخطوتين، إلى جانب الرسائل النصية.",
+      "source_url": "https://www.ncsc.gov.uk/guidance/setting-2-step-verification-2sv"
+    },
+    {
+      "id": "tech-04",
+      "source": "وكالة الأمن السيبراني الأمريكية",
+      "verified_at": "2026-10-28",
+      "text": "استخدم كلمة مرور مختلفة لكل حساب حتى لا يمتد أثر تسريب واحد إلى بقية حساباتك.",
+      "source_url": "https://www.cisa.gov/sites/default/files/2024-09/Secure-Our-World-Passwords-Tip-Sheet.pdf"
+    },
+    {
+      "id": "tech-05",
+      "source": "وكالة الأمن السيبراني الأمريكية",
+      "verified_at": "2026-10-28",
+      "text": "كلمة المرور الطويلة والعشوائية أصعب تخمينًا من الكلمات الشائعة.",
+      "source_url": "https://www.cisa.gov/sites/default/files/2024-09/Secure-Our-World-Passwords-Tip-Sheet.pdf"
+    },
+    {
+      "id": "tech-06",
+      "source": "وكالة الأمن السيبراني الأمريكية",
+      "verified_at": "2026-10-28",
+      "text": "يمكن لمدير كلمات المرور إنشاء كلمات قوية وحفظها وملئها تلقائيًا.",
+      "source_url": "https://www.cisa.gov/sites/default/files/2024-09/Secure-Our-World-Passwords-Tip-Sheet.pdf"
+    },
+    {
+      "id": "tech-07",
+      "source": "وكالة الأمن السيبراني الأمريكية",
+      "verified_at": "2026-10-28",
+      "text": "قد تصل رسائل التصيد عبر البريد أو الرسائل النصية لتطلب معلوماتك الشخصية.",
+      "source_url": "https://www.cisa.gov/sites/default/files/publications/phishing_and_spoofing_tip_sheet_2022_092022.pdf"
+    },
+    {
+      "id": "tech-08",
+      "source": "وكالة الأمن السيبراني الأمريكية",
+      "verified_at": "2026-10-28",
+      "text": "تحقق من هوية المرسل قبل فتح رابط أو مرفق غير متوقع.",
+      "source_url": "https://www.cisa.gov/sites/default/files/publications/phishing_and_spoofing_tip_sheet_2022_092022.pdf"
+    },
+    {
+      "id": "tech-09",
+      "source": "وكالة الأمن السيبراني الأمريكية",
+      "verified_at": "2026-10-28",
+      "text": "إذا شككت في رسالة، تواصل مع الجهة عبر وسيلة تعرفها بدل بيانات الاتصال داخلها.",
+      "source_url": "https://www.cisa.gov/sites/default/files/publications/phishing_and_spoofing_tip_sheet_2022_092022.pdf"
+    },
+    {
+      "id": "tech-10",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "تجنب شحن الهاتف في جو تتجاوز حرارته ٣٥ درجة مئوية للمحافظة على عمر البطارية.",
+      "source_url": "https://support.apple.com/en-ae/105105"
+    },
+    {
+      "id": "tech-11",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "عمر البطارية الكيميائي يتأثر بتاريخ الحرارة ونمط الشحن، لا بمرور الزمن وحده.",
+      "source_url": "https://support.apple.com/en-ae/105105"
+    },
+    {
+      "id": "tech-12",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "يقل تيار الشحن تدريجيًا قرب امتلاء بطارية الهاتف لتقليل الحرارة.",
+      "source_url": "https://support.apple.com/en-ae/105105"
+    },
+    {
+      "id": "tech-13",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "لا تترك هاتفك في سيارة حارة؛ فالحرارة المرتفعة قد تؤثر في أدائه وبطاريته.",
+      "source_url": "https://support.apple.com/en-us/118431"
+    },
+    {
+      "id": "tech-14",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "قد يتوقف شحن الهاتف مؤقتًا إذا ارتفعت حرارته كثيرًا.",
+      "source_url": "https://support.apple.com/en-us/118431"
+    },
+    {
+      "id": "tech-15",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "قد يقل زمن استخدام البطارية مؤقتًا في البرد، ثم يعود طبيعيًا بعد اعتدال الحرارة.",
+      "source_url": "https://support.apple.com/en-us/118431"
+    },
+    {
+      "id": "tech-16",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "راجع استخدام التطبيقات للمساحة من إعدادات تخزين الهاتف قبل حذف ملفات عشوائيًا.",
+      "source_url": "https://support.apple.com/en-us/108429"
+    },
+    {
+      "id": "tech-17",
+      "source": "دعم أبل",
+      "verified_at": "2026-10-28",
+      "text": "إزالة التطبيق مع الاحتفاظ ببياناته تختلف عن حذفه مع بياناته.",
+      "source_url": "https://support.apple.com/en-us/108429"
+    },
+    {
+      "id": "tech-18",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "التخزين يحتفظ بالصور والملفات، بينما تستخدم الذاكرة لتشغيل البرامج.",
+      "source_url": "https://support.google.com/android/answer/7431795"
+    },
+    {
+      "id": "tech-19",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "مسح ذاكرة التخزين المؤقت يزيل بيانات مؤقتة، وقد يبطئ أول فتح للتطبيق بعدها.",
+      "source_url": "https://support.google.com/android/answer/7431795"
+    },
+    {
+      "id": "tech-20",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "مسح بيانات التطبيق يختلف عن مسح ذاكرته المؤقتة، وقد يحذف بياناته نهائيًا.",
+      "source_url": "https://support.google.com/android/answer/7431795"
+    },
+    {
+      "id": "tech-21",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "راجع التنزيلات والتطبيقات غير المستخدمة عند الحاجة إلى مساحة إضافية.",
+      "source_url": "https://support.google.com/android/answer/7431795"
+    },
+    {
+      "id": "tech-22",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "راجع أذونات التطبيقات لمعرفة أيها يستطيع الوصول إلى الكاميرا أو الميكروفون.",
+      "source_url": "https://support.google.com/android/answer/9431959"
+    },
+    {
+      "id": "tech-23",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "يمكن تغيير إذن التطبيق من إعدادات الجهاز بدل الاكتفاء باختياره وقت التثبيت.",
+      "source_url": "https://support.google.com/android/answer/9431959"
+    },
+    {
+      "id": "tech-24",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "قد يتيح النظام السماح بالموقع أثناء استخدام التطبيق فقط.",
+      "source_url": "https://support.google.com/android/answer/9431959"
+    },
+    {
+      "id": "tech-25",
+      "source": "دعم جوجل",
+      "verified_at": "2026-10-28",
+      "text": "مدير الأذونات يساعدك على معرفة التطبيقات التي تشترك في صلاحية واحدة.",
+      "source_url": "https://support.google.com/android/answer/9431959"
+    },
+    {
+      "id": "tech-26",
+      "source": "دعم مايكروسوفت",
+      "verified_at": "2026-10-28",
+      "text": "قد ينتج الذكاء الاصطناعي إجابة خاطئة بصياغة مقنعة؛ تحقق من المعلومات المهمة.",
+      "source_url": "https://support.microsoft.com/en-us/privacy/microsoft-copilot/transparency-note"
+    },
+    {
+      "id": "tech-27",
+      "source": "دعم مايكروسوفت",
+      "verified_at": "2026-10-28",
+      "text": "يمكن للذكاء الاصطناعي التوليدي المساعدة في إعداد مسودة، لكنها تحتاج إلى مراجعتك.",
+      "source_url": "https://support.microsoft.com/en-us/privacy/microsoft-copilot/transparency-note"
+    },
+    {
+      "id": "tech-28",
+      "source": "دعم مايكروسوفت",
+      "verified_at": "2026-10-28",
+      "text": "قد تختلف إجابات الذكاء الاصطناعي للسؤال نفسه؛ فهي ليست نتائج ثابتة دائمًا.",
+      "source_url": "https://support.microsoft.com/en-us/privacy/microsoft-copilot/transparency-note"
+    },
+    {
+      "id": "tech-29",
+      "source": "دعم مايكروسوفت",
+      "verified_at": "2026-10-28",
+      "text": "راجع إعدادات خصوصية مساعد الذكاء الاصطناعي لمعرفة خيارات استخدام محادثاتك.",
+      "source_url": "https://support.microsoft.com/en-us/microsoft-copilot/privacy-faq-for-microsoft-copilot"
+    },
+    {
+      "id": "tech-30",
+      "source": "دعم مايكروسوفت",
+      "verified_at": "2026-10-28",
+      "text": "وجود رابط مصدر في إجابة الذكاء الاصطناعي لا يغني عن فتحه والتحقق من مضمونه.",
+      "source_url": "https://support.microsoft.com/en-us/microsoft-copilot/privacy-faq-for-microsoft-copilot"
+    }
+  ]
+}
