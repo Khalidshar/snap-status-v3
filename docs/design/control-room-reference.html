@@ -1,0 +1,585 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>غرفة قيادة مدار</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap">
+<style>
+/* Layout: an orbital control deck. A live status band on top, then one workspace per tab:
+   overview (bots + decisions), commands (menu + bot simulator), agents (the 12-step orbit),
+   operations, log. Dark by design: it is a control room, read at any hour. */
+:root{
+  color-scheme:dark;
+  --void:#060d18;   /* ground */
+  --deck:#0b1626;   /* panels */
+  --hull:#112137;   /* raised */
+  --line:#21354e;   /* rules, rings */
+  --ink:#e8f2fd;    /* text */
+  --dim:#93a9c3;    /* secondary text */
+  --signal:#7cc7ff; /* accent: information, selection */
+  --plasma:#6fe3c6; /* ok / passed */
+  --flare:#ffcd70;  /* attention */
+  --fault:#ff8796;  /* failure */
+  --tool:#b9a6ff;   /* local tools ring */
+  --display:'Readex Pro','Segoe UI',Tahoma,sans-serif;
+  --body:'Readex Pro','Segoe UI',Tahoma,sans-serif;
+  --mono:'Readex Pro','Segoe UI',Tahoma,sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 120px)}
+body{margin:0;background:
+  radial-gradient(ellipse 60% 38% at 85% -8%,#123049 0,transparent 70%),
+  radial-gradient(ellipse 45% 30% at 0% 0%,#0e2a30 0,transparent 70%),var(--void);
+  background-attachment:fixed;color:var(--ink);font:15px/1.7 var(--body);direction:rtl;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--void)}
+.wrap{max-width:1380px;margin:0 auto;padding-block:18px 48px;display:grid;gap:18px}
+h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance;letter-spacing:0}
+h1{font-size:clamp(24px,3vw,30px);line-height:1.25}
+h2{font-size:19px;line-height:1.35}
+h3{font-size:15.5px;line-height:1.4}
+p{margin:0}
+a{color:var(--signal)}
+.muted{color:var(--dim)}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:12.5px;direction:ltr;unicode-bidi:isolate}
+.eyebrow{font:500 11px/1.2 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--plasma);direction:ltr;unicode-bidi:isolate}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--flare);outline-offset:2px}
+.panel{background:linear-gradient(180deg,#0d1a2c,var(--deck));border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+.head small{color:var(--dim);font-size:12.5px}
+
+/* chips: state is carried by shape + colour + word */
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:1.5;padding:2px 10px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.ok{color:var(--plasma)}.info{color:var(--signal)}.warn{color:var(--flare)}.bad{color:var(--fault)}.dim{color:var(--dim)}.tool{color:var(--tool)}
+.chip.dim{border-style:dashed}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));
+  padding-inline:max(16px,env(safe-area-inset-left,0px));background:#060d18e8;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1380px;margin:0 auto;padding-block:12px 0;display:grid;gap:10px}
+.brandrow{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.brand svg{width:40px;height:40px;flex:none}
+.brand .t{display:grid;gap:2px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:12.5px;border:1px solid var(--line);background:var(--deck);white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px #ffffff10,0 0 10px currentColor;flex:none}
+.pill.live i{animation:beat 2.4s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.35}}
+.kbtn{cursor:pointer;color:var(--dim)}
+.kbtn kbd{font:600 11px/1 var(--mono);padding:3px 6px;border-radius:6px;border:1px solid var(--line);background:var(--hull);color:var(--ink)}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs a{display:inline-flex;align-items:center;gap:8px;padding:10px 14px 12px;color:var(--dim);text-decoration:none;font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--signal)}
+.tabs a:hover{color:var(--ink)}
+.tabs .n{font:600 11px/1 var(--mono);padding:3px 6px;border-radius:999px;background:var(--hull);color:var(--flare)}
+
+/* status band */
+.band{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,2fr);gap:18px;align-items:stretch}
+.verdict{display:grid;gap:10px;align-content:center}
+.verdict h1 b{color:var(--plasma);font-weight:700}
+.verdict p{color:var(--dim);max-width:52ch}
+.health{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.hc{background:var(--hull);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;position:relative;overflow:hidden;min-width:0}
+.hc::after{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:currentColor;opacity:.9}
+.hc small{color:var(--dim);font-size:12px}
+.hc b{font-family:var(--display);font-size:20px;font-weight:600;color:var(--ink);line-height:1.3}
+.hc span{font-size:12px;color:var(--dim);overflow-wrap:anywhere}
+
+/* bots */
+.bots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.bot{display:grid;gap:14px}
+.bot-top{display:flex;gap:14px;align-items:center}
+.ring{width:84px;height:84px;flex:none}
+.bot-top .t{display:grid;gap:2px;min-width:0}
+.bot-top .t span{color:var(--dim);font-size:13px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fact{background:var(--hull);border:1px solid var(--line);border-radius:10px;padding:9px 12px;display:grid;gap:2px;min-width:0}
+.fact small{color:var(--dim);font-size:11.5px}
+.fact b{font-weight:500;font-size:13.5px}
+.trail{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.trail li{display:grid;gap:4px;font-size:12px;color:var(--dim);min-width:0}
+.trail li i{height:4px;border-radius:2px;background:var(--plasma)}
+.trail li b{color:var(--ink);font-weight:500;font-size:12.5px}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:12px 14px;color:var(--dim);font-size:13px}
+
+.cols2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px;align-items:start}
+.decisions{display:grid;gap:10px}
+.dec{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:12px 14px;border-radius:12px;background:var(--hull);border:1px solid var(--line)}
+.dec p{grid-column:1/-1;color:var(--dim);font-size:13px}
+.road{display:grid;gap:14px}
+.track h3{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.track ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.track li{font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.track li.ok{color:var(--plasma);border-color:#2b6a5c}
+.track li.next{color:var(--signal);border-color:var(--signal)}
+.track li.you{color:var(--flare);border-color:#7a6336}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;background:currentColor}
+.alerts{display:grid;gap:10px}
+.al{padding:10px 12px;border-radius:10px;background:var(--hull);border:1px solid var(--line);display:grid;gap:2px}
+.al small{color:var(--dim);font-size:12px}
+
+/* commands */
+.cmdgrid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.search{flex:1 1 220px;display:flex;align-items:center;gap:8px;background:var(--hull);border:1px solid var(--line);border-radius:10px;padding:0 12px;min-height:42px}
+.search input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);font:inherit;outline:none}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px}
+.seg button{border:1px solid var(--line);background:var(--deck);color:var(--dim);border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--hull);color:var(--ink);border-color:var(--signal)}
+.stack{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line);margin:4px 0 6px}
+.stack i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--dim)}
+.legend b{color:var(--ink);font-weight:600}
+.secs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px;margin-top:14px}
+.sec{background:var(--hull);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;align-content:start}
+.sec h3{display:flex;justify-content:space-between;gap:8px}
+.sec h3 span{font:500 11.5px/1.6 var(--mono);color:var(--dim)}
+.cmd{display:grid;grid-template-columns:2.3em minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px;border-radius:8px;cursor:pointer}
+.cmd:hover{background:#ffffff08}
+.cmd .no{font:600 13px/1 var(--mono);text-align:center;color:var(--signal);background:var(--deck);border:1px solid var(--line);border-radius:7px;padding:6px 0}
+.cmd .lb{min-width:0}
+.cmd .lb small{display:block;color:var(--dim);font-size:11.5px;overflow-wrap:anywhere}
+.cmd .yes{font-size:11px;color:var(--flare)}
+.copy{border:1px solid var(--line);background:var(--deck);color:var(--dim);border-radius:8px;padding:4px 9px;font-size:12px;cursor:pointer;min-height:30px}
+.copy:hover{color:var(--ink);border-color:var(--signal)}
+.copy.done{color:var(--plasma);border-color:var(--plasma)}
+.cmd.miss{display:none}
+.sec.miss{display:none}
+
+/* simulator */
+.phone{position:sticky;top:calc(env(safe-area-inset-top,0px) + 132px);border-radius:22px;border:1px solid var(--line);background:#081220;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto}
+.phone-h{display:flex;gap:10px;align-items:center;padding:12px 14px;background:var(--hull);border-bottom:1px solid var(--line)}
+.phone-h .av{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2a6f86,#123049);display:grid;place-items:center;flex:none}
+.phone-h div{display:grid;line-height:1.35;min-width:0}
+.phone-h small{color:var(--plasma);font-size:11.5px}
+.chat{height:420px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:
+  radial-gradient(circle at 20% 10%,#0f233766 0,transparent 40%),#081220}
+.msg{max-width:86%;padding:8px 12px;border-radius:14px;font-size:13.5px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.me{align-self:flex-start;background:#1d4f6e;border-end-start-radius:4px}
+.msg.bot{align-self:flex-end;background:var(--hull);border:1px solid var(--line);border-end-end-radius:4px}
+.msg .why{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--dim)}
+.quick{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border-top:1px solid var(--line)}
+.quick button{flex:none;border:1px solid var(--line);background:var(--deck);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.compose{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:var(--hull)}
+.compose input{flex:1;min-width:0;background:var(--deck);border:1px solid var(--line);border-radius:999px;padding:9px 14px;color:var(--ink);font:inherit}
+.compose button{border:0;border-radius:999px;padding:0 16px;background:var(--signal);color:#06223a;font-weight:600;cursor:pointer}
+.simnote{font-size:12px;color:var(--dim);margin-top:10px}
+
+/* agents */
+.agrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+.orbitbox{position:relative}
+.orbit{width:100%;height:auto;display:block;max-width:720px;margin:0 auto;direction:ltr}
+.orbit .node{cursor:pointer}
+.orbit .node:focus{outline:none}
+.orbit .node:focus-visible circle.core{stroke:var(--flare);stroke-width:3}
+.orbit text{font-family:var(--body);fill:var(--ink)}
+.orbit .lbl{font-size:13px}
+.orbit .code{font:600 10px var(--mono);fill:var(--dim)}
+.orbit-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.play{border:1px solid var(--signal);background:#0f2a40;color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer;font-size:13px}
+.play[disabled]{opacity:.6;cursor:default}
+.detail{display:grid;gap:12px}
+.detail .code{font:600 12px/1 var(--mono);color:var(--signal);letter-spacing:.12em}
+.dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;font-size:13.5px}
+.dl dt{color:var(--dim)}
+.dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.both{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.both > div{background:var(--hull);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;align-content:start;min-width:0}
+.both p{font-size:13px}
+.both small{color:var(--dim);font-size:11.5px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:start;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--dim);font-weight:500;font-size:12px}
+tr.sel td{background:#7cc7ff12}
+tbody tr{cursor:pointer}
+
+/* ops */
+.ops{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.rows{list-style:none;margin:0;padding:0;display:grid}
+.rows li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:center}
+.rows li:last-child{border-bottom:0}
+.rows li > span:first-child{min-width:0;overflow-wrap:anywhere}
+.run{display:grid;gap:10px}.run > *,.step,.step .line{min-width:0}
+.step{display:grid;gap:6px}
+.step .line{display:flex;gap:8px;align-items:stretch}
+.step code{flex:1;min-width:0;display:block;padding:8px 10px;border-radius:8px;background:#050b14;border:1px solid var(--line);font:12px/1.55 var(--mono);direction:ltr;text-align:left;overflow-x:auto;white-space:pre;color:#bfe3ff}
+.red{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.red li{display:flex;gap:10px;align-items:center;font-size:13.5px}
+.red li::before{content:"";width:14px;height:14px;border-radius:4px;border:2px solid var(--fault);flex:none}
+
+/* log */
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:0;position:relative}
+.tl li{display:grid;grid-template-columns:130px 18px minmax(0,1fr);gap:10px;padding:8px 0}
+.tl time{color:var(--dim);font-size:12.5px}
+.tl .dot{width:12px;height:12px;border-radius:50%;border:2px solid currentColor;margin-top:6px;background:var(--deck)}
+.tl li[hidden]{display:none}
+
+/* palette */
+.pal{position:fixed;inset:0;z-index:50;background:#02060cb3;display:grid;place-items:start center;padding:calc(env(safe-area-inset-top,0px) + 10vh) max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.pal-box{width:min(620px,100%);background:var(--deck);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 30px 80px #000a}
+.pal-box input{width:100%;background:var(--hull);border:0;border-bottom:1px solid var(--line);color:var(--ink);font:16px var(--body);padding:16px 18px;outline:none}
+.pal-list{max-height:52vh;overflow-y:auto;list-style:none;margin:0;padding:6px}
+.pal-list li{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:14px}
+.pal-list li small{color:var(--dim)}
+.pal-list li[aria-selected="true"]{background:#7cc7ff1f}
+.foot{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between;color:var(--dim);font-size:12px;border-top:1px solid var(--line);padding-top:14px}
+.toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:50%;transform:translateX(-50%);z-index:60;background:var(--hull);border:1px solid var(--plasma);color:var(--ink);padding:8px 16px;border-radius:999px;font-size:13px}
+
+@media (max-width:1080px){.band,.cols2,.cmdgrid,.agrid,.ops{grid-template-columns:minmax(0,1fr)}.phone{position:static}}
+@media (max-width:760px){.health{grid-template-columns:repeat(2,minmax(0,1fr))}.bots{grid-template-columns:minmax(0,1fr)}.trail{grid-template-columns:repeat(2,minmax(0,1fr))}.both{grid-template-columns:minmax(0,1fr)}
+  .tl li{grid-template-columns:18px minmax(0,1fr)}.tl time{grid-column:2}.tl .dot{grid-row:1/3;grid-column:1}}
+@media (max-width:440px){.facts{grid-template-columns:minmax(0,1fr)}.chat{height:360px}.cmd .chip{font-size:11px;padding:1px 8px}.secs{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brandrow">
+      <div class="brand">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#21354e" stroke-width="1.5"/><circle cx="20" cy="20" r="10" fill="none" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="3 3"/><circle cx="20" cy="20" r="4" fill="#6fe3c6"/><circle cx="34.7" cy="11.5" r="2.6" fill="#ffcd70"/></svg>
+        <div class="t"><span class="eyebrow">Madar · Command deck</span><h1>غرفة قيادة مدار</h1></div>
+      </div>
+      <div class="meta">
+        <span class="pill live ok" id="p-live"><i></i><span id="p-live-t">المستمع يعمل</span></span>
+        <span class="pill" id="p-fresh"><span id="p-fresh-t"></span></span>
+        <span class="pill num" id="p-clock"></span>
+        <button type="button" class="pill kbtn" id="open-pal" aria-label="بحث سريع">بحث <kbd>Ctrl K</kbd></button>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="أقسام الغرفة">
+      <a href="#overview" data-tab="overview">نظرة عامة</a>
+      <a href="#commands" data-tab="commands">الأوامر <span class="n" id="n-cmd"></span></a>
+      <a href="#agents" data-tab="agents">الوكلاء <span class="n" id="n-ag"></span></a>
+      <a href="#ops" data-tab="ops">التشغيل</a>
+      <a href="#log" data-tab="log">السجل</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section data-pane="overview" aria-label="نظرة عامة">
+  <div class="wrap" style="padding:0">
+    <div class="band panel">
+      <div class="verdict">
+        <span class="eyebrow" id="greet"></span>
+        <h1 id="verdict"></h1>
+        <p id="verdict-sub"></p>
+      </div>
+      <div class="health" id="health"></div>
+    </div>
+    <div class="bots" id="bots"></div>
+    <div class="cols2">
+      <div class="panel">
+        <div class="head"><h2>قرارات تنتظرك</h2><small>لا يتحرك أي منها قبل موافقتك</small></div>
+        <div class="decisions" id="decisions"></div>
+      </div>
+      <div class="panel">
+        <div class="head"><h2>المسار</h2><small>أين وصل كل جزء</small></div>
+        <div class="road" id="road"></div>
+        <div class="head" style="margin:18px 0 10px"><h2>تنبيهات</h2></div>
+        <div class="alerts" id="alerts"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-pane="commands" aria-label="الأوامر" hidden>
+  <div class="cmdgrid">
+    <div class="panel">
+      <div class="head"><h2>أوامر البوتين</h2><small>36 أمرًا بنفس الأرقام والأسماء في تيليجرام وواتساب</small></div>
+      <div class="stack" id="cmd-stack" aria-hidden="true"></div>
+      <div class="legend" id="cmd-legend"></div>
+      <div class="tools" style="margin-top:14px">
+        <label class="search" for="cmd-q"><span class="muted" aria-hidden="true">⌕</span><input id="cmd-q" type="search" placeholder="ابحث برقم أو اسم: 22، الحالة، أذكار" autocomplete="off"></label>
+        <div class="seg" id="cmd-filter" role="group" aria-label="تصفية حسب الحالة"></div>
+      </div>
+      <div class="secs" id="secs"></div>
+    </div>
+    <div>
+      <div class="phone" aria-label="محاكاة البوت">
+        <div class="phone-h">
+          <span class="av" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="7" fill="none" stroke="#7cc7ff" stroke-width="1.4"/><circle cx="10" cy="10" r="2.6" fill="#6fe3c6"/></svg></span>
+          <div><b>khalid_s2ss_bot</b><small>محاكاة بمنطق المستمع نفسه</small></div>
+        </div>
+        <div class="chat" id="chat" aria-live="polite"></div>
+        <div class="quick" id="quick"></div>
+        <form class="compose" id="compose"><input id="say" autocomplete="off" placeholder="اكتب كما تكتب للبوت" aria-label="رسالة المحاكاة"><button type="submit">إرسال</button></form>
+      </div>
+      <p class="simnote">المحاكاة تعمل داخل اللوحة فقط ولا تصل للبوت. الردود من نفس قواعد <span class="mono">studio_core.commands</span> و<span class="mono">owner_commands</span>، والأرقام من آخر تحقق.</p>
+    </div>
+  </div>
+</section>
+
+<section data-pane="agents" aria-label="الوكلاء" hidden>
+  <div class="agrid">
+    <div class="panel orbitbox">
+      <div class="orbit-bar">
+        <div class="seg" id="ag-bot" role="group" aria-label="البوت"></div>
+        <button type="button" class="play" id="play">▶ تتبّع مسار المقطع</button>
+      </div>
+      <svg class="orbit" id="orbit" viewBox="-90 -6 820 652" role="img" aria-label="مدار الوكلاء: 12 في السلسلة و6 أدوات"></svg>
+      <div class="legend" style="justify-content:center"><span><span class="chip ok">اجتاز</span></span><span><span class="chip info">موصول</span></span><span><span class="chip tool">أداة محلية</span></span></div>
+    </div>
+    <div class="panel detail" id="detail" aria-live="polite"></div>
+  </div>
+  <div class="panel" style="margin-top:18px">
+    <div class="head"><h2>الوكلاء الـ 18 في البوتين</h2><small>نفس الترتيب ونفس العقود؛ يختلف ما يفحصه كل وكيل حسب المحتوى</small></div>
+    <div class="tablewrap"><table id="matrix"><thead><tr><th>#</th><th>الوكيل</th><th>بعد</th><th>سناب</th><th>الحالات</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<section data-pane="ops" aria-label="التشغيل" hidden>
+  <div class="ops">
+    <div class="panel"><div class="head"><h2>الخدمات على السيرفر</h2><small id="ops-server"></small></div><div id="services"></div></div>
+    <div class="panel"><div class="head"><h2>آخر الفحوص</h2></div><ul class="rows" id="checks"></ul></div>
+    <div class="panel run"><div class="head" style="margin:0"><h2>دورة المقطع اليدوية</h2><small>للسيرفر فقط، وكل خطوة بطلبك</small></div><div id="runbook" class="run"></div></div>
+    <div class="panel"><div class="head"><h2>الخطوط الحمراء</h2><small>ثابتة في كل جلسة</small></div><ul class="red" id="red"></ul></div>
+  </div>
+</section>
+
+<section data-pane="log" aria-label="السجل" hidden>
+  <div class="panel">
+    <div class="head"><h2>السجل</h2><div class="seg" id="log-f" role="group" aria-label="تصفية السجل"></div></div>
+    <ol class="tl" id="tl"></ol>
+  </div>
+</section>
+
+<footer class="foot"><span id="src"></span><span>اللوحة لقطة من آخر تحقق، وتُحدَّث عند كل نشر.</span></footer>
+</main>
+
+<div class="pal" id="pal" hidden role="dialog" aria-modal="true" aria-label="بحث سريع">
+  <div class="pal-box"><input id="pal-q" placeholder="انتقل أو ابحث: أمر، وكيل، قسم" autocomplete="off" aria-label="بحث"><ul class="pal-list" id="pal-list" role="listbox"></ul></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="application/json" id="data">{"generated_at": "2026-10-26T13:00:00+03:00", "verified": "تحقق Claude من السيرفر khalid-bots والمستودع snap-status-v3", "system": {"release": "05cf2cf", "previous": "3d16729", "server": "khalid-bots · eu-north-1", "listener": {"unit": "madar-v3-snap-commands", "state": "active", "bot": "khalid_s2ss_bot", "since": "2026-10-26T12:58:00+03:00", "restarts": 0, "boot": "يدوي (لا يعود تلقائيًا بعد إعادة تشغيل السيرفر)"}, "schedule": "لا توجد جدولة مفعّلة · كل مقطع بطلبك", "ssh": "مغلق · القاعدة الأصلية فقط", "old_bots": "snap-bot و status-bot القديمان موقوفان عمدًا"}, "bots": [{"id": "snap", "name": "سناب", "full": "بوت سناب الأساسي", "handle": "khalid_s2ss_bot", "channel": "تيليجرام", "test": "khalid_snap_v2_test_bot", "headline": "يستقبل الأوامر · آخر مقطع بمعلومة جديدة وصل", "tone": "ok", "facts": [["آخر تسليم", "رسالة 947 · مقطع 701388f1", "ok"], ["المعلومة", "dyk-07 · جسم الإنسان · جديدة", "ok"], ["مستمع الأوامر", "يعمل · 0 إعادة تشغيل", "ok"], ["الجدولة", "غير مفعّلة", "dim"]], "services": [["madar-v3-snap-commands", "يعمل · active", "ok"], ["madar-v3-snap-render", "يدوي · inactive", "info"], ["madar-v3-snap-send-main@", "يدوي · inactive", "info"], ["madar-v3-snap-send@ (اختبار)", "يدوي · inactive", "info"], ["مؤقتات madar", "لا يوجد", "ok"]], "job": {"title": "هل تعلم؟ الحمض النووي في الخلية طوله نحو مترين", "sha": "701388f1", "steps": [["الرندر", "—", "1080×1920 · 8 ث · داخل الإطار · بلا شبكة"], ["الفحوص", "—", "12 وكيلًا اجتازوا · معلومة لم تُرسل من قبل"], ["موافقتك", "11:49", "HUMAN_FRAME · القناة الأساسية"], ["الإرسال", "11:49", "ACK · رسالة 947 · بلا إعادة"], ["التناوب", "—", "بعد البطريق (الحيوانات) جاءت فئة جسم الإنسان"]]}}, {"id": "status", "name": "الحالات", "full": "بوت الحالات الأساسي", "handle": "+1 555-145-7883 · Cloud API", "channel": "واتساب", "headline": "أول مقطع طقس أُرسل لواتساب من v3", "tone": "ok", "facts": [["آخر تسليم", "API_ACCEPTED · مقطع 4880caf5", "ok"], ["الوكلاء", "18 من 18 بترتيب سناب", "ok"], ["التوكن", "دائم · مستخدم النظام status-bot", "ok"], ["نافذة 24 ساعة", "تفتحها رسالتك للرقم", "warn"]], "services": [["madar-v3-status-render", "يدوي · inactive", "info"], ["madar-v3-status-send@", "يدوي · بموافقتك", "info"], ["status-bot القديم (V1)", "موقوف عمدًا", "warn"]], "job": {"title": "طقس الرياض: 33.3 درجة · رياح 9.0 كم/س", "sha": "4880caf5", "steps": [["الرندر", "—", "1080×1920 · 8 ث · صامت · طقس مباشر من open-meteo"], ["الفحوص", "—", "12 وكيلًا · MP4 سريع البدء"], ["موافقتك", "12:58", "HUMAN_FRAME · واتساب · رسالتك للرقم"], ["الإرسال", "12:58", "رفع + رسالة واحدة · API_ACCEPTED"], ["الوصول", "—", "تأكيد الوصول يحتاج webhook (لاحقًا)"]]}}], "agents": [{"id": "fact_source", "name": "المصادر", "code": "SRC", "chain": true, "step": 1, "after": null, "io": "did_you_know_command → approved_content", "snap": {"does": "يعتمد معلومة «هل تعلم» ومصدرها", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "يجلب الطقس من open-meteo ويسجّل البدائل إن فشل المصدر", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "arabic", "name": "العربية", "code": "AR", "chain": true, "step": 2, "after": "fact_source", "io": "approved_content → unchanged_checked_content", "snap": {"does": "يفحص سلامة النص العربي دون تعديله", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "يتحقق من صيغة نشرة الطقس العربية كما هي دون تعديل", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "memory", "name": "مراجع التكرار", "code": "MEM", "chain": true, "step": 3, "after": "arabic", "io": "candidate_ids, memory_window → eligible_ids", "snap": {"does": "يمنع تكرار الموضوع نفسه", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "يرفض النشرة نفسها إن ظهرت في مهمة سابقة (MEMORY_REPEAT)", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "rotation", "name": "التناوب", "code": "ROT", "chain": true, "step": 4, "after": "memory", "io": "eligible_categories → selected_category", "snap": {"does": "ينوّع القوالب والفئات", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "العنوان لمدينة الجدول «طقس الرياض» أو التجربة الموسومة فقط", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "proofreading", "name": "التدقيق", "code": "EDIT", "chain": true, "step": 5, "after": "rotation", "io": "draft → proofreading_result", "snap": {"does": "يراجع الإملاء والصياغة", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "المسافات وعلامات الترقيم والتطويل، سطرًا سطرًا", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "translation", "name": "الترجمة", "code": "LANG", "chain": true, "step": 6, "after": "proofreading", "io": "draft, language → translation_requirement", "snap": {"does": "يكشف النص الذي يحتاج ترجمة", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "العنوان والنص عربيان، واللاتيني للمصدر فقط", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "design", "name": "الإخراج", "code": "DSGN", "chain": true, "step": 7, "after": "translation", "io": "approved_content → attempt_render_result", "snap": {"does": "يحوّل المحتوى المعتمد إلى فيديو 1080×1920 بالإطار", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "نتيجة الرندر نفسها، مرتبطة بالمهمة والمحتوى", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "voice", "name": "الصوت", "code": "AUD", "chain": true, "step": 8, "after": "design", "io": "audio_requirement, audio → audio_check", "snap": {"does": "يفحص الصوت المطلوب", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "بطاقة الطقس صامتة، وأي ادعاء صوت يُرفض", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "media_verification", "name": "الوسائط", "code": "MEDIA", "chain": true, "step": 9, "after": "voice", "io": "media, provenance → media_check", "snap": {"does": "يتحقق من أصول الصور والفيديو", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "MP4 سريع البدء (moov قبل mdat) وبصمته مطابقة للمعلن", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "judge", "name": "المقيّم", "code": "VAL", "chain": true, "step": 10, "after": "media_verification", "io": "quality_evidence → assessment", "snap": {"does": "يقيّم النتيجة قبل الجودة", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "كل الوكلاء قبله نجحوا تحت نفس الخطة والعقد", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "quality", "name": "ضبط الجودة", "code": "QA", "chain": true, "step": 11, "after": "judge", "io": "attempt_render_result → owned_stage_receipt", "snap": {"does": "يفحص الملف والدقة والمدة", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "يربط الفيديو المحلي ببصمته وبالمحتوى المعتمد", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "final", "name": "البوابة النهائية", "code": "GATE", "chain": true, "step": 12, "after": "quality", "io": "quality_evidence, human_approval → delivery_decision", "snap": {"does": "يحجب التسليم عند فشل أي فحص، وينتظر موافقتك", "state": "passed", "last": "مقطع 96a4970e · 26 أكتوبر 04:47 · اجتاز"}, "status": {"does": "يطلب مراجعتك دائمًا، ولا إرسال خارجي", "state": "bound", "last": "موصول في 0cbe615 · اجتاز رندرًا حقيقيًا في CI"}}, {"id": "manager", "name": "مدير المحتوى", "code": "CMD", "chain": false, "step": null, "after": null, "io": "owner_command → content_plan", "snap": {"does": "يخطط المحتوى ويوجه المهمة", "state": "tool", "last": "أداة محلية خارج سلسلة المقطع"}, "status": {"does": "يمسك المهمة الجديدة ما دامت مهمة طقس جارية", "state": "tool", "last": "أداة محلية: status_bot.oversight"}}, {"id": "analyst", "name": "محلل الأداء", "code": "STAT", "chain": false, "step": null, "after": null, "io": "owner_statistics → analysis", "snap": {"does": "يحلل نتائج الوكلاء وأسباب الأعطال", "state": "tool", "last": "أداة محلية خارج سلسلة المقطع"}, "status": {"does": "يعدّ النتائج لكل وكيل وأسباب الرفض، قراءة فقط", "state": "tool", "last": "أداة محلية: status_bot.oversight"}}, {"id": "writer", "name": "كاتب المحتوى", "code": "TXT", "chain": false, "step": null, "after": null, "io": "approved_source → draft", "snap": {"does": "يصوغ النص من المصدر المعتمد", "state": "tool", "last": "أداة محلية خارج سلسلة المقطع"}, "status": {"does": "يكتب نص النشرة بصيغة المصدر نفسها", "state": "tool", "last": "أداة محلية: status_bot.oversight"}}, {"id": "reviewer", "name": "المراجع", "code": "REV", "chain": false, "step": null, "after": null, "io": "draft, source → review_decision", "snap": {"does": "يراجع المسودة ويقرر قبولها", "state": "tool", "last": "أداة محلية خارج سلسلة المقطع"}, "status": {"does": "يجمع كل أسباب الرفض دون أن يوقف شيئًا", "state": "tool", "last": "أداة محلية: status_bot.oversight"}}, {"id": "fixer", "name": "مصلح المسودة", "code": "FIX", "chain": false, "step": null, "after": null, "io": "draft, rejection → corrected_draft", "snap": {"does": "يصحح النص بعد رفضه", "state": "tool", "last": "أداة محلية خارج سلسلة المقطع"}, "status": {"does": "يصلح المسافات والترقيم فقط، والكلمات لا تتغير", "state": "tool", "last": "أداة محلية: status_bot.oversight"}}, {"id": "content_repair", "name": "الإصلاح", "code": "RPR", "chain": false, "step": null, "after": null, "io": "incident, repair_budget → repair_evidence", "snap": {"does": "يتابع الأعطال ويستعيد المرحلة", "state": "tool", "last": "أداة محلية خارج سلسلة المقطع"}, "status": {"does": "صيانة الاستوديو المشتركة (studio_core.repair)", "state": "tool", "last": "أداة محلية: status_bot.oversight"}}], "commands": {"sections": [{"key": "news", "title": "📰 أخبار", "rows": [{"n": 1, "key": "urgent", "label": "🚨 خبر عاجل", "aliases": ["عاجل"], "confirm": false, "state": "soon"}, {"n": 2, "key": "saudi", "label": "🇸🇦 أخبار السعودية", "aliases": ["السعودية"], "confirm": false, "state": "soon"}, {"n": 3, "key": "world", "label": "🌍 أخبار العالم", "aliases": ["العالم"], "confirm": false, "state": "soon"}, {"n": 4, "key": "news", "label": "📰 موجز الأخبار", "aliases": ["موجز"], "confirm": false, "state": "soon"}, {"n": 5, "key": "football", "label": "⚽ ملخص كرة القدم", "aliases": ["كرة القدم", "الكرة"], "confirm": false, "state": "soon"}, {"n": 6, "key": "markets", "label": "📈 الأسواق والاقتصاد", "aliases": ["الأسواق"], "confirm": false, "state": "soon"}]}, {"key": "general", "title": "💡 هل تعلم ومنوعات", "rows": [{"n": 7, "key": "facts", "label": "💡 هل تعلم", "aliases": [], "confirm": false, "state": "manual"}, {"n": 8, "key": "tech", "label": "📱 التقنية", "aliases": ["تقنية"], "confirm": false, "state": "soon"}, {"n": 9, "key": "style", "label": "👗 الأناقة والجمال", "aliases": ["الأناقة"], "confirm": false, "state": "soon"}, {"n": 10, "key": "riddle", "label": "🧠 لغز اليوم", "aliases": ["لغز"], "confirm": false, "state": "soon"}, {"n": 11, "key": "funny", "label": "😂 مواقف طريفة", "aliases": ["طرائف"], "confirm": false, "state": "soon"}, {"n": 12, "key": "night", "label": "🌙 قبل النوم", "aliases": ["ليلة طيبة"], "confirm": false, "state": "soon"}]}, {"key": "faith", "title": "🕌 أذكار ودين", "rows": [{"n": 13, "key": "adhkar_am", "label": "🌅 أذكار الصباح", "aliases": ["اذكار الصباح"], "confirm": false, "state": "soon"}, {"n": 14, "key": "adhkar_pm", "label": "🌆 أذكار المساء", "aliases": ["اذكار المساء"], "confirm": false, "state": "soon"}, {"n": 15, "key": "dua", "label": "🤲 دعاء اليوم", "aliases": ["دعاء"], "confirm": false, "state": "soon"}, {"n": 16, "key": "hadith", "label": "🕌 حديث اليوم", "aliases": ["حديث"], "confirm": false, "state": "soon"}, {"n": 17, "key": "verse", "label": "📖 آية اليوم", "aliases": ["اية اليوم", "آية"], "confirm": false, "state": "soon"}, {"n": 18, "key": "friday", "label": "🕌 رسالة الجمعة", "aliases": ["الجمعة"], "confirm": false, "state": "soon"}, {"n": 19, "key": "kahf", "label": "📖 سورة الكهف", "aliases": ["الكهف"], "confirm": false, "state": "soon"}, {"n": 20, "key": "fast", "label": "🌙 تذكير الصيام", "aliases": ["صيام"], "confirm": false, "state": "soon"}]}, {"key": "brief", "title": "⏱️ يومك في دقيقة", "rows": [{"n": 21, "key": "brief", "label": "⏱️ يومك في دقيقة", "aliases": ["يومك"], "confirm": false, "state": "soon"}]}, {"key": "status", "title": "📊 الحالة والتقارير", "rows": [{"n": 22, "key": "status", "label": "📡 الحالة", "aliases": ["حالة الاستوديو"], "confirm": false, "state": "ready"}, {"n": 23, "key": "report", "label": "📊 تقرير اليوم", "aliases": ["التقرير", "تقرير"], "confirm": false, "state": "ready"}, {"n": 24, "key": "agents", "label": "🤖 حالة الوكلاء", "aliases": ["الوكلاء"], "confirm": false, "state": "ready"}, {"n": 25, "key": "last", "label": "📥 آخر مقطع", "aliases": [], "confirm": false, "state": "ready"}, {"n": 26, "key": "dash", "label": "🖥️ لوحة التحكم", "aliases": ["لوحة التحكم"], "confirm": false, "state": "ready"}]}, {"key": "control", "title": "⏯ التحكم", "rows": [{"n": 27, "key": "preview", "label": "👁 معاينة", "aliases": [], "confirm": false, "state": "soon"}, {"n": 28, "key": "send", "label": "✅ أرسل", "aliases": ["ارسل"], "confirm": true, "state": "soon"}, {"n": 29, "key": "cancel", "label": "❌ ألغِ", "aliases": ["الغ", "إلغاء"], "confirm": false, "state": "soon"}, {"n": 30, "key": "pause", "label": "⏸ إيقاف الجدولة", "aliases": [], "confirm": false, "state": "soon"}, {"n": 31, "key": "resume", "label": "▶️ تشغيل الجدولة", "aliases": [], "confirm": false, "state": "soon"}, {"n": 32, "key": "schedule", "label": "🗓 مواعيد الجدولة", "aliases": ["مواعيد"], "confirm": false, "state": "ready"}, {"n": 33, "key": "halt", "label": "🛑 إيقاف كامل", "aliases": ["طوارئ"], "confirm": true, "state": "soon"}, {"n": 34, "key": "unhalt", "label": "🟢 رفع الإيقاف الكامل", "aliases": [], "confirm": true, "state": "soon"}]}, {"key": "help", "title": "❓ مساعدة", "rows": [{"n": 35, "key": "menu", "label": "📋 القائمة", "aliases": ["مساعدة", "الأوامر", "اوامر"], "confirm": false, "state": "ready"}, {"n": 36, "key": "add_fact", "label": "➕ أضف معلومة", "aliases": [], "confirm": false, "state": "soon"}]}], "confirm_seconds": 120, "menu_text": "🤖 القائمة: اكتب رقم الأمر أو اسمه، أو اسم القسم لعرضه.\n\n📰 أخبار (1–6)\n💡 هل تعلم ومنوعات (7–12)\n🕌 أذكار ودين (13–20)\n⏱️ يومك في دقيقة (21)\n📊 الحالة والتقارير (22–26)\n⏯ التحكم (27–34)\n❓ مساعدة (35–36)\n\nأي رسالة أخرى تعرض هذه القائمة ولا تنفّذ شيئًا.", "section_texts": {"news": "📰 أخبار\n\n1. 🚨 خبر عاجل\n2. 🇸🇦 أخبار السعودية\n3. 🌍 أخبار العالم\n4. 📰 موجز الأخبار\n5. ⚽ ملخص كرة القدم\n6. 📈 الأسواق والاقتصاد", "general": "💡 هل تعلم ومنوعات\n\n7. 💡 هل تعلم\n8. 📱 التقنية\n9. 👗 الأناقة والجمال\n10. 🧠 لغز اليوم\n11. 😂 مواقف طريفة\n12. 🌙 قبل النوم", "faith": "🕌 أذكار ودين\n\n13. 🌅 أذكار الصباح\n14. 🌆 أذكار المساء\n15. 🤲 دعاء اليوم\n16. 🕌 حديث اليوم\n17. 📖 آية اليوم\n18. 🕌 رسالة الجمعة\n19. 📖 سورة الكهف\n20. 🌙 تذكير الصيام", "brief": "⏱️ يومك في دقيقة\n\n21. ⏱️ يومك في دقيقة", "status": "📊 الحالة والتقارير\n\n22. 📡 الحالة\n23. 📊 تقرير اليوم\n24. 🤖 حالة الوكلاء\n25. 📥 آخر مقطع\n26. 🖥️ لوحة التحكم", "control": "⏯ التحكم\n\n27. 👁 معاينة\n28. ✅ أرسل (يحتاج نعم)\n29. ❌ ألغِ\n30. ⏸ إيقاف الجدولة\n31. ▶️ تشغيل الجدولة\n32. 🗓 مواعيد الجدولة\n33. 🛑 إيقاف كامل (يحتاج نعم)\n34. 🟢 رفع الإيقاف الكامل (يحتاج نعم)", "help": "❓ مساعدة\n\n35. 📋 القائمة\n36. ➕ أضف معلومة"}, "add_prefix": "أضف هل تعلم:"}, "decisions": [{"title": "تفعيل أوامر التنفيذ", "body": "«هل تعلم» و«معاينة» و«أرسل» من البوت مباشرة، مع «نعم» للإرسال. هذه المرحلة التالية في الكود.", "cost": "بلا تكلفة", "tone": "ok"}, {"title": "رقم واتساب حقيقي", "body": "الإرسال يعمل الآن من رقم Meta التجريبي المجاني لرقمك فقط. رقم حقيقي ثابت يحتاج شريحة وتحقق Meta.", "cost": "قد يكلّف", "tone": "warn"}, {"title": "مدة صلاحية المقطع", "body": "ساعة واحدة الآن، وبعدها يُرفض الإرسال ويلزم رندر جديد. مدة أطول تقلل الرندر المهدور.", "cost": "بلا تكلفة", "tone": "ok"}, {"title": "تشغيل المستمع تلقائيًا", "body": "المستمع يعمل الآن، لكنه لا يعود بنفسه إذا أعيد تشغيل السيرفر.", "cost": "بلا تكلفة", "tone": "ok"}], "roadmap": [{"title": "الأوامر في v3", "steps": [["القائمة الموحدة", "ok"], ["المستمع (قراءة)", "ok"], ["هل تعلم + معاينة/أرسل", "next"], ["التحكم", "todo"], ["بقية المحتوى", "todo"], ["واتساب", "todo"]], "link": "https://github.com/Khalidshar/snap-status-v3/pull/23"}, {"title": "الوكلاء", "steps": [["سناب 18", "ok"], ["الحالات 18", "ok"], ["تشغيل على السيرفر", "next"]], "link": "https://github.com/Khalidshar/snap-status-v3/pull/24"}, {"title": "التسليم", "steps": [["تيليجرام الأساسي", "ok"], ["الإطار والهوية", "ok"], ["معلومة لا تتكرر", "ok"], ["واتساب", "ok"], ["تأكيد الوصول (webhook)", "todo"]], "link": "https://github.com/Khalidshar/snap-status-v3/pull/26"}], "alerts": [{"text": "رصيد AWS المجاني", "note": "ينتهي تقريبًا 23 نوفمبر، وقرار السيرفر الشهري معلّق", "tone": "warn", "meter": null, "checked": "أكتوبر"}, {"text": "قرص السيرفر", "note": "12 من 28 جيجا مستخدمة (43%) · الذاكرة 21%", "tone": "ok", "meter": 43, "checked": "26 أكتوبر"}, {"text": "نافذة واتساب 24 ساعة", "note": "قبل كل إرسال واتساب أرسل رسالة للرقم +1 555-145-7883 من جوالك", "tone": "info", "meter": null, "checked": "26 أكتوبر"}, {"text": "تحديثات أمان السيرفر", "note": "62 تحديثًا متاحًا، والسيرفر يطلب إعادة تشغيل", "tone": "warn", "meter": null, "checked": "26 أكتوبر 10:49"}], "checks": [["#27 الاتصال بـ IPv4 أولًا", "مدموج · السيرفر بلا IPv6", "ok"], ["#26 إرسال واتساب بموافقتك", "مدموج · API_ACCEPTED", "ok"], ["#25 لا تتكرر معلومة «هل تعلم»", "مدموج · dyk-07 جديدة", "ok"], ["#24 الوكلاء الـ 18 لبوت الحالات", "مدموج · 1,045 اختبار", "ok"], ["#23 القائمة الموحدة ومستمع الأوامر", "مدموج · CI أخضر", "ok"], ["#22 الهوية والحد مرة واحدة", "مدموج · فحص البكسلات 0", "ok"], ["#21 القناة الأساسية والإطار", "مدموج · CI أخضر", "ok"], ["getMe للمستمع", "khalid_s2ss_bot", "ok"], ["قاعدة SSH المؤقتة", "محذوفة", "ok"]], "events": [["26 أكتوبر 12:58", "أول مقطع طقس لواتساب من v3 · API_ACCEPTED · 4880caf5", "ok", "status"], ["26 أكتوبر", "تثبيت 05cf2cf: الاتصال بـ IPv4 أولًا (#27)", "ok", "all"], ["26 أكتوبر", "محاولة واتساب الأولى توقفت عند الرفع: السيرفر بلا IPv6 · لم يصل شيء", "warn", "status"], ["26 أكتوبر 11:49", "تيليجرام · رسالة 947 · معلومة جديدة dyk-07 بعد إصلاح التكرار (#25)", "ok", "snap"], ["26 أكتوبر", "توكن واتساب دائم محفوظ على السيرفر (root فقط)", "ok", "status"], ["26 أكتوبر 10:52", "تشغيل مستمع الأوامر على khalid_s2ss_bot", "ok", "snap"], ["26 أكتوبر 10:50", "تثبيت 0cbe615 وتفعيله (السابق 2d0191a محفوظ)", "ok", "all"], ["26 أكتوبر 10:48", "دمج #24: الوكلاء الـ 18 لبوت الحالات بترتيب سناب", "ok", "status"], ["26 أكتوبر", "دمج #23: قائمة 36 أمرًا متطابقة للبوتين", "ok", "all"], ["26 أكتوبر 04:52", "إرسال للبوت الأساسي · ACK · رسالة 946 · مقطع 96a4970e", "ok", "snap"], ["26 أكتوبر 04:45", "دمج #22 · لا هوية مكررة ولا حد ثالث", "ok", "snap"], ["26 أكتوبر 04:16", "أول إرسال للبوت الأساسي · رسالة 945 · ظهرت الهوية مكررة", "warn", "snap"], ["25 أكتوبر", "دمج #21: القناة الأساسية والإطار في كل رندر", "ok", "snap"], ["25 أكتوبر", "البوتان القديمان موقوفان عمدًا", "dim", "all"]], "runbook": [["رندر مقطع جديد", "sudo systemctl start madar-v3-snap-render.service"], ["موافقتك على القناة الأساسية", "cd /tmp && sudo /opt/madar/current/.venv/bin/python -m snap_bot.server_preview approve --channel main --video-sha <SHA>"], ["الإرسال مرة واحدة", "sudo systemctl start madar-v3-snap-send-main@<SHA>.service"], ["حالة المستمع", "systemctl status madar-v3-snap-commands.service"], ["واتساب: رندر بطاقة الطقس", "sudo systemctl start madar-v3-status-render.service"], ["واتساب: موافقتك (بعد رسالتك للرقم)", "cd /tmp && sudo /opt/madar/current/.venv/bin/python -m status_bot.server_preview approve --video-sha <SHA> --messaged-hours-ago <0-23>"], ["واتساب: الإرسال مرة واحدة", "sudo systemctl start madar-v3-status-send@<SHA>.service"]], "redlines": ["لا شيء يكلّف فلوس دون موافقتك", "لا تفعيل جدولة", "لا إرسال إلا بطلبك، ومرة واحدة لكل مقطع", "لا حذف أدلة أو سجلات", "لا لمس V1 أو /opt/studio-v2", "لا طباعة مفاتيح أو أسرار"]}</script>
+<script>
+(()=>{
+const D=JSON.parse(document.getElementById('data').textContent);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tx=s=>String(s??'').split(/([A-Za-z0-9_@#\/][A-Za-z0-9_@#.\/:+%,-]*(?: [A-Za-z0-9_@#.\/:+%,-]+)*)/).map((part,i)=>i%2?'<bdi>'+esc(part)+'</bdi>':esc(part)).join('');
+const chip=(t,tone)=>'<span class="chip '+(tone||'dim')+'"><span>'+tx(t)+'</span></span>';
+const AG=Object.fromEntries(D.agents.map(a=>[a.id,a]));
+const CHAIN=D.agents.filter(a=>a.chain),TOOLS=D.agents.filter(a=>!a.chain);
+const ALL=D.commands.sections.flatMap(s=>s.rows.map(r=>({...r,section:s.key,stitle:s.title})));
+const STATE={ready:['يرد الآن','ok'],manual:['يدوي على السيرفر','info'],soon:['يُضاف لاحقًا','dim']};
+const AST={passed:['اجتاز','ok'],bound:['موصول','info'],tool:['أداة محلية','tool']};
+let toastT;function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,1800)}
+function copy(text,btn){const ok=()=>{toast('نُسخ');if(btn){btn.classList.add('done');const o=btn.textContent;btn.textContent='✓';setTimeout(()=>{btn.classList.remove('done');btn.textContent=o},1400)}};
+  try{navigator.clipboard.writeText(text).then(ok,()=>fallback(text,ok))}catch(e){fallback(text,ok)}}
+function fallback(text,ok){const t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();try{document.execCommand('copy');ok()}catch(e){toast('حدّد النص وانسخه يدويًا')}t.remove()}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-copy]');if(b){e.preventDefault();copy(b.dataset.copy,b)}});
+
+/* clock + freshness */
+const tz='Asia/Riyadh';
+function tick(){const now=new Date();
+  $('p-clock').textContent=now.toLocaleTimeString('ar-SA-u-nu-latn',{timeZone:tz,hour:'2-digit',minute:'2-digit'})+' الرياض';
+  const mins=Math.max(0,Math.round((now-new Date(D.generated_at))/60000));
+  const ago=mins<60?mins+' دقيقة':mins<1440?Math.round(mins/60)+' ساعة':Math.round(mins/1440)+' يوم';
+  const el=$('p-fresh');el.className='pill '+(mins>1440?'warn':'dim');$('p-fresh-t').textContent='آخر تحقق قبل '+ago;
+  const h=+now.toLocaleString('en-US',{timeZone:tz,hour:'numeric',hour12:false});
+  $('greet').textContent=(h<12?'صباح الخير':'مساء الخير')+' يا خالد';}
+tick();setInterval(tick,30000);
+
+/* overview */
+const S=D.system;
+$('verdict').innerHTML='v3 يعمل على <b class="mono" style="font-size:.9em">'+esc(S.release)+'</b>، والبوت الأساسي يستقبل أوامرك';
+$('verdict-sub').textContent='لا جدولة ولا إرسال تلقائي. كل مقطع يُصنع ويُرسل بطلبك، والأوامر التي تنفّذ شيئًا تُضاف مرحلةً مرحلة.';
+const health=[['الإصدار المفعّل',S.release,'السابق '+S.previous+' محفوظ للرجوع','ok'],
+ ['مستمع الأوامر','يعمل',S.listener.bot+' · '+S.listener.restarts+' إعادة تشغيل','ok'],
+ ['الجدولة','متوقفة',S.schedule,'info'],
+ ['منفذ SSH','مغلق',S.ssh,'ok']];
+$('health').innerHTML=health.map(h=>'<div class="hc '+h[3]+'"><small>'+esc(h[0])+'</small><b'+(h[0]==='الإصدار المفعّل'?' class="mono" style="font-size:18px"':'')+'>'+esc(h[1])+'</b><span>'+tx(h[2])+'</span></div>').join('');
+function ring(done,total,tone){const r=34,C=2*Math.PI*r,f=done/total;
+  return '<svg class="ring" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="'+r+'" fill="none" stroke="#21354e" stroke-width="7"/>'
+   +'<circle cx="42" cy="42" r="'+r+'" fill="none" stroke="var(--'+tone+')" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+(C*f).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 42 42)"/>'
+   +'<text x="42" y="40" text-anchor="middle" font-family="Readex Pro,sans-serif" font-size="20" font-weight="600" fill="#e8f2fd">'+done+'</text><text x="42" y="56" text-anchor="middle" font-size="10" fill="#93a9c3" font-family="Readex Pro,sans-serif">من '+total+' وكيل</text></svg>'}
+$('bots').innerHTML=D.bots.map(b=>{
+  const tone=b.tone==='ok'?'plasma':'signal';
+  const trail=b.job?'<div><div class="head" style="margin-bottom:8px"><h3>'+esc(b.job.title)+'</h3><span class="mono muted">'+esc(b.job.sha)+'</span></div><ol class="trail">'+b.job.steps.map(s=>'<li><i></i><b>'+esc(s[0])+' <span class="num muted">'+esc(s[1])+'</span></b><span>'+tx(s[2])+'</span></li>').join('')+'</ol></div>'
+    :'<div class="empty">لا مهمة مسجلة لهذا البوت في v3 بعد. الرندر معاينة طقس يدوية، والإرسال لواتساب ينتظر قرارك.</div>';
+  return '<article class="panel bot"><div class="bot-top">'+ring(18,18,tone)+'<div class="t"><span class="eyebrow">'+esc(b.channel)+'</span><h2>'+esc(b.full)+'</h2><span>'+tx(b.headline)+'</span><span class="mono">'+esc(b.handle)+'</span></div></div>'
+   +'<div class="facts">'+b.facts.map(f=>'<div class="fact"><small>'+esc(f[0])+'</small><b class="'+f[2]+'">'+tx(f[1])+'</b></div>').join('')+'</div>'+trail+'</article>'}).join('');
+$('decisions').innerHTML=D.decisions.map(d=>'<div class="dec"><h3>'+esc(d.title)+'</h3>'+chip(d.cost,d.tone)+'<p>'+tx(d.body)+'</p></div>').join('');
+const RS={ok:'تم',next:'التالي',todo:'لاحقًا',you:'قرارك'};
+$('road').innerHTML=D.roadmap.map(t=>{const ok=t.steps.filter(s=>s[1]==='ok').length;
+  return '<div class="track"><h3><a href="'+esc(t.link)+'" target="_blank" rel="noopener">'+esc(t.title)+'</a><span class="num muted" style="font-size:12px">'+ok+' من '+t.steps.length+'</span></h3><ol>'+t.steps.map(s=>'<li class="'+s[1]+'" title="'+RS[s[1]]+'">'+(s[1]==='ok'?'✓ ':'')+tx(s[0])+'</li>').join('')+'</ol></div>'}).join('');
+$('alerts').innerHTML=D.alerts.map(a=>'<div class="al '+a.tone+'"><div style="display:flex;justify-content:space-between;gap:8px"><b style="color:var(--ink);font-weight:500">'+esc(a.text)+'</b><small>'+tx(a.checked)+'</small></div><small>'+tx(a.note)+'</small>'+(a.meter!=null?'<div class="meter"><i style="width:'+a.meter+'%"></i></div>':'')+'</div>').join('');
+
+/* commands */
+const counts={ready:0,manual:0,soon:0};ALL.forEach(c=>counts[c.state]++);
+$('n-cmd').textContent=counts.ready+'/'+ALL.length;
+const SCOL={ready:'var(--plasma)',manual:'var(--signal)',soon:'#3a5170'};
+$('cmd-stack').innerHTML=['ready','manual','soon'].map(k=>'<i style="width:'+(counts[k]/ALL.length*100)+'%;background:'+SCOL[k]+'"></i>').join('');
+$('cmd-legend').innerHTML=['ready','manual','soon'].map(k=>'<span><b class="num">'+counts[k]+'</b> '+STATE[k][0]+'</span>').join('')+'<span><b class="num">'+ALL.filter(c=>c.confirm).length+'</b> تحتاج «نعم»</span>';
+let filt='all';
+const FL=[['all','الكل'],['ready','يرد الآن'],['manual','يدوي'],['soon','لاحقًا'],['confirm','يحتاج «نعم»']];
+$('cmd-filter').innerHTML=FL.map(f=>'<button type="button" data-f="'+f[0]+'" aria-pressed="'+(f[0]==='all')+'">'+f[1]+'</button>').join('');
+$('secs').innerHTML=D.commands.sections.map(s=>{const a=s.rows[0].n,b=s.rows[s.rows.length-1].n;
+  return '<div class="sec" data-sec="'+s.key+'"><h3>'+esc(s.title)+'<span>'+(a===b?a:a+'–'+b)+'</span></h3>'+s.rows.map(r=>
+   '<div class="cmd" data-n="'+r.n+'" data-state="'+r.state+'" data-confirm="'+r.confirm+'" data-search="'+esc(norm(r.n+' '+r.label+' '+r.aliases.join(' ')))+'">'
+   +'<span class="no num">'+r.n+'</span><span class="lb">'+esc(r.label)+(r.confirm?' <span class="yes">· يحتاج «نعم»</span>':'')+(r.aliases.length?'<small>أو: '+esc(r.aliases.join('، '))+'</small>':'')+'</span>'
+   +chip(STATE[r.state][0],STATE[r.state][1])+'</div>').join('')+'</div>'}).join('');
+function applyCmd(){const q=norm($('cmd-q').value);
+  document.querySelectorAll('#secs .cmd').forEach(r=>{const okF=filt==='all'||(filt==='confirm'?r.dataset.confirm==='true':r.dataset.state===filt);
+    r.classList.toggle('miss',!okF||(q&&!r.dataset.search.includes(q)))});
+  document.querySelectorAll('#secs .sec').forEach(s=>s.classList.toggle('miss',!s.querySelector('.cmd:not(.miss)')))}
+$('cmd-q').addEventListener('input',applyCmd);
+$('cmd-filter').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;filt=b.dataset.f;
+  $('cmd-filter').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));applyCmd()});
+$('secs').addEventListener('click',e=>{if(e.target.closest('.copy'))return;const r=e.target.closest('.cmd');if(r)say(r.dataset.n)});
+
+/* the listener, ported: studio_core.commands.parse + owner_commands.Studio.answer */
+function norm(t){t=String(t).normalize('NFKC').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  t=t.replace(/[ً-ٰٟـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');
+  t=[...t].filter(ch=>/[\p{L}\p{N}\s:]/u.test(ch)).join('');return t.split(/\s+/).filter(Boolean).join(' ')}
+const INDEX={};ALL.forEach(c=>[String(c.n),c.label,...c.aliases].forEach(f=>INDEX[norm(f)]=c));
+const SECIDX={};D.commands.sections.forEach(s=>SECIDX[norm(s.title)]=s.key);
+const READ=new Set(['status','last','agents','schedule','report','dash']);
+function parse(text){if(typeof text!=='string'||!text.trim()||text.length>600)return{kind:'menu'};
+  const st=text.trim(),P=D.commands.add_prefix;
+  if(st.startsWith(P)){const body=st.slice(P.length).trim();return body?{kind:'add_fact'}:{kind:'menu'}}
+  const k=norm(st);if(k===norm('نعم'))return{kind:'yes'};
+  if(k==='0'||k===''||['start','help','menu'].includes(k))return{kind:'menu'};
+  const c=INDEX[k];if(c)return c.key==='menu'?{kind:'menu'}:{kind:'command',c};
+  const s=SECIDX[k];if(s)return s==='brief'?{kind:'command',c:ALL.find(x=>x.key==='brief')}:{kind:'section',s};
+  return{kind:'menu'}}
+const NOT_YET=l=>'⏳ «'+l+'» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم.';
+const LAST='✅ أُرسل 701388f1 إلى khalid_s2ss_bot · رسالة 947 · 26/10 11:49';
+const ANS={
+ status:()=>['📡 الحالة','الإصدار: '+S.release,'البوت الأساسي: khalid_s2ss_bot','الجدولة: غير مفعّلة (كل مقطع بطلبك)','المقاطع المرسلة: 4','آخر حدث: '+LAST].join('\n'),
+ last:()=>'📥 آخر مقطع\n'+LAST,
+ agents:()=>'🤖 الوكلاء في v3\n12 في سلسلة كل مقطع (حتى البوابة النهائية)\n6 أدوات محلية: analyst، content_repair، fixer، manager، reviewer، writer',
+ schedule:()=>'🗓 مواعيد الجدولة\nلا توجد جدولة مفعّلة في v3. كل مقطع يُصنع ويُرسل بطلبك.',
+ report:()=>'📊 تقرير اليوم\nرندر: … · موافقات: … · إرسال: …',
+ dash:()=>'🖥️ لوحة التحكم: «غرفة قيادة مدار» في Claude (خاصة بك).'};
+function answer(text){const p=parse(text);
+  if(p.kind==='section')return[D.commands.section_texts[p.s],'اسم قسم: يعرض أوامره فقط.'];
+  if(p.kind==='command'){const c=p.c;if(READ.has(c.key))return[ANS[c.key](),c.key==='report'?'الأعداد يحسبها البوت من سجل السيرفر لحظة الطلب.':'أمر قراءة: يرد عليه المستمع الآن.'];
+    return[NOT_YET(c.label),c.confirm?'أمر يحتاج «نعم» عند تفعيله. الآن لا ينفّذ شيئًا.':'أمر تنفيذ: يُضاف في مرحلة قادمة.']}
+  if(p.kind==='add_fact')return[NOT_YET('➕ أضف معلومة'),'إضافة معلومة تأتي مع أوامر التنفيذ.'];
+  if(p.kind==='yes')return['لا يوجد أمر ينتظر التأكيد.','«نعم» تؤكد فقط أمرًا طلب التأكيد قبل دقيقتين.'];
+  return[D.commands.menu_text,'لم تطابق أي أمر حرفيًا، فتعرض القائمة ولا تنفّذ شيئًا.']}
+const chat=$('chat');
+function bubble(t,who,why){const d=document.createElement('div');d.className='msg '+who;d.textContent=t;if(why){const w=document.createElement('span');w.className='why';w.textContent=why;d.appendChild(w)}chat.appendChild(d);chat.scrollTop=chat.scrollHeight}
+function say(t){t=String(t).trim();if(!t)return;bubble(t,'me');const [a,why]=answer(t);setTimeout(()=>bubble(a,'bot',why),220)}
+$('compose').addEventListener('submit',e=>{e.preventDefault();say($('say').value);$('say').value=''});
+const QUICK=['0','22','الحالة','25','24','أذكار ودين','أرسل','نعم','مرحبا'];
+$('quick').innerHTML=QUICK.map(q=>'<button type="button">'+esc(q)+'</button>').join('');
+$('quick').addEventListener('click',e=>{const b=e.target.closest('button');if(b)say(b.textContent)});
+bubble('اكتب رقمًا أو اسم أمر، أو اضغط أي أمر في القائمة لتجربته هنا.','bot');
+
+/* agents orbit */
+let abot='snap',sel='fact_source',playing=false;
+$('n-ag').textContent='18';
+$('ag-bot').innerHTML=D.bots.map(b=>'<button type="button" data-b="'+b.id+'" aria-pressed="'+(b.id===abot)+'">'+esc(b.name)+'</button>').join('');
+$('ag-bot').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;abot=b.dataset.b;$('ag-bot').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));drawOrbit();drawDetail();drawMatrix()});
+const CX=320,CY=320,R1=238,R2=112;
+function pos(i,n,r){const a=-Math.PI/2+i*2*Math.PI/n;return[CX+r*Math.cos(a),CY+r*Math.sin(a)]}
+function col(st){return st==='passed'?'#6fe3c6':st==='bound'?'#7cc7ff':'#b9a6ff'}
+function drawOrbit(lit){
+  let g='<defs><radialGradient id="core" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#123049"/><stop offset="1" stop-color="#081220"/></radialGradient>'
+   +'<marker id="arw" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#3b5878"/></marker></defs>';
+  g+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R1+'" fill="none" stroke="#21354e" stroke-width="1.5"/>';
+  g+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R2+'" fill="none" stroke="#21354e" stroke-dasharray="3 5"/>';
+  g+='<circle cx="'+CX+'" cy="'+CY+'" r="64" fill="url(#core)" stroke="#21354e"/>';
+  // chain arcs, in order
+  CHAIN.forEach((a,i)=>{if(i===CHAIN.length-1)return;const a1=-Math.PI/2+(i+.18)*2*Math.PI/12,a2=-Math.PI/2+(i+.82)*2*Math.PI/12;
+    const p1=[CX+R1*Math.cos(a1),CY+R1*Math.sin(a1)],p2=[CX+R1*Math.cos(a2),CY+R1*Math.sin(a2)];
+    const on=lit!=null&&i<lit;
+    g+='<path d="M'+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+' A'+R1+' '+R1+' 0 0 1 '+p2[0].toFixed(1)+' '+p2[1].toFixed(1)+'" fill="none" stroke="'+(on?'#6fe3c6':'#3b5878')+'" stroke-width="'+(on?3:2)+'" marker-end="url(#arw)"/>'});
+  CHAIN.forEach((a,i)=>{const [x,y]=pos(i,12,R1),st=a[abot].state,c=col(st),isSel=a.id===sel,isLit=lit!=null&&i===lit;
+    const ang=-Math.PI/2+i*2*Math.PI/12,cs=Math.cos(ang),anc=cs>0.35?'start':cs<-0.35?'end':'middle',off=anc==='middle'?40:32;
+    const lx=x+off*cs,ly=y+off*Math.sin(ang)+(anc==='middle'?(Math.sin(ang)<0?-2:6):0);
+    g+='<g class="node" tabindex="0" role="button" data-id="'+a.id+'" aria-label="'+esc(a.name)+'">'
+     +(isSel||isLit?'<circle cx="'+x+'" cy="'+y+'" r="27" fill="none" stroke="'+(isLit?'#ffcd70':c)+'" stroke-opacity=".55" stroke-width="2"/>':'')
+     +'<circle class="core" cx="'+x+'" cy="'+y+'" r="20" fill="#0b1626" stroke="'+(isLit?'#ffcd70':c)+'" stroke-width="2.2"/>'
+     +'<text x="'+x+'" y="'+(y+4.5)+'" text-anchor="middle" font-size="13" font-weight="600" fill="'+(isLit?'#ffcd70':c)+'" font-family="Readex Pro,sans-serif">'+a.step+'</text>'
+     +'<text class="lbl" x="'+lx+'" y="'+(ly+4)+'" text-anchor="'+anc+'">'+esc(a.name)+'</text>'
+     +'<rect x="'+(x-22)+'" y="'+(y-22)+'" width="44" height="44" fill="transparent"/></g>'});
+  TOOLS.forEach((a,i)=>{const [x,y]=pos(i,6,R2),isSel=a.id===sel;
+    g+='<g class="node" tabindex="0" role="button" data-id="'+a.id+'" aria-label="'+esc(a.name)+'">'
+     +(isSel?'<circle cx="'+x+'" cy="'+y+'" r="22" fill="none" stroke="#b9a6ff" stroke-opacity=".55" stroke-width="2"/>':'')
+     +'<rect x="'+(x-15)+'" y="'+(y-15)+'" width="30" height="30" rx="8" fill="#0b1626" stroke="#b9a6ff" stroke-width="1.8"/>'
+     +'<text class="code" x="'+x+'" y="'+(y+3.5)+'" text-anchor="middle" style="fill:#b9a6ff;font-size:8.5px">'+esc(a.code)+'</text>'
+     +'<text x="'+x+'" y="'+(y+(y<CY?-22:30))+'" text-anchor="middle" font-size="11" fill="#93a9c3">'+esc(a.name)+'</text></g>'});
+  const done=CHAIN.filter(a=>a[abot].state==='passed').length;
+  g+='<text x="'+CX+'" y="'+(CY-8)+'" text-anchor="middle" font-family="Readex Pro,sans-serif" font-size="30" font-weight="600" fill="#e8f2fd">12 + 6</text>'
+   +'<text x="'+CX+'" y="'+(CY+18)+'" text-anchor="middle" font-size="12" fill="#93a9c3">'+(abot==='snap'?done+' اجتازت آخر مقطع':'موصولة · لم تُشغَّل على السيرفر')+'</text>';
+  $('orbit').innerHTML=g}
+$('orbit').addEventListener('click',e=>{const n=e.target.closest('.node');if(n){sel=n.dataset.id;drawOrbit();drawDetail();drawMatrix()}});
+$('orbit').addEventListener('keydown',e=>{const n=e.target.closest('.node');if(n&&(e.key==='Enter'||e.key===' ')){e.preventDefault();sel=n.dataset.id;drawOrbit();drawDetail();drawMatrix();const f=$('orbit').querySelector('[data-id="'+sel+'"]');f&&f.focus()}});
+function drawDetail(){const a=AG[sel],other=abot==='snap'?'status':'snap';
+  const pos=a.chain?'الخطوة '+a.step+' من 12'+(a.after?' · بعد «'+AG[a.after].name+'»':' · أول السلسلة'):'أداة محلية خارج سلسلة المهمة';
+  const box=(k,label)=>{const st=AST[a[k].state];return '<div><small>'+label+'</small>'+chip(st[0],st[1])+'<p>'+tx(a[k].does)+'</p><small>'+tx(a[k].last)+'</small></div>'};
+  $('detail').innerHTML='<span class="code">'+esc(a.code)+'</span><h2>'+esc(a.name)+'</h2><p class="muted">'+esc(pos)+'</p>'
+   +'<dl class="dl"><dt>المعرّف</dt><dd class="mono">'+esc(a.id)+'</dd><dt>المدخل ← المخرج</dt><dd class="mono">'+esc(a.io)+'</dd>'
+   +(a.chain?'<dt>العقد</dt><dd>يعتمد على مخرج الخطوة السابقة فقط، وبصمة العقد نفسها في كل الخطوات</dd>':'')+'</dl>'
+   +'<div class="both">'+box(abot,abot==='snap'?'في سناب':'في الحالات')+box(other,other==='snap'?'في سناب':'في الحالات')+'</div>'
+   +(a.chain?'<div style="display:flex;gap:8px;flex-wrap:wrap">'+(a.after?'<button type="button" class="copy" data-go="'+a.after+'">→ السابق</button>':'')+(a.step<12?'<button type="button" class="copy" data-go="'+CHAIN[a.step].id+'">التالي ←</button>':'')+'</div>':'')}
+$('detail').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){sel=b.dataset.go;drawOrbit();drawDetail();drawMatrix()}});
+function drawMatrix(){$('matrix').querySelector('tbody').innerHTML=D.agents.map(a=>'<tr data-id="'+a.id+'"'+(a.id===sel?' class="sel"':'')+'><td class="num">'+(a.step||'—')+'</td><td><b style="font-weight:500">'+esc(a.name)+'</b> <span class="mono muted">'+esc(a.code)+'</span></td><td class="muted">'+(a.after?esc(AG[a.after].name):a.chain?'البداية':'—')+'</td><td>'+chip(AST[a.snap.state][0],AST[a.snap.state][1])+'</td><td>'+chip(AST[a.status.state][0],AST[a.status.state][1])+'</td></tr>').join('')}
+$('matrix').addEventListener('click',e=>{const r=e.target.closest('tr[data-id]');if(r){sel=r.dataset.id;drawOrbit();drawDetail();drawMatrix();$('orbit').scrollIntoView({behavior:'smooth',block:'center'})}});
+$('play').addEventListener('click',()=>{if(playing)return;playing=true;$('play').disabled=true;let i=0;
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const step=()=>{if(i>=12){playing=false;$('play').disabled=false;drawOrbit();return}sel=CHAIN[i].id;drawOrbit(i);drawDetail();drawMatrix();i++;setTimeout(step,reduce?60:650)};step()});
+drawOrbit();drawDetail();drawMatrix();
+
+/* ops */
+$('ops-server').textContent=S.server;
+$('services').innerHTML=D.bots.map(b=>'<h3 style="margin:4px 0 6px">'+esc(b.full)+'</h3><ul class="rows">'+b.services.map(s=>'<li><span class="mono" style="font-size:12.5px">'+esc(s[0])+'</span>'+chip(s[1],s[2])+'</li>').join('')+'</ul>').join('<div style="height:12px"></div>')
+  +'<ul class="rows" style="margin-top:12px"><li><span>البوتان القديمان (V1)</span>'+chip('موقوفان عمدًا','warn')+'</li><li><span>عودة المستمع بعد إعادة تشغيل السيرفر</span>'+chip('يدوي','warn')+'</li></ul>';
+$('checks').innerHTML=D.checks.map(c=>'<li><span>'+tx(c[0])+'</span>'+chip(c[1],c[2])+'</li>').join('');
+$('runbook').innerHTML=D.runbook.map((r,i)=>'<div class="step"><b style="font-weight:500"><span class="num muted">'+(i+1)+'.</span> '+esc(r[0])+'</b><div class="line"><code>'+esc(r[1])+'</code><button type="button" class="copy" data-copy="'+esc(r[1])+'">نسخ</button></div></div>').join('')
+  +'<p class="muted" style="font-size:12.5px">صلاحية المقطع ساعة واحدة من الرندر، وكل بصمة تُرسل مرة واحدة فقط.</p>';
+$('red').innerHTML=D.redlines.map(r=>'<li><span>'+tx(r)+'</span></li>').join('');
+
+/* log */
+let lf='all';
+$('log-f').innerHTML=[['all','الكل'],['snap','سناب'],['status','الحالات']].map(f=>'<button type="button" data-f="'+f[0]+'" aria-pressed="'+(f[0]==='all')+'">'+f[1]+'</button>').join('');
+function drawLog(){$('tl').innerHTML=D.events.map(e=>'<li class="'+e[2]+'"'+(lf==='all'||e[3]===lf||e[3]==='all'?'':' hidden')+'><time>'+esc(e[0])+'</time><span class="dot"></span><span style="color:var(--ink)">'+tx(e[1])+'</span></li>').join('')}
+$('log-f').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;lf=b.dataset.f;$('log-f').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));drawLog()});
+drawLog();
+$('src').textContent=D.verified+' · '+new Date(D.generated_at).toLocaleString('ar-SA-u-nu-latn-ca-gregory',{timeZone:tz,day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+
+/* tabs (bare #tokens) */
+const TABS=['overview','commands','agents','ops','log'];
+function show(t){if(!TABS.includes(t))t='overview';
+  document.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==t);
+  document.querySelectorAll('.tabs a').forEach(a=>{if(a.dataset.tab===t)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  try{localStorage.setItem('madar-tab',t)}catch(e){}}
+document.querySelector('.tabs').addEventListener('click',e=>{const a=e.target.closest('a[data-tab]');if(!a)return;e.preventDefault();show(a.dataset.tab);try{history.replaceState(null,'','#'+a.dataset.tab)}catch(err){}window.scrollTo({top:0})});
+let first=(location.hash||'').slice(1);if(!TABS.includes(first)){try{first=localStorage.getItem('madar-tab')||'overview'}catch(e){first='overview'}}
+show(first);
+addEventListener('hashchange',()=>show(location.hash.slice(1)));
+
+/* command palette */
+const ITEMS=[...TABS.map((t,i)=>({t:['نظرة عامة','الأوامر','الوكلاء','التشغيل','السجل'][i],s:'قسم',go:()=>show(t)})),
+  ...ALL.map(c=>({t:c.n+' · '+c.label,s:STATE[c.state][0],k:norm(c.n+' '+c.label+' '+c.aliases.join(' ')),go:()=>{show('commands');say(String(c.n))}})),
+  ...D.agents.map(a=>({t:a.name+' · '+a.code,s:a.chain?'وكيل · الخطوة '+a.step:'أداة محلية',k:norm(a.name+' '+a.id+' '+a.code),go:()=>{show('agents');sel=a.id;drawOrbit();drawDetail();drawMatrix()}})),
+  ...D.runbook.map(r=>({t:r[0],s:'نسخ الأمر',go:()=>copy(r[1])}))];
+let pi=0,shown=[];
+function openPal(){$('pal').hidden=false;$('pal-q').value='';renderPal();$('pal-q').focus()}
+function closePal(){$('pal').hidden=true}
+function renderPal(){const q=norm($('pal-q').value);shown=ITEMS.filter(it=>!q||(it.k||norm(it.t)).includes(q)).slice(0,40);pi=0;
+  $('pal-list').innerHTML=shown.map((it,i)=>'<li role="option" data-i="'+i+'" aria-selected="'+(i===pi)+'"><span>'+esc(it.t)+'</span><small>'+esc(it.s)+'</small></li>').join('')||'<li><small>لا نتائج</small></li>'}
+function mark(){$('pal-list').querySelectorAll('li[data-i]').forEach(li=>{const on=+li.dataset.i===pi;li.setAttribute('aria-selected',on);if(on)li.scrollIntoView({block:'nearest'})})}
+$('open-pal').addEventListener('click',openPal);
+$('pal').addEventListener('click',e=>{if(e.target.id==='pal')closePal();const li=e.target.closest('li[data-i]');if(li){closePal();shown[+li.dataset.i].go()}});
+$('pal-q').addEventListener('input',renderPal);
+$('pal-q').addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();pi=Math.min(pi+1,shown.length-1);mark()}else if(e.key==='ArrowUp'){e.preventDefault();pi=Math.max(pi-1,0);mark()}else if(e.key==='Enter'&&shown[pi]){closePal();shown[pi].go()}});
+addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('pal').hidden?openPal():closePal()}else if(e.key==='Escape'&&!$('pal').hidden)closePal();
+  else if(e.key==='/'&&!/input|textarea/i.test(document.activeElement.tagName)&&$('pal').hidden){e.preventDefault();openPal()}});
+})();
+</script>
+
+</body></html>
