@@ -75,6 +75,8 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             str(bundle),
             json.dumps(provenance),
         ]
+        if os.environ.get("MADAR_QURAN_AUDIO") == "1":
+            command.insert(command.index(sys.executable), "--setenv=MADAR_QURAN_AUDIO=1")
         subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=330, check=True)  # noqa: S603  # fixed argv, no shell
         if Path(output).exists() or any(path.is_symlink() for path in bundle.rglob("*")):
             raise ValueError("Unsafe renderer output")
@@ -83,6 +85,9 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             os.chown(path, 0, 0)
         data = json.loads((bundle / "preview.json").read_text())
         # Root-only preview parent prevents the non-root renderer from changing it later.
+        from studio_core.religious.quran_pipeline import track_bundle
+
+        track_bundle(data["render"], Path(output), data["preview_sha256"])
         shutil.move(str(bundle), str(output))
         sync_directory(Path(output).parent)
         return data

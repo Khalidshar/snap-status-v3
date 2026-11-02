@@ -7,6 +7,7 @@ No public listener, TLS, firewall, token creation or Meta subscription changes.
 import argparse
 import json
 import os
+import pwd
 import re
 from pathlib import Path
 
@@ -128,6 +129,25 @@ def plan() -> dict[Path, str]:
         "MemoryMax=1536M\nTimeoutStartSec=300\nPrivateNetwork=yes\nInaccessiblePaths=-/run/madar",
     )
     files[UNITS / "madar-v3-snap-news-clip@.service"] = unit
+    templates = ROOT / "config/systemd"
+    for name in (
+        "madar-v3-quran-egress@.service",
+        "madar-v3-quran-retention@.service",
+        "madar-v3-snap-quran-prepare@.service",
+        "madar-v3-status-quran-prepare@.service",
+        "madar-v3-snap-quran-render@.service",
+        "madar-v3-status-quran-render@.service",
+    ):
+        files[UNITS / name] = (templates / name).read_text()
+    files[UNITS / "madar-v3-status-content@.service.d/quran.conf"] = (
+        "[Service]\nReadWritePaths=-/var/lib/madar/quran-status\n"
+    )
+    for name in (
+        "madar-v3-snap-render@.service",
+        "madar-v3-snap-render.service",
+        "madar-v3-status-commands.service",
+    ):
+        files[UNITS / (name + ".d/quran.conf")] = "[Service]\nEnvironment=MADAR_QURAN_AUDIO=0\n"
     return files
 
 
@@ -160,6 +180,14 @@ def main() -> None:
                 raise ValueError("Unsafe command state")
         for name in ("snap/news", "status/news", "status/commands", "status/command-webhook"):
             Path("/var/lib/madar", name).mkdir(mode=0o700, exist_ok=True, parents=True)
+        account = pwd.getpwnam("ubuntu")
+        for app in ("snap", "status"):
+            root = Path("/var/lib/madar/quran-" + app)
+            if any(p.is_symlink() for p in (root, *root.parents)):
+                raise ValueError("Unsafe Quran state")
+            root.mkdir(mode=0o2770, parents=True, exist_ok=True)
+            os.chown(root, account.pw_uid, account.pw_gid)
+            root.chmod(0o2770)
         for path, value in files.items():
             path.parent.mkdir(mode=0o755, exist_ok=True, parents=True)
             if not path.exists():

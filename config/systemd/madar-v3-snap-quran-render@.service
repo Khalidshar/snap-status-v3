@@ -1,0 +1,21 @@
+[Unit]
+Description=Madar Snap offline whole-ayah Quran render
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/madar/current
+ExecStart=/opt/madar/current/.venv/bin/python -m snap_bot.quran_clip render --root /var/lib/madar/quran-snap --job %i
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+NoNewPrivileges=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+InaccessiblePaths=-/run/madar -/etc/madar
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/madar/quran-snap
+MemoryMax=1536M
+TimeoutStartSec=1200

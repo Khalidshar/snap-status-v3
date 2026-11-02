@@ -1,0 +1,23 @@
+[Unit]
+Description=Madar snap on-demand Quran asset preparation
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/madar/current
+ExecStartPre=+/usr/bin/systemctl start madar-v3-quran-retention@snap.service
+ExecStart=/opt/madar/current/.venv/bin/python -m snap_bot.quran_clip prepare-command --root /var/lib/madar/quran-snap --job %i
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+NoNewPrivileges=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+InaccessiblePaths=-/etc/madar
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+CapabilityBoundingSet=
+ReadWritePaths=/var/lib/madar/quran-snap
+MemoryMax=512M
+TimeoutStartSec=900
