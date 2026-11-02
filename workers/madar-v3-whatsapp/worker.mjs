@@ -25,6 +25,15 @@ async function boundedBody(request) {
   return bytes;
 }
 
+// The Meta verify token is derived from the app secret on both sides, so it is never
+// copied by hand: hex(HMAC-SHA256(APP_SECRET, "madar-v3-whatsapp-verify")).
+async function verifyToken(secret) {
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode("madar-v3-whatsapp-verify")));
+  return [...mac].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 function equal(a, b) {
   const left = encoder.encode(a), right = encoder.encode(b);
   if (left.length !== right.length) return false;
@@ -36,20 +45,18 @@ function equal(a, b) {
 export default {
   async fetch(request, env) {
     // Secrets pasted from a terminal may carry a trailing newline or spaces.
-    env = { ...env, VERIFY_TOKEN: env.VERIFY_TOKEN?.trim?.(), APP_SECRET: env.APP_SECRET?.trim?.() };
+    env = { ...env, APP_SECRET: env.APP_SECRET?.trim?.() };
     try {
       const url = new URL(request.url);
       if (!["/", "/webhook"].includes(url.pathname)) return response(404, "NOT_FOUND");
-      if (typeof env.VERIFY_TOKEN !== "string" || env.VERIFY_TOKEN.length < 32 ||
-          typeof env.APP_SECRET !== "string" || env.APP_SECRET.length < 32 ||
+      if (typeof env.APP_SECRET !== "string" || env.APP_SECRET.length < 32 ||
           typeof env.INBOX?.fetch !== "function" ||
           !/^[a-z0-9.-]+$/.test(env.INBOX_HOST || "")) return response(503, "NOT_READY");
       if (request.method === "GET") {
-        const fields = [...url.searchParams.keys()].sort();
-        if (fields.join(",") !== "hub.challenge,hub.mode,hub.verify_token" ||
-            url.searchParams.get("hub.mode") !== "subscribe" ||
+        // Meta may add fields; only the three it documents decide the answer.
+        if (url.searchParams.get("hub.mode") !== "subscribe" ||
             !/^\d{1,128}$/.test(url.searchParams.get("hub.challenge") || "") ||
-            !equal((url.searchParams.get("hub.verify_token") || "").trim(), env.VERIFY_TOKEN)) {
+            !equal((url.searchParams.get("hub.verify_token") || "").trim(), await verifyToken(env.APP_SECRET))) {
           return response(403, "VERIFY_DENIED");
         }
         return response(200, url.searchParams.get("hub.challenge"));
