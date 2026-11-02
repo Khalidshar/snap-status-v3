@@ -35,6 +35,8 @@ function equal(a, b) {
 
 export default {
   async fetch(request, env) {
+    // Secrets pasted from a terminal may carry a trailing newline or spaces.
+    env = { ...env, VERIFY_TOKEN: env.VERIFY_TOKEN?.trim?.(), APP_SECRET: env.APP_SECRET?.trim?.() };
     try {
       const url = new URL(request.url);
       if (!["/", "/webhook"].includes(url.pathname)) return response(404, "NOT_FOUND");
@@ -47,7 +49,7 @@ export default {
         if (fields.join(",") !== "hub.challenge,hub.mode,hub.verify_token" ||
             url.searchParams.get("hub.mode") !== "subscribe" ||
             !/^\d{1,128}$/.test(url.searchParams.get("hub.challenge") || "") ||
-            !equal(url.searchParams.get("hub.verify_token") || "", env.VERIFY_TOKEN)) {
+            !equal((url.searchParams.get("hub.verify_token") || "").trim(), env.VERIFY_TOKEN)) {
           return response(403, "VERIFY_DENIED");
         }
         return response(200, url.searchParams.get("hub.challenge"));
