@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Status Bot V2 runtime."
 requires-python = ">=3.11"
 dependencies = [
-    "snap-bot",
     "studio-core",
 ]
 
@@ -13,7 +12,6 @@ status-bot = "status_bot.cli:main"
 
 [tool.uv.sources]
 studio-core = { workspace = true }
-snap-bot = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]

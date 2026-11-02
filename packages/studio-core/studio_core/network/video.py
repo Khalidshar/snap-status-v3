@@ -3,6 +3,7 @@
 import argparse
 import base64
 import hashlib
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -84,9 +85,14 @@ def fetch_video(url: str, config: VideoPolicy) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--socket", type=Path, required=True)
+    parser.add_argument("--source-policy", type=Path)
     args = parser.parse_args()
     secrets = {name: os.environ[name] for name, _, _, _ in API.values() if name in os.environ}
-    policy = VideoPolicy(args.socket, secrets=secrets)
+    source_policy = json.loads(args.source_policy.read_text()) if args.source_policy else {}
+    hosts = tuple(sorted({host for values in source_policy.values() for host in values}))
+    if any(not isinstance(host, str) or not host or "/" in host or ":" in host for host in hosts):
+        raise ValueError("Invalid source video policy")
+    policy = VideoPolicy(args.socket, network_hosts=(*HOSTS, *hosts), secrets=secrets)
     # The existing RPC server needs only the transport attributes of Config.
     with EgressServer(cast(Config, policy), lambda url, _: fetch_video(url, policy)) as server:
         server.serve_forever()

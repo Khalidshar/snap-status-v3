@@ -7,13 +7,17 @@ import re
 import subprocess
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from studio_core.config import Config
 from studio_core.delivery.evidence import multipart
+from studio_core.network.client import NetworkClient
+from studio_core.network.video import VideoPolicy
 from studio_core.renderer import write_once
+from studio_core.sources import event_video
 from studio_core.sources.news import validate
 
-from . import command_cards
+from . import command_cards, footage
 from .server_preview import STATE, safe_path
 
 ROOT = STATE / "news-clips"
@@ -37,7 +41,14 @@ def render_event(event: str, root: Path = ROOT) -> None:
     directory = safe_path(root / event)
     content = json.loads(safe_path(directory / "content.json").read_bytes())
     validate(content, time.time())
-    result = command_cards.render(labels(content), directory / "render")
+    original = directory / "media/original.json"
+    if original.exists():
+        result = command_cards.original(content, original, directory / "render")
+    else:
+        prepared = directory / "media/background/footage.json"
+        card = {**content, "body": content["headline"]}
+        backdrop = footage.pinned(card, prepared) if prepared.exists() else footage.choose(card)
+        result = command_cards.render(labels(content), directory / "render", backdrop=backdrop)
     validate(content, time.time())
     result["content_hash"] = content["content_hash"]
     write_once(directory / "result.json", json.dumps(result, ensure_ascii=False).encode())
@@ -62,6 +73,17 @@ def deliver(
     directory = safe_path(root / tag)
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     write_once(directory / "content.json", json.dumps(content, ensure_ascii=False).encode())
+    policy = json.loads(
+        (Path(__file__).resolve().parents[3] / "config/media/source-video.json").read_text()
+    )
+    client = NetworkClient(cast(Config, VideoPolicy(Path("/run/madar/snap-video.sock"))))
+    original = event_video.prepare(content, directory / "media", client, policy)
+    if original is None:
+        footage.prepare(
+            {**content, "body": content["headline"]},
+            directory / "media/background",
+            Path("/run/madar/snap-video.sock"),
+        )
     unit = "madar-v3-snap-news-clip@" + tag + ".service"
     if start is None:
         subprocess.run(["/usr/bin/systemctl", "start", unit], check=True, timeout=300)  # noqa: S603
@@ -80,7 +102,17 @@ def deliver(
         != {"ipv4": True, "ipv6": True, "udp": True, "egress_unreachable": True}
     ):
         raise ValueError("News clip admission failed")
-    body, kind = multipart(owner, video, "", "news.mp4")
+    body, kind = multipart(
+        owner,
+        video,
+        "المصدر: "
+        + content["source"]
+        + "\n"
+        + content["published_label"]
+        + "\n"
+        + content["source_url"],
+        "news.mp4",
+    )
     response = transport(token, "sendVideo", body, kind)
     if (
         not isinstance(response, dict)
