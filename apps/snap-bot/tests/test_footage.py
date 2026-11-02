@@ -52,6 +52,6 @@ def test_filters_fill_the_canvas_and_dim_for_text():
         "crop=1080:1920",
         "fps=24",
     ]
-    assert any("black@0.35" in f for f in chain)
+    assert any("black@0.50" in f for f in chain)
     with pytest.raises(ValueError):
         footage.filters(0)
