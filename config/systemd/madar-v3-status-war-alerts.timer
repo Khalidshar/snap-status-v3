@@ -1,0 +1,7 @@
+[Unit]
+Description=Madar status war-only polling (installed disabled)
+[Timer]
+OnActiveSec=60
+OnUnitInactiveSec=60
+Unit=madar-v3-status-war-alerts.service
+Persistent=false
