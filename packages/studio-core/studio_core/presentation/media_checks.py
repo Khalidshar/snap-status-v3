@@ -60,6 +60,17 @@ def check_voice(result: Any) -> dict[str, Any]:
         check_result(result)
         return {"decision": "PASS", "audio": result["qa"]["audio"]}
     qa = result["qa"]
+    if qa.get("audio") == "silent_sacred":
+        # Religious clips: no tone or music (owner decision 2 Nov), verified silent.
+        silence = qa.get("audio_qa")
+        if (
+            not isinstance(silence, dict)
+            or set(silence) != {"max_volume_db"}
+            or not _number(silence["max_volume_db"])
+            or silence["max_volume_db"] > -80
+        ):
+            raise AgentRejected("VOICE_SACRED_NOT_SILENT")
+        return {"decision": "PASS", "audio": "silent_sacred", **silence}
     if qa.get("audio") != "generated_ambient":
         raise AgentRejected("VOICE_AUDIO_NOT_AMBIENT")
     audio = qa.get("audio_qa")
