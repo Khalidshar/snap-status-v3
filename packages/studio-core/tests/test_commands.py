@@ -12,6 +12,12 @@ class MenuTests(unittest.TestCase):
         seen = [c.section for c in menu.COMMANDS]
         self.assertEqual(sorted(set(seen), key=order.index), order)
         self.assertEqual(seen, sorted(seen, key=order.index), "guard:section-order")
+        for command in menu.COMMANDS:
+            parsed = menu.parse(str(command.number))
+            if command.key == "menu":
+                self.assertEqual(parsed["kind"], "menu")
+            else:
+                self.assertEqual(parsed["command"].key, command.key)
 
     def test_every_list_fits_whatsapp(self):
         self.assertLessEqual(len(menu.whatsapp_list()["sections"][0]["rows"]), 10)
@@ -36,7 +42,7 @@ class MenuTests(unittest.TestCase):
             "شكرا على الشغل",
             "وقفته؟",
             "هل تعلم شي؟",
-            "37",
+            str(len(menu.COMMANDS) + 1),
             "",
         ):
             self.assertEqual(menu.parse(text)["kind"], "menu", "guard:exact-match")

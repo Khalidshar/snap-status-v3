@@ -30,7 +30,9 @@ def test_sources_follow_the_bots_existing_exact_command_matching(name):
     assert for_command(name) != for_command("tech")
 
 
-@pytest.mark.parametrize("name", ["أحتاج الأناقة", "أخبار", "لا توقف شي", "37", ""])
+@pytest.mark.parametrize(
+    "name", ["أحتاج الأناقة", "أخبار", "لا توقف شي", str(len(COMMANDS) + 1), ""]
+)
 def test_unknown_sentences_and_section_titles_are_never_guessed(name):
     with pytest.raises(ValueError):
         plan(name)
