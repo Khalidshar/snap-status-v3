@@ -237,6 +237,31 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             resource(assets, asset["file"], asset["sha256"])
     if assets is not None:
         for item in scenes:
+            if item.get("role") == "adhkar":
+                chapter = item.get("dhikr_chapter")
+                url = f"https://www.hisnmuslim.com/api/ar/{chapter}.json"
+                responses = [a for a in p["assets"] if a["source_url"] == url]
+                if chapter not in {27, 28} or not responses:
+                    raise ValueError("LEGACY_DHIKR_SOURCE_MISSING")
+                source_asset = responses[-1]
+                data = json.loads(
+                    resource(assets, source_asset["file"], source_asset["sha256"]).read_bytes(),
+                    strict=False,
+                )
+                row = next(
+                    (r for r in next(iter(data.values())) if r["ID"] == item.get("dhikr_id")), None
+                )
+                recording = asset_map.get(item.get("audio"))
+                if (
+                    row is None
+                    or item["body"] != row["ARABIC_TEXT"]
+                    or item.get("number")
+                    != "التكرار: "
+                    + str(row["REPEAT"]).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+                    or recording is None
+                    or recording["source_url"] != row["AUDIO"].replace("http://", "https://", 1)
+                ):
+                    raise ValueError("LEGACY_DHIKR_TEXT_AUDIO_CHANGED")
             if item.get("verse"):
                 surah, ayah = item["verse"]
                 url = f"https://quranenc.com/api/v1/translation/aya/arabic_moyassar/{surah}/{ayah}"

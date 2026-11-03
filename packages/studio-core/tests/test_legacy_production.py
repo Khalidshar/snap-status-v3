@@ -404,9 +404,9 @@ def test_daily_brief_uses_both_weather_providers_and_fails_on_disagreement(tmp_p
         other.build()
 
 
-def test_real_audio_pause_detection_and_rms_bars(tmp_path, audio):
-    full = tmp_path / "synthetic-adhkar-test-only.wav"
-    subprocess.run(  # noqa: S603 — fixed test argv
+def test_each_dhikr_is_bound_to_its_human_recording_and_count(tmp_path, audio):
+    recording = tmp_path / "synthetic-dhikr-test-only.wav"
+    subprocess.run(  # noqa: S603 — fixed local test-only audio argv
         [
             "/usr/bin/ffmpeg",
             "-v",
@@ -414,32 +414,42 @@ def test_real_audio_pause_detection_and_rms_bars(tmp_path, audio):
             "-f",
             "lavfi",
             "-i",
-            "sine=frequency=330:duration=55",
-            "-af",
-            "volume='if(between(t,45,48),0,0.5)':eval=frame",
-            "-ar",
-            "48000",
-            "-ac",
-            "2",
-            str(full),
+            "sine=frequency=330:duration=8",
+            str(recording),
         ],
         check=True,
     )
+    audio = recording.read_bytes()
+    rows = [
+        {
+            "ID": i,
+            "ARABIC_TEXT": "ذكر تجريبي للاختبار فقط " + str(i),
+            "REPEAT": 3,
+            "AUDIO": f"http://www.hisnmuslim.com/audio/ar/{i}.mp3",
+        }
+        for i in range(1, 24)
+    ]
 
     class Recording(Sources):
         def get(self, url):
-            if "archive.org" in url:
-                raw = full.read_bytes()
-                return NetworkResponse(200, "audio/wav", raw, sha(raw))
+            if url.endswith("/27.json"):
+                raw = json.dumps({"أذكار الصباح والمساء": rows}).encode()
+                return NetworkResponse(200, "application/json", raw, sha(raw))
             return super().get(url)
 
     f = factory(tmp_path, "adhkar_am", Recording(audio))
     value = f.build()
     p = validate(value, assets=f.root)
-    segment = p["scenes"][1]
-    assert 44 <= segment["audio_duration"] <= 50
-    assert len(segment["levels"]) > 600 and max(segment["levels"]) > 0
+    segments = p["scenes"][1:-1]
+    assert 44 <= sum(s["seconds"] for s in segments) <= 50
+    assert all(s["body"] == rows[s["dhikr_id"] - 1]["ARABIC_TEXT"] for s in segments)
+    assert all(s["number"] == "التكرار: ٣" for s in segments)
     assert p["music"] is None and not p["effects"]
+    for field in ("body", "number", "audio"):
+        changed = copy.deepcopy(value)
+        changed["legacy_production"]["scenes"][1][field] = "changed"
+        with pytest.raises(ValueError):
+            validate(reseal(changed), assets=f.root)
 
 
 def test_production_broker_redirect_and_mime_guards(monkeypatch, tmp_path):
@@ -673,13 +683,15 @@ def test_night_number_and_verified_hadith_in_both_bots(tmp_path, monkeypatch, au
     monkeypatch.setattr(
         f,
         "adhkar",
-        lambda *a, **kw: {
-            "body": "أذكار النوم من حصن المسلم",
-            "seconds": 9.0,
-            "role": "adhkar",
-            "audio": f.save(audio, ".mp3", "https://archive.org/test", "حصن المسلم"),
-            "audio_duration": 2.0,
-        },
+        lambda *a, **kw: [
+            {
+                "body": "نص تجريبي لاختبار ترقيم الليالي",
+                "seconds": 9.0,
+                "role": "sleep_reminder",
+                "audio": f.save(audio, ".mp3", "https://archive.org/test", "حصن المسلم"),
+                "audio_duration": 2.0,
+            }
+        ],
     )
     value = f.build()
     p = validate(value, assets=f.root)

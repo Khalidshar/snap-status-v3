@@ -1,7 +1,6 @@
 # ruff: noqa: E501
 """Source factory port: all downloads go through the application's source broker."""
 
-import array
 import email.utils
 import html
 import json
@@ -105,7 +104,10 @@ class Factory:
     def json(self, url: str) -> Any:
         raw = self.get(url)
         self.save(raw, ".json", url, "source response")
-        return json.loads(raw.decode("utf-8-sig"))
+        return json.loads(
+            raw.decode("utf-8-sig"),
+            strict=urlsplit(url).hostname not in {"hisnmuslim.com", "www.hisnmuslim.com"},
+        )
 
     def save(self, raw: bytes, suffix: str, url: str, credit: str) -> str:
         name = f"assets/{len(self.assets):03d}{suffix}"
@@ -190,19 +192,33 @@ class Factory:
                 return self.picture(url, item["url"], item["source"])
             except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
                 continue
+        expected_title = item.get("original_title", item["title"])
         url = "https://news.google.com/rss/search?" + urlencode(
-            {"q": '"' + item["title"] + '"', "hl": "ar", "gl": "SA", "ceid": "SA:ar"}
+            {"q": '"' + expected_title + '"', "hl": "ar", "gl": "SA", "ceid": "SA:ar"}
         )
         raw = self.get(url)
         self.save(raw, ".xml", url, "Google News — اكتشاف صورة الخبر")
         for entry in safe_xml(raw).iter("item"):
             title = parsing.clean(entry.findtext("title") or "")
             source = parsing.clean(entry.findtext("source") or "")
-            if title.removesuffix(" - " + source) != item["title"]:
+            if title.removesuffix(" - " + source) != expected_title:
                 continue
             image = parsing._img(entry)
-            if image:
-                return self.picture(image, item["url"], item["source"])
+            try:
+                if image:
+                    return self.picture(image, item["url"], item["source"])
+                link = (entry.findtext("link") or "").strip()
+                if link:
+                    page = self.get(link).decode("utf-8", "replace")
+                    match = re.search(
+                        r'<meta[^>]+(?:property|name)=["\']og:image["\'][^>]+content=["\']([^"\']+)',
+                        page,
+                        re.I,
+                    )
+                    if match:
+                        return self.picture(match[1], link, source or item["source"])
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+                continue
         raise ValueError("LEGACY_EXACT_STORY_IMAGE_UNAVAILABLE")
 
     def article(self, item: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
@@ -494,11 +510,12 @@ class Factory:
                     ):
                         chosen.pop()
                     for point in chosen:
-                        pic = (
-                            self.picture(point["pic"], item["url"], item["source"])
-                            if point.get("pic")
-                            else image
-                        )
+                        pic = image
+                        if point.get("pic"):
+                            try:
+                                pic = self.picture(point["pic"], item["url"], item["source"])
+                            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+                                pic = image
                         selected.append(
                             scene(
                                 point["body"],
@@ -728,11 +745,7 @@ class Factory:
             raise ValueError("LEGACY_TAFSIR_REFERENCE_CHANGED")
         tafsir = html.unescape(re.sub("<[^>]*>", "", result["translation"]))
         text = exact_ayah(surah, ayah)
-        hold = (
-            seconds + 0.8
-            if background
-            else max(seconds + 0.8, (len(tafsir) + len(text)) / 17 + 1, 8.0)
-        )
+        hold = seconds + 0.8 if background else seconds + 0.8 + max(len(tafsir) / 17 + 1, 5.0)
         return scene(
             text,
             hold,
@@ -803,110 +816,51 @@ class Factory:
             return []
         return []
 
-    def adhkar(self, period: str, *, minimum: float = 44, maximum: float = 49.5) -> dict[str, Any]:
-        data = json.loads((DATA / "status.json").read_text())
-        for name, url in data["adhkar_audio"][period]:
-            try:
-                full = self.root / "adhkar-full.mp3"
-                full.write_bytes(self.get(url))
-                length = duration(full)
-                pair = None
-                for noise, pause in [(-35, 0.6), (-32, 0.35), (-28, 0.25)]:
-                    log = run(
-                        [
-                            "/usr/bin/ffmpeg",
-                            "-hide_banner",
-                            "-nostdin",
-                            "-i",
-                            str(full),
-                            "-vn",
-                            "-af",
-                            f"silencedetect=noise={noise}dB:d={pause}",
-                            "-f",
-                            "null",
-                            "-",
-                        ],
-                        300,
-                    ).stderr
-                    starts = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", log)]
-                    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", log)]
-                    pair = next(
-                        (
-                            (s, e)
-                            for s in [0.0, *ends]
-                            for e in starts
-                            if s + minimum <= e <= min(s + maximum, length)
-                        ),
-                        None,
-                    )
-                    if pair is not None:
-                        break
-                if pair is None:
-                    raise ValueError("LEGACY_ADHKAR_NATURAL_PAUSE_UNAVAILABLE")
-                start, end = pair
-                audio = self.root / "adhkar.mp3"
-                run(
-                    [
-                        "/usr/bin/ffmpeg",
-                        "-v",
-                        "error",
-                        "-nostdin",
-                        "-y",
-                        "-protocol_whitelist",
-                        "file,pipe",
-                        "-i",
-                        str(full),
-                        "-ss",
-                        str(start),
-                        "-t",
-                        str(end - start),
-                        "-ar",
-                        "48000",
-                        "-ac",
-                        "2",
-                        str(audio),
-                    ],
-                    180,
-                )
-                # studio_core.run returns text. Decode raw PCM with a binary subprocess.
-                raw = subprocess.run(  # noqa: S603 — fixed FFmpeg argv, local audio only
-                    [
-                        "/usr/bin/ffmpeg",
-                        "-v",
-                        "error",
-                        "-nostdin",
-                        "-i",
-                        str(audio),
-                        "-ar",
-                        "6000",
-                        "-ac",
-                        "1",
-                        "-f",
-                        "s16le",
-                        "-",
-                    ],
-                    check=True,
-                    capture_output=True,
-                    timeout=120,
-                ).stdout
-                samples = array.array("h", raw)
-                step = 400
-                levels = [
-                    min(1.0, math.sqrt(sum(v * v for v in samples[i : i + step]) / step) / 8000)
-                    for i in range(0, len(samples) - step, step)
-                ]
-                return scene(
-                    "أذكار مأثورة من حصن المسلم",
-                    end - start,
-                    role="adhkar",
-                    source="حصن المسلم — " + name,
-                    audio=self.local(audio, url, name),
-                    audio_duration=end - start,
-                    levels=levels,
-                )
-            except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError):
+    def adhkar(
+        self, period: str, *, minimum: float = 44, maximum: float = 50
+    ) -> list[dict[str, Any]]:
+        """One official human recording per exact dhikr; no guessed archive timings."""
+        chapter = 28 if period == "night" else 27
+        url = f"https://www.hisnmuslim.com/api/ar/{chapter}.json"
+        response = self.json(url)
+        rows = next(iter(response.values()))
+        selected: list[dict[str, Any]] = []
+        total = 0.0
+        for row in rows:
+            text = row["ARABIC_TEXT"]
+            # Quran is admitted exclusively from King Fahd, never this API. Skip
+            # records with variants/instructions: their audio is not a single text.
+            if any(token in text for token in ("\ufd3f", "[", "إذا", "أصبح", "أمسى", "أمسيت")):
                 continue
-        raise ValueError("LEGACY_HUMAN_ADHKAR_UNAVAILABLE")
+            audio_url = row["AUDIO"].replace("http://", "https://", 1)
+            if not re.fullmatch(r"https://www\.hisnmuslim\.com/audio/ar/[0-9]+\.mp3", audio_url):
+                raise ValueError("LEGACY_DHIKR_AUDIO_SOURCE_INVALID")
+            try:
+                audio = self.save(self.get(audio_url), ".mp3", audio_url, "حصن المسلم — تسجيل بشري")
+                seconds = duration(self.root / audio)
+                if total + seconds + 0.3 > maximum:
+                    continue
+                selected.append(
+                    scene(
+                        text,
+                        seconds + 0.3,
+                        role="adhkar",
+                        source="حصن المسلم",
+                        number="التكرار: " + str(row["REPEAT"]).translate(DIGITS),
+                        dhikr_id=row["ID"],
+                        dhikr_chapter=chapter,
+                        audio=audio,
+                        audio_duration=seconds,
+                    )
+                )
+                total += seconds + 0.3
+                if total >= minimum:
+                    return selected
+                if len(selected) >= 16:
+                    break
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+                continue
+        raise ValueError("LEGACY_MATCHED_HUMAN_ADHKAR_UNAVAILABLE")
 
     def spoken(self, text: str, kind: str) -> tuple[str, float]:
         url = "tts://" + kind + "?" + urlencode({"text": text})
@@ -1019,7 +973,7 @@ class Factory:
             else:
                 raise ValueError("LEGACY_NO_WHOLE_PASSAGE_WITHIN_BUDGET")
         elif key in {"adhkar_am", "adhkar_pm"}:
-            scenes.append(self.adhkar("am" if key.endswith("am") else "pm"))
+            scenes += self.adhkar("am" if key.endswith("am") else "pm")
         elif key == "hadith":
             from studio_core.presentation import faith
 
@@ -1064,7 +1018,7 @@ class Factory:
                 )
             )
             remaining = 57.7 - 5.0 - sum(s["seconds"] for s in scenes)
-            scenes.append(self.adhkar("night", minimum=8, maximum=min(24, remaining)))
+            scenes += self.adhkar("night", minimum=8, maximum=min(24, remaining))
         elif key == "brief":
             scenes += self.brief()
         if key in NEWS | {"tech", "style"}:

@@ -169,12 +169,12 @@ def main() -> int:
         return 2
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-
-
 def production_content(key: Any) -> bool:
     from studio_core.production import enabled
     from studio_core.production.model import TITLES
 
     return enabled() and key in TITLES
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
