@@ -123,9 +123,17 @@ def command(
         f":flags=lanczos,pad={box['width']}:{box['height']}:(ow-iw)/2:(oh-ih)/2"
         f":color={bg['bottom']},setsar=1[clip]"
     )
+    # The handle under the window breathes (owner: the Snap handle must move to
+    # catch the eye): a copy cut from the frame itself, pulsing up to 12% every 2.4 s.
     graph = (
         f"{fit};[0:v][clip]overlay={box['x']}:{box['y']}:shortest=1[base];"
-        "[base][2:v]overlay=0:0:shortest=1,format=yuv420p[video]"
+        "[2:v]split[frame][tag];"
+        "[tag]crop=360:62:360:1755,"
+        "scale=w='2*trunc(180*(1+0.12*abs(sin(PI*t/1.2))))':h=-2:eval=frame[pulse];"
+        # Hide the still handle under its moving copy, in the frame's own green.
+        "[base][frame]overlay=0:0:shortest=1,drawbox=x=360:y=1755:w=360:h=62:color=0x062B21:t=fill[framed];"
+        "[framed][pulse]overlay=x='540-w/2':y='1786-h/2':eval=frame:shortest=1,"
+        "format=yuv420p[video]"
     )
     level = ["-af", "loudnorm=I=-18:TP=-1.5:LRA=11"] if normalize_audio else []
     sound = ["-map", "1:a:0", *level] if audio else ["-map", "3:a"]
