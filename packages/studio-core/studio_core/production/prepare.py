@@ -1020,7 +1020,8 @@ class Factory:
         items = json.loads(
             (DATA / ("riddles.json" if key == "riddle" else f"{key}.json")).read_text()
         )
-        need = 3 if key == "riddle" else 4
+        # Snap runs 61 s+: more items instead of one item left on screen for half a minute.
+        need = 3 if key == "riddle" else (6 if self.app == "snap-bot-v2" else 4)
         selected = []
         for item in items:
             identity = sha(canonical(item))
@@ -1187,7 +1188,13 @@ class Factory:
         low, high, _ = budget(self.app)
         if total < low:
             # A hair over the floor: float sums landed at 60.99999 and failed the budget.
-            scenes[-2]["seconds"] += low - total + 0.01
+            extra = low - total + 0.01
+            # Spread over every item, so no single card lingers; the brief keeps its
+            # pre-timed voice track aligned by padding only its last card.
+            middle = scenes[-2:-1] if key == "brief" else (scenes[1:-1] or scenes[-2:-1])
+            share = sum(x["seconds"] for x in middle)
+            for item in middle:
+                item["seconds"] += extra * item["seconds"] / share
         if total > high and key in NEWS:
             per = (high - 1.0 - 8.2) / (len(scenes) - 2)
             for item in scenes[1:-1]:

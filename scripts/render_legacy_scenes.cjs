@@ -25,6 +25,8 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
    await page.setContent(doc);await page.evaluate(()=>document.fonts.ready);
    const visual=await page.evaluate((input)=>{
     const output=[];let overflow=0,tiny=0;
+    const fitsAll=e=>{const c=e.querySelector('.card');return c.scrollHeight<=c.clientHeight+2&&e.scrollHeight<=e.clientHeight+2&&c.scrollWidth<=c.clientWidth+2&&e.scrollWidth<=e.clientWidth+2;};
+    const grow=e=>{if(e.classList.contains('hook'))return;const ns=[...e.querySelectorAll('h2,.body,.tafsir,.punch')].filter(n=>n.textContent.trim());if(!ns.length)return;const base=ns.map(n=>parseFloat(getComputedStyle(n).fontSize));let k=1;for(let s=1.05;s<=1.6;s+=.05){ns.forEach((n,i)=>n.style.fontSize=base[i]*s+'px');if(ns.some((n,i)=>base[i]*s>(n.classList.contains('quran')?115:110))||!fitsAll(e))break;k=s;}ns.forEach((n,i)=>n.style.fontSize=base[i]*k+'px');};
     const originals=[...document.querySelectorAll(".scene")];
     for(const [index,source] of input.scenes.entries()){
      const original=originals[index];
@@ -64,6 +66,7 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
       const span=source.verse&&versePages
        ?k<versePages?(source.audio_duration+.15)/versePages:(source.seconds-source.audio_duration-.15)/(chunks.length-versePages)
        :source.seconds/chunks.length;
+      grow(chunk);
       const copies=Math.max(1,Math.ceil(span/12));
       for(let j=0;j<copies;j++){
        const e=j===0?chunk:chunk.cloneNode(true);if(j>0)document.body.append(e);
