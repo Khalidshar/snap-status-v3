@@ -125,7 +125,9 @@ def audio_mix(p: dict[str, Any], source: Path, work: Path) -> Path:
         + f"amix=inputs={len(labels)}:duration=longest:normalize=0,atrim=0:{seconds}"
     )
     if clips:
-        mixing += ",loudnorm=I=-16:TP=-1.5:LRA=11"
+        # One-pass loudnorm can overshoot and AAC adds inter-sample peaks; the limiter keeps the
+        # encoded true peak under the -1 dBTP gate (Khalid's PC: news peaked at -0.4 without it).
+        mixing += ",loudnorm=I=-16:TP=-1.5:LRA=11,alimiter=limit=0.75:level=false"
     filters.append(mixing + "[out]")
     out = work / "mix.wav"
     run(
