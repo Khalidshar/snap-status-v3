@@ -31,6 +31,51 @@ def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def valid_name(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and 0 < len(value) <= 80
+        and re.fullmatch(r"[\wً-ْـ .'()-]+", value) is not None
+        and not value.isdigit()
+    )
+
+
+def reciter_name(row: dict[str, Any]) -> str:
+    """Arabic name as QF publishes it; QF's own reciter name when no Arabic translation."""
+    translated = row.get("translated_name") or {}
+    name = translated.get("name")
+    if isinstance(name, str) and re.search(r"[ء-ي]", name):
+        return name.strip()
+    return str(row.get("reciter_name", "")).strip()
+
+
+def eligible(rows: list[dict[str, Any]], policy: dict[str, Any]) -> dict[str, Any]:
+    """Every QF recitation that meets the owner policy, in stable id order.
+
+    Owner decision 2 Nov: never a fixed list; new QF reciters join automatically.
+    """
+    if policy.get("schema") != 2 or policy.get("riwayah") != "hafs":
+        raise ValueError("QF_RECITER_POLICY_INVALID")
+    styles = set(policy["exclude_styles"])
+    markers = [m.casefold() for m in policy["exclude_name_markers"]]
+    chosen: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        identifier, name = row.get("id"), reciter_name(row)
+        text = (name + " " + str(row.get("reciter_name", ""))).casefold()
+        if (
+            type(identifier) is not int
+            or identifier < 1
+            or not valid_name(name)
+            or str(row.get("style") or "").casefold() in styles
+            or any(m in text for m in markers)
+        ):
+            continue
+        chosen.setdefault(identifier, {"id": identifier, "name": name})
+    if not chosen:
+        raise ValueError("QF_RECITERS_UNAVAILABLE")
+    return {"reciters": [chosen[k] for k in sorted(chosen)]}
+
+
 def exact_ayah(surah: int, ayah: int) -> str:
     # Only the independently pinned official subset is admitted. Never use QF Quran text.
     return faith.text({"surah": surah, "ayahs": [ayah]})
@@ -109,23 +154,16 @@ class Store:
     def reserve(self, job: str, catalog: dict[str, Any]) -> tuple[dict[str, Any], float]:
         if not re.fullmatch(r"[0-9a-f]{32}", job):
             raise ValueError("QF_JOB_INVALID")
-        if catalog.get("schema") != 1 or catalog.get("approved_by") != "خالد":
-            raise ValueError("QF_RECITERS_AWAIT_OWNER_APPROVAL")
         reciters = catalog.get("reciters")
-        if catalog.get("riwayah") != "hafs" or not isinstance(reciters, list):
-            raise ValueError("QF_HAFS_REQUIRED")
-        if (
-            not 2 <= len(reciters) <= 12
-            or any(
-                not isinstance(r, dict)
-                or type(r.get("id")) is not int
-                or r["id"] < 1
-                or not isinstance(r.get("name"), str)
-                or not re.fullmatch(r"[ء-ي ]+", r["name"])
-                for r in reciters
-            )
-            or len({r["id"] for r in reciters}) != len(reciters)
-        ):
+        if not isinstance(reciters, list) or not 1 <= len(reciters) <= 500:
+            raise ValueError("QF_RECITERS_UNAVAILABLE")
+        if any(
+            not isinstance(r, dict)
+            or type(r.get("id")) is not int
+            or r["id"] < 1
+            or not valid_name(r.get("name"))
+            for r in reciters
+        ) or len({r["id"] for r in reciters}) != len(reciters):
             raise ValueError("QF_RECITERS_INVALID")
         with sqlite3.connect(self.db, isolation_level=None) as db:
             db.execute("BEGIN IMMEDIATE")
@@ -386,13 +424,18 @@ class Source:
             }
         raise ValueError("QF_TAFSIR_UNAVAILABLE")
 
-    def audio(self, verse: str, reciter: dict[str, Any]) -> bytes:
+    def recitations(self) -> list[dict[str, Any]]:
         rows = self.json(self.base + "/resources/recitations?language=ar")["recitations"]
-        matches = [r for r in rows if r.get("id") == reciter["id"]]
-        if (
-            len(matches) != 1
-            or matches[0].get("translated_name", {}).get("name") != reciter["name"]
-        ):
+        if not isinstance(rows, list):
+            raise ValueError("QF_RESPONSE_INVALID")
+        return [r for r in rows if isinstance(r, dict)]
+
+    def catalog(self, policy: dict[str, Any]) -> dict[str, Any]:
+        return eligible(self.recitations(), policy)
+
+    def audio(self, verse: str, reciter: dict[str, Any]) -> bytes:
+        matches = [r for r in self.recitations() if r.get("id") == reciter["id"]]
+        if len(matches) != 1 or reciter_name(matches[0]) != reciter["name"]:
             raise ValueError("QF_RECITER_IDENTITY_UNVERIFIED")
         rows = self.snapshot("recitations", reciter["id"])
         files = [
@@ -429,7 +472,7 @@ def prepare(
     exact_ayah(surah, ayah)
     if source.environment == "prelive" and surah not in {1, 2}:
         raise ValueError("QF_PRELIVE_SURAH_UNAVAILABLE")
-    reciter, expires = store.reserve(job, json.loads(catalog.read_text()))
+    reciter, expires = store.reserve(job, source.catalog(json.loads(catalog.read_text())))
     directory = store.directory(job)
     try:
         return download_ayah(store, source, job, surah, ayah, reciter, expires, directory)

@@ -23,10 +23,43 @@ APP = "snap-bot-v2"
 REPO = Path(__file__).resolve().parents[3]
 
 
+READERS = [
+    {"id": 7, "name": "مشاري العفاسي"},
+    {"id": 3, "name": "عبد الرحمن السديس"},
+    {"id": 4, "name": "أبو بكر الشاطري"},
+    {"id": 5, "name": "هاني الرفاعي"},
+    {"id": 6, "name": "محمود خليل الحصري"},
+    {"id": 9, "name": "محمد صديق المنشاوي"},
+    {"id": 10, "name": "سعود الشريم"},
+    {"id": 2, "name": "عبد الباسط عبد الصمد"},
+]
+RECITATIONS = [
+    {
+        "id": 7,
+        "reciter_name": "Mishari Rashid al-`Afasy",
+        "style": None,
+        "translated_name": {"name": "مشاري العفاسي", "language_name": "arabic"},
+    },
+    {
+        "id": 12,
+        "reciter_name": "Mahmoud Khalil Al-Husary",
+        "style": "Muallim",
+        "translated_name": {"name": "محمود خليل الحصري", "language_name": "arabic"},
+    },
+    {
+        "id": 99,
+        "reciter_name": "Fixture Warsh",
+        "style": "Murattal",
+        "translated_name": {"name": "قارئ رواية ورش", "language_name": "arabic"},
+    },
+]
+
+
 @pytest.fixture
 def catalog(tmp_path):
+    # Owner policy file plus a fixed reader set used only by direct reserve() tests.
     value = json.loads(qf.CATALOG.read_text())
-    value["approved_by"] = "خالد"
+    value["reciters"] = READERS
     path = tmp_path / "approved.json"
     path.write_text(json.dumps(value, ensure_ascii=False))
     return path
@@ -51,7 +84,7 @@ class FixtureClient:
                 ]
             }
         elif parsed.path.endswith("/resources/recitations"):
-            value = {"recitations": [{"id": 7, "translated_name": {"name": "مشاري العفاسي"}}]}
+            value = {"recitations": RECITATIONS}
         elif parsed.path.endswith("/resources/sync"):
             group, identifier = query["resources"][0].split(":")
             mutations = (
@@ -127,10 +160,40 @@ def test_king_fahd_text_is_exact_and_never_requested_from_qf(tmp_path, catalog):
         qf.verify_bundle(path, APP, store.clock())
 
 
-def test_proposals_cannot_run(tmp_path):
+def test_all_qf_reciters_rotate_without_fixed_list():
+    """Owner decision 2 Nov: every Hafs QF recitation, new ones join automatically."""
+    policy = json.loads(qf.CATALOG.read_text())
+    assert "reciters" not in policy
+    rows = [
+        *RECITATIONS,
+        {
+            "id": 2,
+            "reciter_name": "AbdulBaset",
+            "style": "Murattal",
+            "translated_name": {"name": "عبد الباسط عبد الصمد", "language_name": "arabic"},
+        },
+        {
+            "id": 161,
+            "reciter_name": "New Reciter",
+            "style": "Murattal",
+            "translated_name": {"name": "New Reciter", "language_name": "english"},
+        },
+        {"id": 7, "reciter_name": "duplicate", "style": None, "translated_name": {}},
+    ]
+    chosen = qf.eligible(rows, policy)["reciters"]
+    assert chosen == [
+        {"id": 2, "name": "عبد الباسط عبد الصمد"},
+        {"id": 7, "name": "مشاري العفاسي"},
+        {"id": 161, "name": "New Reciter"},
+    ]
+    with pytest.raises(ValueError, match="RECITERS_UNAVAILABLE"):
+        qf.eligible([RECITATIONS[1]], policy)
+
+
+def test_empty_reader_set_cannot_reserve(tmp_path):
     store = qf.Store(tmp_path, APP)
-    with pytest.raises(ValueError, match="AWAIT_OWNER_APPROVAL"):
-        store.reserve("a" * 32, json.loads(qf.CATALOG.read_text()))
+    with pytest.raises(ValueError, match="RECITERS_UNAVAILABLE"):
+        store.reserve("a" * 32, {"reciters": []})
     assert not list(store.payload.iterdir())
 
 
@@ -626,6 +689,9 @@ def test_multiple_ayahs_keep_one_reader_and_exact_source_sequence(tmp_path, cata
         def audio(self, verse, reciter):
             raise ValueError("FIXTURE_NO_AUDIO")
 
+        def recitations(self):
+            return RECITATIONS
+
     content = make_content(
         next(f for f in load_kind("verse") if f["id"] == "verse-16"), time.time(), "verse"
     )
@@ -645,6 +711,9 @@ def test_failed_attempts_do_not_cycle_back_to_last_successful_reader(tmp_path, c
     class Unavailable(qf.Source):
         def tafsir(self, verse):
             raise ValueError("FIXTURE_TAFSIR_UNAVAILABLE")
+
+        def recitations(self):
+            return RECITATIONS
 
     approved = json.loads(catalog.read_bytes())
     approved["reciters"] = approved["reciters"][:3]

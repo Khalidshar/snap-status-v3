@@ -283,3 +283,37 @@ def test_worker_marks_missing_source_failure_and_continues_without_fake_clip(tmp
     row = json.loads((tmp_path / "verification.json").read_text())
     assert not row["passed"] and row["reason"] == "NewsUnavailable"
     assert "video" not in row
+
+
+def test_real_approved_transparent_brand_passes_composed_frame_check(tmp_path):
+    from studio_core.presentation import brand_frame
+
+    if not Path("/usr/bin/ffmpeg").exists():
+        pytest.skip("ffmpeg required")
+    source, video = tmp_path / "source.mp4", tmp_path / "approved.mp4"
+    verify.run(
+        [
+            "/usr/bin/ffmpeg",
+            "-v",
+            "error",
+            "-nostdin",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=108x192:r=30:d=0.6",
+            "-an",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            str(source),
+        ]
+    )
+    brand = brand_frame.load_brand()
+    verify.run(brand_frame.command("/usr/bin/ffmpeg", source, video, brand, 0.6, False))
+    checked = verify.frame_check(video, 0.6, tmp_path / "frame.png")
+    assert len(checked["samples"]) == 3
+    for sample in checked["samples"]:
+        assert sample["background"]["sampled_pixels"] > 10000
+        assert sample["identity"]["sampled_pixels"] > 100
+    assert (tmp_path / "frame.png").exists()

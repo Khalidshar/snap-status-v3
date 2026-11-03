@@ -64,3 +64,37 @@ def measure_audio(
     if not all(math.isfinite(v) for v in values.values()):
         raise ValueError("Non-finite ambient audio measurement")
     return values
+
+
+def silent_source(duration: float) -> str:
+    """Religious clips carry no tone, music or effect (owner decision 2 Nov)."""
+    if not isinstance(duration, (int, float)) or isinstance(duration, bool) or duration <= 0:
+        raise ValueError("Invalid silent duration")
+    return f"anullsrc=r=48000:cl=stereo:d={duration:g}"
+
+
+def measure_silence(path: Any, profile: dict[str, Any], run: Callable[..., Any]) -> float:
+    """Loudest sample in dBFS; true digital silence reports -91 dB or -inf."""
+    result = run(
+        [
+            profile["ffmpeg"],
+            "-hide_banner",
+            "-nostats",
+            "-nostdin",
+            "-i",
+            str(path),
+            "-map",
+            "0:a:0",
+            "-vn",
+            "-af",
+            "volumedetect",
+            "-f",
+            "null",
+            "-",
+        ],
+        profile["timeout_seconds"],
+    )
+    found = re.search(r"max_volume:\s*([+-]?[\d.]+|-inf)\s*dB", result.stderr)
+    if not found:
+        raise ValueError("Missing silence measurement")
+    return max(float(found[1]), -120.0)

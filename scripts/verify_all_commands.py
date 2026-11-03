@@ -342,7 +342,7 @@ def audio_check(key: str, content: dict, result: dict, video: Path) -> dict:
     return measured
 
 
-def compare_frame(rgb: bytes, rgba: bytes, box: dict) -> dict:
+def compare_frame(rgb: bytes, rgba: bytes, box: dict, *, mask: bytes | None = None) -> dict:
     if len(rgb) != 1080 * 1920 * 3 or len(rgba) != 1080 * 1920 * 4:
         raise ValueError("VERIFY_FRAME_SIZE")
     total, bad, error = 0, 0, 0
@@ -353,19 +353,20 @@ def compare_frame(rgb: bytes, rgba: bytes, box: dict) -> dict:
             ):
                 continue
             i = y * 1080 + x
-            if rgba[4 * i + 3] != 255:
+            if (mask if mask is not None else rgba)[4 * i + 3] != 255:
                 continue
             delta = max(abs(rgb[3 * i + c] - rgba[4 * i + c]) for c in range(3))
             error += delta
             bad += delta > 35
             total += 1
-    if total < 10000 or error / total > 12 or bad / total > 0.03:
+    minimum = 100 if mask is not None else 10000
+    if total < minimum or error / total > 12 or bad / total > 0.03:
         raise ValueError("VERIFY_GREEN_FRAME_PIXEL_MISMATCH")
     return {"sampled_pixels": total, "mean_error": round(error / total, 3)}
 
 
 def frame_check(video: Path, duration: float, screenshot: Path) -> dict:
-    from studio_core.presentation.brand_frame import load_brand
+    from studio_core.presentation.brand_frame import command, load_brand
 
     brand = load_brand()
     run(
@@ -387,13 +388,57 @@ def frame_check(video: Path, duration: float, screenshot: Path) -> dict:
         ],
         60,
     )
-    rgba = run(
+    overlay = run(
         [
             "/usr/bin/ffmpeg",
             "-v",
             "error",
             "-i",
             str(brand["overlay_path"]),
+            "-frames:v",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgba",
+            "-threads",
+            "1",
+            "-",
+        ],
+        60,
+    ).stdout
+    # The pinned PNG contains transparency: the green background is composed by
+    # brand_frame.command, not stored in the PNG. Compare against that full frame.
+    neutral = screenshot.with_name("frame-reference-input.mp4")
+    reference = screenshot.with_name("frame-reference.mp4")
+    run(
+        [
+            "/usr/bin/ffmpeg",
+            "-v",
+            "error",
+            "-nostdin",
+            "-n",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=108x192:r=30:d=0.2",
+            "-an",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            str(neutral),
+        ],
+        60,
+    )
+    run(command("/usr/bin/ffmpeg", neutral, reference, brand, 0.2, False), 120)
+    rgba = run(
+        [
+            "/usr/bin/ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            str(reference),
             "-frames:v",
             "1",
             "-f",
@@ -423,7 +468,13 @@ def frame_check(video: Path, duration: float, screenshot: Path) -> dict:
             "1",
         ]
         rgb = run([*args, "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], 60).stdout
-        checks.append({"at": at, **compare_frame(rgb, rgba, brand["clip_box"])})
+        checks.append(
+            {
+                "at": at,
+                "background": compare_frame(rgb, rgba, brand["clip_box"]),
+                "identity": compare_frame(rgb, rgba, brand["clip_box"], mask=overlay),
+            }
+        )
     return {"overlay_sha256": brand["overlay"]["sha256"], "samples": checks}
 
 

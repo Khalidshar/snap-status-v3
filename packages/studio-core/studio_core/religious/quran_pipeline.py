@@ -57,7 +57,7 @@ def prepare_selection(
 ) -> Path:
     refs = references(content)
     store.sweep()
-    reciter, expires = store.reserve(job, json.loads(catalog.read_text()))
+    reciter, expires = store.reserve(job, source.catalog(json.loads(catalog.read_text())))
     directory = store.directory(job)
     try:
         bundles = []
@@ -103,8 +103,6 @@ def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> bool
     if os.environ.get("MADAR_QURAN_AUDIO") != "1" or content.get("kind") not in KINDS:
         return False
     try:
-        if json.loads(CATALOG.read_bytes()).get("approved_by") != "خالد":
-            return False
         socket = Path("/run/madar/" + short(app) + "-quran.sock")
         client = NetworkClient(cast(Config, QuranSocketPolicy(socket)))
         if json.loads(client.get("quran://ready").body).get("configured") is not True:
