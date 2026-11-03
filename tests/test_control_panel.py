@@ -206,3 +206,19 @@ def test_media_preview_digest_and_path_admission(server, tmp_path):
         assert exc.value.code == 404
         with pytest.raises(urllib.error.HTTPError):
             get(server, "/api/media/snap/../../etc/passwd")
+
+
+def test_development_metrics_are_not_amazon_and_roles_are_exact(server):
+    with (
+        patch.dict(panel.os.environ, {"MADAR_PANEL_HOST": "development"}),
+        patch.object(panel, "ctl", return_value=None),
+    ):
+        result = panel.snapshot(server.databases, "")
+    assert result["servers"]["amazon"] is None
+    roles = result["agent_roles"]
+    assert len(roles) == 18
+    assert [a["step"] for a in roles if a["chain"]] == list(range(1, 13))
+    assert len([a for a in roles if not a["chain"]]) == 6
+    for app in result["apps"].values():
+        assert {a["id"] for a in app["agents"]} == {a["id"] for a in roles}
+        assert all(a["state"] == "UNKNOWN" for a in app["agents"])

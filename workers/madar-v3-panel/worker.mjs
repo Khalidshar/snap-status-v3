@@ -1,5 +1,5 @@
 const EMAIL = 'khalid.sharahili.sa@gmail.com';
-const paths = new Set(['/', '/app.js', '/style.css', '/api/snapshot', '/api/command', '/api/action', '/api/upload']);
+const paths = new Set(['/', '/app.js', '/style.css', '/display.woff', '/api/snapshot', '/api/command', '/api/action', '/api/upload']);
 export default {
   async fetch(request, env, ctx) {
     try {

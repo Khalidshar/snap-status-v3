@@ -7,6 +7,7 @@ User=root
 WorkingDirectory=/opt/madar/current
 EnvironmentFile=/etc/madar/panel.env
 Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=MADAR_PANEL_HOST=amazon
 ExecStart=/opt/madar/current/.venv/bin/python scripts/control_panel.py --port 8876 --enable-controls
 UMask=0077
 NoNewPrivileges=yes

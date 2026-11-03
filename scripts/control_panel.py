@@ -55,6 +55,7 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
     result: dict[str, Any] = {
         "at": time.time(),
         "apps": {},
+        "agent_roles": json.loads((REPO / "config/status/panel-agent-roles.json").read_text()),
         "commands": [
             {
                 "number": c.number,
@@ -124,6 +125,7 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
 
         inventory = json.loads((REPO / "config/status/agent-registry.json").read_text())["agents"]
         last = {r[0]: r[1] for r in agents or []}
+        last_times = {r[0]: r[2] for r in agents or []}
         ledger = db.parent / "agent-status.sqlite"
         observed = {}
         if rows(ledger, "SELECT app FROM scope") == [(scope,)]:
@@ -138,8 +140,10 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
             "halted": (STATE / app / "HALT").exists(),
             "agents": [
                 {
+                    "id": a["id"],
                     "name": a["name"],
-                    "at": observed.get(a["id"], {}).get("at"),
+                    "role": a["role"],
+                    "at": observed.get(a["id"], {}).get("at", last_times.get(a["id"])),
                     "state": last.get(a["id"], "UNKNOWN")
                     if last.get(a["id"])
                     in {"PASS", "FAIL", "RUNNING", "STARTED", "SUCCEEDED", "FAILED"}
@@ -238,7 +242,11 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
     except (OSError, ValueError):
         pass
     result["servers"] = {
-        "amazon": {**result["resources"], "memory": memory, "at": time.time()},
+        "amazon": (
+            {**result["resources"], "memory": memory, "at": time.time()}
+            if os.environ.get("MADAR_PANEL_HOST") == "amazon"
+            else None
+        ),
         "wsl": None,
     }
     heartbeat = STATE / "panel/wsl.json"
@@ -301,13 +309,19 @@ class Handler(BaseHTTPRequestHandler):
         if not self.valid_host():
             self.reply(403, b"{}")
             return
-        if self.path in {"/", "/app.js", "/style.css"}:
+        if self.path in {"/", "/app.js", "/style.css", "/display.woff"}:
             name, mime = {
                 "/": ("index.html", "text/html"),
                 "/app.js": ("app.js", "text/javascript"),
                 "/style.css": ("style.css", "text/css"),
+                "/display.woff": ("display.woff", "font/woff"),
             }[self.path]
-            self.reply(200, (REPO / "scripts/control_panel_ui" / name).read_bytes(), mime)
+            asset = (
+                REPO / "assets/fonts/readexpro/ReadexPro.woff"
+                if name == "display.woff"
+                else REPO / "scripts/control_panel_ui" / name
+            )
+            self.reply(200, asset.read_bytes(), mime)
         elif self.path.startswith("/api/media/") and self.authorized():
             match = re.fullmatch(r"/api/media/(snap|status)/([0-9a-f]{32})", self.path)
             if not match:
