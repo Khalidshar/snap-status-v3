@@ -1,20 +1,24 @@
 """Private local v3 console. No external APIs, raw logs, secrets or schedulers."""
 
 import argparse
+import hashlib
 import hmac
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
 import threading
 import time
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
 from studio_core.commands import COMMANDS
+from studio_core.jobs import panel_workspace
 from studio_core.jobs.panel_queue import enqueue
 from studio_core.sources import load as load_sources
 
@@ -52,7 +56,14 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
         "at": time.time(),
         "apps": {},
         "commands": [
-            {"number": c.number, "key": c.key, "label": c.label, "confirm": c.confirm}
+            {
+                "number": c.number,
+                "key": c.key,
+                "label": c.label,
+                "confirm": c.confirm,
+                "section": c.section,
+                "content": c.section in {"news", "general", "faith", "brief"},
+            }
             for c in COMMANDS
         ],
     }
@@ -198,6 +209,7 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
             if source.kind == "rss"
             and any(k in source.commands for k in ("urgent", "news", "football"))
         ]
+        item["workspace"] = panel_workspace.view(STATE / app / "panel-commands.sqlite")
         result["apps"][app] = item
     usage = shutil.disk_usage(STATE if STATE.exists() else REPO)
     result["resources"] = {
@@ -206,6 +218,36 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
         "load": os.getloadavg()[0],
         "cpus": os.cpu_count(),
     }
+    result["sources"] = [
+        {
+            "id": source.id,
+            "name": source.name,
+            "url": source.url,
+            "state": source.status,
+            "health": "unknown",
+        }
+        for source in load_sources()
+        if source.kind in {"rss", "website"}
+    ]
+    memory = {}
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            name, value = line.split(":", 1)
+            if name in {"MemTotal", "MemAvailable"}:
+                memory[name] = int(value.split()[0]) * 1024
+    except (OSError, ValueError):
+        pass
+    result["servers"] = {
+        "amazon": {**result["resources"], "memory": memory, "at": time.time()},
+        "wsl": None,
+    }
+    heartbeat = STATE / "panel/wsl.json"
+    if heartbeat.is_file() and not heartbeat.is_symlink():
+        try:
+            value = json.loads(heartbeat.read_bytes())
+            result["servers"]["wsl"] = value
+        except (OSError, ValueError):
+            pass
     return result
 
 
@@ -228,6 +270,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header(
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self'; "
+            "media-src 'self' blob:; img-src 'self' blob:; "
             "frame-ancestors 'none'; base-uri 'none'",
         )
         self.end_headers()
@@ -236,6 +279,16 @@ class Handler(BaseHTTPRequestHandler):
     def authorized(self) -> bool:
         return hmac.compare_digest(
             self.headers.get("Authorization", "").encode(), ("Bearer " + self.server.token).encode()
+        )
+
+    def heartbeat_authorized(self) -> bool:
+        token = getattr(self.server, "reporter_token", "")
+        return bool(
+            token != self.server.token
+            and len(token) >= 32
+            and hmac.compare_digest(
+                self.headers.get("Authorization", "").encode(), ("Bearer " + token).encode()
+            )
         )
 
     def valid_host(self) -> bool:
@@ -255,6 +308,26 @@ class Handler(BaseHTTPRequestHandler):
                 "/style.css": ("style.css", "text/css"),
             }[self.path]
             self.reply(200, (REPO / "scripts/control_panel_ui" / name).read_bytes(), mime)
+        elif self.path.startswith("/api/media/") and self.authorized():
+            match = re.fullmatch(r"/api/media/(snap|status)/([0-9a-f]{32})", self.path)
+            if not match:
+                self.reply(404, b"{}")
+                return
+            app, identifier = match.groups()
+            path = STATE / app / "panel-media" / (identifier + ".mp4")
+            try:
+                if any(p.is_symlink() for p in (path, *path.parents)):
+                    raise ValueError("UNSAFE_MEDIA")
+                raw = path.read_bytes()
+                previews = panel_workspace.view(STATE / app / "panel-commands.sqlite")["previews"]
+                if not any(
+                    p["id"] == identifier and p["sha"] == hashlib.sha256(raw).hexdigest()
+                    for p in previews
+                ):
+                    raise ValueError("UNBOUND_MEDIA")
+                self.reply(200, raw, "video/mp4")
+            except (OSError, ValueError):
+                self.reply(404, b"{}")
         elif self.path == "/api/snapshot" and self.authorized():
             try:
                 self.reply(
@@ -263,6 +336,7 @@ class Handler(BaseHTTPRequestHandler):
                         {
                             **snapshot(self.server.databases, self.server.binding),
                             "controls": self.server.controls,
+                            "workspace_executor_connected": False,
                         }
                     ).encode(),
                 )
@@ -274,10 +348,36 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         if (
             not self.valid_host()
-            or not self.authorized()
-            or self.headers.get("Origin") != self.server.origin
+            or not (
+                self.heartbeat_authorized() if self.path == "/api/heartbeat" else self.authorized()
+            )
+            or (self.path != "/api/heartbeat" and self.headers.get("Origin") != self.server.origin)
         ):
             self.reply(403, b"{}")
+            return
+        if self.path == "/api/heartbeat":
+            self.heartbeat()
+            return
+        if self.path == "/api/upload" and self.server.controls:
+            self.upload()
+            return
+        if self.path == "/api/action" and self.server.controls:
+            try:
+                value = self.read_json(4096)
+                if (
+                    set(value) != {"app", "action", "payload", "request_id"}
+                    or value["app"] not in UNITS
+                ):
+                    raise ValueError("INVALID_ACTION")
+                queued = panel_workspace.submit(
+                    STATE / value["app"] / "panel-commands.sqlite",
+                    value["request_id"],
+                    value["action"],
+                    value["payload"],
+                )
+                self.reply(202, json.dumps({"queued": queued}).encode())
+            except (ValueError, KeyError, TypeError, OSError, sqlite3.Error):
+                self.reply(409, b'{"queued":false}')
             return
         if self.path != "/api/command" or not self.server.controls:
             self.reply(403, b"{}")
@@ -289,6 +389,16 @@ class Handler(BaseHTTPRequestHandler):
             value = json.loads(self.rfile.read(length))
             if set(value) != {"app", "command", "request_id"} or value["app"] not in UNITS:
                 raise ValueError("INVALID_REQUEST")
+            if value["command"] not in {
+                "halt",
+                "unhalt",
+                "status",
+                "agents",
+                "report",
+                "schedule",
+                "menu",
+            }:
+                raise ValueError("USE_REVIEW_WORKSPACE")
             result = enqueue(
                 STATE / value["app"] / "panel-commands.sqlite",
                 value["command"],
@@ -297,6 +407,89 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(202, json.dumps({"queued": result}).encode())
         except (ValueError, KeyError, TypeError, OSError, sqlite3.Error):
             self.reply(409, b'{"queued":false}')
+
+    def read_json(self, maximum: int) -> Any:
+        length = int(self.headers.get("Content-Length", "0"))
+        if self.headers.get("Transfer-Encoding") or not 0 < length <= maximum:
+            raise ValueError("INVALID_LENGTH")
+        return json.loads(self.rfile.read(length))
+
+    def heartbeat(self) -> None:
+        # Separate credential: the WSL reporter cannot operate owner controls.
+        try:
+            value = self.read_json(4096)
+            if set(value) != {
+                "disk_used",
+                "disk_total",
+                "memory_total",
+                "memory_available",
+                "load",
+                "services",
+            }:
+                raise ValueError("INVALID_HEARTBEAT")
+            for key in set(value) - {"services"}:
+                if type(value[key]) not in (int, float) or not 0 <= value[key] <= 10**16:
+                    raise ValueError("INVALID_METRIC")
+            if not isinstance(value["services"], dict) or set(value["services"]) - {
+                "snap",
+                "status",
+            }:
+                raise ValueError("INVALID_SERVICES")
+            if any(v not in {"active", "inactive", "unknown"} for v in value["services"].values()):
+                raise ValueError("INVALID_SERVICE_STATE")
+            target = STATE / "panel"
+            target.mkdir(parents=True, mode=0o700, exist_ok=True)
+            if target.is_symlink() or (target / "wsl.json").is_symlink():
+                raise ValueError("UNSAFE_HEARTBEAT")
+            temporary = target / (uuid.uuid4().hex + ".json")
+            temporary.write_text(json.dumps({**value, "at": time.time()}))
+            temporary.chmod(0o600)
+            temporary.replace(target / "wsl.json")
+            self.reply(202, b"{}")
+        except (ValueError, TypeError, OSError):
+            self.reply(400, b"{}")
+
+    def upload(self) -> None:
+        try:
+            app = self.headers.get("X-Panel-App")
+            kind = self.headers.get("X-Panel-Kind")
+            mime = self.headers.get("Content-Type")
+            length = int(self.headers.get("Content-Length", "0"))
+            if (
+                app not in UNITS
+                or kind not in {"upload", "statistics"}
+                or self.headers.get("Transfer-Encoding")
+                or not 0 < length <= 50_000_000
+                or mime
+                not in (
+                    {"video/mp4", "video/quicktime"}
+                    if kind == "upload"
+                    else {"image/png", "image/jpeg"}
+                )
+            ):
+                raise ValueError("INVALID_UPLOAD")
+            raw = self.rfile.read(length)
+            if len(raw) != length or not (
+                (kind == "upload" and raw[4:8] == b"ftyp")
+                or (
+                    kind == "statistics"
+                    and (raw.startswith(b"\x89PNG\r\n\x1a\n") or raw.startswith(b"\xff\xd8\xff"))
+                )
+            ):
+                raise ValueError("INVALID_MEDIA")
+            identifier = uuid.uuid4().hex
+            directory = STATE / app / "panel-uploads"
+            directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+            if any(p.is_symlink() for p in (directory, *directory.parents)):
+                raise ValueError("UNSAFE_UPLOAD")
+            with (directory / identifier).open("xb") as stream:
+                stream.write(raw)
+            panel_workspace.submit(
+                STATE / app / "panel-commands.sqlite", identifier, kind, {"asset": identifier}
+            )
+            self.reply(202, json.dumps({"id": identifier, "queued": True}).encode())
+        except (ValueError, TypeError, OSError, sqlite3.Error):
+            self.reply(400, b"{}")
 
 
 def main() -> None:
@@ -311,6 +504,7 @@ def main() -> None:
     if len(token) < 32 or not token.isascii() or any(c.isspace() for c in token):
         raise SystemExit("يلزم رمز دخول خاص من ٣٢ محرفًا على الأقل في بيئة العملية")
     with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
+        server.reporter_token = os.environ.get("MADAR_REPORTER_TOKEN", "")
         server.token = token  # type: ignore[attr-defined]
         server.binding = os.environ.get("MADAR_PANEL_STATUS_BINDING", "")  # type: ignore[attr-defined]
         server.databases = {"snap": args.snap_db, "status": args.status_db}  # type: ignore[attr-defined]

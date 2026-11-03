@@ -38,7 +38,9 @@ def get(srv, path, auth=True, body=None, origin=None):
     headers = {"Authorization": "Bearer " + srv.token} if auth else {}
     if origin:
         headers["Origin"] = origin
-    req = urllib.request.Request(srv.origin + path, data=body, headers=headers)  # noqa: S310
+    req = urllib.request.Request(  # noqa: S310 - test server on loopback
+        srv.origin + path, data=body, headers=headers
+    )
     return urllib.request.urlopen(req, timeout=3)  # noqa: S310
 
 
@@ -79,7 +81,7 @@ def test_control_defaults_and_csrf(server):
 
 def test_command_queue_idempotency(server, tmp_path):
     server.controls = True
-    body = b'{"app":"snap","command":"facts","request_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
+    body = b'{"app":"snap","command":"status","request_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}'
     with patch.object(panel, "STATE", tmp_path), patch.object(panel, "ctl") as ctl:
         with get(server, "/api/command", body=body, origin=server.origin) as reply:
             assert json.loads(reply.read())["queued"]
@@ -100,3 +102,107 @@ def test_command_unknown_not_replayed(tmp_path):
     assert panel_queue.claim(path) is None
     panel_queue.finish(path, "a" * 32, False)
     assert panel_queue.claim(path) is None
+
+
+def test_legacy_content_cannot_bypass_review(server, tmp_path):
+    server.controls = True
+    for command in ("facts", "verse", "send", "resume"):
+        body = json.dumps({"app": "snap", "command": command, "request_id": "a" * 32}).encode()
+        with patch.object(panel, "STATE", tmp_path), pytest.raises(urllib.error.HTTPError) as exc:
+            get(server, "/api/command", body=body, origin=server.origin)
+        assert exc.value.code == 409
+    assert not (tmp_path / "snap/panel-commands.sqlite").exists()
+
+
+def test_action_reservation_is_not_a_platform_call(server, tmp_path):
+    server.controls = True
+    body = json.dumps(
+        {
+            "app": "status",
+            "action": "produce",
+            "payload": {"command": "verse"},
+            "request_id": "a" * 32,
+        }
+    ).encode()
+    with patch.object(panel, "STATE", tmp_path), patch.object(panel, "ctl") as ctl:
+        with get(server, "/api/action", body=body, origin=server.origin) as reply:
+            assert json.loads(reply.read())["queued"]
+        ctl.assert_not_called()
+    workspace = panel.panel_workspace.view(tmp_path / "status/panel-commands.sqlite")
+    assert workspace["actions"][0]["state"] == "QUEUED"
+    assert workspace["previews"] == []
+
+
+def test_heartbeat_token_cannot_control_owner_panel(server, tmp_path):
+    server.reporter_token = "reporter-" * 8
+    metric = {
+        "disk_used": 10,
+        "disk_total": 100,
+        "memory_total": 100,
+        "memory_available": 50,
+        "load": 0.1,
+        "services": {"snap": "inactive"},
+    }
+    headers = {"Authorization": "Bearer " + server.reporter_token}
+    with patch.object(panel, "STATE", tmp_path):
+        req = urllib.request.Request(  # noqa: S310 - test server on loopback
+            server.origin + "/api/heartbeat", data=json.dumps(metric).encode(), headers=headers
+        )
+        with urllib.request.urlopen(req, timeout=3) as response:  # noqa: S310
+            assert response.status == 202
+        assert (
+            json.loads((tmp_path / "panel/wsl.json").read_text())["services"]["snap"] == "inactive"
+        )
+        req = urllib.request.Request(  # noqa: S310 - test server on loopback
+            server.origin + "/api/snapshot", headers=headers
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req, timeout=3)  # noqa: S310
+        assert exc.value.code == 401
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            get(server, "/api/heartbeat", body=json.dumps(metric).encode(), origin=server.origin)
+        assert exc.value.code == 403
+
+
+def test_upload_validates_signature_and_queues_only(server, tmp_path):
+    server.controls = True
+    headers = {
+        "Authorization": "Bearer " + server.token,
+        "Origin": server.origin,
+        "Content-Type": "video/mp4",
+        "X-Panel-App": "snap",
+        "X-Panel-Kind": "upload",
+    }
+    with patch.object(panel, "STATE", tmp_path), patch.object(panel, "ctl") as ctl:
+        bad = urllib.request.Request(  # noqa: S310 - test server on loopback
+            server.origin + "/api/upload", data=b"<html>bad</html>", headers=headers
+        )
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(bad, timeout=3)  # noqa: S310
+        assert exc.value.code == 400
+        raw = b"\x00\x00\x00\x20ftyp" + b"fixture"
+        good = urllib.request.Request(  # noqa: S310 - test server on loopback
+            server.origin + "/api/upload", data=raw, headers=headers
+        )
+        with urllib.request.urlopen(good, timeout=3) as response:  # noqa: S310
+            identifier = json.loads(response.read())["id"]
+        ctl.assert_not_called()
+    assert (tmp_path / "snap/panel-uploads" / identifier).read_bytes() == raw
+    assert (
+        panel.panel_workspace.view(tmp_path / "snap/panel-commands.sqlite")["actions"][0]["action"]
+        == "upload"
+    )
+
+
+def test_media_preview_digest_and_path_admission(server, tmp_path):
+    path = tmp_path / "snap/panel-commands.sqlite"
+    panel.panel_workspace.record_preview(path, "a" * 32, "verse", b"video", [])
+    with patch.object(panel, "STATE", tmp_path):
+        with get(server, "/api/media/snap/" + "a" * 32) as response:
+            assert response.read() == b"video"
+        (tmp_path / "snap/panel-media" / ("a" * 32 + ".mp4")).write_bytes(b"tampered")
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            get(server, "/api/media/snap/" + "a" * 32)
+        assert exc.value.code == 404
+        with pytest.raises(urllib.error.HTTPError):
+            get(server, "/api/media/snap/../../etc/passwd")
