@@ -563,7 +563,7 @@ class Factory:
                     selected.append(
                         scene(
                             detail,
-                            12.0,
+                            max(12.0, (len(item["title"]) + len(detail)) / 17 + 0.25),
                             role="story",
                             head=item["title"],
                             image=image,
