@@ -1186,7 +1186,8 @@ class Factory:
         total = sum(x["seconds"] for x in scenes)
         low, high, _ = budget(self.app)
         if total < low:
-            scenes[-2]["seconds"] += low - total
+            # A hair over the floor: float sums landed at 60.99999 and failed the budget.
+            scenes[-2]["seconds"] += low - total + 0.01
         if total > high and key in NEWS:
             per = (high - 1.0 - 8.2) / (len(scenes) - 2)
             for item in scenes[1:-1]:
