@@ -815,7 +815,11 @@ def main() -> int:
     if args.worker or args.render:
         mode = args.worker or args.render
         work = Path(mode[-1]).absolute()
-        if not work.is_relative_to(OUTPUT) or any(p.is_symlink() for p in (work, *work.parents)):
+        if (
+            ".." in work.parts
+            or not work.is_relative_to(OUTPUT)
+            or any(p.is_symlink() for p in (work, *work.parents))
+        ):
             parser.error("VERIFY_WORK_SCOPE")
     if args.worker:
         app, key, work = args.worker
@@ -831,7 +835,11 @@ def main() -> int:
         datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:8]
     )
     output = output.absolute()
-    if not output.is_relative_to(OUTPUT) or any(p.is_symlink() for p in (output, *output.parents)):
+    if (
+        ".." in output.parts
+        or not output.is_relative_to(OUTPUT)
+        or any(p.is_symlink() for p in (output, *output.parents))
+    ):
         parser.error("مجلد التقرير يجب أن يكون جديدًا داخل /var/lib/madar/verification")
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     (output / "frames").mkdir()

@@ -317,3 +317,22 @@ def test_real_approved_transparent_brand_passes_composed_frame_check(tmp_path):
         assert sample["background"]["sampled_pixels"] > 10000
         assert sample["identity"]["sampled_pixels"] > 100
     assert (tmp_path / "frame.png").exists()
+
+
+@pytest.mark.parametrize("mode", ["output", "worker"])
+def test_output_and_worker_paths_cannot_escape_into_production(tmp_path, monkeypatch, mode):
+    base = tmp_path / "verification"
+    base.mkdir()
+    escaped = base / ".." / "production"
+    monkeypatch.setattr(verify, "OUTPUT", base)
+    monkeypatch.setattr(os, "geteuid", lambda: 0)
+    args = (
+        ["--output", str(escaped)]
+        if mode == "output"
+        else ["--worker", "snap", "facts", str(escaped)]
+    )
+    monkeypatch.setattr(sys, "argv", [str(SCRIPT), *args])
+    with pytest.raises(SystemExit) as error:
+        verify.main()
+    assert error.value.code == 2
+    assert not (tmp_path / "production").exists()
