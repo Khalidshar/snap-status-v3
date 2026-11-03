@@ -31,6 +31,8 @@ BASE = {
     "air-quality-api.open-meteo.com",
     "api.met.no",
     "trends.google.com",
+    "news.google.com",
+    "lh3.googleusercontent.com",
     "cdn.pixabay.com",
     "free-stock-music.com",
     "www.free-stock-music.com",

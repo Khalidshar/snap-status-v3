@@ -166,6 +166,30 @@ class Factory:
         )
         return self.local(normalized, url, credit)
 
+    def news_picture(self, item: dict[str, Any]) -> str:
+        """Use source images first; Google discovery must match the exact headline."""
+        for url in dict.fromkeys((item.get("image", ""), item.get("og_image", ""))):
+            if not url:
+                continue
+            try:
+                return self.picture(url, item["url"], item["source"])
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+                continue
+        url = "https://news.google.com/rss/search?" + urlencode(
+            {"q": '"' + item["title"] + '"', "hl": "ar", "gl": "SA", "ceid": "SA:ar"}
+        )
+        raw = self.get(url)
+        self.save(raw, ".xml", url, "Google News — اكتشاف صورة الخبر")
+        for entry in safe_xml(raw).iter("item"):
+            title = parsing.clean(entry.findtext("title") or "")
+            source = parsing.clean(entry.findtext("source") or "")
+            if title.removesuffix(" - " + source) != item["title"]:
+                continue
+            image = parsing._img(entry)
+            if image:
+                return self.picture(image, item["url"], item["source"])
+        raise ValueError("LEGACY_EXACT_STORY_IMAGE_UNAVAILABLE")
+
     def article(self, item: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
         page = item.pop("page", None) or self.get(item["url"]).decode("utf-8", "replace")
         text = parsing.body_text(page)
@@ -178,7 +202,8 @@ class Factory:
             page,
             re.I,
         )
-        item["image"] = item.get("image") or (html.unescape(og[1]) if og else "")
+        item["og_image"] = html.unescape(og[1]) if og else ""
+        item["image"] = item.get("image") or item["og_image"]
         self.sources.append(
             {
                 "url": item["url"],
@@ -365,7 +390,7 @@ class Factory:
                 text, points = self.article(item)
                 if self.key in {"tech", "style"} and len(parsing.words_only(text)) < 300:
                     continue
-                image = self.picture(item["image"], item["url"], item["source"])
+                image = self.news_picture(item)
                 if self.key in {"tech", "style"}:
                     # Exact extracted paragraphs with their matching article image.
                     selected.append(
@@ -424,7 +449,7 @@ class Factory:
                     selected.append(
                         scene(
                             detail,
-                            15.0,
+                            12.0,
                             role="story",
                             head=item["title"],
                             image=image,
@@ -859,7 +884,12 @@ class Factory:
             scenes.append(self.adhkar("night", minimum=8, maximum=24))
         elif key == "brief":
             scenes += self.brief()
-        scenes.append(scene("تابعني للمزيد", 5.0, role="cta", source="روّق مع خالد"))
+        if key in NEWS | {"tech", "style"}:
+            # Open with the actual first story and its image, without a title-only delay.
+            scenes.pop(0)
+            scenes[0]["bulletin_title"] = TITLES[key]
+        credits = " • ".join(dict.fromkeys(s.get("source", "") for s in scenes if s.get("source")))
+        scenes.append(scene("تابعني للمزيد", 5.0, role="cta", source=credits or "روّق مع خالد"))
         total = sum(x["seconds"] for x in scenes)
         if total < 32:
             scenes[-2]["seconds"] += 32 - total

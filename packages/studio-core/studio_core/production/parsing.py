@@ -78,7 +78,7 @@ def body_text(page: str) -> str:
         t = ("## " if tag.lower().startswith("h") else "") + t
         if t not in lines:
             lines.append(t)
-    return "\n".join(lines)[:6000]
+    return "\n".join(lines)
 
 
 def words_only(text: str) -> str:

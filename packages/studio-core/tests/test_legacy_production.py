@@ -323,10 +323,12 @@ def test_bulletin_and_article_points_have_actual_source_assets(tmp_path, audio, 
     f = factory(tmp_path, key, Feed(audio))
     value = f.build()
     plan = validate(value, assets=f.root)
-    core = plan["scenes"][1:-1]
+    core = plan["scenes"][:-1]
+    assert core[0]["at"] == 0 and core[0].get("image")
     assert all(s.get("image") and s.get("source") and s.get("published_label") for s in core)
     if key == "news":
         assert len(core) == 3 and all(s["role"] == "story" for s in core)
+        assert all(s["seconds"] == 12 for s in core)
     else:
         assert core[0]["role"] == "headline" and all(s["role"] == "point" for s in core[1:])
     broken = copy.deepcopy(value)
@@ -479,3 +481,44 @@ def test_production_broker_redirect_and_mime_guards(monkeypatch, tmp_path):
     Reply.mime = "application/javascript"
     with pytest.raises(PolicyDenied, match="MIME_DENIED"):
         production.fetch("https://mp3quran.net/image", policy)
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+def test_source_image_falls_back_to_og_before_google(tmp_path, monkeypatch, app):
+    f = Factory(
+        app,
+        "urgent",
+        uuid.uuid4().hex,
+        tmp_path / "input",
+        client=object(),
+        state=tmp_path / "state",
+    )
+    attempts = []
+
+    def picture(url, base, credit):
+        attempts.append(url)
+        if url == "https://publisher.example/broken.jpg":
+            raise ValueError("unavailable")
+        return "assets/source.jpg"
+
+    monkeypatch.setattr(f, "picture", picture)
+    result = f.news_picture(
+        {
+            "image": "https://publisher.example/broken.jpg",
+            "og_image": "https://publisher.example/actual.jpg",
+            "url": "https://publisher.example/story",
+            "source": "المصدر",
+        }
+    )
+    assert result == "assets/source.jpg"
+    assert attempts == [
+        "https://publisher.example/broken.jpg",
+        "https://publisher.example/actual.jpg",
+    ]
+
+
+def test_article_extraction_keeps_complete_source():
+    from studio_core.production.parsing import body_text
+
+    text = "معلومة موثقة من المصدر " * 400
+    assert len(body_text("<article><p>" + text + "</p></article>")) > 6000

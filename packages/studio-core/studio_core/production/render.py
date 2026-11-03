@@ -177,7 +177,7 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         if sound
         else {"max_volume_db": measure_silence(video, profile, run)}
     )
-    if sound and (not -22 <= audio["integrated_lufs"] <= -8 or audio["true_peak_dbtp"] > -0.5):
+    if sound and (not -18 <= audio["integrated_lufs"] <= -11 or audio["true_peak_dbtp"] > -1):
         raise ValueError("LEGACY_QA_LOUDNESS")
     if not sound and audio["max_volume_db"] > -80:
         raise ValueError("LEGACY_QA_SACRED_NOT_SILENT")
