@@ -25,7 +25,20 @@ from studio_core.renderer import run
 from studio_core.weather import content_hash
 
 from . import parsing
-from .model import DATA, NEWS, QURAN, ROOT, SACRED, TITLES, canonical, scene, sha, timed, validate
+from .model import (
+    DATA,
+    NEWS,
+    QURAN,
+    ROOT,
+    SACRED,
+    TITLES,
+    budget,
+    canonical,
+    scene,
+    sha,
+    timed,
+    validate,
+)
 
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 MUSIC = "https://www.free-stock-music.com/music/maxkomusic/mp3/maxkomusic-true-patriot.mp3"
@@ -478,7 +491,8 @@ class Factory:
             )
         selected: list[dict[str, Any]] = []
         failures: list[dict[str, str]] = []
-        count = 1 if self.key in {"tech", "style"} else 3
+        # Snap bulletins carry one more story to pass the one-minute Spotlight floor.
+        count = 1 if self.key in {"tech", "style"} else (4 if self.app == "snap-bot-v2" else 3)
         for item in candidates[:25]:
             try:
                 text, points = self.article(item)
@@ -1073,7 +1087,7 @@ class Factory:
                     grade=item["grade"],
                 )
             )
-            remaining = 57.7 - 5.0 - sum(s["seconds"] for s in scenes)
+            remaining = budget(self.app)[1] - 0.3 - 5.0 - sum(s["seconds"] for s in scenes)
             scenes += self.adhkar("night", minimum=8, maximum=min(24, remaining))
         elif key == "brief":
             scenes += self.brief()
@@ -1091,10 +1105,11 @@ class Factory:
             )
         )
         total = sum(x["seconds"] for x in scenes)
-        if total < 32:
-            scenes[-2]["seconds"] += 32 - total
-        if total > 58 and key in NEWS:
-            per = (57.0 - 8.2) / (len(scenes) - 2)
+        low, high, _ = budget(self.app)
+        if total < low:
+            scenes[-2]["seconds"] += low - total
+        if total > high and key in NEWS:
+            per = (high - 1.0 - 8.2) / (len(scenes) - 2)
             for item in scenes[1:-1]:
                 item["seconds"] = per
         scenes, total = timed(scenes)

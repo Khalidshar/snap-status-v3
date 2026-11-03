@@ -17,7 +17,7 @@ from studio_core.presentation.fact_audio import measure_audio, measure_silence
 from studio_core.renderer import ensure_glyphs, proof, run
 
 from .isolation import deny_ip_sockets
-from .model import ROOT, resource, sha, validate
+from .model import ROOT, budget, resource, sha, validate
 
 
 def verify_fonts(p: dict[str, Any]) -> None:
@@ -182,7 +182,8 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         raise ValueError("LEGACY_QA_VIDEO_PROFILE")
     if (a["codec_name"], a["sample_rate"], a["channels"]) != ("aac", "48000", 2):
         raise ValueError("LEGACY_QA_AUDIO_PROFILE")
-    if not 32 <= seconds <= 58 or video.stat().st_size > 16_000_000:
+    low, high, largest = budget(p["app"])
+    if not low <= seconds <= high or video.stat().st_size > largest:
         raise ValueError("LEGACY_QA_LENGTH_OR_SIZE")
     if layout["overflow"] or layout["empty"] or layout["tiny"] or not layout["handle"]:
         raise ValueError("LEGACY_QA_LAYOUT")
@@ -246,8 +247,8 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
     checks = {
         "dimensions": (v["width"], v["height"]) == (1080, 1920),
         "codec": v["codec_name"] == "h264" and a["codec_name"] == "aac",
-        "duration": 32 <= seconds <= 58,
-        "size": video.stat().st_size <= 16_000_000,
+        "duration": low <= seconds <= high,
+        "size": video.stat().st_size <= largest,
         "audio": (-18 <= audio["integrated_lufs"] <= -11 and audio["true_peak_dbtp"] <= -1)
         if sound
         else audio["max_volume_db"] <= -80,

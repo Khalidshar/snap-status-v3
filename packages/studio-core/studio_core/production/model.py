@@ -15,6 +15,18 @@ from studio_core.weather import content_hash
 
 ROOT = Path(__file__).resolve().parents[4]
 DATA = Path(__file__).with_name("data")
+
+
+def budget(app: str) -> tuple[float, float, int]:
+    """(shortest, longest seconds, largest bytes) per platform (owner decision 3 Nov).
+
+    Snap Spotlight pays only for clips longer than one minute; a WhatsApp Status is 58 s at most.
+    """
+    if app == "snap-bot-v2":
+        return 61.0, 90.0, 40_000_000
+    return 32.0, 58.0, 16_000_000
+
+
 NEWS = {"urgent", "saudi", "world", "football", "markets", "news", "news_noon"}
 QURAN = {"verse", "dua", "friday", "kahf", "fast", "isha"}
 SACRED = QURAN | {"adhkar_am", "adhkar_pm", "hadith", "night", "brief"}
@@ -153,7 +165,8 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 raise ValueError("LEGACY_TAFSIR_CHANGED")
         if scene.get("image") and not scene.get("image_credit"):
             raise ValueError("LEGACY_IMAGE_CREDIT_MISSING")
-    if not 32 <= at <= 58 or abs(p.get("duration", 0) - at) > 0.001:
+    low, high, _ = budget(p.get("app", ""))
+    if not low <= at <= high or abs(p.get("duration", 0) - at) > 0.001:
         raise ValueError("LEGACY_DURATION_OUT_OF_BUDGET")
     if scenes[-1].get("role") != "cta":
         raise ValueError("LEGACY_FOLLOW_CARD_MISSING")

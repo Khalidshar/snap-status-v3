@@ -22,7 +22,7 @@ from studio_core.network.production import permitted
 from studio_core.network.production_speech import approved
 from studio_core.presentation.did_you_know import choose_fact, is_sacred, validate_content
 from studio_core.production import enabled
-from studio_core.production.model import DATA, ROOT, canonical, resource, sha, validate
+from studio_core.production.model import DATA, ROOT, budget, canonical, resource, sha, validate
 from studio_core.production.prepare import Factory, prepare, safe_xml
 from studio_core.weather import content_hash
 
@@ -109,7 +109,8 @@ def test_old_recipes_real_local_audio_decoding(tmp_path, audio, key, roles):
     value = f.build()
     plan = validate(value, assets=f.root)
     assert [s["role"] for s in plan["scenes"][1:-1]] == roles
-    assert 32 <= plan["duration"] <= 58
+    low, high, _ = budget(plan["app"])
+    assert low <= plan["duration"] <= high
     assert not is_sacred(value)
     assert validate_content(value)["text"] == value["body"]
     assert plan["music"] and plan["effects"]

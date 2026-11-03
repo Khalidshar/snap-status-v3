@@ -13,7 +13,7 @@ from studio_core.config import Config
 from studio_core.jobs import Repository
 from studio_core.renderer import file_sha256, write_once
 
-from .model import canonical, resource, validate
+from .model import budget, canonical, resource, validate
 from .prepare import prepare
 
 
@@ -210,7 +210,7 @@ def check_result(result: dict[str, Any]) -> float:
         or len(judge.get("shots", [])) != 6
         or (qa.get("width"), qa.get("height"), qa.get("codec")) != (1080, 1920, "h264")
         or abs(qa.get("duration", 0) - p["duration"]) > 0.15
-        or not 0 < qa.get("bytes", 0) <= 16_000_000
+        or not 0 < qa.get("bytes", 0) <= budget(p["app"])[2]
     ):
         raise ValueError("LEGACY_RESULT_AUDIO_OR_JUDGE_CHANGED")
     from studio_core.presentation.brand_frame import load_brand
