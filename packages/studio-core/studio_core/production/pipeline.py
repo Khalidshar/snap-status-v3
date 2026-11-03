@@ -187,7 +187,31 @@ def check_result(result: dict[str, Any]) -> float:
         if p["music"]
         else "silent_sacred"
     )
-    if result["qa"]["audio"] != expected or result["qa"]["judge"]["decision"] != "PASS":
+    qa = result["qa"]
+    judge = qa["judge"]
+    required = {
+        "dimensions",
+        "codec",
+        "duration",
+        "size",
+        "audio",
+        "safe_window",
+        "content",
+        "handle",
+        "follow_card",
+        "source_images",
+    }
+    if (
+        qa["audio"] != expected
+        or judge["decision"] != "PASS"
+        or judge.get("score") != 10
+        or set(judge.get("criteria", {})) != required
+        or not all(v is True for v in judge["criteria"].values())
+        or len(judge.get("shots", [])) != 6
+        or (qa.get("width"), qa.get("height"), qa.get("codec")) != (1080, 1920, "h264")
+        or abs(qa.get("duration", 0) - p["duration"]) > 0.15
+        or not 0 < qa.get("bytes", 0) <= 16_000_000
+    ):
         raise ValueError("LEGACY_RESULT_AUDIO_OR_JUDGE_CHANGED")
     from studio_core.presentation.brand_frame import load_brand
 

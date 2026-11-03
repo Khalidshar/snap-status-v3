@@ -505,6 +505,11 @@ def send(
             )
         try:
             content, result, video = build(outbox, item, key, source=source, root=root, start=start)
+            description = None
+            if content.get("legacy_production"):
+                from studio_core.production.caption import platform_caption
+
+                description = platform_caption(content)
             require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
             window(outbox)
             locks.assert_holder(lease)
@@ -528,7 +533,12 @@ def send(
                 )
             if result.get("quran_foundation"):
                 check_result(result)
-            message = response_id(transport.send_video(media), "send", outbox.identity.recipient)
+            sent = (
+                transport.send_video(media, caption=description)
+                if description is not None
+                else transport.send_video(media)
+            )
+            message = response_id(sent, "send", outbox.identity.recipient)
             with outbox.repo.transaction() as db:
                 db.execute(
                     "UPDATE command_videos SET state='API_ACCEPTED',acked_at=?,message_tag=? WHERE tag=?",

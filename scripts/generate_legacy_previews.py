@@ -16,18 +16,7 @@ from studio_core.network.production import ProductionPolicy
 from studio_core.production.model import TITLES
 from studio_core.production.prepare import prepare
 
-KINDS = (
-    "news",
-    "verse",
-    "adhkar_am",
-    "night",
-    "brief",
-    "facts",
-    "riddle",
-    "funny",
-    "tech",
-    "style",
-)
+KINDS = tuple(key for key in TITLES if key != "did_you_know")
 NAMES = {"urgent": "عاجل", "facts": "هل-تعلم", "news": "الموجز", "news_noon": "أخبار-الظهر"}
 
 

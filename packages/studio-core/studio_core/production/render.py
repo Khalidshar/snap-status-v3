@@ -31,7 +31,7 @@ def verify_fonts(p: dict[str, Any]) -> None:
         or amiri_manifest.get("sha256")
         != "8fa95faaf7bd18b71789f6f57312003e30c5029218a035e5baf613a0222ab82d"
         or amiri_manifest.get("license_sha256")
-        != "72de68e5954f4fdd24702292ef5a32f003ca960ec9330dc86e5eefb5dffb9b22"
+        != "a8adc7dde15c05c96a278964b9d9a5aa7b93aadd5b348969ce9bf6efb6cf9ade"
     ):
         raise ValueError("LEGACY_AMIRI_MANIFEST_CHANGED")
     for name, digest in (("AmiriQuran.ttf", "sha256"), ("OFL.txt", "license_sha256")):
@@ -241,6 +241,27 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
             30,
         )
         shots.append({"file": path.name, "sha256": sha(path.read_bytes())})
+    checks = {
+        "dimensions": (v["width"], v["height"]) == (1080, 1920),
+        "codec": v["codec_name"] == "h264" and a["codec_name"] == "aac",
+        "duration": 32 <= seconds <= 58,
+        "size": video.stat().st_size <= 16_000_000,
+        "audio": (-18 <= audio["integrated_lufs"] <= -11 and audio["true_peak_dbtp"] <= -1)
+        if sound
+        else audio["max_volume_db"] <= -80,
+        "safe_window": not layout["overflow"] and not layout["tiny"],
+        "content": not layout["empty"],
+        "handle": bool(layout["handle"]),
+        "follow_card": p["scenes"][-1]["role"] == "cta",
+        "source_images": all(
+            s.get("image") and s.get("image_credit")
+            for s in p["scenes"]
+            if s.get("role") in {"story", "headline", "point"}
+        ),
+    }
+    score = sum(checks.values())
+    if score < 10:
+        raise ValueError("LEGACY_FINAL_JUDGE_REJECTED")
     return {
         "result": "PASS",
         "bytes": video.stat().st_size,
@@ -261,7 +282,8 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         "judge": {
             "mode": "old-no-token-checklist",
             "decision": "PASS",
-            "score": 10,
+            "score": score,
+            "criteria": checks,
             "checks": [
                 "profile",
                 "audio",
@@ -292,7 +314,7 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
             frames = work / "frames"
             run(
                 [
-                    os.environ.get("MADAR_NODE", "/usr/bin/node"),
+                    os.environ.get("MADAR_NODE") or shutil.which("node") or "/usr/bin/node",
                     str(ROOT / "scripts/render_legacy_scenes.cjs"),
                     str(source / "content.json"),
                     str(source),

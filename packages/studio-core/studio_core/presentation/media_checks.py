@@ -63,8 +63,7 @@ def check_voice(result: Any) -> dict[str, Any]:
             if audio.get("max_volume_db", 0) > -80:
                 raise AgentRejected("VOICE_SACRED_NOT_SILENT")
         elif (
-            not -22 <= audio.get("integrated_lufs", 0) <= -8
-            or audio.get("true_peak_dbtp", 0) > -0.5
+            not -18 <= audio.get("integrated_lufs", 0) <= -11 or audio.get("true_peak_dbtp", 0) > -1
         ):
             raise AgentRejected("VOICE_LEGACY_MEASUREMENT_INVALID")
         return {"decision": "PASS", "audio": result["qa"]["audio"]}

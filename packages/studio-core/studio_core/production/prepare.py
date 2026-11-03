@@ -1,6 +1,7 @@
 # ruff: noqa: E501
 """Source factory port: all downloads go through the application's source broker."""
 
+import array
 import email.utils
 import html
 import json
@@ -37,6 +38,8 @@ def duration(path: Path) -> float:
             "/usr/bin/ffprobe",
             "-v",
             "error",
+            "-protocol_whitelist",
+            "file,pipe",
             "-show_entries",
             "format=duration",
             "-of",
@@ -203,6 +206,15 @@ class Factory:
             source = parsing.clean(entry.findtext("source") or "")
             if title.removesuffix(" - " + source) != expected_title:
                 continue
+            publisher = entry.find("source")
+            publisher_host = (
+                urlsplit(publisher.get("url", "") if publisher is not None else "").hostname or ""
+            )
+            article_host = urlsplit(item["url"]).hostname or ""
+            if source != item["source"] and publisher_host.removeprefix(
+                "www."
+            ) != article_host.removeprefix("www."):
+                continue
             image = parsing._img(entry)
             try:
                 if image:
@@ -222,6 +234,15 @@ class Factory:
         raise ValueError("LEGACY_EXACT_STORY_IMAGE_UNAVAILABLE")
 
     def article(self, item: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+        from studio_core.sources import for_command
+        from studio_core.sources.news import _link
+
+        source = next(
+            s
+            for s in for_command("news" if self.key == "news_noon" else self.key)
+            if s.id == item["source_id"]
+        )
+        _link(item["url"], source)  # Reject feed-injected foreign publishers before fetching.
         page = item.pop("page", None) or self.get(item["url"]).decode("utf-8", "replace")
         text = parsing.body_text(page)
         og = re.search(
@@ -816,6 +837,40 @@ class Factory:
             return []
         return []
 
+    @staticmethod
+    def audio_levels(path: Path) -> list[float]:
+        raw = subprocess.run(  # noqa: S603 — fixed local-only decoder argv
+            [
+                "/usr/bin/ffmpeg",
+                "-v",
+                "error",
+                "-nostdin",
+                "-protocol_whitelist",
+                "file,pipe",
+                "-i",
+                str(path),
+                "-ar",
+                "6000",
+                "-ac",
+                "1",
+                "-f",
+                "s16le",
+                "-",
+            ],
+            check=True,
+            capture_output=True,
+            timeout=120,
+        ).stdout
+        samples = array.array("h", raw)
+        return [
+            min(
+                1.0,
+                math.sqrt(sum(v * v for v in samples[i : i + 400]) / len(samples[i : i + 400]))
+                / 8000,
+            )
+            for i in range(0, len(samples), 400)
+        ]
+
     def adhkar(
         self, period: str, *, minimum: float = 44, maximum: float = 50
     ) -> list[dict[str, Any]]:
@@ -849,6 +904,7 @@ class Factory:
                         number="التكرار: " + str(row["REPEAT"]).translate(DIGITS),
                         dhikr_id=row["ID"],
                         dhikr_chapter=chapter,
+                        levels=self.audio_levels(self.root / audio),
                         audio=audio,
                         audio_duration=seconds,
                     )
@@ -1026,7 +1082,14 @@ class Factory:
             scenes.pop(0)
             scenes[0]["bulletin_title"] = TITLES[key]
         credits = " • ".join(dict.fromkeys(s.get("source", "") for s in scenes if s.get("source")))
-        scenes.append(scene("تابعني للمزيد", 5.0, role="cta", source=credits or "روّق مع خالد"))
+        scenes.append(
+            scene(
+                "تابعني للمزيد",
+                4.5 if key in {"adhkar_am", "adhkar_pm"} else 5.0,
+                role="cta",
+                source=credits or "روّق مع خالد",
+            )
+        )
         total = sum(x["seconds"] for x in scenes)
         if total < 32:
             scenes[-2]["seconds"] += 32 - total

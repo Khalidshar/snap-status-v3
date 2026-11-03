@@ -9,6 +9,7 @@ import sys
 import time
 import uuid
 from dataclasses import replace
+from pathlib import Path
 from urllib.parse import urlencode
 
 import pytest
@@ -444,6 +445,7 @@ def test_each_dhikr_is_bound_to_its_human_recording_and_count(tmp_path, audio):
     assert 44 <= sum(s["seconds"] for s in segments) <= 50
     assert all(s["body"] == rows[s["dhikr_id"] - 1]["ARABIC_TEXT"] for s in segments)
     assert all(s["number"] == "التكرار: ٣" for s in segments)
+    assert all(s["levels"] and max(s["levels"]) > 0 for s in segments)
     assert p["music"] is None and not p["effects"]
     for field in ("body", "number", "audio"):
         changed = copy.deepcopy(value)
@@ -813,3 +815,111 @@ def test_quran_rotation_never_repeats_same_human_across_provider_ids(tmp_path, m
         state=tmp_path / "ledger",
     )
     assert second.quran(94, [5])[0]["source"] != first
+
+
+def test_article_cannot_escape_its_approved_publisher(tmp_path, audio):
+    f = factory(tmp_path, "news", Sources(audio))
+    with pytest.raises(ValueError, match="Foreign or unsafe"):
+        f.article({"source_id": "bbc-ar", "url": "https://archive.org/injected"})
+
+
+def test_production_caption_keeps_credits_and_article_links(tmp_path, audio):
+    from studio_core.production.caption import caption, platform_caption
+
+    f = factory(tmp_path, "facts", Sources(audio))
+    value = f.build()
+    description = platform_caption(value)
+    assert "@rawwag_khalid" in description and "True Patriot" in description
+    assert "creativecommons.org/licenses/by-sa/3.0/" in description
+    assert "True Patriot" in caption(value)
+    changed = copy.deepcopy(value)
+    changed["legacy_production"]["scenes"][0]["source"] = "مصدر طويل " * 200
+    with pytest.raises(ValueError, match="CAPTION_TOO_LONG"):
+        platform_caption(reseal(changed))
+
+
+def test_amiri_addition_preserves_all_existing_license_pins():
+    manifest = json.loads((ROOT / "assets/fonts/manifest.json").read_bytes())
+    for font in manifest["fonts"]:
+        for license in font.get("licenses", []):
+            assert sha((ROOT / "assets/fonts" / license["file"]).read_bytes()) == license["sha256"]
+
+
+@pytest.mark.parametrize(
+    "metric,value",
+    [
+        ("integrated_lufs", -18.01),
+        ("integrated_lufs", -10.99),
+        ("true_peak_dbtp", -0.99),
+        ("height", 1080),
+        ("duration", 31.99),
+        (None, None),
+    ],
+)
+def test_independent_final_qa_rejects_bad_audio_or_video_claims(
+    tmp_path, audio, monkeypatch, metric, value
+):
+    from types import SimpleNamespace
+
+    from studio_core.presentation.brand_frame import load_brand
+    from studio_core.production import pipeline, render
+
+    f = factory(tmp_path, "facts", Sources(audio))
+    content = f.build()
+    plan = content["legacy_production"]
+    video = tmp_path / "test-only-probe-fixture.mp4"
+    video.write_bytes(b"not-a-real-owner-sample")
+    probe = {
+        "streams": [
+            {
+                "codec_type": "video",
+                "width": 1080,
+                "height": 1920,
+                "codec_name": "h264",
+                "pix_fmt": "yuv420p",
+                "r_frame_rate": "30/1",
+            },
+            {"codec_type": "audio", "codec_name": "aac", "sample_rate": "48000", "channels": 2},
+        ],
+        "format": {"duration": str(plan["duration"])},
+    }
+    measurements = {"integrated_lufs": -16.0, "true_peak_dbtp": -1.5}
+    if metric in measurements:
+        measurements[metric] = value
+    elif metric == "height":
+        probe["streams"][0]["height"] = value
+    elif metric == "duration":
+        probe["format"]["duration"] = str(value)
+
+    def tool(argv, timeout):
+        if "-show_streams" in argv:
+            return SimpleNamespace(stdout=json.dumps(probe), stderr="")
+        if "-frames:v" in argv:
+            Path(argv[-1]).write_bytes(b"test-only-shot")
+        return SimpleNamespace(stdout="", stderr="")
+
+    monkeypatch.setattr(render, "run", tool)
+    monkeypatch.setattr(render, "measure_audio", lambda *a: measurements)
+    layout = {"overflow": 0, "empty": 0, "tiny": 0, "handle": True}
+    if metric is not None:
+        with pytest.raises(ValueError, match="LEGACY_QA"):
+            render.qa(video, plan, layout, tmp_path)
+    else:
+        qa = render.qa(video, plan, layout, tmp_path)
+        assert qa["judge"]["score"] == 10 and len(qa["judge"]["criteria"]) == 10
+        brand = load_brand()
+        result = {
+            "content_hash": content["content_hash"],
+            "qa": qa,
+            "legacy_production": {
+                "content": content,
+                "brand": {
+                    "clip_box": brand["clip_box"],
+                    "overlay_sha256": brand["overlay"]["sha256"],
+                },
+            },
+        }
+        assert pipeline.check_result(result) == plan["duration"]
+        result["qa"]["judge"]["criteria"]["audio"] = False
+        with pytest.raises(ValueError, match="JUDGE_CHANGED"):
+            pipeline.check_result(result)
