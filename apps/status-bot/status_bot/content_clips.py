@@ -177,10 +177,16 @@ def build(
     start: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any], bytes]:
     require(identifier(item.get("tag"), "[0-9a-f]{64}"), "WA_COMMAND_INVALID")
-    brief = key == "brief"
-    news = source is not None and not brief
+    from studio_core.production import enabled as production_enabled
+    from studio_core.production.model import TITLES as PRODUCTION_KINDS
+
+    production = production_enabled()
+    brief = key == "brief" and not production
+    news = source is not None and not brief and not production
     require(
-        brief or ((source.get("command") == key) if news else key in KINDS),
+        (production and key in PRODUCTION_KINDS)
+        or brief
+        or ((source.get("command") == key) if news else key in KINDS),
         "WA_COMMAND_KIND_INVALID",
     )
     command = "brief" if brief else "news" if news else "did_you_know"
@@ -210,7 +216,7 @@ def build(
         entries = []
         for row in rows:
             prior = json.loads(row["content_json"])
-            if prior.get("type") != "did_you_know":
+            if prior.get("type") != "did_you_know" or prior.get("legacy_production"):
                 continue
             at = row["acked_at"] or row["at"]
             until = at + WINDOW_SECONDS if row["state"] == "API_ACCEPTED" else 253402300799.0
@@ -294,7 +300,11 @@ def build(
     content = stage(
         "fact_source",
         {"kind": key},
-        lambda: source if (news or brief) else choose_fact(repo, *args, kind=KINDS[key])[0],
+        lambda: (
+            source
+            if (news or brief)
+            else choose_fact(repo, *args, kind=key if production else KINDS[key])[0]
+        ),
         lambda v: valid(v, news),
     )
     content = stage(

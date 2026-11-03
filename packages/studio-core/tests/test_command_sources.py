@@ -21,7 +21,7 @@ def test_all_existing_commands_are_inspectable_and_controls_have_no_sources():
         assert bool(result["sources"]) == (command.key in CONTENT_KEYS)
         assert result["publication_enabled"] is False
         assert result["live_feeds_enabled"] is False
-    assert len(CONTENT_KEYS) == 21
+    assert len(CONTENT_KEYS) == 23
 
 
 @pytest.mark.parametrize("name", ["style", "الأناقة", "٩", "9", "👗 الأناقة والجمال"])

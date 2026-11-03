@@ -54,6 +54,20 @@ def _number(value: object) -> bool:
 
 def check_voice(result: Any) -> dict[str, Any]:
     """الصوت: one generated ambient bed, measured loud enough and never clipping."""
+    if result.get("legacy_production"):
+        from studio_core.production.pipeline import check_result
+
+        check_result(result)
+        audio = result["qa"]["audio_qa"]
+        if result["qa"]["audio"] == "silent_sacred":
+            if audio.get("max_volume_db", 0) > -80:
+                raise AgentRejected("VOICE_SACRED_NOT_SILENT")
+        elif (
+            not -22 <= audio.get("integrated_lufs", 0) <= -8
+            or audio.get("true_peak_dbtp", 0) > -0.5
+        ):
+            raise AgentRejected("VOICE_LEGACY_MEASUREMENT_INVALID")
+        return {"decision": "PASS", "audio": result["qa"]["audio"]}
     if result.get("quran_foundation"):
         from studio_core.religious.quran_pipeline import check_result
 
@@ -141,7 +155,11 @@ def check_media(result: Any, settings: Any) -> dict[str, Any]:
         raise AgentRejected("MEDIA_DIGEST_MISMATCH") from cause
     qa = result["qa"]
     try:
-        if result.get("quran_foundation"):
+        if result.get("legacy_production"):
+            from studio_core.production.pipeline import check_result
+
+            expected_duration = check_result(result)
+        elif result.get("quran_foundation"):
             from studio_core.religious.quran_pipeline import check_result
 
             expected_duration = check_result(result)

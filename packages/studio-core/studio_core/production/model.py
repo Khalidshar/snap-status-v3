@@ -1,0 +1,273 @@
+"""Immutable scene contract for the old mechanism inside the approved frame."""
+
+import hashlib
+import html
+import json
+import math
+import re
+import time
+from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
+
+from studio_core.weather import content_hash
+
+ROOT = Path(__file__).resolve().parents[4]
+DATA = Path(__file__).with_name("data")
+NEWS = {"urgent", "saudi", "world", "football", "markets", "news", "news_noon"}
+QURAN = {"verse", "dua", "friday", "kahf", "fast", "isha"}
+SACRED = QURAN | {"adhkar_am", "adhkar_pm", "hadith", "night", "brief"}
+TITLES = {
+    "urgent": "عاجل • النزاعات",
+    "saudi": "أخبار السعودية",
+    "world": "أخبار العالم",
+    "football": "ملخص كرة القدم",
+    "markets": "الأسواق والاقتصاد",
+    "news": "وش صار اليوم؟",
+    "news_noon": "أخبار الظهر",
+    "tech": "التقنية",
+    "style": "الأناقة والجمال",
+    "verse": "آية اليوم",
+    "dua": "دعاء اليوم",
+    "friday": "رسالة الجمعة",
+    "kahf": "سورة الكهف",
+    "fast": "تذكير الصيام",
+    "isha": "ليلة طيبة",
+    "adhkar_am": "أذكار الصباح",
+    "adhkar_pm": "أذكار المساء",
+    "hadith": "حديث اليوم",
+    "night": "قبل ما تنام",
+    "brief": "يومك في دقيقة",
+    "facts": "هل تعلم؟",
+    "did_you_know": "هل تعلم؟",
+    "riddle": "لغز اليوم",
+    "funny": "مواقف طريفة",
+}
+
+
+def sha(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
+def canonical(value: Any) -> bytes:
+    return json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode()
+
+
+def resource(root: Path, name: str, expected: str) -> Path:
+    if not re.fullmatch(r"assets/[a-zA-Z0-9_.-]+", name) or not re.fullmatch(
+        "[a-f0-9]{64}", expected
+    ):
+        raise ValueError("LEGACY_ASSET_NAME_INVALID")
+    path = root / name
+    if any(p.is_symlink() for p in (path, *path.parents)) or not path.is_file():
+        raise ValueError("LEGACY_ASSET_UNSAFE")
+    if sha(path.read_bytes()) != expected:
+        raise ValueError("LEGACY_ASSET_CHANGED")
+    return path
+
+
+def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, Any]:
+    p = value.get("legacy_production")
+    if not isinstance(p, dict) or p.get("schema") != 1 or p.get("key") not in TITLES:
+        raise ValueError("LEGACY_CONTRACT_INVALID")
+    if p.get("app") not in {"snap-bot-v2", "status-bot-v2"} or value.get(
+        "content_hash"
+    ) != content_hash(value):
+        raise ValueError("LEGACY_SCOPE_OR_HASH_CHANGED")
+    scenes = p.get("scenes")
+    if not isinstance(scenes, list) or not 3 <= len(scenes) <= 18:
+        raise ValueError("LEGACY_SCENES_INVALID")
+    if (
+        value.get("body") != "\n".join(s["body"] for s in scenes)
+        or value.get("fact_id") != "legacy-" + sha(canonical(p))[:32]
+    ):
+        raise ValueError("LEGACY_CONTENT_BINDING_CHANGED")
+    asset_map = {a["file"]: a for a in p.get("assets", [])}
+    if len(asset_map) != len(p.get("assets", [])):
+        raise ValueError("LEGACY_DUPLICATE_ASSET")
+    for name in [
+        p.get("music"),
+        *[s.get("image") for s in scenes],
+        *[a.get("file") for a in p.get("audio", [])],
+    ]:
+        if name is not None and name not in asset_map:
+            raise ValueError("LEGACY_UNDECLARED_ASSET")
+    for sound in p.get("audio", []):
+        if (
+            not all(
+                isinstance(sound.get(k), (int, float)) and math.isfinite(sound[k])
+                for k in ("at", "seconds")
+            )
+            or sound["at"] < 0
+            or sound["seconds"] <= 0
+            or sound["at"] + sound["seconds"] > p["duration"]
+        ):
+            raise ValueError("LEGACY_AUDIO_TRUNCATED")
+    at = 0.0
+    for scene in scenes:
+        seconds = scene.get("seconds")
+        if not isinstance(seconds, (int, float)) or not math.isfinite(seconds) or seconds <= 0:
+            raise ValueError("LEGACY_TIMING_INVALID")
+        if scene.get("at") != at:
+            raise ValueError("LEGACY_SEQUENCE_CHANGED")
+        at += seconds
+        if not isinstance(scene.get("body"), str) or not scene["body"]:
+            raise ValueError("LEGACY_EMPTY_SCENE")
+        if scene.get("verse"):
+            from studio_core.religious.quran_foundation import exact_ayah
+
+            s, a = scene["verse"]
+            if scene["body"] != exact_ayah(s, a):
+                raise ValueError("LEGACY_SACRED_TEXT_CHANGED")
+            if scene["seconds"] < max(
+                len(scene.get("tafsir", "")) / 17 + 1, scene.get("audio_duration", 0) + 0.15
+            ):
+                raise ValueError("LEGACY_VERSE_OR_TAFSIR_TRUNCATED")
+            if scene.get("tafsir_sha256") != sha(scene.get("tafsir", "").encode()):
+                raise ValueError("LEGACY_TAFSIR_CHANGED")
+        if scene.get("image") and not scene.get("image_credit"):
+            raise ValueError("LEGACY_IMAGE_CREDIT_MISSING")
+    if not 32 <= at <= 58 or abs(p.get("duration", 0) - at) > 0.001:
+        raise ValueError("LEGACY_DURATION_OUT_OF_BUDGET")
+    if scenes[-1].get("role") != "cta":
+        raise ValueError("LEGACY_FOLLOW_CARD_MISSING")
+    if p["key"] in NEWS:
+        stories = [s for s in scenes if s.get("role") == "story"]
+        if not 2 <= len(stories) <= 4 or (p["key"] == "urgent" and len(stories) != 3):
+            raise ValueError("LEGACY_BULLETIN_INCOMPLETE")
+        if any(
+            not s.get("image") or not s.get("source") or not s.get("published_label")
+            for s in stories
+        ):
+            raise ValueError("LEGACY_BULLETIN_SOURCE_MISSING")
+    sacred = p["key"] in SACRED
+    if value.get("sacred") is not sacred:
+        raise ValueError("LEGACY_SACRED_POLICY_CHANGED")
+    if sacred and (p.get("music") or p.get("effects")):
+        raise ValueError("LEGACY_RELIGIOUS_TONE_FORBIDDEN")
+    if p["key"] in QURAN | {"adhkar_am", "adhkar_pm", "night", "brief"} and not p.get("audio"):
+        raise ValueError("LEGACY_HUMAN_AUDIO_REQUIRED")
+    if p["key"] in {"facts", "did_you_know", "funny", "riddle"}:
+        catalog = json.loads(
+            (
+                DATA
+                / (
+                    {"riddle": "riddles.json", "did_you_know": "facts.json"}.get(
+                        p["key"], p["key"] + ".json"
+                    )
+                )
+            ).read_bytes()
+        )
+        core = scenes[1:-1]
+        if p["key"] in {"facts", "did_you_know"} and (
+            len(core) != 4 or any(s["body"] not in catalog for s in core)
+        ):
+            raise ValueError("LEGACY_FACT_CATALOG_CHANGED")
+        if p["key"] == "funny" and (
+            len(core) != 4
+            or any({"a": s["body"], "b": s.get("punch")} not in catalog for s in core)
+        ):
+            raise ValueError("LEGACY_FUNNY_CATALOG_CHANGED")
+        if p["key"] == "riddle" and (
+            len(core) != 6
+            or any(
+                {"q": core[i]["body"], "a": core[i + 1]["body"]} not in catalog
+                or core[i].get("countdown") != 5
+                for i in (0, 2, 4)
+            )
+        ):
+            raise ValueError("LEGACY_RIDDLE_CATALOG_CHANGED")
+    for asset in p.get("assets", []):
+        if assets is not None:
+            resource(assets, asset["file"], asset["sha256"])
+    if assets is not None:
+        for item in scenes:
+            if item.get("verse"):
+                surah, ayah = item["verse"]
+                url = f"https://quranenc.com/api/v1/translation/aya/arabic_moyassar/{surah}/{ayah}"
+                responses = [a for a in p["assets"] if a["source_url"] == url]
+                if not responses:
+                    raise ValueError("LEGACY_TAFSIR_SOURCE_MISSING")
+                raw = resource(assets, responses[-1]["file"], responses[-1]["sha256"]).read_bytes()
+                data = json.loads(raw)["result"]
+                expected = html.unescape(re.sub("<[^>]*>", "", data["translation"]))
+                if (
+                    expected != item["tafsir"]
+                    or int(data["sura"]) != surah
+                    or int(data["aya"]) != ayah
+                ):
+                    raise ValueError("LEGACY_TAFSIR_SOURCE_CHANGED")
+            if item.get("role") in {"story", "headline", "point"}:
+                from studio_core.sources import for_command
+                from studio_core.sources.news import MAX_AGE
+
+                key = "news" if p["key"] == "news_noon" else p["key"]
+                allowed = {s.id: s for s in for_command(key) if s.status == "approved"}
+                source = allowed.get(item.get("source_id"))
+                if (
+                    source is None
+                    or source.name != item.get("source")
+                    or not 0 <= time.time() - item.get("published", 0) < MAX_AGE[key]
+                ):
+                    raise ValueError("LEGACY_NEWS_SOURCE_OR_TIME_INVALID")
+                article = asset_map.get(item.get("article"))
+                if article is None or article["source_url"] != item.get("source_url"):
+                    raise ValueError("LEGACY_ARTICLE_PROOF_MISSING")
+                from . import parsing
+                from .prepare import safe_xml
+
+                page = resource(assets, article["file"], article["sha256"]).read_text()
+                text = parsing.words_only(parsing.body_text(page))
+                feed = asset_map.get(item.get("feed"))
+                if feed is None or feed["source_url"] != source.url:
+                    raise ValueError("LEGACY_FEED_PROOF_MISSING")
+                raw = resource(assets, feed["file"], feed["sha256"]).read_bytes()
+                if source.kind == "rss":
+                    candidates = [
+                        e
+                        for e in safe_xml(raw).iter("item")
+                        if (e.findtext("link") or "").strip() == item["source_url"]
+                    ]
+                    if not candidates:
+                        raise ValueError("LEGACY_STORY_NOT_IN_FEED")
+                    entry = candidates[0]
+                    title = parsing.clean(entry.findtext("title") or "")
+                    detail = parsing.clean(
+                        entry.findtext("{http://purl.org/rss/1.0/modules/content/}encoded")
+                        or entry.findtext("description")
+                        or ""
+                    )
+                    if (
+                        item["role"] in {"story", "headline"}
+                        and item.get("head", item["body"]) != title
+                    ):
+                        raise ValueError("LEGACY_HEADLINE_CHANGED")
+                else:
+                    detail = text
+                if item["role"] == "story" and item["body"].rstrip(
+                    "…"
+                ) not in detail + " " + parsing.clean(text):
+                    raise ValueError("LEGACY_DETAIL_NOT_IN_SOURCE")
+                if item["role"] == "point":
+                    pairs = parsing.plain_points(parsing.body_text(page), detail)
+                    if not any(
+                        p["body"] == item["body"] and p["head"] == item.get("head") for p in pairs
+                    ):
+                        raise ValueError("LEGACY_POINT_NOT_IN_ARTICLE")
+                if urlsplit(item["source_url"]).hostname == "news.google.com":
+                    raise ValueError("LEGACY_AGGREGATOR_IS_NOT_ARTICLE")
+    return p
+
+
+def scene(body: str, seconds: float, **extra: Any) -> dict[str, Any]:
+    return {"body": body, "seconds": seconds, **extra}
+
+
+def timed(scenes: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], float]:
+    at = 0.0
+    for item in scenes:
+        item["at"] = at
+        at += item["seconds"]
+    return scenes, at

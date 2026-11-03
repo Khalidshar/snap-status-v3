@@ -510,6 +510,20 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
             continue
         text = accepted[0]
         parsed = menu.parse(text)
+        from studio_core.production import enabled as production_enabled
+        from studio_core.production.model import TITLES as PRODUCTION_KINDS
+
+        if (
+            production_enabled()
+            and parsed["kind"] == "command"
+            and parsed["command"].key in PRODUCTION_KINDS
+        ):
+            reply = studio.make(RENDER_KINDS.get(parsed["command"].key, parsed["command"].key))
+            if reply:
+                transport(
+                    token, "sendMessage", json.dumps({"chat_id": owner, "text": reply}).encode()
+                )
+            continue
         if parsed["kind"] == "command" and parsed["command"].key == "brief":
 
             def text_reply(message: str) -> None:

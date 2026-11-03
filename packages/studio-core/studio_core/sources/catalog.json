@@ -27,7 +27,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -47,7 +48,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -67,7 +69,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -87,7 +90,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -107,7 +111,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -127,7 +132,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -147,7 +153,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -167,7 +174,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -187,7 +195,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -207,7 +216,8 @@
         "news",
         "football",
         "markets",
-        "brief"
+        "brief",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",
@@ -605,7 +615,8 @@
       "commands": [
         "verse",
         "friday",
-        "kahf"
+        "kahf",
+        "isha"
       ],
       "kind": "catalog",
       "language": "ar",
@@ -637,7 +648,8 @@
         "friday",
         "kahf",
         "adhkar_am",
-        "adhkar_pm"
+        "adhkar_pm",
+        "isha"
       ],
       "kind": "reference",
       "language": "ar",
@@ -721,7 +733,8 @@
         "friday",
         "kahf",
         "adhkar_am",
-        "adhkar_pm"
+        "adhkar_pm",
+        "isha"
       ],
       "kind": "human_audio",
       "language": "ar",
@@ -737,7 +750,8 @@
       "commands": [
         "verse",
         "friday",
-        "kahf"
+        "kahf",
+        "isha"
       ],
       "kind": "human_audio",
       "language": "ar",
@@ -1466,7 +1480,8 @@
       "name": "جوجل: الموجز",
       "url": "https://news.google.com/rss/search?q=%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1+%D8%A7%D9%84%D9%8A%D9%88%D9%85+when%3A1d&hl=ar&gl=SA&ceid=SA%3Aar",
       "commands": [
-        "news"
+        "news",
+        "news_noon"
       ],
       "kind": "rss",
       "language": "ar",

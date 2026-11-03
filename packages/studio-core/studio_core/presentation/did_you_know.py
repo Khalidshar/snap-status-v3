@@ -179,6 +179,10 @@ def make_content(fact: dict[str, Any], now: float, kind: str = DEFAULT_KIND) -> 
 
 
 def content_kind(value: dict[str, Any]) -> str:
+    if value.get("legacy_production"):
+        from studio_core.production.model import validate
+
+        return str(validate(value)["key"])
     kind = value.get("kind", DEFAULT_KIND)
     if not isinstance(kind, str) or kind not in KINDS or (kind == DEFAULT_KIND and "kind" in value):
         raise ValueError("Unknown content kind")
@@ -187,6 +191,10 @@ def content_kind(value: dict[str, Any]) -> str:
 
 def is_sacred(value: dict[str, Any]) -> bool:
     """The content's sacred flag, which must match its kind exactly."""
+    if value.get("legacy_production"):
+        from studio_core.production.model import SACRED, validate
+
+        return validate(value)["key"] in SACRED
     kind = content_kind(value)
     if value.get("sacred") is not (kind in SACRED_KINDS):
         raise ValueError("Unapproved fact content")
@@ -194,6 +202,11 @@ def is_sacred(value: dict[str, Any]) -> bool:
 
 
 def validate_content(value: dict[str, Any]) -> dict[str, Any]:
+    if value.get("legacy_production"):
+        from studio_core.production.model import validate
+
+        validate(value)
+        return {"id": value["fact_id"], "text": value["body"], "category": value["category"]}
     if value.get("type") != "did_you_know":
         raise ValueError("Unapproved fact content")
     is_sacred(value)
@@ -344,6 +357,12 @@ def choose_fact(
     catalog: str | Path = CATALOG,
     kind: str = DEFAULT_KIND,
 ) -> tuple[dict[str, Any], list[Any]]:
+    from studio_core.production import enabled
+
+    if enabled():
+        from studio_core.production.pipeline import choose
+
+        return choose(repo, job, token, attempt, kind), []
     now = repo.clock()
     day = datetime.fromtimestamp(now, UTC).date()
     facts = load_facts(catalog, day) if kind == DEFAULT_KIND else load_kind(kind, day)

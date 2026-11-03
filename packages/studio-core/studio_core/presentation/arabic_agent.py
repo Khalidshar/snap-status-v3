@@ -87,6 +87,16 @@ def check_sacred(kind: object, fact_id: object, body: object) -> dict[str, Any]:
 def inspect_content(content: object) -> dict[str, Any]:
     if not isinstance(content, dict) or content.get("type") != "did_you_know":
         raise ValueError("ARABIC_CONTENT_INVALID")
+    if content.get("legacy_production"):
+        from studio_core.production.model import validate
+
+        plan = validate(content)
+        return {
+            "version": RULE_VERSION,
+            "decision": "PASS",
+            "checks": ["legacy_source_verbatim", "sacred_exact", "chromium_layout_pending"],
+            "line_lengths": [len(s["body"]) for s in plan["scenes"]],
+        }
     if content.get("sacred") is True:
         return check_sacred(content.get("kind"), content.get("fact_id"), content.get("body"))
     if content.get("sacred") is not False:

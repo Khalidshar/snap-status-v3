@@ -192,9 +192,14 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         kind = (
             provenance.get("kind", DEFAULT_KIND) if isinstance(provenance, dict) else DEFAULT_KIND
         )
-        if kind not in KINDS:
+        from studio_core.production import enabled as production_enabled
+        from studio_core.production.model import TITLES as PRODUCTION_KINDS
+
+        if kind not in (PRODUCTION_KINDS if production_enabled() else KINDS):
             raise ValueError("Unknown content kind")
         settings["kind"] = kind
+        if production_enabled():
+            settings["profile"]["timeout_seconds"] = 3600
         repo = Repository(config)
         history = provenance.get("fact_history", []) if isinstance(provenance, dict) else []
         if history:
@@ -223,7 +228,7 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             "RestrictAddressFamilies=AF_UNIX",
             "ReadWritePaths=" + str(spool) + " " + str(socket_dir),
             "InaccessiblePaths=" + str(state) + " -/run/madar",
-            "RuntimeMaxSec=300",
+            "RuntimeMaxSec=3600",
         ]
         if os.environ.get("MADAR_QURAN_AUDIO") == "1":
             properties.append(
@@ -232,6 +237,15 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         args = ["sudo", "-n", "systemd-run", "--quiet", "--collect", "--unit=" + unit]
         for value in properties:
             args += ["--property=" + value]
+        for name in (
+            "MADAR_LEGACY_PRODUCTION",
+            "MADAR_PRODUCTION_STATE_ROOT",
+            "MADAR_CHROMIUM",
+            "MADAR_NODE",
+            "NODE_PATH",
+        ):
+            if name in os.environ:
+                args += ["--setenv=" + name + "=" + os.environ[name]]
         args += [
             "--setenv=PYTHONPATH=" + str(ROOT / "apps/snap-bot"),
             "--setenv=PYTHONDONTWRITEBYTECODE=1",

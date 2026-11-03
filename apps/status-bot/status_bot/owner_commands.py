@@ -86,6 +86,8 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
             and halted()
         ):
             send(STOPPED)
+        elif production_content(key):
+            content_clips.send(outbox, transport, item, str(key), runtime)
         elif key == "brief":
             daily_brief.send(outbox, transport, news, item, runtime)
         elif key == "agents":
@@ -169,3 +171,10 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def production_content(key: Any) -> bool:
+    from studio_core.production import enabled
+    from studio_core.production.model import TITLES
+
+    return enabled() and key in TITLES

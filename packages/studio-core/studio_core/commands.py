@@ -41,7 +41,7 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("style", "👗 الأناقة والجمال", ("الأناقة",), False),
         ("riddle", "🧠 لغز اليوم", ("لغز",), False),
         ("funny", "😂 مواقف طريفة", ("طرائف",), False),
-        ("night", "🌙 قبل النوم", ("ليلة طيبة",), False),
+        ("night", "🌙 قبل النوم", (), False),
     )),
     ("faith", "🕌 أذكار ودين", (
         ("adhkar_am", "🌅 أذكار الصباح", ("اذكار الصباح",), False),
@@ -93,6 +93,12 @@ def _build() -> tuple[Command, ...]:
     for section, _, rows in SECTIONS:
         for key, label, aliases, confirm in rows:
             commands.append(Command(len(commands) + 1, key, label, section, aliases, confirm))
+    commands.extend(
+        (
+            Command(len(commands) + 1, "news_noon", "📰 أخبار الظهر", "news", ("نشرة الظهر",)),
+            Command(len(commands) + 2, "isha", "🌙 ليلة طيبة", "faith", ("ليلة طيبه",)),
+        )
+    )
     return tuple(commands)
 
 
