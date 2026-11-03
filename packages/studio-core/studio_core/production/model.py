@@ -224,11 +224,12 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
         )
         core = scenes[1:-1]
         if p["key"] in {"facts", "did_you_know"} and (
-            len(core) != 4 or any(s["body"] not in catalog for s in core)
+            len(core) != (6 if p.get("app") == "snap-bot-v2" else 4)
+            or any(s["body"] not in catalog for s in core)
         ):
             raise ValueError("LEGACY_FACT_CATALOG_CHANGED")
         if p["key"] == "funny" and (
-            len(core) != 4
+            len(core) != (6 if p.get("app") == "snap-bot-v2" else 4)
             or any({"a": s["body"], "b": s.get("punch")} not in catalog for s in core)
         ):
             raise ValueError("LEGACY_FUNNY_CATALOG_CHANGED")
