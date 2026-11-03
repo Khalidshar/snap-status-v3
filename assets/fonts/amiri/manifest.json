@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "family": "Amiri Quran",
+  "file": "AmiriQuran.ttf",
+  "sha256": "8fa95faaf7bd18b71789f6f57312003e30c5029218a035e5baf613a0222ab82d",
+  "license_file": "OFL.txt",
+  "license_sha256": "72de68e5954f4fdd24702292ef5a32f003ca960ec9330dc86e5eefb5dffb9b22",
+  "source": "https://github.com/aliftype/amiri",
+  "commit": "d3d0c5cb6fe7196cb4a58608fc5c8ecd2e6e80fa"
+}

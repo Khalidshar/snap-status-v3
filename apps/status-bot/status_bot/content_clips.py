@@ -54,6 +54,7 @@ KINDS = {
     "friday": "friday",
     "kahf": "kahf",
     "riddle": "riddle",
+    "isha": "verse",
 }
 CHAIN = (
     "fact_source",
@@ -244,7 +245,7 @@ def build(
             "1.0.0",
             PLAN,
             (previous,) if previous else (),
-            900 if role == "design" else 30,
+            900 if role == "design" or (production and role == "fact_source") else 30,
         )
         ledger = outbox.repo.config.data_root / "agent-status.sqlite"
         role_status.record(ledger, "status-bot-v2", role, "RUNNING")

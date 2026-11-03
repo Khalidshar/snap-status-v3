@@ -39,6 +39,9 @@ def choose(repo: Repository, job: str, token: str, attempt: int, key: str) -> di
             validate(value)
             return dict(value)
     value = prepare(repo.config.app, key, job, source_root(repo.config.app, job))
+    from .oversight import execute
+
+    execute(repo, job, token, attempt, value, source_root(repo.config.app, job))
     with repo.owned_transaction(job, token, attempt=attempt) as db:
         db.execute(
             "INSERT INTO fact_reservations VALUES(?,?,?,?,?)",
@@ -66,6 +69,7 @@ def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> None
     for a in p["assets"]:
         path = resource(source, a["file"], a["sha256"])
         write_once(input_path.parent / a["file"], path.read_bytes())
+        track_qf(p, input_path.parent / a["file"], asset=a)
     write_once(
         input_path.with_name("legacy.json"),
         canonical({"schema": 1, "app": app, "job": job, "content_hash": content["content_hash"]}),
@@ -136,7 +140,32 @@ def render(
         out / "render-result.json",
         json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2).encode(),
     )
+    for path in (
+        out / "did-you-know.mp4",
+        work / "production/video.mp4",
+        *sorted((work / "production").glob("attempt-*/*.mp4")),
+        *sorted((work / "production").glob("attempt-*/mix.wav")),
+    ):
+        track_qf(p, path)
     return result
+
+
+def track_qf(plan: dict[str, Any], path: Path, *, asset: dict[str, Any] | None = None) -> None:
+    records = (
+        [a for a in plan["assets"] if a.get("qf_job")]
+        if asset is None
+        else [asset]
+        if asset.get("qf_job")
+        else []
+    )
+    if not records:
+        return
+    from studio_core.religious.quran_pipeline import store_for
+
+    store = store_for(plan["app"])
+    store.sweep()
+    record = min(records, key=lambda a: a["expires_at"])
+    store.track(path, record["qf_job"], record["expires_at"], file_sha256(path))
 
 
 def check_result(result: dict[str, Any]) -> float:

@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -16,6 +17,21 @@ from studio_core.production.model import TITLES
 from studio_core.production.prepare import prepare
 
 KINDS = tuple(key for key in TITLES if key != "did_you_know")
+NAMES = {"urgent": "عاجل", "facts": "هل-تعلم", "news": "الموجز", "news_noon": "أخبار-الظهر"}
+
+
+def export_report(root: Path, report: list[dict[str, object]]) -> None:
+    lines = ["| الأمر | البوت | الصورة | الصوت | الطول | الجودة |", "|---|---|---|---|---|---|"]
+    for row in report:
+        lines.append(
+            "| "
+            + " | ".join(
+                str(row.get(k, "—"))
+                for k in ("label", "app", "images", "audio", "duration", "result")
+            )
+            + " |"
+        )
+    (root / "quality-matrix.md").write_text("\n".join(lines) + "\n")
 
 
 def main() -> int:
@@ -47,9 +63,14 @@ def main() -> int:
         for app in ("snap", "status") if args.app == "both" else (args.app,):
             for key in args.commands:
                 target = root / app / key
-                entry = {"app": app, "command": key, "external_delivery": False}
+                entry = {
+                    "app": app,
+                    "command": key,
+                    "label": TITLES[key],
+                    "external_delivery": False,
+                }
                 try:
-                    prepare(
+                    value = prepare(
                         app + "-bot-v2",
                         key,
                         uuid.uuid4().hex,
@@ -70,10 +91,24 @@ def main() -> int:
                         timeout=3600,
                     )
                     data = json.loads((target / "output/report.json").read_bytes())
+                    name = app + "-" + NAMES.get(key, TITLES[key].replace(" ", "-"))
+                    video = root / (name + ".mp4")
+                    shutil.copyfile(target / "output/video.mp4", video)
+                    from studio_core.production.caption import caption
+
+                    (root / (name + ".txt")).write_text(caption(value))
+                    plan = value["legacy_production"]
+                    entry.update(
+                        {
+                            "images": sum(bool(s.get("image")) for s in plan["scenes"]),
+                            "audio": data["qa"]["audio"],
+                            "duration": data["qa"]["duration"],
+                        }
+                    )
                     entry.update(
                         {
                             "result": "PASS",
-                            "video": str((target / "output/video.mp4").relative_to(root)),
+                            "video": str(video.relative_to(root)),
                             "sha256": data["video_sha256"],
                             "qa": data["qa"],
                         }
@@ -84,6 +119,7 @@ def main() -> int:
                     )
                 report.append(entry)
                 (root / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))
+                export_report(root, report)
                 print(app, key, entry["result"], flush=True)
     finally:
         broker.terminate()

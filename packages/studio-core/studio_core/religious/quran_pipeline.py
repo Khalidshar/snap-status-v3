@@ -159,13 +159,18 @@ def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> bool
 
 
 def track(result: dict[str, Any], path: Path, digest: str) -> None:
+    if result.get("legacy_production"):
+        from studio_core.production.pipeline import track_qf
+
+        track_qf(result["legacy_production"]["content"]["legacy_production"], path)
+        return
     record = result.get("quran_foundation")
     if record:
         store_for(record["app"]).track(path, result["job_id"], record["expires_at"], digest)
 
 
 def track_bundle(result: dict[str, Any], directory: Path, preview_sha: str) -> None:
-    if not result.get("quran_foundation"):
+    if not result.get("quran_foundation") and not result.get("legacy_production"):
         return
     track(result, directory / "did-you-know.mp4", result["video_sha256"])
     track(result, directory / "preview.png", preview_sha)

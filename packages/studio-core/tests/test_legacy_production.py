@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import uuid
 from dataclasses import replace
 from urllib.parse import urlencode
@@ -244,11 +245,12 @@ def test_actual_offline_chromium_frame_audio_and_six_shot_judge(tmp_path, audio)
     out = tmp_path / "output"
     run = subprocess.run(  # noqa: S603 — test-only offline renderer
         [sys.executable, "-m", "studio_core.production.render", str(f.root), str(out)],
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
         timeout=1800,
     )
+    assert run.returncode == 0, run.stderr[-6000:]
     result = json.loads((out / "report.json").read_bytes())
     assert result["qa"]["result"] == "PASS" and result["external_delivery"] is False
     assert all(result["network_isolation"].values())
@@ -287,7 +289,7 @@ def test_bulletin_and_article_points_have_actual_source_assets(tmp_path, audio, 
     from studio_core.sources import for_command
 
     source = next(s for s in for_command(key) if s.id == ("bbc-ar" if key == "news" else "aitnews"))
-    published = email.utils.formatdate(usegmt=True)
+    published = email.utils.formatdate(time.time() - 60, usegmt=True)
     host = "https://www.bbc.com/arabic" if key == "news" else "https://aitnews.com"
     title = "أخبار السعودية والتقنية الجديدة"
     paragraph = "تطور جديد في المملكة العربية السعودية والتقنية الحديثة ومعلومات من المصدر الرسمي. "
@@ -522,3 +524,280 @@ def test_article_extraction_keeps_complete_source():
 
     text = "معلومة موثقة من المصدر " * 400
     assert len(body_text("<article><p>" + text + "</p></article>")) > 6000
+
+
+def test_translation_checks_source_echo_language_and_numbers():
+    from studio_core.production.translation import decode
+
+    raw = json.dumps(
+        [[["أطلقت شانيل 3 عطور في 2027.", "Chanel launched 3 perfumes in 2027."]]]
+    ).encode()
+    assert "2027" in decode("Chanel launched 3 perfumes in 2027.", raw)
+    with pytest.raises(ValueError, match="FACTS"):
+        decode(
+            "Chanel launched 4 perfumes in 2027.",
+            json.dumps(
+                [[["أطلقت شانيل 3 عطور في 2027.", "Chanel launched 4 perfumes in 2027."]]]
+            ).encode(),
+        )
+    with pytest.raises(ValueError, match="ECHO"):
+        decode("Another article.", raw)
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+def test_english_article_translation_is_bound_to_full_source(tmp_path, audio, picture, app):
+    import email.utils
+    from urllib.parse import parse_qs, urlsplit
+
+    from studio_core.sources import for_command
+
+    source = next(s for s in for_command("style") if s.id == "vogue")
+    title = "Chanel fashion collection 2027"
+    paragraph = (
+        "The designer presented a new fashion collection with elegant dresses "
+        "and detailed fabrics at the runway show. "
+    )
+    page = (
+        '<meta property="og:image" content="https://www.vogue.com/picture.jpg"><article>'
+        + "".join(
+            f"<h2>Fashion collection {i}</h2><p>Series {i}: {paragraph * 4}</p>" for i in range(3)
+        )
+        + "</article>"
+    )
+    published = email.utils.formatdate(time.time() - 60, usegmt=True)
+    rss = (
+        f"<rss><channel><item><title>{title}</title>"
+        "<link>https://www.vogue.com/article/test</link>"
+        f"<pubDate>{published}</pubDate><description>{paragraph}</description>"
+        "</item></channel></rss>"
+    )
+
+    class English(Sources):
+        def get(self, url):
+            if url == source.url:
+                raw = rss.encode()
+            elif url == "https://www.vogue.com/article/test":
+                raw = page.encode()
+            elif url == "https://www.vogue.com/picture.jpg":
+                raw = picture
+            elif "translate.googleapis.com" in url:
+                text = parse_qs(urlsplit(url).query)["q"][0]
+                import re
+
+                nums = re.findall(r"\d+", text)
+                target = "مجموعة أزياء شانيل وتفاصيل الأقمشة والفساتين الجديدة " + " ".join(nums)
+                raw = json.dumps([[[target, text]]]).encode()
+            elif "free-stock-music.com/music/" in url:
+                raw = audio
+            else:
+                raise RuntimeError("fixture source unavailable")
+            return NetworkResponse(200, "", raw, sha(raw))
+
+    f = Factory(
+        app,
+        "style",
+        uuid.uuid4().hex,
+        tmp_path / "input",
+        client=English(audio),
+        state=tmp_path / "state",
+    )
+    value = f.build()
+    p = validate(value, assets=f.root)
+    assert p["scenes"][0]["at"] == 0
+    assert all(s.get("translations") for s in p["scenes"][:-1])
+    assert (
+        len(
+            next(
+                (f.root / a["file"]).read_text()
+                for a in p["assets"]
+                if a["source_url"] == "https://www.vogue.com/article/test"
+            )
+        )
+        > 1200
+    )
+    changed = copy.deepcopy(value)
+    changed["legacy_production"]["scenes"][1]["body"] += " خبر غير موجود بالمصدر"
+    with pytest.raises(ValueError, match="TRANSLATION_DISPLAY_CHANGED"):
+        validate(reseal(changed), assets=f.root)
+
+
+def test_top_brand_priority_is_case_insensitive_and_not_a_fashion_limit():
+    from studio_core.production.prepare import Factory
+    from studio_core.sources.news import top_brand
+
+    assert top_brand("style", "CHANEL fashion week")
+    assert top_brand("style", "إطلالة من ديور")
+    assert Factory.editorial_match("style", "Independent designer runway fashion", "en")
+    assert not Factory.editorial_match("style", "Stock market report", "en")
+
+
+def test_bundled_amiri_covers_every_locked_quran_character():
+    from studio_core.presentation.faith import _subset
+    from studio_core.production.render import verify_fonts
+
+    verify_fonts(
+        {"scenes": [{"body": text, "verse": [s, a]} for (s, a), text in _subset()[0].items()]}
+    )
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+def test_isha_production_dispatch_and_all_content_commands_cover_both_bots(monkeypatch, app):
+    from snap_bot import owner_commands as snap
+    from status_bot import content_clips
+    from status_bot import owner_commands as status
+    from studio_core import commands
+    from studio_core.production.model import TITLES
+
+    for c in commands.COMMANDS:
+        if c.section in {"news", "general", "faith", "brief"}:
+            assert c.key in TITLES
+    monkeypatch.setenv("MADAR_LEGACY_PRODUCTION", "1")
+    assert status.production_content("isha")
+    assert "isha" in content_clips.KINDS and "isha" in snap.RENDER_KINDS
+    assert content_clips.KINDS["isha"] == snap.RENDER_KINDS["isha"] == "verse"
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+def test_night_number_and_verified_hadith_in_both_bots(tmp_path, monkeypatch, audio, app):
+    from datetime import date, datetime
+    from zoneinfo import ZoneInfo
+
+    f = Factory(
+        app,
+        "night",
+        uuid.uuid4().hex,
+        tmp_path / "input",
+        client=Sources(audio),
+        state=tmp_path / "state",
+    )
+    monkeypatch.setattr(
+        f,
+        "adhkar",
+        lambda *a, **kw: {
+            "body": "أذكار النوم من حصن المسلم",
+            "seconds": 9.0,
+            "role": "adhkar",
+            "audio": f.save(audio, ".mp3", "https://archive.org/test", "حصن المسلم"),
+            "audio_duration": 2.0,
+        },
+    )
+    value = f.build()
+    p = validate(value, assets=f.root)
+    assert (
+        p["night_number"]
+        == (datetime.now(ZoneInfo("Asia/Riyadh")).date() - date(2026, 9, 26)).days + 1
+    )
+    assert not p["music"] and not p["effects"]
+    assert any(s.get("grade") == "صحيح" for s in p["scenes"] if s["role"] == "hadith")
+    changed = copy.deepcopy(value)
+    changed["legacy_production"]["night_number"] += 1
+    with pytest.raises(ValueError, match="NIGHT_NUMBER"):
+        validate(reseal(changed))
+
+
+@pytest.mark.parametrize("app,config_name", [("snap-bot-v2", "snap"), ("status-bot-v2", "status")])
+def test_six_oversight_roles_are_durable_for_both_source_pipelines(
+    tmp_path, monkeypatch, audio, app, config_name
+):
+    from studio_core.production import pipeline
+    from studio_core.production.oversight import ROLES
+
+    monkeypatch.setenv("MADAR_LEGACY_PRODUCTION", "1")
+    f = Factory(
+        app,
+        "facts",
+        uuid.uuid4().hex,
+        tmp_path / "input",
+        client=Sources(audio),
+        state=tmp_path / "state",
+    )
+    value = f.build()
+    config = replace(
+        Config.load(ROOT / f"config/{config_name}/weather.toml"),
+        data_root=tmp_path / "jobs",
+        command_allowlist=("did_you_know",),
+    )
+    repo = Repository(config)
+    job, _ = repo.enqueue("source", "owner", "did_you_know", "NORMAL", "input", repo.clock() + 1200)
+    claim = repo.claim(job_id=job["id"])
+    repo.transition(job["id"], claim["lease_token"], "RESEARCHING")
+    monkeypatch.setattr(pipeline, "prepare", lambda *a: value)
+    monkeypatch.setattr(pipeline, "source_root", lambda *a: f.root)
+    pipeline.choose(repo, job["id"], claim["lease_token"], claim["attempt"], "facts")
+    with repo.connect() as db:
+        rows = db.execute(
+            "SELECT role,status FROM agent_runs WHERE job_id=?", (job["id"],)
+        ).fetchall()
+    assert {r["role"] for r in rows if r["status"] == "SUCCEEDED"} == set(ROLES)
+
+
+@pytest.mark.parametrize("app,short", [("snap-bot-v2", "snap"), ("status-bot-v2", "status")])
+def test_foundation_is_optional_third_human_provider_and_tracks_retention(
+    tmp_path, monkeypatch, audio, app, short
+):
+    import importlib
+
+    from studio_core.religious import quran_foundation, quran_pipeline
+
+    module = importlib.import_module("studio_core.production.prepare")
+    monkeypatch.setenv("MADAR_QURAN_AUDIO", "1")
+    clock = [time.time()]
+    store = quran_foundation.Store(tmp_path / ("quran-" + short), app, clock=lambda: clock[0])
+    monkeypatch.setattr(quran_pipeline, "store_for", lambda scope: store)
+
+    class Broker:
+        def get(self, url):
+            raw = json.dumps({"configured": True, "environment": "production"}).encode()
+            return NetworkResponse(200, "application/json", raw, sha(raw))
+
+    class Foundation:
+        def __init__(self, client, environment):
+            assert environment == "production"
+
+        def catalog(self, policy):
+            return {"reciters": [{"id": 999, "name": "قارئ جديد"}]}
+
+        def audio(self, verse, reader):
+            assert verse == "94:5" and reader["id"] == 999
+            return audio
+
+    monkeypatch.setattr(module, "NetworkClient", lambda config: Broker())
+    monkeypatch.setattr(quran_foundation, "Source", Foundation)
+
+    class FailedPrimary(Sources):
+        def get(self, url):
+            if "quranenc.com" in url or url.endswith("/reads"):
+                return super().get(url)
+            raise RuntimeError("keyless sources unavailable in fixture")
+
+    f = Factory(
+        app,
+        "verse",
+        uuid.uuid4().hex,
+        tmp_path / short / "production/payloads" / uuid.uuid4().hex,
+        client=FailedPrimary(audio),
+        state=tmp_path / short / "state",
+    )
+    scenes = f.quran(94, [5])
+    assert "مؤسسة القرآن" in scenes[0]["source"] and "قارئ جديد" in scenes[0]["source"]
+    asset = next(a for a in f.assets if a.get("qf_job"))
+    copied = f.root / asset["file"]
+    assert copied.is_file()
+    clock[0] += 7 * 86400
+    store.sweep()
+    assert not copied.exists()
+    assert store.db.exists()  # Rotation and audit evidence survive the media cleanup.
+
+
+def test_quran_rotation_never_repeats_same_human_across_provider_ids(tmp_path, monkeypatch, audio):
+    f = factory(tmp_path, "verse", Sources(audio))
+    first = f.quran(94, [5])[0]["source"]
+    second = Factory(
+        "snap-bot-v2",
+        "verse",
+        uuid.uuid4().hex,
+        tmp_path / "next",
+        client=Sources(audio),
+        state=tmp_path / "ledger",
+    )
+    assert second.quran(94, [5])[0]["source"] != first

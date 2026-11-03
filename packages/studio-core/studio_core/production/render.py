@@ -24,6 +24,27 @@ def verify_fonts(p: dict[str, Any]) -> None:
     from studio_core.presentation import quran_font
 
     quran_font.verify()
+    amiri = ROOT / "assets/fonts/amiri"
+    amiri_manifest = json.loads((amiri / "manifest.json").read_bytes())
+    if (
+        amiri_manifest.get("file") != "AmiriQuran.ttf"
+        or amiri_manifest.get("sha256")
+        != "8fa95faaf7bd18b71789f6f57312003e30c5029218a035e5baf613a0222ab82d"
+        or amiri_manifest.get("license_sha256")
+        != "72de68e5954f4fdd24702292ef5a32f003ca960ec9330dc86e5eefb5dffb9b22"
+    ):
+        raise ValueError("LEGACY_AMIRI_MANIFEST_CHANGED")
+    for name, digest in (("AmiriQuran.ttf", "sha256"), ("OFL.txt", "license_sha256")):
+        if (amiri / name).is_symlink() or sha((amiri / name).read_bytes()) != amiri_manifest[
+            digest
+        ]:
+            raise ValueError("LEGACY_AMIRI_FONT_CHANGED")
+    quran_charset = run(
+        ["/usr/bin/fc-query", "--format=%{charset}", str(amiri / "AmiriQuran.ttf")], 5
+    ).stdout
+    for scene in p["scenes"]:
+        if scene.get("verse"):
+            ensure_glyphs(scene["body"], quran_charset)
     folder = ROOT / "assets/fonts/notoemoji"
     emoji = json.loads((folder / "manifest.json").read_bytes())
     for file, key in [(emoji["file"], "sha256"), (emoji["license_file"], "license_sha256")]:

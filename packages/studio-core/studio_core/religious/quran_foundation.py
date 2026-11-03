@@ -127,8 +127,14 @@ class Store:
         coordinator = short == "snap" and path.is_relative_to(self.root.parent / "render-work")
         if not (path.is_relative_to(app_root) or temporary or coordinator):
             raise ValueError("QF_COPY_OUTSIDE_APP")
-        if path.name not in {"did-you-know.mp4", "preview.png", "video.mp4"} and not re.fullmatch(
-            r"\.adopt-[A-Za-z0-9_-]+", path.name
+        asset_copy = path.parent.name == "assets" and bool(
+            re.fullmatch(r"[0-9]{3}\.mp3", path.name)
+        )
+        if (
+            not asset_copy
+            and path.name
+            not in {"did-you-know.mp4", "preview.png", "video.mp4", "clip.mp4", "mix.wav"}
+            and not re.fullmatch(r"\.adopt-[A-Za-z0-9_-]+", path.name)
         ):
             raise ValueError("QF_COPY_TYPE_DENIED")
         if any(p.is_symlink() for p in (path, *path.parents)):

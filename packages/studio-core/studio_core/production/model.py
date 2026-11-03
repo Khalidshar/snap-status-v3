@@ -6,6 +6,7 @@ import json
 import math
 import re
 import time
+from datetime import date
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -66,6 +67,29 @@ def resource(root: Path, name: str, expected: str) -> Path:
     if sha(path.read_bytes()) != expected:
         raise ValueError("LEGACY_ASSET_CHANGED")
     return path
+
+
+def original_field(item: dict[str, Any], field: str, root: Path, assets: dict[str, Any]) -> str:
+    """Bind displayed Arabic to the retained translation of its exact source field."""
+    from urllib.parse import parse_qs, urlsplit
+
+    from .translation import decode, request_url
+
+    target = str(item.get(field, ""))
+    name = item.get("translations", {}).get(field)
+    if name is None:
+        return target
+    proof = assets.get(name)
+    if proof is None:
+        raise ValueError("TRANSLATION_PROOF_MISSING")
+    query = parse_qs(urlsplit(proof["source_url"]).query)
+    originals = query.get("q", [])
+    if len(originals) != 1 or proof["source_url"] != request_url(originals[0]):
+        raise ValueError("TRANSLATION_PROOF_SCOPE_CHANGED")
+    raw = resource(root, name, proof["sha256"]).read_bytes()
+    if target != decode(originals[0], raw):
+        raise ValueError("TRANSLATION_DISPLAY_CHANGED")
+    return str(originals[0])
 
 
 def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, Any]:
@@ -142,6 +166,30 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             for s in stories
         ):
             raise ValueError("LEGACY_BULLETIN_SOURCE_MISSING")
+    if p["key"] == "night":
+        night_date = date.fromisoformat(p.get("night_date", ""))
+        number = max(1, (night_date - date(2026, 9, 26)).days + 1)
+        if (
+            p.get("night_number") != number
+            or "الليلة " + str(number).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+            not in scenes[0]["body"]
+        ):
+            raise ValueError("LEGACY_NIGHT_NUMBER_CHANGED")
+    for item in scenes:
+        if item.get("role") == "hadith":
+            from studio_core.presentation import faith
+
+            hadith = next(
+                (i for i in faith.load("hadith") if i["id"] == item.get("hadith_id")), None
+            )
+            if (
+                hadith is None
+                or hadith["grade"] != "صحيح"
+                or item.get("grade") != hadith["grade"]
+                or item["body"] != hadith["text"]
+                or item.get("source") != hadith["source"] + " • " + hadith["grade"]
+            ):
+                raise ValueError("LEGACY_HADITH_CHANGED")
     sacred = p["key"] in SACRED
     if value.get("sacred") is not sacred:
         raise ValueError("LEGACY_SACRED_POLICY_CHANGED")
@@ -180,6 +228,11 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
         ):
             raise ValueError("LEGACY_RIDDLE_CATALOG_CHANGED")
     for asset in p.get("assets", []):
+        if (
+            asset.get("qf_job")
+            and not time.time() < asset.get("expires_at", 0) <= time.time() + 7 * 86400
+        ):
+            raise ValueError("LEGACY_QF_ASSET_EXPIRED")
         if assets is not None:
             resource(assets, asset["file"], asset["sha256"])
     if assets is not None:
@@ -241,7 +294,10 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                     )
                     if (
                         item["role"] in {"story", "headline"}
-                        and item.get("head", item["body"]) != title
+                        and original_field(
+                            item, "head" if "head" in item else "body", assets, asset_map
+                        )
+                        != title
                     ):
                         raise ValueError("LEGACY_HEADLINE_CHANGED")
                 else:
@@ -253,7 +309,9 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 if item["role"] == "point":
                     pairs = parsing.plain_points(parsing.body_text(page), detail)
                     if not any(
-                        p["body"] == item["body"] and p["head"] == item.get("head") for p in pairs
+                        p["body"] == original_field(item, "body", assets, asset_map)
+                        and p["head"] == original_field(item, "head", assets, asset_map)
+                        for p in pairs
                     ):
                         raise ValueError("LEGACY_POINT_NOT_IN_ARTICLE")
                 if urlsplit(item["source_url"]).hostname == "news.google.com":

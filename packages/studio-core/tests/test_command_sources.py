@@ -24,7 +24,7 @@ def test_all_existing_commands_are_inspectable_and_controls_have_no_sources():
     assert len(CONTENT_KEYS) == 23
 
 
-@pytest.mark.parametrize("name", ["style", "الأناقة", "٩", "9", "👗 الأناقة والجمال"])
+@pytest.mark.parametrize("name", ["style", "الأناقة", "١٠", "10", "👗 الأناقة والجمال"])
 def test_sources_follow_the_bots_existing_exact_command_matching(name):
     assert for_command(name) == for_command("style")
     assert for_command(name) != for_command("tech")

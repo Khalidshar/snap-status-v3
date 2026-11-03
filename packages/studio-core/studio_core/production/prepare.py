@@ -12,7 +12,7 @@ import sqlite3
 import subprocess
 import time
 import xml.etree.ElementTree as ET
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import quote, unquote, urlencode, urljoin, urlsplit
@@ -77,6 +77,7 @@ class Factory:
         self.assets: list[dict[str, Any]] = []
         self.audio: list[dict[str, Any]] = []
         self.sources: list[dict[str, Any]] = []
+        self.translations: dict[str, str] = {}
         self.root.mkdir(parents=True, exist_ok=False, mode=0o700)
         (root / "assets").mkdir(mode=0o750)
         folder = state or Path(
@@ -165,6 +166,20 @@ class Factory:
             45,
         )
         return self.local(normalized, url, credit)
+
+    def translate(self, text: str) -> str:
+        from .translation import decode, request_url
+
+        if not text:
+            return text
+        if self.key not in {"tech", "style"}:
+            raise ValueError("TRANSLATION_SACRED_OR_NEWS_FORBIDDEN")
+        url = request_url(text)
+        raw = self.get(url)
+        target = decode(text, raw)
+        proof = self.save(raw, ".json", url, "ترجمة آلية مباشرة من النص الإنجليزي الأصلي")
+        self.translations[text] = proof
+        return target
 
     def news_picture(self, item: dict[str, Any]) -> str:
         """Use source images first; Google discovery must match the exact headline."""
@@ -291,15 +306,50 @@ class Factory:
                 continue
         return candidates
 
+    @staticmethod
+    def editorial_match(key: str, text: str, language: str) -> bool:
+        from studio_core.sources.news import matches, top_brand
+
+        if language == "ar":
+            return matches(key, text)
+        return key == "tech" or (
+            key == "style"
+            and (
+                top_brand("style", text)
+                or any(
+                    w in text.casefold()
+                    for w in (
+                        "fashion",
+                        "beauty",
+                        "makeup",
+                        "fragrance",
+                        "perfume",
+                        "runway",
+                        "couture",
+                        "celebrity",
+                        "skincare",
+                        "dress",
+                    )
+                )
+            )
+        )
+
     def news(self) -> list[dict[str, Any]]:
         from studio_core.sources import for_command
-        from studio_core.sources.news import MAX_AGE, matches, published_label
+        from studio_core.sources.news import MAX_AGE, published_label
 
         key = "news" if self.key == "news_noon" else self.key
         now = time.time()
         candidates: list[dict[str, Any]] = []
         for source in for_command(key):
-            if source.status != "approved" or source.language != "ar" or source.kind != "rss":
+            if (
+                source.status != "approved"
+                or (
+                    source.language != "ar"
+                    and not (self.key in {"tech", "style"} and source.language == "en")
+                )
+                or source.kind != "rss"
+            ):
                 continue
             try:
                 raw = self.get(source.url).decode("utf-8", "replace")
@@ -321,7 +371,7 @@ class Factory:
                         not title
                         or not url
                         or not 0 <= now - published < MAX_AGE[key]
-                        or not matches(key, title + " " + detail)
+                        or not self.editorial_match(key, title + " " + detail, source.language)
                     ):
                         continue
                     if self.used(url, reserve=False) or any(
@@ -339,6 +389,7 @@ class Factory:
                             "published": published,
                             "published_label": published_label(published),
                             "feed": feed,
+                            "language": source.language,
                         }
                     )
             except (OSError, ValueError, KeyError, ET.ParseError, TypeError, RuntimeError):
@@ -356,6 +407,12 @@ class Factory:
                         continue
         candidates = [c for c in candidates if urlsplit(c["url"]).hostname != "news.google.com"]
         candidates.sort(key=lambda i: i["published"], reverse=True)
+        if self.key == "style":
+            from studio_core.sources.news import top_brand
+
+            candidates.sort(
+                key=lambda i: top_brand("style", i["title"] + " " + i["detail"]), reverse=True
+            )
         if self.key == "urgent":
             candidates.sort(
                 key=lambda i: parsing.urgency_score(
@@ -392,12 +449,30 @@ class Factory:
                     continue
                 image = self.news_picture(item)
                 if self.key in {"tech", "style"}:
+                    if item.get("language") == "en":
+                        original_title = item["title"]
+                        item["title"] = self.translate(original_title)
+                        item["translations"] = {"body": self.translations[original_title]}
+                        points = [
+                            {
+                                **p,
+                                "head": self.translate(p["head"]) if p["head"] else "",
+                                "body": self.translate(p["body"]),
+                                "translations": {
+                                    field: self.translations[p[field]]
+                                    for field in ("head", "body")
+                                    if p[field]
+                                },
+                            }
+                            for p in points
+                        ]
                     # Exact extracted paragraphs with their matching article image.
                     selected.append(
                         scene(
                             item["title"],
-                            5.0,
+                            max(5.0, len(item["title"]) / 17 + 0.25),
                             role="headline",
+                            translations=item.get("translations", {}),
                             image=image,
                             image_credit=item["source"],
                             source=item["source"],
@@ -429,6 +504,7 @@ class Factory:
                                 point["body"],
                                 max(9.0, (len(point["body"]) + len(point["head"])) / 17 + 0.25),
                                 role="point",
+                                translations=point.get("translations", {}),
                                 head=point["head"],
                                 image=pic,
                                 image_credit=item["source"],
@@ -442,7 +518,7 @@ class Factory:
                 else:
                     detail = parsing.clean(
                         item["detail"] or parsing.words_only(text),
-                        max(100, 230 - len(item["title"])),
+                        min(115, max(70, 200 - len(item["title"]))),
                     )
                     if not detail or detail == item["title"]:
                         continue
@@ -514,7 +590,11 @@ class Factory:
             readers = [r for r in readers if r["id"] in catalog["calm"]]
         with sqlite3.connect(self.db) as db:
             last = db.execute("SELECT id FROM readers ORDER BY at DESC LIMIT 1").fetchone()
-        pos = next((i for i, r in enumerate(readers) if last and r["id"] == last[0]), -1)
+        last_name = next(
+            (r["name"] for r in catalog["reciters"] if last and r["id"] == last[0]),
+            last[0] if last else None,
+        )
+        pos = next((i for i, r in enumerate(readers) if r["name"] == last_name), -1)
         order = readers[pos + 1 :] + readers[: pos + 1]
         mp3 = [r for r in order if r["provider"] == "mp3quran"]
         fallback = [r for r in order if r["provider"] == "everyayah"]
@@ -522,21 +602,10 @@ class Factory:
             reads = self.json("https://mp3quran.net/api/v3/ayat_timing/reads")
         except (OSError, ValueError, RuntimeError):
             reads = []
-        for reader in mp3[:3] + fallback:
-            if last and reader["id"] == last[0]:
+        for reader in mp3 + fallback:
+            if reader["name"] == last_name:
                 continue
             try:
-                with sqlite3.connect(self.db, timeout=30) as db:
-                    db.execute("BEGIN IMMEDIATE")
-                    current = db.execute(
-                        "SELECT job,id FROM readers ORDER BY at DESC LIMIT 1"
-                    ).fetchone()
-                    if current and current[0] != self.job and current[1] == reader["id"]:
-                        continue
-                    db.execute(
-                        "INSERT OR REPLACE INTO readers VALUES(?,?,?)",
-                        (self.job, reader["id"], time.time()),
-                    )
                 recordings = []
                 # Fail locally before downloading if an official reference is absent.
                 for a in ayahs:
@@ -582,50 +651,20 @@ class Factory:
                     else:
                         url = f"https://everyayah.com/data/{reader['id']}/{surah:03d}{ayah:03d}.mp3"
                         audio.write_bytes(self.get(url))
-                    seconds = duration(audio)
-                    run(
-                        [
-                            "/usr/bin/ffmpeg",
-                            "-v",
-                            "error",
-                            "-xerror",
-                            "-nostdin",
-                            "-protocol_whitelist",
-                            "file,pipe",
-                            "-i",
-                            str(audio),
-                            "-f",
-                            "null",
-                            "-",
-                        ],
-                        180,
-                    )
-                    tafsir = self.json(
-                        f"https://quranenc.com/api/v1/translation/aya/arabic_moyassar/{surah}/{ayah}"
-                    )["result"]["translation"]
-                    # Only presentation markup is removed; every text character remains.
-                    tafsir = html.unescape(re.sub("<[^>]*>", "", tafsir))
-                    text = exact_ayah(surah, ayah)
-                    hold = (
-                        seconds + 0.8
-                        if background
-                        else max(seconds + 0.8, (len(tafsir) + len(text)) / 17 + 1, 8.0)
-                    )
                     recordings.append(
-                        scene(
-                            text,
-                            hold,
-                            role="verse",
-                            verse=[surah, ayah],
-                            tafsir=tafsir,
-                            tafsir_sha256=sha(tafsir.encode()),
-                            source=f"التلاوة: {reader['name']} — {'mp3quran' if reader['provider'] == 'mp3quran' else 'EveryAyah'}",
-                            audio=self.local(audio, url, reader["name"]),
-                            audio_duration=seconds,
+                        self.recitation_scene(
+                            surah,
+                            ayah,
+                            audio,
+                            url,
+                            reader["name"],
+                            "mp3quran" if reader["provider"] == "mp3quran" else "EveryAyah",
+                            background=background,
                         )
                     )
                 if sum(x["seconds"] for x in recordings) > 50:
                     raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_58_SECONDS")
+                self.remember_reader(reader["name"])
                 return recordings
             except (
                 OSError,
@@ -636,9 +675,135 @@ class Factory:
                 subprocess.SubprocessError,
             ):
                 continue
+        extra = self.foundation_recitation(surah, ayahs, last_name, background=background)
+        if extra:
+            return extra
         raise ValueError("LEGACY_HUMAN_RECITATION_UNAVAILABLE")
 
-    def adhkar(self, period: str, *, minimum: float = 44, maximum: float = 50) -> dict[str, Any]:
+    def remember_reader(self, name: str) -> None:
+        with sqlite3.connect(self.db, timeout=30) as db:
+            db.execute("BEGIN IMMEDIATE")
+            current = db.execute("SELECT job,id FROM readers ORDER BY at DESC LIMIT 1").fetchone()
+            if current and current[0] != self.job and current[1] == name:
+                raise ValueError("LEGACY_READER_REPEATED")
+            db.execute(
+                "INSERT OR REPLACE INTO readers VALUES(?,?,?)", (self.job, name, time.time())
+            )
+
+    def recitation_scene(
+        self,
+        surah: int,
+        ayah: int,
+        audio: Path,
+        url: str,
+        name: str,
+        provider: str,
+        *,
+        background: bool,
+    ) -> dict[str, Any]:
+        from studio_core.religious.quran_foundation import exact_ayah
+
+        seconds = duration(audio)
+        run(
+            [
+                "/usr/bin/ffmpeg",
+                "-v",
+                "error",
+                "-xerror",
+                "-nostdin",
+                "-protocol_whitelist",
+                "file,pipe",
+                "-i",
+                str(audio),
+                "-f",
+                "null",
+                "-",
+            ],
+            180,
+        )
+        result = self.json(
+            f"https://quranenc.com/api/v1/translation/aya/arabic_moyassar/{surah}/{ayah}"
+        )["result"]
+        if int(result["sura"]) != surah or int(result["aya"]) != ayah:
+            raise ValueError("LEGACY_TAFSIR_REFERENCE_CHANGED")
+        tafsir = html.unescape(re.sub("<[^>]*>", "", result["translation"]))
+        text = exact_ayah(surah, ayah)
+        hold = (
+            seconds + 0.8
+            if background
+            else max(seconds + 0.8, (len(tafsir) + len(text)) / 17 + 1, 8.0)
+        )
+        return scene(
+            text,
+            hold,
+            role="verse",
+            verse=[surah, ayah],
+            tafsir=tafsir,
+            tafsir_sha256=sha(tafsir.encode()),
+            source=f"بصوت {name} — التلاوة: {provider}",
+            audio=self.local(audio, url, name),
+            audio_duration=seconds,
+        )
+
+    def foundation_recitation(
+        self, surah: int, ayahs: list[int], last_name: str | None, *, background: bool
+    ) -> list[dict[str, Any]]:
+        # Keys stay exclusively in the already configured QF broker. Missing service
+        # never blocks the two keyless providers above, and never triggers TTS.
+        if os.environ.get("MADAR_QURAN_AUDIO") != "1":
+            return []
+        from studio_core.religious.quran_commands import QuranSocketPolicy
+        from studio_core.religious.quran_foundation import CATALOG, Source
+        from studio_core.religious.quran_pipeline import store_for
+
+        short = "snap" if self.app == "snap-bot-v2" else "status"
+        client = NetworkClient(
+            cast(Config, QuranSocketPolicy(Path(f"/run/madar/{short}-quran.sock")))
+        )
+        try:
+            ready = json.loads(client.get("quran://ready").body)
+            if ready.get("configured") is not True:
+                return []
+            source = Source(client, ready["environment"])
+            choices = source.catalog(json.loads(CATALOG.read_bytes()))["reciters"]
+            store = store_for(self.app)
+            store.sweep()
+            for reader in choices:
+                if reader["name"] == last_name:
+                    continue
+                qf_job = sha((self.job + ":qf:" + str(reader["id"])).encode())[:32]
+                _, expires = store.reserve(qf_job, {"reciters": [reader]})
+                try:
+                    scenes = []
+                    for ayah in ayahs:
+                        store.sweep()
+                        audio = store.directory(qf_job) / f"{surah}-{ayah}.mp3"
+                        audio.write_bytes(source.audio(f"{surah}:{ayah}", reader))
+                        item = self.recitation_scene(
+                            surah,
+                            ayah,
+                            audio,
+                            "quran-foundation:" + str(reader["id"]) + f"/{surah}/{ayah}",
+                            reader["name"],
+                            "مؤسسة القرآن",
+                            background=background,
+                        )
+                        asset = next(a for a in self.assets if a["file"] == item["audio"])
+                        asset.update({"qf_job": qf_job, "expires_at": expires})
+                        store.track(self.root / item["audio"], qf_job, expires, asset["sha256"])
+                        scenes.append(item)
+                    if sum(s["seconds"] for s in scenes) > 50:
+                        raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_58_SECONDS")
+                    self.remember_reader(reader["name"])
+                    return scenes
+                except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError):
+                    store.failed(qf_job)
+                    continue
+        except (OSError, ValueError, KeyError, RuntimeError):
+            return []
+        return []
+
+    def adhkar(self, period: str, *, minimum: float = 44, maximum: float = 49.5) -> dict[str, Any]:
         data = json.loads((DATA / "status.json").read_text())
         for name, url in data["adhkar_audio"][period]:
             try:
@@ -808,7 +973,14 @@ class Factory:
 
     def build(self) -> dict[str, Any]:
         key = self.key
-        scenes = [scene(TITLES[key], 3.2, role="hook")]
+        day = datetime.now(ZoneInfo("Asia/Riyadh")).date()
+        night_number = max(1, (day - date(2026, 9, 26)).days + 1) if key == "night" else None
+        title = (
+            (TITLES[key] + " • الليلة " + str(night_number).translate(DIGITS))
+            if night_number
+            else TITLES[key]
+        )
+        scenes = [scene(title, 3.2, role="hook")]
         if key in NEWS | {"tech", "style"}:
             scenes += self.news()
         elif key in {"facts", "did_you_know", "riddle", "funny"}:
@@ -851,14 +1023,19 @@ class Factory:
         elif key == "hadith":
             from studio_core.presentation import faith
 
-            item = faith.load("hadith")[0]
+            item = min(
+                (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
+                key=lambda i: len(i["text"]),
+            )
             spoken, length = self.spoken(item["text"], "hadith")
             scenes.append(
                 scene(
                     item["text"],
                     max(24.0, length + 0.3),
                     role="hadith",
-                    source=item["source"],
+                    source=item["source"] + " • " + item["grade"],
+                    hadith_id=item["id"],
+                    grade=item["grade"],
                     audio=spoken,
                     audio_duration=length,
                     voice_kind="speech",
@@ -868,7 +1045,10 @@ class Factory:
             from studio_core.presentation import faith
 
             scenes += self.quran(94, [5, 6])
-            item = faith.load("hadith")[0]
+            item = min(
+                (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
+                key=lambda i: len(i["text"]),
+            )
             spoken, length = self.spoken(item["text"], "hadith")
             scenes.append(
                 scene(
@@ -878,10 +1058,13 @@ class Factory:
                     audio_duration=length,
                     voice_kind="speech",
                     role="hadith",
-                    source=item["source"],
+                    source=item["source"] + " • " + item["grade"],
+                    hadith_id=item["id"],
+                    grade=item["grade"],
                 )
             )
-            scenes.append(self.adhkar("night", minimum=8, maximum=24))
+            remaining = 57.7 - 5.0 - sum(s["seconds"] for s in scenes)
+            scenes.append(self.adhkar("night", minimum=8, maximum=min(24, remaining)))
         elif key == "brief":
             scenes += self.brief()
         if key in NEWS | {"tech", "style"}:
@@ -925,6 +1108,11 @@ class Factory:
             "music": music,
             "effects": key not in SACRED,
             "sources": self.sources,
+            **(
+                {"night_number": night_number, "night_date": day.isoformat()}
+                if night_number
+                else {}
+            ),
         }
         value = {
             "type": "did_you_know",
