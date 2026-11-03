@@ -21,8 +21,12 @@
 uv sync --all-packages
 npm ci --ignore-scripts
 npx playwright install --with-deps chromium
+uv venv /opt/madar/legacy-voice
+uv pip sync --require-hashes --python /opt/madar/legacy-voice/bin/python config/production/voice-requirements.txt
 uv run python scripts/generate_legacy_previews.py --output /var/tmp/rawwag-owner-previews
 ```
+
+بيئة الصوت منفصلة عن بيئة المخرج، واعتمادياتها مثبتة بالبصمات. لا تُضاف حزم خارجية لبيئة Python الأساسية في الإصدار.
 
 الأمر يجهز العينات للبوتين بعشرة أنواع افتراضياً. `--commands` يحدد أوامر بعينها، و`--app snap|status` يحدد بوتاً. ينشئ بوابة جلب محلية خاصة لهذه العملية ويغلقها في النهاية، ولا يشغّل بوتاً أو خدمة systemd أو مؤقتاً. لا يوجد خيار إرسال في الأداة. يجب أن يكون مجلد المخرجات جديداً.
 

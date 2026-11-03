@@ -3,13 +3,10 @@
 Quran, dua and adhkar cannot enter this endpoint. No keys or paid AI APIs.
 """
 
-import asyncio
 import json
-import socket
-from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
-from studio_core.network.egress import PolicyDenied, validate_target
+from studio_core.network.egress import PolicyDenied
 
 HOST = "speech.platform.bing.com"
 
@@ -39,48 +36,31 @@ def approved(url: str) -> str:
     return text
 
 
-async def speech(text: str) -> bytes:
-    import aiohttp
-    import edge_tts
-
-    class PinnedResolver(aiohttp.abc.AbstractResolver):
-        async def resolve(
-            self, host: str, port: int = 0, family: int = socket.AF_INET
-        ) -> list[Any]:
-            if host != HOST or port != 443:
-                raise PolicyDenied("PRODUCTION_SPEECH_HOST_DENIED")
-            _, address, _ = await asyncio.to_thread(
-                validate_target, "https://" + HOST + "/", (HOST,)
-            )
-            return [
-                {
-                    "hostname": HOST,
-                    "host": address,
-                    "port": 443,
-                    "family": socket.AF_INET6 if ":" in address else socket.AF_INET,
-                    "proto": socket.IPPROTO_TCP,
-                    "flags": socket.AI_NUMERICHOST,
-                }
-            ]
-
-        async def close(self) -> None:
-            pass
-
-    async with aiohttp.TCPConnector(resolver=PinnedResolver()) as connector:
-        voice = edge_tts.Communicate(text, "ar-SA-HamedNeural", rate="-8%", connector=connector)
-        chunks = []
-        count = 0
-        async for chunk in voice.stream():
-            if chunk["type"] == "audio":
-                data = chunk["data"]
-                count += len(data)
-                if count > 4_000_000:
-                    raise PolicyDenied("PRODUCTION_SPEECH_SIZE_DENIED")
-                chunks.append(data)
-        if not chunks:
-            raise PolicyDenied("PRODUCTION_SPEECH_EMPTY")
-        return b"".join(chunks)
-
-
 def fetch(url: str) -> bytes:
-    return asyncio.run(speech(approved(url)))
+    import os
+    import subprocess
+    from pathlib import Path
+
+    approved(url)
+    root = Path(__file__).resolve().parents[4]
+    python = Path(os.environ.get("MADAR_LEGACY_VOICE_PYTHON", "/opt/madar/legacy-voice/bin/python"))
+    if not python.is_absolute() or not python.is_file():
+        raise PolicyDenied("PRODUCTION_VOICE_ENV_MISSING")
+    try:
+        result = subprocess.run(  # noqa: S603 — trusted operator-selected interpreter, fixed worker
+            [str(python), str(root / "scripts/legacy_speech_worker.py")],
+            input=json.dumps({"url": url}).encode(),
+            capture_output=True,
+            timeout=120,
+            check=True,
+            env={
+                "PATH": "/usr/bin:/bin",
+                "PYTHONPATH": str(root / "packages/studio-core"),
+                "PYTHONDONTWRITEBYTECODE": "1",
+            },
+        )
+    except subprocess.SubprocessError:
+        raise PolicyDenied("PRODUCTION_SPEECH_FAILED") from None
+    if not 0 < len(result.stdout) <= 4_000_000:
+        raise PolicyDenied("PRODUCTION_SPEECH_SIZE_DENIED")
+    return result.stdout

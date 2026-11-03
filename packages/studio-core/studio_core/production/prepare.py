@@ -501,6 +501,17 @@ class Factory:
             if last and reader["id"] == last[0]:
                 continue
             try:
+                with sqlite3.connect(self.db, timeout=30) as db:
+                    db.execute("BEGIN IMMEDIATE")
+                    current = db.execute(
+                        "SELECT job,id FROM readers ORDER BY at DESC LIMIT 1"
+                    ).fetchone()
+                    if current and current[0] != self.job and current[1] == reader["id"]:
+                        continue
+                    db.execute(
+                        "INSERT OR REPLACE INTO readers VALUES(?,?,?)",
+                        (self.job, reader["id"], time.time()),
+                    )
                 recordings = []
                 # Fail locally before downloading if an official reference is absent.
                 for a in ayahs:
@@ -590,11 +601,6 @@ class Factory:
                     )
                 if sum(x["seconds"] for x in recordings) > 50:
                     raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_58_SECONDS")
-                with sqlite3.connect(self.db) as db:
-                    db.execute(
-                        "INSERT OR REPLACE INTO readers VALUES(?,?,?)",
-                        (self.job, reader["id"], time.time()),
-                    )
                 return recordings
             except (
                 OSError,
