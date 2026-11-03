@@ -1,6 +1,6 @@
 """Command-to-source inventory shared by both apps. No network, text edits or sending.
 
-References describe existing data; candidates are not runtime approvals. The app
+References describe existing data; only owner-approved sources reach runtime. The app
 owning a catalog remains responsible for its hashes, locks and render validation.
 """
 
@@ -20,7 +20,7 @@ CONTENT_KEYS = frozenset(
 )
 FAITH_KEYS = frozenset(c.key for c in COMMANDS if c.section == "faith")
 KINDS = {"rss", "website", "catalog", "reference", "human_audio", "weather"}
-STATUSES = {"candidate", "excluded", "reference"}
+STATUSES = {"approved", "candidate", "excluded", "reference"}
 PERMISSIONS = {"unverified", "restricted", "headline_syndication", "reference_only"}
 
 

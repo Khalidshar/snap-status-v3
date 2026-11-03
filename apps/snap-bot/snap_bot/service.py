@@ -20,6 +20,7 @@ from studio_core.network import NetworkClient, UnixHTTPConnection
 from studio_core.network.egress import EgressServer
 from studio_core.network.resilience import ResilientClient
 from studio_core.observability import Redactor
+from studio_core.religious.quran_pipeline import render
 from studio_core.repair.adoption import claim_attempt, expire_pending_adoptions, mark_pending
 from studio_core.storage import Storage
 
@@ -36,7 +37,6 @@ from .owned_contract_adapter import (
     reconcile_stage,
     run_stage,
 )
-from .render import render
 from .render_agents import run_render_check
 from .render_commit import AdoptionPending, adopt_render, observe_owned, owned_views, stage_input
 from .telegram_egress import DeliveryConfirmed
@@ -201,7 +201,10 @@ def execute(
             job["id"], token, "PROCESSING", {"source": content["source"], "fallbacks": failures}
         )
         staged = stage_input(settings, repo, job["id"], token, attempt, content)
-        if settings["profile"].get("footage"):
+        from studio_core.religious.quran_pipeline import stage as stage_quran
+
+        quran = stage_quran(content, config.app, job["id"], staged)
+        if not quran and settings["profile"].get("footage"):
             from .footage import prepare
 
             prepare(content, staged.parent / "background", Path("/run/madar/snap-video.sock"))

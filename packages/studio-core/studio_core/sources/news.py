@@ -415,7 +415,7 @@ def collect(
         if source_ids is not None and source.id not in source_ids:
             continue
         # Candidates may be fetched for PRIVATE REVIEW, never treated as publication approval.
-        if source.kind != "rss" or source.status != "candidate" or source.language != "ar":
+        if source.kind != "rss" or source.status != "approved" or source.language != "ar":
             continue
         try:
             response = client.get(source.url)
@@ -519,7 +519,7 @@ def validate(content: dict[str, Any], now: float) -> None:
     if (
         source is None
         or source.kind != "rss"
-        or source.status != "candidate"
+        or source.status != "approved"
         or source.language != "ar"
     ):
         raise ValueError("Unapproved review source")

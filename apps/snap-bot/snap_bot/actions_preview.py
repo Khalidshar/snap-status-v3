@@ -225,6 +225,10 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             "InaccessiblePaths=" + str(state) + " -/run/madar",
             "RuntimeMaxSec=300",
         ]
+        if os.environ.get("MADAR_QURAN_AUDIO") == "1":
+            properties.append(
+                "ReadWritePaths=-/var/lib/madar/quran-snap " + str(spool) + " " + str(socket_dir)
+            )
         args = ["sudo", "-n", "systemd-run", "--quiet", "--collect", "--unit=" + unit]
         for value in properties:
             args += ["--property=" + value]
@@ -255,6 +259,12 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             with repo.connect() as db:
                 evidence = quality_chain(db, job["id"], claim["attempt"], render)
             new_output_directory(output)
+            from studio_core.religious.quran_pipeline import track_bundle
+
+            preview_source = (
+                spool / job["id"] / "attempts" / str(claim["attempt"]) / "output/preview.png"
+            )
+            track_bundle(render, output, hashlib.sha256(preview_source.read_bytes()).hexdigest())
             shutil.copytree(
                 state, output / "state", ignore=shutil.ignore_patterns("jobs.sqlite*", "*.sock")
             )
@@ -301,6 +311,10 @@ def render_bundle(output: Path, provenance: Any) -> Any:
 
 
 def digest_guard(video: bytes, result: Any, content: Any, env: Mapping[str, str]) -> None:
+    if result.get("quran_foundation"):
+        from studio_core.religious.quran_pipeline import check_result
+
+        check_result(result)
     if (
         not 0 < len(video) <= 50_000_000
         or hashlib.sha256(video).hexdigest() != env["VIDEO_SHA"]

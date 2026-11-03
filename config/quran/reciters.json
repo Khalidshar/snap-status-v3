@@ -1,0 +1,8 @@
+{
+  "schema": 2,
+  "decision": "docs/DECISIONS.md — 2 Nov 2026: all Quran Foundation reciters, no fixed list",
+  "source": "quran_foundation",
+  "riwayah": "hafs",
+  "exclude_styles": ["muallim"],
+  "exclude_name_markers": ["ورش", "قالون", "warsh", "qalun", "qaloon"]
+}
