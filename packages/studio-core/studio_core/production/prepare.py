@@ -939,6 +939,75 @@ class Factory:
         )
         return path, duration(self.root / path)
 
+    def history(self, day: date) -> list[dict[str, Any]]:
+        """حدث اليوم: Islamic-history events on today's Hijri date (owner decision 3 Nov).
+
+        Source: the Arabic Wikipedia page of the Hijri day; Saudi and early Islamic first,
+        nothing from the last 30 Hijri years, no killing or massacres.
+        """
+        hijri = self.json(f"https://api.aladhan.com/v1/gToH/{day:%d-%m-%Y}")["data"]["hijri"]
+        month = re.sub(r"[ً-ْ]", "", hijri["month"]["ar"])
+        page = f"{int(hijri['day'])} {month}"
+        wiki = self.json(
+            "https://ar.wikipedia.org/w/api.php?"
+            + urlencode(
+                {
+                    "action": "parse",
+                    "page": page,
+                    "prop": "wikitext",
+                    "format": "json",
+                    "redirects": 1,
+                }
+            )
+        )["parse"]["wikitext"]["*"]
+        avoid = ("اغتيال", "مجزرة", "مذبحة", "إعدام", "انتحار", "تفجير", "قتل", "مقتل", "اغتصاب")
+        saudi = ("السعودية", "عبد العزيز", "الحجاز", "نجد", "مكة", "المدينة المنورة", "آل سعود")
+        latest = int(hijri["year"]) - 30
+        events = []
+        for line in wiki.splitlines():
+            found = re.match(r"\*\s*(\d{1,4})\s*هـ\s*[-–]\s*(.+)", line)
+            if not found or int(found[1]) > latest:
+                continue
+            raw = re.sub(r"<ref[^>]*/>|<ref.*?</ref>|\{\{.*?\}\}", "", found[2])
+            link = re.search(r"\[\[([^|\]#]+)", raw)
+            text = parsing.clean(re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]*)\]\]", r"", raw), 220)
+            if len(text) < 20 or any(word in text for word in avoid):
+                continue
+            rank = (0 if any(word in text for word in saudi) else 1, int(found[1]))
+            events.append((rank, int(found[1]), text, link[1] if link else ""))
+        events.sort()
+        need = 4 if self.app == "snap-bot-v2" else 3
+        if len(events) < 2:
+            raise ValueError("LEGACY_HISTORY_UNAVAILABLE")
+        scenes = []
+        for n, (_, year, text, link) in enumerate(events[:need], 1):
+            extra: dict[str, Any] = {}
+            if link:
+                try:
+                    summary = self.json(
+                        "https://ar.wikipedia.org/api/rest_v1/page/summary/" + quote(link)
+                    )
+                    thumb = summary.get("originalimage") or summary.get("thumbnail") or {}
+                    if thumb.get("source"):
+                        extra = {
+                            "image": self.picture(thumb["source"], thumb["source"], "ويكيبيديا"),
+                            "image_credit": "ويكيبيديا",
+                        }
+                except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError):
+                    extra = {}
+            scenes.append(
+                scene(
+                    text,
+                    max(9.0, len(text) / 15 + 3),
+                    role="history",
+                    head="في مثل هذا اليوم • سنة " + str(year).translate(DIGITS) + "هـ",
+                    number=f"{n}/{min(need, len(events))}".translate(DIGITS),
+                    source="ويكيبيديا العربية • " + page,
+                    **extra,
+                )
+            )
+        return scenes
+
     def variety(self) -> list[dict[str, Any]]:
         key = "facts" if self.key == "did_you_know" else self.key
         items = json.loads(
@@ -1009,6 +1078,8 @@ class Factory:
             scenes += self.news()
         elif key in {"facts", "did_you_know", "riddle", "funny"}:
             scenes += self.variety()
+        elif key == "history":
+            scenes += self.history(day)
         elif key in QURAN:
             # Approved local King Fahd references; no fetched or normalised Quran text.
             data = json.loads((DATA / "status.json").read_bytes())

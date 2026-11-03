@@ -42,6 +42,7 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("style", "👗 الأناقة والجمال", ("الأناقة",), False),
         ("riddle", "🧠 لغز اليوم", ("لغز",), False),
         ("funny", "😂 مواقف طريفة", ("طرائف",), False),
+        ("history", "📜 حدث اليوم", ("في مثل هذا اليوم", "حدث اليوم"), False),
         ("night", "🌙 قبل النوم", (), False),
     )),
     ("faith", "🕌 أذكار ودين", (

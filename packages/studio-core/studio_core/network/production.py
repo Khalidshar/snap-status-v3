@@ -68,6 +68,8 @@ BASE = {
     "aitnews.com",
     "www.tech-wd.com",
     "www.ellearabia.com",
+    "ar.wikipedia.org",
+    "upload.wikimedia.org",
 }
 SUFFIXES = (".mp3quran.net", ".archive.org")
 MIMES = {

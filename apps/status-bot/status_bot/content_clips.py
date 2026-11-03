@@ -55,6 +55,7 @@ KINDS = {
     "kahf": "kahf",
     "riddle": "riddle",
     "isha": "verse",
+    "history": "history",
 }
 CHAIN = (
     "fact_source",

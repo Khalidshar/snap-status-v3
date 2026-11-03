@@ -55,6 +55,7 @@ TITLES = {
     "did_you_know": "هل تعلم؟",
     "riddle": "لغز اليوم",
     "funny": "مواقف طريفة",
+    "history": "حدث اليوم",
 }
 
 
