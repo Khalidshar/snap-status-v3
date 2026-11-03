@@ -948,6 +948,7 @@ class Factory:
         hijri = self.json(f"https://api.aladhan.com/v1/gToH/{day:%d-%m-%Y}")["data"]["hijri"]
         month = re.sub(r"[ً-ْ]", "", hijri["month"]["ar"])
         page = f"{int(hijri['day'])} {month}"
+        self.hijri_page = page
         wiki = self.json(
             "https://ar.wikipedia.org/w/api.php?"
             + urlencode(
@@ -1086,6 +1087,7 @@ class Factory:
             scenes += self.variety()
         elif key == "history":
             scenes += self.history(day)
+            scenes[0]["source"] = self.hijri_page
         elif key in QURAN:
             # Approved local King Fahd references; no fetched or normalised Quran text.
             data = json.loads((DATA / "status.json").read_bytes())
