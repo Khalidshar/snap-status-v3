@@ -984,6 +984,7 @@ class Factory:
         if len(events) < 2:
             raise ValueError("LEGACY_HISTORY_UNAVAILABLE")
         scenes = []
+        pictures: set[str] = set()  # one event's picture is never reused for another event
         for n, (_, year, text, link) in enumerate(events[:need], 1):
             extra: dict[str, Any] = {}
             if link:
@@ -992,7 +993,8 @@ class Factory:
                         "https://ar.wikipedia.org/api/rest_v1/page/summary/" + quote(link)
                     )
                     thumb = summary.get("originalimage") or summary.get("thumbnail") or {}
-                    if thumb.get("source"):
+                    if thumb.get("source") and thumb["source"] not in pictures:
+                        pictures.add(thumb["source"])
                         extra = {
                             "image": self.picture(thumb["source"], thumb["source"], "ويكيبيديا"),
                             "image_credit": "ويكيبيديا",
