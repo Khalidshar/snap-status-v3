@@ -1531,6 +1531,20 @@
       "permission": "unverified",
       "note": "مصدر احتياطي عربي للعناوين فقط، دون صور أو ترجمة؛ يخضع لفحص القسم والحداثة والمصدر الأصلي.",
       "evidence": "طلب خالد إضافة بديل Google News بالطريقة الحالية gnews-style؛ توفره الحي يعاد فحصه من Network Core قبل النشر."
+    },
+    {
+      "id": "history-ar-wikipedia",
+      "name": "ويكيبيديا العربية — أحداث اليوم الهجري",
+      "url": "https://ar.wikipedia.org/",
+      "commands": [
+        "history"
+      ],
+      "kind": "reference",
+      "language": "ar",
+      "status": "reference",
+      "permission": "reference_only",
+      "note": "صفحة اليوم الهجري (مثل ٢٣ جمادى الأولى) بأحداثها التاريخية، والتاريخ الهجري من aladhan (أم القرى). قرار خالد ٣ نوفمبر.",
+      "evidence": "docs/DECISIONS.md"
     }
   ]
 }

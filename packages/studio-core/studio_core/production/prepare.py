@@ -964,13 +964,17 @@ class Factory:
         saudi = ("السعودية", "عبد العزيز", "الحجاز", "نجد", "مكة", "المدينة المنورة", "آل سعود")
         latest = int(hijri["year"]) - 30
         events = []
+        unlink = r"\[\[(?:[^|\]]*\|)?([^\]]*)\]\]"
         for line in wiki.splitlines():
-            found = re.match(r"\*\s*(\d{1,4})\s*هـ\s*[^\w\s]\s*(.+)", line)
+            # The year itself is usually a link: "* [[512 هـ|512هـ]] - ...".
+            found = re.match(
+                r"\*\s*(?:\[\[[^\]|]*\|)?\s*(\d{1,4})\s*هـ\s*(?:\]\])?\s*[^\w\s]\s*(.+)", line
+            )
             if not found or int(found[1]) > latest:
                 continue
             raw = re.sub(r"<ref[^>]*/>|<ref.*?</ref>|\{\{.*?\}\}", "", found[2])
             link = re.search(r"\[\[([^|\]#]+)", raw)
-            text = parsing.clean(re.sub(r"\[\[(?:[^|\]]*\|)?([^\]]*)\]\]", r"", raw), 220)
+            text = parsing.clean(re.sub(unlink, r"\1", raw), 220)
             if len(text) < 20 or any(word in text for word in avoid):
                 continue
             rank = (0 if any(word in text for word in saudi) else 1, int(found[1]))
