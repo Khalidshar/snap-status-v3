@@ -965,7 +965,7 @@ class Factory:
         latest = int(hijri["year"]) - 30
         events = []
         for line in wiki.splitlines():
-            found = re.match(r"\*\s*(\d{1,4})\s*هـ\s*[-–]\s*(.+)", line)
+            found = re.match(r"\*\s*(\d{1,4})\s*هـ\s*[^\w\s]\s*(.+)", line)
             if not found or int(found[1]) > latest:
                 continue
             raw = re.sub(r"<ref[^>]*/>|<ref.*?</ref>|\{\{.*?\}\}", "", found[2])
