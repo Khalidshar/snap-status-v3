@@ -4,9 +4,10 @@ The text is the exact faith.py text, sha256-checked on every load. Nothing rewri
 proofreads or strips it; long Quran/adhkar bodies are losslessly paginated by Pango.
 """
 
-import hashlib
 from datetime import date
 from typing import Any
+
+from studio_core.content import ContentPackage, text_hash
 
 from . import faith
 from .did_you_know import register_kind
@@ -104,9 +105,25 @@ def loader(kind: str) -> Any:
 def verbatim(kind: str, fact_id: object, body: object) -> str:
     """The sha256 of the approved text, or ValueError when the body is not exactly it."""
     item = next((i for i in faith.load(kind) if i["id"] == fact_id), None)
-    if item is None or body != faith.text(item):
+    if item is None or not isinstance(body, str):
         raise ValueError("SACRED_TEXT_CHANGED")
-    return hashlib.sha256(faith.text(item).encode()).hexdigest()
+    reference_hash = text_hash(faith.text(item))
+    package = ContentPackage(
+        id=item["id"],
+        type=kind,
+        title=TITLES[kind],
+        body=body,
+        language="ar",
+        source=item.get("source", ""),
+        source_url=item.get("verification_url", ""),
+        destination="",
+        sacred=True,
+    )
+    try:
+        package.sacred_lock(reference_hash)
+    except ValueError as error:
+        raise ValueError("SACRED_TEXT_CHANGED") from error
+    return reference_hash
 
 
 for _kind, _title in TITLES.items():

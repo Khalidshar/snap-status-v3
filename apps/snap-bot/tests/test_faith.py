@@ -82,6 +82,9 @@ def synthetic_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     }
     (tmp_path / "quran_subset.json").write_text(json.dumps(subset))
     monkeypatch.setattr(faith, "DATA", tmp_path)
+    monkeypatch.setattr(
+        faith, "QURAN_SUBSET_SHA256", digest((tmp_path / "quran_subset.json").read_text())
+    )
     return tmp_path
 
 
@@ -343,11 +346,14 @@ def test_invalid_marker_position_rejected(value: str) -> None:
 @pytest.mark.parametrize(
     "field,value", (("zip_sha256", faith.PREVIOUS_SHA256), ("publication_date", "2026-09-29"))
 )
-def test_superseded_package_rejected(synthetic_data: Path, field: str, value: str) -> None:
+def test_superseded_package_rejected(
+    synthetic_data: Path, field: str, value: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     path = synthetic_data / "quran_subset.json"
     obj = json.loads(path.read_text())
     obj[field] = value
     path.write_text(json.dumps(obj))
+    monkeypatch.setattr(faith, "QURAN_SUBSET_SHA256", digest(path.read_text()))
     with pytest.raises(ValueError, match="Unapproved official"):
         faith.load("verse")
 
@@ -560,3 +566,14 @@ def test_fast_narrators_and_speakers_match_linked_sources() -> None:
     assert [
         (i["narrator"], i["speaker"], i["verification_url"]) for i in faith.load("fast")
     ] == expected
+
+
+def test_subset_rejects_rehashed_ayah(synthetic_data: Path) -> None:
+    path = synthetic_data / "quran_subset.json"
+    obj = json.loads(path.read_text())
+    ayah = obj["items"][0]
+    ayah["text"] += "x"
+    ayah["sha256"] = digest(ayah["text"])
+    path.write_text(json.dumps(obj))
+    with pytest.raises(ValueError, match="hash mismatch"):
+        faith.load("verse")
