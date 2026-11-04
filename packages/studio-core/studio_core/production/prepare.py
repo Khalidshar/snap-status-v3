@@ -967,9 +967,9 @@ class Factory:
         events = []
         unlink = r"\[\[(?:[^|\]]*\|)?([^\]]*)\]\]"
         for line in wiki.splitlines():
-            # The year itself is usually a link: "* [[512 هـ|512هـ]] - ...".
+            # The year itself is usually a link: "* [[512 هـ|512هـ]] - ..." or "* [[359 هـ]] - ...".
             found = re.match(
-                r"\*\s*(?:\[\[[^\]|]*\|)?\s*(\d{1,4})\s*هـ\s*(?:\]\])?\s*[^\w\s]\s*(.+)", line
+                r"\*\s*(?:\[\[(?:[^\]|]*\|)?)?\s*(\d{1,4})\s*هـ\s*(?:\]\])?\s*[^\w\s]\s*(.+)", line
             )
             if not found or int(found[1]) > latest:
                 continue
@@ -1315,7 +1315,14 @@ class Factory:
             weather["daily"]["temperature_2m_max"][0],
             weather["daily"]["temperature_2m_min"][0],
         )
-        if not temperatures or abs(hi - max(temperatures)) > 3 or abs(lo - min(temperatures)) > 3:
+        # Later in the day the hourly feed has lost the cold early hours: compare the low
+        # only while most of the day is still there.
+        full = len(temperatures) >= 18
+        if (
+            not temperatures
+            or abs(hi - max(temperatures)) > 3
+            or (full and abs(lo - min(temperatures)) > 3)
+        ):
             raise ValueError("LEGACY_BRIEF_WEATHER_DISAGREES")
         fact = data["facts"][day.toordinal() % len(data["facts"])]
         hist, year = data["history"][day.toordinal() % len(data["history"])]
