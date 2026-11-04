@@ -20,6 +20,7 @@ from studio_core.renderer import run, write_once
 
 ROOT = Path(__file__).resolve().parents[4]
 CATALOG = ROOT / "config/quran/reciters.json"
+TAFSIR_REFERENCE = ROOT / "config/quran/tafsir-reference.json"
 APPS = {"snap-bot-v2", "status-bot-v2"}
 WEEK = 7 * 86400
 # Delete before the hard deadline; also refuse expired assets before every use.
@@ -29,6 +30,33 @@ TAFSIRS = (("ar-tafsir-muyassar", "التفسير الميسر"), ("ar-tafseer-a
 
 def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def verify_tafsir_reference(verse: str, tafsir: dict[str, Any]) -> None:
+    """Check the selected source and verse against independently reviewed hashes."""
+    try:
+        reference = json.loads(TAFSIR_REFERENCE.read_bytes())
+    except (OSError, ValueError) as exc:
+        raise ValueError("QF_TAFSIR_REFERENCE_UNAVAILABLE") from exc
+    if not isinstance(reference, dict) or reference.get("schema") != 1:
+        raise ValueError("QF_TAFSIR_REFERENCE_INVALID")
+    sources = reference.get("sources")
+    if not isinstance(sources, dict):
+        raise ValueError("QF_TAFSIR_REFERENCE_INVALID")
+    slug = next((slug for slug, name in TAFSIRS if name == tafsir["name"]), None)
+    source = sources.get(slug)
+    if not isinstance(source, dict):
+        raise ValueError("QF_TAFSIR_REFERENCE_UNAVAILABLE")
+    verses = source.get("verses")
+    if not isinstance(verses, dict) or source.get("resource_id") != tafsir["resource_id"]:
+        raise ValueError("QF_TAFSIR_REFERENCE_INVALID")
+    expected = verses.get(verse)
+    if expected is None:
+        raise ValueError("QF_TAFSIR_REFERENCE_UNAVAILABLE")
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        raise ValueError("QF_TAFSIR_REFERENCE_INVALID")
+    if sha(tafsir["raw"].encode()) != expected:
+        raise ValueError("QF_TAFSIR_REFERENCE_CHANGED")
 
 
 def valid_name(value: object) -> bool:
@@ -414,7 +442,7 @@ class Source:
                 raise ValueError("QF_TAFSIR_GROUP_REQUIRES_WHOLE_CONTEXT")
             raw = row["text"]
             text = literal_tafsir(raw)
-            return {
+            tafsir = {
                 "resource_id": resource,
                 "name": name,
                 "raw": raw,
@@ -422,6 +450,8 @@ class Source:
                 "raw_sha256": sha(raw.encode()),
                 "sha256": sha(text.encode()),
             }
+            verify_tafsir_reference(verse, tafsir)
+            return tafsir
         raise ValueError("QF_TAFSIR_UNAVAILABLE")
 
     def recitations(self) -> list[dict[str, Any]]:
@@ -505,6 +535,7 @@ def download_ayah(
         return target
     verse = f"{surah}:{ayah}"
     tafsir = source.tafsir(verse)  # Missing tafsir blocks, never substitute generated text.
+    verify_tafsir_reference(verse, tafsir)
     audio = directory / "recitation.mp3"
     duration = None
     try:
@@ -566,6 +597,7 @@ def verify_bundle(path: Path, app: str, now: float) -> dict[str, Any]:
         or literal_tafsir(tafsir["raw"]) != tafsir["text"]
     ):
         raise ValueError("QF_TEXT_CHANGED")
+    verify_tafsir_reference(f'{value["surah"]}:{value["ayah"]}', tafsir)
     if value["attribution"] != f"التلاوة: {value['reciter']['name']} — المصدر: مؤسسة القرآن":
         raise ValueError("QF_ATTRIBUTION_CHANGED")
     if value["audio_state"] == "HUMAN_RECITATION":
