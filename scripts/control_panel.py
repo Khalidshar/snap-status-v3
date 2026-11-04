@@ -65,6 +65,7 @@ def designer_decisions(root: Path, limit: int = 12) -> list[dict[str, Any]]:
     if _designer_cache["root"] == root and now - _designer_cache["at"] < 60:
         return list(_designer_cache["value"])
     found: list[dict[str, Any]] = []
+    seen: set[str] = set()
     try:
         reports = sorted(
             root.glob("**/report.json"), key=lambda p: p.stat().st_mtime, reverse=True
@@ -77,6 +78,11 @@ def designer_decisions(root: Path, limit: int = 12) -> list[dict[str, Any]]:
             design = value.get("design")
             if not isinstance(design, dict) or design.get("agent") != "designer":
                 continue
+            # A render keeps its report beside its attempt's copy: count each video once.
+            video = str(value.get("video_sha256", path))
+            if video in seen:
+                continue
+            seen.add(video)
             found.append(
                 {
                     "app": "snap" if value.get("app") == "snap-bot-v2" else "status",
