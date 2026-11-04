@@ -12,6 +12,8 @@ import subprocess
 import threading
 import time
 import uuid
+from contextlib import suppress
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -102,6 +104,32 @@ def designer_decisions(root: Path, limit: int = 12) -> list[dict[str, Any]]:
             break
     _designer_cache.update(at=now, root=root, value=found)
     return list(found)
+
+
+def source_health() -> dict[str, tuple[float, str]]:
+    """Read operator-saved source-check output, emitting only a status and timestamp."""
+    latest: dict[str, tuple[float, str]] = {}
+    for app in UNITS:
+        for command in COMMANDS:
+            path = STATE / app / "source-checks" / f"{command.key}.json"
+            if any(p.is_symlink() for p in (path, *path.parents)):
+                continue
+            try:
+                with path.open("rb") as stream:
+                    report = json.loads(stream.read(131072))
+                for row in report["checks"]:
+                    key = row["source_id"]
+                    timestamp = datetime.fromisoformat(row["checked_at"]).timestamp()
+                    if row["result"] in {"EXCLUDED", "NOT_A_FEED"}:
+                        continue
+                    state = "403" if row.get("http_status") == 403 else "down"
+                    if row["result"] == "XML_VERIFIED":
+                        state = "ok"
+                    if key not in latest or timestamp > latest[key][0]:
+                        latest[key] = (timestamp, state)
+            except (OSError, ValueError, TypeError, KeyError):
+                continue
+    return latest
 
 
 def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
@@ -275,40 +303,25 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
         "load": os.getloadavg()[0],
         "cpus": os.cpu_count(),
     }
+    checks = source_health()
     result["sources"] = [
         {
             "id": source.id,
             "name": source.name,
             "url": source.url,
             "state": source.status,
-            "health": "unknown",
+            "health": checks.get(source.id, (0, "unknown"))[1],
+            "checked_at": checks.get(source.id, (0, "unknown"))[0],
         }
         for source in load_sources()
         if source.kind in {"rss", "website"}
     ]
-    memory = {}
-    try:
-        for line in Path("/proc/meminfo").read_text().splitlines():
-            name, value = line.split(":", 1)
-            if name in {"MemTotal", "MemAvailable"}:
-                memory[name] = int(value.split()[0]) * 1024
-    except (OSError, ValueError):
-        pass
-    result["servers"] = {
-        "amazon": (
-            {**result["resources"], "memory": memory, "at": time.time()}
-            if os.environ.get("MADAR_PANEL_HOST") == "amazon"
-            else None
-        ),
-        "wsl": None,
-    }
-    heartbeat = STATE / "panel/wsl.json"
-    if heartbeat.is_file() and not heartbeat.is_symlink():
-        try:
-            value = json.loads(heartbeat.read_bytes())
-            result["servers"]["wsl"] = value
-        except (OSError, ValueError):
-            pass
+    result["servers"] = {"amazon": None, "wsl": None}
+    for host in result["servers"]:
+        heartbeat = STATE / "panel" / f"{host}.json"
+        if heartbeat.is_file() and not heartbeat.is_symlink():
+            with suppress(OSError, ValueError):
+                result["servers"][host] = json.loads(heartbeat.read_bytes())
     return result
 
 
@@ -483,9 +496,14 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(length))
 
     def heartbeat(self) -> None:
-        # Separate credential: the WSL reporter cannot operate owner controls.
+        # Separate credential: the reporter cannot operate owner controls.
         try:
             value = self.read_json(4096)
+            if not isinstance(value, dict):
+                raise ValueError("INVALID_HEARTBEAT")
+            host = value.pop("host", "wsl")
+            if host not in {"amazon", "wsl"}:
+                raise ValueError("INVALID_HOST")
             if set(value) != {
                 "disk_used",
                 "disk_total",
@@ -501,18 +519,20 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(value["services"], dict) or set(value["services"]) - {
                 "snap",
                 "status",
+                "snap_old",
+                "status_old",
             }:
                 raise ValueError("INVALID_SERVICES")
             if any(v not in {"active", "inactive", "unknown"} for v in value["services"].values()):
                 raise ValueError("INVALID_SERVICE_STATE")
             target = STATE / "panel"
             target.mkdir(parents=True, mode=0o700, exist_ok=True)
-            if target.is_symlink() or (target / "wsl.json").is_symlink():
+            if target.is_symlink() or (target / f"{host}.json").is_symlink():
                 raise ValueError("UNSAFE_HEARTBEAT")
             temporary = target / (uuid.uuid4().hex + ".json")
             temporary.write_text(json.dumps({**value, "at": time.time()}))
             temporary.chmod(0o600)
-            temporary.replace(target / "wsl.json")
+            temporary.replace(target / f"{host}.json")
             self.reply(202, b"{}")
         except (ValueError, TypeError, OSError):
             self.reply(400, b"{}")

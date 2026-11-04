@@ -23,6 +23,7 @@ def server(tmp_path):
     srv.token = "fixture-" * 5
     srv.binding = "owner"
     srv.databases = {"snap": tmp_path / "absent", "status": tmp_path / "status.sqlite"}
+    srv.designer_root = tmp_path
     srv.controls = False
     srv.origin = f"http://127.0.0.1:{srv.server_port}"
     srv.control_lock = threading.Lock()
@@ -133,7 +134,8 @@ def test_action_reservation_is_not_a_platform_call(server, tmp_path):
     assert workspace["previews"] == []
 
 
-def test_heartbeat_token_cannot_control_owner_panel(server, tmp_path):
+@pytest.mark.parametrize("host", (None, "amazon", "wsl"))
+def test_heartbeat_token_cannot_control_owner_panel(server, tmp_path, host):
     server.reporter_token = "reporter-" * 8
     metric = {
         "disk_used": 10,
@@ -143,6 +145,8 @@ def test_heartbeat_token_cannot_control_owner_panel(server, tmp_path):
         "load": 0.1,
         "services": {"snap": "inactive"},
     }
+    if host is not None:
+        metric["host"] = host
     headers = {"Authorization": "Bearer " + server.reporter_token}
     with patch.object(panel, "STATE", tmp_path):
         req = urllib.request.Request(  # noqa: S310 - test server on loopback
@@ -151,7 +155,10 @@ def test_heartbeat_token_cannot_control_owner_panel(server, tmp_path):
         with urllib.request.urlopen(req, timeout=3) as response:  # noqa: S310
             assert response.status == 202
         assert (
-            json.loads((tmp_path / "panel/wsl.json").read_text())["services"]["snap"] == "inactive"
+            json.loads((tmp_path / "panel" / f"{host or 'wsl'}.json").read_text())["services"][
+                "snap"
+            ]
+            == "inactive"
         )
         req = urllib.request.Request(  # noqa: S310 - test server on loopback
             server.origin + "/api/snapshot", headers=headers

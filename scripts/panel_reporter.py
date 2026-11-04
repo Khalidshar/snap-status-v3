@@ -1,4 +1,4 @@
-"""One outbound WSL health report. No listener, shell, credentials in output or scheduler."""
+"""One outbound server health report. No listener, shell, credentials in output or scheduler."""
 
 import json
 import os
@@ -17,10 +17,16 @@ def metrics() -> dict[str, object]:
             memory[key] = int(value.split()[0]) * 1024
     disk = shutil.disk_usage(Path.home())
     services = {}
-    for app in ("snap", "status"):
+    units = {
+        "snap": "madar-v3-snap-commands.service",
+        "status": "madar-v3-status-commands.service",
+        "snap_old": "snap-bot.timer",
+        "status_old": "status-bot.timer",
+    }
+    for app, unit in units.items():
         try:
             result = subprocess.run(  # noqa: S603
-                ["/usr/bin/systemctl", "is-active", f"madar-v3-{app}-commands.service"],
+                ["/usr/bin/systemctl", "is-active", unit],
                 capture_output=True,
                 timeout=5,
                 check=False,
@@ -39,11 +45,13 @@ def metrics() -> dict[str, object]:
 
 
 def main() -> None:
+    host = os.environ.get("MADAR_REPORTER_HOST", "wsl")
     endpoint = os.environ.get("MADAR_REPORTER_URL", "")
     token = os.environ.get("MADAR_REPORTER_TOKEN", "")
     url = urlsplit(endpoint)
     if (
-        url.scheme != "https"
+        host not in {"amazon", "wsl"}
+        or url.scheme != "https"
         or not url.hostname
         or url.username
         or url.password
@@ -55,7 +63,7 @@ def main() -> None:
         raise SystemExit("إعداد عميل الحالة غير مكتمل")
     req = urllib.request.Request(  # noqa: S310 - HTTPS and path validated above
         endpoint,
-        data=json.dumps(metrics()).encode(),
+        data=json.dumps({"host": host, **metrics()}).encode(),
         headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
     )
 
