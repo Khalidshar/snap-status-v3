@@ -25,7 +25,8 @@ AGENT = "madar-tafsir-reference/1"
 
 def fetch(url: str) -> dict:
     request = urllib.request.Request(url, headers={"User-Agent": AGENT})
-    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310 - fixed https hosts
+    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
+        # fixed https hosts only (QF and QuranEnc)
         return json.loads(response.read())
 
 
@@ -71,7 +72,7 @@ def main() -> int:
         {
             "schema": 1,
             "reviewed": "2026-11-04",
-            "method": "QF text, markup removed as displayed, identical to QuranEnc arabic_moyassar; "
+            "method": "QF text as displayed, identical to QuranEnc arabic_moyassar; "
             "hash of the raw QF text only",
             "sources": {"ar-tafsir-muyassar": {"resource_id": 16, "verses": hashes}},
             "not_matching": differs,
