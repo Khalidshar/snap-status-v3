@@ -272,7 +272,7 @@
     },
     {
       "id": "youm7-tech",
-      "name": "اليوم السابع — تكنولوجيا",
+      "name": "اليوم السابع تقنية",
       "url": "https://www.youm7.com/rss/SectionRss?SectionID=328",
       "commands": [
         "tech"
