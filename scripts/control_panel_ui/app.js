@@ -35,7 +35,34 @@ const LOOKS={footage:'خلفية متحركة',mix:'خليط: خلفية وبط�
 const KEYS={history:'📜 حدث اليوم',news:'📰 موجز الأخبار',brief:'⏱️ يومك في دقيقة'};
 function renderDesigner(){const label=k=>current.commands.find(c=>c.key===k)?.label||KEYS[k]||'أمر';$('designer-list').innerHTML=(current.designer||[]).map(d=>`<article class="card"><div class="head"><h3>${esc(label(d.key))} · ${names[d.app]}</h3><span class="chip ${d.bars?'bad':'ok'}">${d.inspected?(d.bars?'رُفض: حواف':'اجتاز الفحص'):'لم يُفحص'}</span></div><p><b>${esc(LOOKS[d.style]||'غير معروف')}</b></p><p>الخلفية: ${esc(d.footage||'—')} · التعتيم ${Math.round(d.dim*100).toLocaleString('ar-SA')}٪</p><ul>${d.reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul><small>${date(d.at)}</small></article>`).join('')||empty('لا قرارات مسجّلة بعد');}
 function renderCommands(){const q=$('command-search').value; $('commands').innerHTML=content().filter(c=>!q||c.label.includes(q)).map(c=>`<article class="card"><h3>${esc(c.label)}</h3><p>معاينة قبل الموافقة</p><button class="primary" data-produce="${c.key}">أنتج الحين</button></article>`).join('');}
-function renderSchedules(){const saved=workspace($('schedule-bot').value).schedules;$('schedule-rows').innerHTML=content().map(c=>{const s=saved.find(s=>s.command===c.key);return `<tr data-command="${c.key}"><td>${esc(c.label)}</td><td><input type="time" value="${s?.clock||''}" aria-label="موعد ${esc(c.label)}"></td><td><label><input type="checkbox" ${s?.enabled?'checked':''}> تشغيل</label></td><td><button data-schedule="${c.key}">حفظ</button></td></tr>`;}).join('');}
+function renderSchedules(){
+ const app=$('schedule-bot').value;
+ const saved=workspace(app).schedules;
+ const hosts=Object.entries(current?.servers||{}).filter(([,s])=>s?.schedules?.[app]&&Date.now()/1000-s.at<90);
+ const labels={adhkar:'أذكار الصباح',tadabbur:'تدبر',facts:'هل تعلم',funny:'المواقف',report:'تقرير اليوم',news_noon:'أخبار الظهر',brief:'الموجز',breaking:'عاجل',urgent:'عاجل',saudi:'أخبار السعودية'};
+ const prayers={fajr:'الفجر',dhuhr:'الظهر',asr:'العصر',maghrib:'المغرب',isha:'العشاء'};
+ const clockLabel=clock=>{
+  if(clock==='radar')return 'رصد الأخبار';
+  if(clock.includes('+')){const [prayer,offset]=clock.split('+');return 'بعد أذان '+prayers[prayer]+' بـ '+Number(offset).toLocaleString('ar-SA')+' دقيقة';}
+  const [h,m]=clock.split(':').map(Number);
+  return new Intl.DateTimeFormat('ar-SA',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:'UTC'}).format(new Date(Date.UTC(2000,0,1,h,m)));
+ };
+ const actual=hosts.flatMap(([host,s])=>{
+  const schedule=s.schedules[app];
+  const service=s.services?.[app+'_old'];
+  const status=service==='inactive'||schedule.paused===true?'موقوف':service==='active'&&schedule.paused===false?'يعمل':'غير معروف';
+  const name=host==='amazon'?'أمازون':'جهاز خالد';
+  return schedule.slots.map(([command,clock])=>{
+   const label=content().find(c=>c.key===command)?.label||labels[command]||'أمر مجدول';
+   return `<tr><td>${esc(label)} · ${name}</td><td>${esc(clockLabel(clock))}</td><td>${status}</td><td>جدول التشغيل</td></tr>`;
+  });
+ });
+ const requested=content().map(c=>{
+  const s=saved.find(s=>s.command===c.key);
+  return `<tr data-command="${c.key}"><td>${esc(c.label)}</td><td><input type="time" value="${s?.clock||''}" aria-label="موعد ${esc(c.label)}"></td><td><label><input type="checkbox" ${s?.enabled?'checked':''}> طلب تشغيل</label></td><td><button data-schedule="${c.key}">حفظ الطلب</button></td></tr>`;
+ });
+ $('schedule-rows').innerHTML=(actual.join('')||'<tr><td colspan="4">لا توجد قراءة حديثة لجدول التشغيل.</td></tr>')+'<tr><th colspan="4">طلبات تغيير المواعيد</th></tr>'+requested.join('');
+}
 let D={agents:[]},AG={},CHAIN=[],TOOLS=[],abot='snap',sel='fact_source',playing=false;
 const AST={passed:['اجتاز','ok'],failed:['فشل','bad'],running:['يعمل','info'],unknown:['غير معروف','dim']};
 const tx=esc,chip=(text,tone)=>'<span class="chip '+tone+'"><span>'+esc(text)+'</span></span>';
