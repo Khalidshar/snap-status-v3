@@ -1,5 +1,6 @@
 """One outbound server health report. No listener, shell, credentials in output or scheduler."""
 
+import contextlib
 import json
 import os
 import shutil
@@ -7,6 +8,8 @@ import subprocess
 import urllib.request
 from pathlib import Path
 from urllib.parse import urlsplit
+
+from studio_core.jobs import panel_schedule
 
 
 def metrics() -> dict[str, object]:
@@ -34,7 +37,17 @@ def metrics() -> dict[str, object]:
             services[app] = "active" if result.returncode == 0 else "inactive"
         except (OSError, subprocess.SubprocessError):
             services[app] = "unknown"
+    schedules = {}
+    for app in ("snap", "status"):
+        script = os.environ.get(f"MADAR_REPORTER_{app.upper()}_LEGACY_SCRIPT")
+        state = os.environ.get(f"MADAR_REPORTER_{app.upper()}_LEGACY_STATE")
+        if script:
+            with contextlib.suppress(OSError, ValueError, SyntaxError, KeyError, TypeError):
+                schedules[app] = panel_schedule.read(
+                    app, Path(script), Path(state) if state else None
+                )
     return {
+        "schedules": schedules,
         "disk_used": disk.used,
         "disk_total": disk.total,
         "memory_total": memory["MemTotal"],
