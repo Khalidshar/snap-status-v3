@@ -67,6 +67,7 @@ BASE = {
     "ar.harpersbazaararabia.com",
     "aitnews.com",
     "www.tech-wd.com",
+    "img.youm7.com",
     "www.ellearabia.com",
     "ar.wikipedia.org",
     "upload.wikimedia.org",

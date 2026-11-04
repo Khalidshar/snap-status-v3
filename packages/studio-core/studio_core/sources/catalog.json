@@ -257,6 +257,48 @@
       "evidence": "https://github.com/Khalidshar/snap-bot/blob/87554fae19ba1059e667dd3716783040c61e990e/config.yaml"
     },
     {
+      "id": "unlimit-tech",
+      "name": "أنلمت تك",
+      "url": "https://unlimit-tech.com/feed/",
+      "commands": [
+        "tech"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "أضيف بموافقة خالد ٤ نوفمبر ٢٠٢٦ بعد تعذّر aitnews وtech-wd (403). فُحص من جهاز خالد باسم البوت الحقيقي: الخلاصة تعمل وكل خبر بصورة. لا يثبت إذن النشر؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://unlimit-tech.com/feed/"
+    },
+    {
+      "id": "youm7-tech",
+      "name": "اليوم السابع — تكنولوجيا",
+      "url": "https://www.youm7.com/rss/SectionRss?SectionID=328",
+      "commands": [
+        "tech"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "أضيف بموافقة خالد ٤ نوفمبر ٢٠٢٦ بعد تعذّر aitnews وtech-wd (403). فُحص من جهاز خالد باسم البوت الحقيقي: الخلاصة تعمل وكل خبر بصورة. لا يثبت إذن النشر؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://www.youm7.com/rss/SectionRss?SectionID=328"
+    },
+    {
+      "id": "arabhardware",
+      "name": "عرب هاردوير",
+      "url": "https://arabhardware.net/feed",
+      "commands": [
+        "tech"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "أضيف بموافقة خالد ٤ نوفمبر ٢٠٢٦ بعد تعذّر aitnews وtech-wd (403). فُحص من جهاز خالد باسم البوت الحقيقي: الخلاصة تعمل وكل خبر بصورة. لا يثبت إذن النشر؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://arabhardware.net/feed"
+    },
+    {
       "id": "sayidaty",
       "name": "سيدتي",
       "url": "https://www.sayidaty.net/rss.xml",
