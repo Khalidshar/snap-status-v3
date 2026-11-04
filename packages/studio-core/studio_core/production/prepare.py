@@ -966,7 +966,14 @@ class Factory:
         latest = int(hijri["year"]) - 30
         events = []
         unlink = r"\[\[(?:[^|\]]*\|)?([^\]]*)\]\]"
-        for line in wiki.splitlines():
+        # Only the «أحداث» section: births and deaths are not events of the day.
+        section = re.split(r"^==\s*أحداث\s*==\s*$", wiki, maxsplit=1, flags=re.M)
+        happened = (
+            re.split(r"^==[^=].*$", section[1], maxsplit=1, flags=re.M)[0]
+            if len(section) > 1
+            else ""
+        )
+        for line in happened.splitlines():
             # The year itself is usually a link: "* [[512 هـ|512هـ]] - ..." or "* [[359 هـ]] - ...".
             found = re.match(
                 r"\*\s*(?:\[\[(?:[^\]|]*\|)?)?\s*(\d{1,4})\s*هـ\s*(?:\]\])?\s*[^\w\s]\s*(.+)", line

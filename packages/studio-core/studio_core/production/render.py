@@ -149,6 +149,33 @@ def audio_mix(p: dict[str, Any], source: Path, work: Path) -> Path:
         ],
         300,
     )
+    if clips:
+        # One pass misses on very dynamic music (4 Nov: Snap «حدث اليوم» failed the loudness
+        # gate). Measure the mix and correct it once toward -15 LUFS under the same limiter.
+        level = measure_audio(out, {"ffmpeg": "/usr/bin/ffmpeg", "timeout_seconds": 300}, run)
+        if not -17 <= level["integrated_lufs"] <= -12 or level["true_peak_dbtp"] > -1.5:
+            fixed = work / "mix-level.wav"
+            gain = -15 - level["integrated_lufs"]
+            run(
+                [
+                    "/usr/bin/ffmpeg",
+                    "-v",
+                    "error",
+                    "-nostdin",
+                    "-y",
+                    "-i",
+                    str(out),
+                    "-af",
+                    f"volume={gain:.2f}dB,alimiter=limit=0.75:level=false",
+                    "-ar",
+                    "48000",
+                    "-ac",
+                    "2",
+                    str(fixed),
+                ],
+                120,
+            )
+            fixed.replace(out)
     return out
 
 
