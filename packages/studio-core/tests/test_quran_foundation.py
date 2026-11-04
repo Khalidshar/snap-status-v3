@@ -1,6 +1,7 @@
 """QF contract tests use invented non-scriptural text, never fabricated tafsir."""
 
 import json
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -82,6 +83,21 @@ def reviewed_tafsir_reference(tmp_path_factory, monkeypatch):
     )
     monkeypatch.setattr(qf, "TAFSIR_REFERENCE", path)
     return path
+
+
+def test_production_tafsir_reference_covers_reviewed_subset():
+    reference = json.loads((REPO / "config/quran/tafsir-reference.json").read_bytes())
+    subset = json.loads((faith.DATA / "quran_subset.json").read_bytes())["items"]
+    expected = {f"{row['surah']}:{row['ayah']}" for row in subset}
+    assert "33:56" in expected
+    assert reference["schema"] == 1
+    assert reference["not_matching"] == ["33:56"]
+    sources = reference["sources"]
+    assert set(sources) == {"ar-tafsir-muyassar"}
+    muyassar = sources["ar-tafsir-muyassar"]
+    assert muyassar["resource_id"] == 16
+    assert set(muyassar["verses"]) == expected - {"33:56"}
+    assert all(re.fullmatch(r"[0-9a-f]{64}", digest) for digest in muyassar["verses"].values())
 
 
 class FixtureClient:
@@ -444,7 +460,9 @@ def test_kernel_denies_renderer_ip_sockets():
 
 
 @pytest.mark.parametrize("app,with_audio", [(APP, False), ("status-bot-v2", True)])
-def test_real_clip_keeps_whole_audio_then_tafsir_inside_frame(tmp_path, catalog, app, with_audio):
+def test_real_clip_keeps_whole_audio_then_tafsir_inside_frame(
+    tmp_path, catalog, app, with_audio, reviewed_tafsir_reference
+):
     if shutil.which("pango-view") is None:
         pytest.skip("pango-view is required for real Quran clip render")
     audio = b"corrupt file"
@@ -468,7 +486,7 @@ def test_real_clip_keeps_whole_audio_then_tafsir_inside_frame(tmp_path, catalog,
     _, path = fixture_bundle(tmp_path, catalog, app=app, client=FixtureClient(audio=audio))
     worker = Path(__file__).with_name("quran_sandbox_worker.py")
     process = subprocess.run(  # noqa: S603 -- fixed offline test worker
-        [sys.executable, str(worker), str(path), app],
+        [sys.executable, str(worker), str(path), app, str(reviewed_tafsir_reference)],
         check=False,
         capture_output=True,
         text=True,
@@ -574,7 +592,7 @@ def test_renderer_without_marker_delegates_exactly_to_existing_renderer(tmp_path
 
 @pytest.mark.parametrize("app", [APP, "status-bot-v2"])
 def test_enabled_command_reaches_owned_renderer_and_media_gates(
-    tmp_path, catalog, monkeypatch, app
+    tmp_path, catalog, monkeypatch, app, reviewed_tafsir_reference
 ):
     from studio_core.presentation.command_cards import profile
     from studio_core.religious import quran_pipeline as pipeline
@@ -644,6 +662,7 @@ def test_enabled_command_reaches_owned_renderer_and_media_gates(
             app,
             job,
             content["content_hash"],
+            str(reviewed_tafsir_reference),
         ],
         capture_output=True,
         text=True,
