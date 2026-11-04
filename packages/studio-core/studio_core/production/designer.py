@@ -35,6 +35,19 @@ TOPICS = {
         ("smoke", "black"),
     ),
 }
+# Arabic names for the approved backdrops and pools: everything the owner reads is Arabic.
+NAMES = {
+    "mixkit-1164.mp4": "أمواج في الماء",
+    "mixkit-1168.mp4": "ورد يتمايل مع النسيم",
+    "mixkit-1170.mp4": "شمس فوق النخيل",
+    "mixkit-1183.mp4": "شمس فوق التلال",
+    "mixkit-1197.mp4": "رصيف خشبي على الماء",
+    "mixkit-1968.mp4": "دخان على خلفية سوداء",
+    "mixkit-51500.mp4": "أمواج فيروزية من الأعلى",
+    "mixkit-51506.mp4": "أمواج تتكسر على صخرة",
+}
+POOLS = {"calm": "الهادئة", "night": "الليلية", "day": "النهارية"}
+DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 # Mean luma (0-255) the dimmed backdrop should land near so cream and gold text stay readable.
 TARGET_LUMA = 70.0
 
@@ -100,20 +113,24 @@ def decide(p: dict[str, Any], value: dict[str, Any], clips: list[dict[str, Any]]
     # Same content, same backdrop: a retry never changes the picture behind the text.
     index = int(hashlib.sha256(text.encode()).hexdigest()[:8], 16) % len(candidates)
     chosen = candidates[index]
+    name = NAMES.get(chosen["file"], chosen["title"])
     if best:
-        reasons.append(f"الخلفية تناسب الموضوع: {chosen['title']}")
+        reasons.append(f"الخلفية تناسب الموضوع: {name}")
     else:
-        reasons.append(f"خلفية هادئة من مجموعة «{footage.pool(kind)}»: {chosen['title']}")
+        group = POOLS.get(footage.pool(kind), footage.pool(kind))
+        reasons.append(f"لا كلمة تحدد الخلفية، فاختار من الخلفيات {group}: {name}")
     path = footage.ROOT / chosen["file"]
     brightness = luma(path)
     dim = round(min(0.55, max(0.15, 1 - TARGET_LUMA / max(brightness, 1.0))), 2)
-    reasons.append(f"سطوع الخلفية {brightness:.0f}/255، التعتيم {int(dim * 100)}٪")
+    reasons.append(
+        f"سطوع الخلفية {brightness:.0f} من 255، فصار التعتيم {int(dim * 100)}٪".translate(DIGITS)
+    )
     return {
         "schema": 1,
         "agent": "designer",
         "style": style,
         "footage": chosen["file"],
-        "footage_title": chosen["title"],
+        "footage_title": name,
         "footage_path": str(path),
         "footage_luma": round(brightness, 1),
         "dim": dim,
