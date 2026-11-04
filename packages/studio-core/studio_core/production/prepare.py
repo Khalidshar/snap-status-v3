@@ -42,7 +42,7 @@ from .model import (
 
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 # Four or more English words in a row: an untranslated phrase, not a product name.
-ENGLISH_PHRASE = re.compile(r"[A-Za-z][A-Za-z0-9'2019.-]*(?:\s+[A-Za-z][A-Za-z0-9'2019.-]*){3,}")
+ENGLISH_PHRASE = re.compile(r"[A-Za-z][A-Za-z0-9'’.-]*(?:\s+[A-Za-z][A-Za-z0-9'’.-]*){3,}")
 MUSIC = "https://www.free-stock-music.com/music/maxkomusic/mp3/maxkomusic-true-patriot.mp3"
 MUSIC_CREDIT = "True Patriot by MaxKoMusic | https://maxkomusic.com/\nRoyalty Free Music by https://www.free-stock-music.com\nCC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0/"
 
