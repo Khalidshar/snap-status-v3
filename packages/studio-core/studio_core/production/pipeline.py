@@ -96,7 +96,8 @@ def render(
     ) != (config.app, config.app, job, digest, digest) or value["expires_at"] <= time.time():
         raise ValueError("LEGACY_RENDER_SCOPE_CHANGED")
     work = Path(settings["spool_root"]) / job / "attempts" / str(attempt)
-    built = render_scenes(source, work / "production")
+    history = (Path(settings["spool_root"]) / f".designer-{config.app}.sqlite", job)
+    built = render_scenes(source, work / "production", history=history)
     out = work / "output"
     out.mkdir(mode=0o750, exist_ok=True)
     for old, new in [("video.mp4", "did-you-know.mp4"), ("shot-3.jpg", "preview-source.jpg")]:
