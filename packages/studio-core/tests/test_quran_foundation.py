@@ -66,13 +66,20 @@ def catalog(tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def reviewed_tafsir_reference(tmp_path, monkeypatch):
+def reviewed_tafsir_reference(tmp_path_factory, monkeypatch):
     sample = "نص اختباري لقياس الصفحة فقط، وليس تفسيراً."
-    path = tmp_path / "tafsir-reference.json"
-    path.write_text(json.dumps({"schema": 1, "sources": {
-        slug: {"resource_id": resource, "verses": {"2:45": qf.sha(sample.encode())}}
-        for (slug, _), resource in zip(qf.TAFSIRS, (16, 170), strict=True)
-    }}))
+    path = tmp_path_factory.mktemp("tafsir-reference") / "tafsir-reference.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "sources": {
+                    slug: {"resource_id": resource, "verses": {"2:45": qf.sha(sample.encode())}}
+                    for (slug, _), resource in zip(qf.TAFSIRS, (16, 170), strict=True)
+                },
+            }
+        )
+    )
     monkeypatch.setattr(qf, "TAFSIR_REFERENCE", path)
     return path
 
@@ -723,7 +730,7 @@ def test_multiple_ayahs_keep_one_reader_and_exact_source_sequence(
     store = qf.Store(tmp_path / "quran-snap", APP)
     reference = json.loads(reviewed_tafsir_reference.read_bytes())
     reference["sources"][qf.TAFSIRS[0][0]]["verses"] = {
-        f'{row["surah"]}:{row["ayah"]}': qf.sha("نص اختباري وليس تفسيراً.".encode())
+        f"{row['surah']}:{row['ayah']}": qf.sha("نص اختباري وليس تفسيراً.".encode())
         for row in json.loads((faith.DATA / "quran_subset.json").read_bytes())["items"]
     }
     reviewed_tafsir_reference.write_text(json.dumps(reference))
