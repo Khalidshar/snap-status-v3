@@ -351,7 +351,7 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
                     "-filter_complex_threads",
                     "1",
                     "-filter_complex",
-                    "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.04,drawbox=color=black@0.22:t=fill[bg];[bg][0:v]overlay=shortest=1,format=yuv420p[v]",
+                    "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.06,drawbox=color=black@0.30:t=fill[bg];[bg][0:v]overlay=shortest=1,format=yuv420p[v]",
                     "-map",
                     "[v]",
                     "-map",
