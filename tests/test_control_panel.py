@@ -147,6 +147,9 @@ def test_heartbeat_token_cannot_control_owner_panel(server, tmp_path, host):
     }
     if host is not None:
         metric["host"] = host
+        metric["schedules"] = {
+            "snap": {"paused": False, "slots": [["tech", "10:00"], ["tech", "20:00"]]}
+        }
     headers = {"Authorization": "Bearer " + server.reporter_token}
     with patch.object(panel, "STATE", tmp_path):
         req = urllib.request.Request(  # noqa: S310 - test server on loopback
@@ -160,6 +163,9 @@ def test_heartbeat_token_cannot_control_owner_panel(server, tmp_path, host):
             ]
             == "inactive"
         )
+        with get(server, "/api/snapshot") as snapshot_response:
+            snapshot = json.load(snapshot_response)
+        assert snapshot["servers"][host or "wsl"]["schedules"] == metric.get("schedules", {})
         req = urllib.request.Request(  # noqa: S310 - test server on loopback
             server.origin + "/api/snapshot", headers=headers
         )
