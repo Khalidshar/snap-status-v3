@@ -50,6 +50,10 @@ def deny_ip_sockets() -> None:
 
 if __name__ == "__main__":
     deny_ip_sockets()
+    if sys.argv[1] != "proof":
+        from studio_core.religious import quran_foundation
+
+        quran_foundation.TAFSIR_REFERENCE = Path(sys.argv[-1])
     if sys.argv[1] == "proof":
         from studio_core.renderer import proof
 
