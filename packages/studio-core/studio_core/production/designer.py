@@ -48,6 +48,7 @@ NAMES = {
     "mixkit-51500.mp4": "أمواج فيروزية من الأعلى",
     "mixkit-51506.mp4": "أمواج تتكسر على صخرة",
 }
+LIVE_NAMES = {"calm": "طبيعة هادئة", "night": "طبيعة ليلية", "day": "منظر طبيعي"}
 POOLS = {"calm": "الهادئة", "night": "الليلية", "day": "النهارية"}
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 # Mean luma (0-255) the dimmed backdrop should land near so cream and gold text stay readable.
@@ -158,7 +159,7 @@ def decide(
     else:
         group = POOLS.get(footage.pool(kind), footage.pool(kind))
         reasons.append(f"لا كلمة تحدد الخلفية، فاختار من الخلفيات {group}: {name}")
-    path = footage.ROOT / chosen["file"]
+    path = Path(chosen["path"]) if "path" in chosen else footage.ROOT / chosen["file"]
     brightness = luma(path)
     dim = round(min(0.55, max(0.15, 1 - TARGET_LUMA / max(brightness, 1.0))), 2)
     reasons.append(

@@ -54,7 +54,9 @@ def verify(manifest: Path) -> Path:
     return path
 
 
-def prefetch(query: str, directory: Path, socket: Path) -> Path:
+def prefetch(
+    query: str, directory: Path, socket: Path, *, providers: tuple[str, ...] = PROVIDERS
+) -> Path:
     if not query.strip() or len(query) > 200:
         raise ValueError("INVALID_QUERY")
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -71,7 +73,7 @@ def prefetch(query: str, directory: Path, socket: Path) -> Path:
         "coverr": "https://api.coverr.co/videos?"
         + urlencode({"query": query, "urls": "true", "page_size": 5}),
     }
-    for provider in PROVIDERS:
+    for provider in providers:
         try:
             choices = candidates(provider, json.loads(client.get(endpoints[provider]).body))
         except (NetworkError, ValueError, KeyError, TypeError, AttributeError):
