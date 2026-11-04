@@ -100,6 +100,10 @@ def probe(ffprobe: str, path: Path) -> dict[str, Any]:
     }
 
 
+# Where the handle pulses (its cut 360x62 at 360,1755, up to 12% larger): frame checks skip it.
+MOTION = {"x": 330, "y": 1745, "width": 420, "height": 82}
+
+
 def command(
     ffmpeg: str,
     clip: Path,

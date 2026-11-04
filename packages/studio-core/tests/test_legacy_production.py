@@ -101,7 +101,7 @@ def test_default_off(monkeypatch):
 
 @pytest.mark.parametrize(
     "key,roles",
-    [("facts", ["fact"] * 4), ("funny", ["funny"] * 4), ("riddle", ["question", "answer"] * 3)],
+    [("facts", ["fact"] * 6), ("funny", ["funny"] * 6), ("riddle", ["question", "answer"] * 3)],
 )
 def test_old_recipes_real_local_audio_decoding(tmp_path, audio, key, roles):
     client = Sources(audio)
@@ -332,7 +332,8 @@ def test_bulletin_and_article_points_have_actual_source_assets(tmp_path, audio, 
     assert all(s.get("image") and s.get("source") and s.get("published_label") for s in core)
     if key == "news":
         assert len(core) == 3 and all(s["role"] == "story" for s in core)
-        assert all(s["seconds"] == 12 for s in core)
+        # Snap pads to its 61 s floor evenly: every story keeps the same pace, at least 12 s.
+        assert len({round(s["seconds"], 3) for s in core}) == 1 and core[0]["seconds"] >= 12
     else:
         assert core[0]["role"] == "headline" and all(s["role"] == "point" for s in core[1:])
     broken = copy.deepcopy(value)
@@ -443,7 +444,9 @@ def test_each_dhikr_is_bound_to_its_human_recording_and_count(tmp_path, audio):
     value = f.build()
     p = validate(value, assets=f.root)
     segments = p["scenes"][1:-1]
-    assert 44 <= sum(s["seconds"] for s in segments) <= 50
+    # Selection window is on the recordings; Snap may then hold each card longer.
+    assert 44 <= sum(s["audio_duration"] + 0.3 for s in segments) <= 50
+    assert all(s["seconds"] >= s["audio_duration"] + 0.3 - 1e-9 for s in segments)
     assert all(s["body"] == rows[s["dhikr_id"] - 1]["ARABIC_TEXT"] for s in segments)
     assert all(s["number"] == "التكرار: ٣" for s in segments)
     assert all(s["levels"] and max(s["levels"]) > 0 for s in segments)
