@@ -24,7 +24,7 @@ AGENT = "madar-tafsir-reference/1"
 
 
 def fetch(url: str) -> dict:
-    request = urllib.request.Request(url, headers={"User-Agent": AGENT})
+    request = urllib.request.Request(url, headers={"User-Agent": AGENT})  # noqa: S310
     with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
         # fixed https hosts only (QF and QuranEnc)
         return json.loads(response.read())
