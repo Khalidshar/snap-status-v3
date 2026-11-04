@@ -34,7 +34,10 @@ def fixture():
 
 @pytest.mark.parametrize("key", content_clips.KINDS)
 def test_every_telegram_kind_is_available_in_whatsapp(key):
-    assert content_clips.KINDS[key] in SHARED_KINDS
+    from studio_core.production.model import TITLES
+
+    # «حدث اليوم» exists only in the legacy production path, never in the shared catalogs.
+    assert content_clips.KINDS[key] in SHARED_KINDS or (key == "history" and key in TITLES)
 
 
 def test_video_send_is_once_pinned_and_no_text_reply(fixture, tmp_path):

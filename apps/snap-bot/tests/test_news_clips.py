@@ -50,7 +50,10 @@ def service(tmp):
 
 
 @pytest.mark.parametrize("key", TITLES)
-def test_each_command_delivers_clip_only_with_original_headline(tmp_path, key):
+def test_each_command_delivers_clip_only_with_original_headline(tmp_path, key, monkeypatch):
+    # A frozen request clock isolates the saved-news contract from wall-clock drift.
+    request_time = time.time()
+    monkeypatch.setattr(time, "time", lambda: request_time)
     text, clip = Mock(), Mock()
     svc = service(tmp_path)
     assert command_news.reply(svc, key, "one", text, clip, client=Feed(key))

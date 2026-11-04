@@ -1,0 +1,7 @@
+{
+  "name": "rawwag-production-scenes",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Offline Chromium renderer; no delivery or paid API",
+  "dependencies": {"playwright": "1.62.1"}
+}

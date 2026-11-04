@@ -99,6 +99,11 @@ def prepare_command(app: str, job: str) -> Path:
 
 
 def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> bool:
+    if content.get("legacy_production"):
+        from studio_core.production.pipeline import stage as stage_production
+
+        stage_production(content, app, job, input_path)
+        return True
     # Default-off means no probing, filesystem changes, downloads or altered content.
     if os.environ.get("MADAR_QURAN_AUDIO") != "1" or content.get("kind") not in KINDS:
         return False
@@ -154,13 +159,18 @@ def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> bool
 
 
 def track(result: dict[str, Any], path: Path, digest: str) -> None:
+    if result.get("legacy_production"):
+        from studio_core.production.pipeline import track_qf
+
+        track_qf(result["legacy_production"]["content"]["legacy_production"], path)
+        return
     record = result.get("quran_foundation")
     if record:
         store_for(record["app"]).track(path, result["job_id"], record["expires_at"], digest)
 
 
 def track_bundle(result: dict[str, Any], directory: Path, preview_sha: str) -> None:
-    if not result.get("quran_foundation"):
+    if not result.get("quran_foundation") and not result.get("legacy_production"):
         return
     track(result, directory / "did-you-know.mp4", result["video_sha256"])
     track(result, directory / "preview.png", preview_sha)
@@ -225,6 +235,10 @@ def _render(
         Path(settings["input_root"]) / job_id / "attempts" / str(attempt) / "input/content.json"
     )
     marker = source.with_name("quran.json")
+    if source.with_name("legacy.json").is_file():
+        from studio_core.production.pipeline import render as render_production
+
+        return render_production(config, settings, job_id, content_hash, attempt)
     if not marker.exists():
         return legacy(config, settings, job_id, content_hash, attempt)
     isolation = proof(settings["egress_socket"])

@@ -813,8 +813,8 @@
   "hunks": [
    {
     "file": "content_agents.py",
-    "old": "    if json.loads(row[\"content_json\"]) != content:\n",
-    "new": "    if False:\n"
+    "old": "    if json.loads(row[\"content_json\"]) != content:\n        raise AgentRejected(\"MEMORY_CONTENT_NOT_RESERVED\")\n",
+    "new": "    if False:\n        raise AgentRejected(\"MEMORY_CONTENT_NOT_RESERVED\")\n"
    }
   ]
  },

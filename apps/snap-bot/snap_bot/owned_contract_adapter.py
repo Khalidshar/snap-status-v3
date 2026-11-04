@@ -218,6 +218,7 @@ def run_stage(
 
                     saved = {
                         **({"kind": value["kind"]} if "kind" in value else {}),
+                        **({"legacy_content": value} if value.get("legacy_production") else {}),
                         "fact_id": value["fact_id"],
                         "body": value["body"],
                         "content_hash": value["content_hash"],
@@ -300,6 +301,19 @@ def arabic_evidence(row: Any, content_sha: str, content_hash: str | None = None)
             or saved["content_sha"] != content_sha
         ):
             raise ValueError("Arabic lineage changed")
+        if saved.get("legacy_content"):
+            from studio_core.production.model import validate
+
+            content = saved["legacy_content"]
+            validate(content)
+            if (
+                digest(content) != content_sha
+                or saved["report"] != inspect_content(content)
+                or saved["content_hash"] != content["content_hash"]
+                or (content_hash is not None and content_hash != content["content_hash"])
+            ):
+                raise ValueError("Legacy Arabic proof changed")
+            return saved
         kind = saved.get("kind", DEFAULT_KIND)
         fact = next((f for f in load_kind(kind) if f["id"] == saved["fact_id"]), None)
         if (

@@ -156,6 +156,11 @@ def deliver(
     root = Storage(config).workspace(job_id)
     result = json.loads((root / "output/render-result.json").read_text())
     content = json.loads((root / "input/content.json").read_text())
+    production_caption = None
+    if content.get("legacy_production"):
+        from studio_core.production.caption import platform_caption
+
+        production_caption = platform_caption(content)
     if content.get("type") == "did_you_know":
         validate_content(content)
         if review_mode != "HUMAN_FRAME" or result.get("safe_area", {}).get("result") != "PASS":
@@ -362,6 +367,10 @@ def deliver(
                 channel,
                 content.get("title", "هل تعلم؟"),
             )
+            if production_caption is not None:
+                body, kind = delivery.multipart(
+                    chat, video, production_caption, video_filename(content.get("type", "weather"))
+                )
             sent = transport(token, "sendVideo", body, kind)
             if str(sent.get("chat", {}).get("id")) != chat or not isinstance(
                 sent.get("message_id"), int

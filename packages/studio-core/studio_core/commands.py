@@ -32,6 +32,7 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("saudi", "🇸🇦 أخبار السعودية", ("السعودية",), False),
         ("world", "🌍 أخبار العالم", ("العالم",), False),
         ("news", "📰 موجز الأخبار", ("موجز",), False),
+        ("news_noon", "📰 أخبار الظهر", ("نشرة الظهر",), False),
         ("football", "⚽ ملخص كرة القدم", ("كرة القدم", "الكرة"), False),
         ("markets", "📈 الأسواق والاقتصاد", ("الأسواق",), False),
     )),
@@ -41,7 +42,8 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("style", "👗 الأناقة والجمال", ("الأناقة",), False),
         ("riddle", "🧠 لغز اليوم", ("لغز",), False),
         ("funny", "😂 مواقف طريفة", ("طرائف",), False),
-        ("night", "🌙 قبل النوم", ("ليلة طيبة",), False),
+        ("history", "📜 حدث اليوم", ("في مثل هذا اليوم", "حدث اليوم"), False),
+        ("night", "🌙 قبل النوم", (), False),
     )),
     ("faith", "🕌 أذكار ودين", (
         ("adhkar_am", "🌅 أذكار الصباح", ("اذكار الصباح",), False),
@@ -52,6 +54,7 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("friday", "🕌 رسالة الجمعة", ("الجمعة",), False),
         ("kahf", "📖 سورة الكهف", ("الكهف",), False),
         ("fast", "🌙 تذكير الصيام", ("صيام",), False),
+        ("isha", "🌙 ليلة طيبة", ("ليلة طيبه",), False),
     )),
     ("brief", "⏱️ يومك في دقيقة", (
         ("brief", "⏱️ يومك في دقيقة", ("يومك",), False),

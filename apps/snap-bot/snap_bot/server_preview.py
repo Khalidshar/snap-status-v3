@@ -64,7 +64,7 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             "--property=Group=" + str(account.pw_gid),
             "--property=PrivateNetwork=yes",
             "--property=RestrictAddressFamilies=AF_UNIX",
-            "--property=RuntimeMaxSec=300",
+            "--property=RuntimeMaxSec=3600",
             "--property=WorkingDirectory=" + str(ROOT),
             "--setenv=PYTHONPATH=" + str(ROOT / "apps/snap-bot"),
             "--setenv=PYTHONDONTWRITEBYTECODE=1",
@@ -75,9 +75,20 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             str(bundle),
             json.dumps(provenance),
         ]
+        for name in (
+            "MADAR_LEGACY_PRODUCTION",
+            "MADAR_PRODUCTION_STATE_ROOT",
+            "MADAR_CHROMIUM",
+            "MADAR_NODE",
+            "NODE_PATH",
+        ):
+            if name in os.environ:
+                command.insert(
+                    command.index(sys.executable), "--setenv=" + name + "=" + os.environ[name]
+                )
         if os.environ.get("MADAR_QURAN_AUDIO") == "1":
             command.insert(command.index(sys.executable), "--setenv=MADAR_QURAN_AUDIO=1")
-        subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=330, check=True)  # noqa: S603  # fixed argv, no shell
+        subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=3630, check=True)  # noqa: S603  # fixed argv, no shell
         if Path(output).exists() or any(path.is_symlink() for path in bundle.rglob("*")):
             raise ValueError("Unsafe renderer output")
         # The controller owns the completed snapshot before Repository adjusts DB permissions.
@@ -342,6 +353,8 @@ class Runtime:
             else:
                 at = x["time"]
                 until = max(at, float(content["expires_at"]))
+            if content.get("legacy_production"):
+                continue
             entries.append(
                 {
                     "fact_id": content["fact_id"],
@@ -360,7 +373,10 @@ class Runtime:
         )
 
     def render(self, kind: str = DEFAULT_KIND) -> Any:
-        if kind not in KINDS:
+        from studio_core.production import enabled as production_enabled
+        from studio_core.production.model import TITLES as PRODUCTION_KINDS
+
+        if kind not in (PRODUCTION_KINDS if production_enabled() else KINDS):
             raise ValueError("Unknown content kind")
         commit, _ = source_info()
         with self.locked():
@@ -558,7 +574,14 @@ def main() -> None:
     parser.add_argument("action", choices=("render", "approve", "send"))
     parser.add_argument("--video-sha")
     parser.add_argument("--channel", choices=CHANNELS, default="test")
-    parser.add_argument("--kind", choices=sorted(KINDS), default=DEFAULT_KIND)
+    from studio_core.production import enabled as production_enabled
+    from studio_core.production.model import TITLES as PRODUCTION_KINDS
+
+    parser.add_argument(
+        "--kind",
+        choices=sorted(PRODUCTION_KINDS if production_enabled() else KINDS),
+        default=DEFAULT_KIND,
+    )
     args = parser.parse_args()
     try:
         if os.geteuid() != 0:

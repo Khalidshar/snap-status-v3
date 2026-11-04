@@ -343,13 +343,17 @@ def audio_check(key: str, content: dict, result: dict, video: Path) -> dict:
 
 
 def compare_frame(rgb: bytes, rgba: bytes, box: dict, *, mask: bytes | None = None) -> dict:
+    from studio_core.presentation.brand_frame import MOTION
+
     if len(rgb) != 1080 * 1920 * 3 or len(rgba) != 1080 * 1920 * 4:
         raise ValueError("VERIFY_FRAME_SIZE")
     total, bad, error = 0, 0, 0
     for y in range(4, 1916, 4):
         for x in range(4, 1076, 4):
-            if box["x"] - 4 <= x <= box["x"] + box["width"] + 4 and (
-                box["y"] - 4 <= y <= box["y"] + box["height"] + 4
+            if any(
+                b["x"] - 4 <= x <= b["x"] + b["width"] + 4
+                and b["y"] - 4 <= y <= b["y"] + b["height"] + 4
+                for b in (box, MOTION)
             ):
                 continue
             i = y * 1080 + x

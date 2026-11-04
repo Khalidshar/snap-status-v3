@@ -54,6 +54,8 @@ KINDS = {
     "friday": "friday",
     "kahf": "kahf",
     "riddle": "riddle",
+    "isha": "verse",
+    "history": "history",
 }
 CHAIN = (
     "fact_source",
@@ -177,10 +179,16 @@ def build(
     start: Any = None,
 ) -> tuple[dict[str, Any], dict[str, Any], bytes]:
     require(identifier(item.get("tag"), "[0-9a-f]{64}"), "WA_COMMAND_INVALID")
-    brief = key == "brief"
-    news = source is not None and not brief
+    from studio_core.production import enabled as production_enabled
+    from studio_core.production.model import TITLES as PRODUCTION_KINDS
+
+    production = production_enabled()
+    brief = key == "brief" and not production
+    news = source is not None and not brief and not production
     require(
-        brief or ((source.get("command") == key) if news else key in KINDS),
+        (production and key in PRODUCTION_KINDS)
+        or brief
+        or ((source.get("command") == key) if news else key in KINDS),
         "WA_COMMAND_KIND_INVALID",
     )
     command = "brief" if brief else "news" if news else "did_you_know"
@@ -210,7 +218,7 @@ def build(
         entries = []
         for row in rows:
             prior = json.loads(row["content_json"])
-            if prior.get("type") != "did_you_know":
+            if prior.get("type") != "did_you_know" or prior.get("legacy_production"):
                 continue
             at = row["acked_at"] or row["at"]
             until = at + WINDOW_SECONDS if row["state"] == "API_ACCEPTED" else 253402300799.0
@@ -238,7 +246,7 @@ def build(
             "1.0.0",
             PLAN,
             (previous,) if previous else (),
-            900 if role == "design" else 30,
+            900 if role == "design" or (production and role == "fact_source") else 30,
         )
         ledger = outbox.repo.config.data_root / "agent-status.sqlite"
         role_status.record(ledger, "status-bot-v2", role, "RUNNING")
@@ -294,7 +302,11 @@ def build(
     content = stage(
         "fact_source",
         {"kind": key},
-        lambda: source if (news or brief) else choose_fact(repo, *args, kind=KINDS[key])[0],
+        lambda: (
+            source
+            if (news or brief)
+            else choose_fact(repo, *args, kind=key if production else KINDS[key])[0]
+        ),
         lambda v: valid(v, news),
     )
     content = stage(
@@ -494,6 +506,11 @@ def send(
             )
         try:
             content, result, video = build(outbox, item, key, source=source, root=root, start=start)
+            description = None
+            if content.get("legacy_production"):
+                from studio_core.production.caption import platform_caption
+
+                description = platform_caption(content)
             require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
             window(outbox)
             locks.assert_holder(lease)
@@ -517,7 +534,12 @@ def send(
                 )
             if result.get("quran_foundation"):
                 check_result(result)
-            message = response_id(transport.send_video(media), "send", outbox.identity.recipient)
+            sent = (
+                transport.send_video(media, caption=description)
+                if description is not None
+                else transport.send_video(media)
+            )
+            message = response_id(sent, "send", outbox.identity.recipient)
             with outbox.repo.transaction() as db:
                 db.execute(
                     "UPDATE command_videos SET state='API_ACCEPTED',acked_at=?,message_tag=? WHERE tag=?",

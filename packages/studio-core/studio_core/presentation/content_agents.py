@@ -74,6 +74,13 @@ def check_rotation(
 ) -> dict[str, Any]:
     """التناوب: the category is the first in rotation order that still had an eligible fact."""
     row = _reservation(db, job)
+    if content.get("legacy_production"):
+        from studio_core.production.model import validate
+
+        validate(content)
+        if json.loads(row["content_json"]) != content:
+            raise AgentRejected("ROTATION_CONTENT_NOT_RESERVED")
+        return {"decision": "PASS", "selection": "old-persistent-ledger"}
     kind = content_kind(content)
     blocked, last = reservation_state(db, row["reserved_at"], exclude_job=job, kind=kind)
     day = datetime.fromtimestamp(row["reserved_at"], UTC).date()
@@ -145,6 +152,12 @@ def run_check(
     if role in ("memory", "rotation"):
         with repo.owned_transaction(job, token, attempt=attempt) as db:
             (check_memory if role == "memory" else check_rotation)(db, job, content)
+    elif content.get("legacy_production"):
+        # Source-derived paragraphs and King Fahd text are never rewritten.
+        # Their complete provenance is validated above; browser measures actual wrapping.
+        from studio_core.production.model import validate
+
+        validate(content)
     elif is_sacred(content):
         # Faith text is not proofread or translated: the arabic agent already proved
         # it is the approved text, byte for byte.
