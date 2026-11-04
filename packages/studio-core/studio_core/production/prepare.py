@@ -1191,7 +1191,9 @@ class Factory:
             extra = low - total + 0.01
             # Spread over every item, so no single card lingers; the brief keeps its
             # pre-timed voice track aligned by padding only its last card.
-            middle = scenes[-2:-1] if key == "brief" else (scenes[1:-1] or scenes[-2:-1])
+            # News has no title card, so every scene but the ending is an item.
+            items = [x for x in scenes[:-1] if x.get("role") != "hook"]
+            middle = scenes[-2:-1] if key == "brief" else (items or scenes[-2:-1])
             share = sum(x["seconds"] for x in middle)
             for item in middle:
                 item["seconds"] += extra * item["seconds"] / share
