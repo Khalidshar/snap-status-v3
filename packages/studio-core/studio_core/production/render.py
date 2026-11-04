@@ -16,6 +16,7 @@ from studio_core.presentation import brand_frame, footage
 from studio_core.presentation.fact_audio import measure_audio, measure_silence
 from studio_core.renderer import ensure_glyphs, proof, run
 
+from . import designer
 from .isolation import deny_ip_sockets
 from .model import ROOT, budget, resource, sha, validate
 
@@ -337,11 +338,14 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
         raise ValueError("LEGACY_OUTPUT_EXISTS")
     destination.mkdir(parents=True, mode=0o750)
     errors: list[str] = []
+    # The designer agent picks the look once; both attempts render the same decision.
+    design = designer.decide(p, value, footage.load())
     for attempt in (1, 2):
         work = destination / f"attempt-{attempt}"
         work.mkdir(mode=0o750)
         try:
             frames = work / "frames"
+            (work / "design.json").write_text(json.dumps(design, ensure_ascii=False))
             run(
                 [
                     os.environ.get("MADAR_NODE") or shutil.which("node") or "/usr/bin/node",
@@ -349,13 +353,14 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
                     str(source / "content.json"),
                     str(source),
                     str(frames),
+                    str(work / "design.json"),
                 ],
                 1800,
             )
             layout = json.loads((frames / "layout.json").read_bytes())
             mix = audio_mix(p, source, work)
             clip = work / "clip.mp4"
-            background = footage.choose(value)
+            background = {"path": design["footage_path"]}
             run(
                 [
                     "/usr/bin/ffmpeg",
@@ -378,7 +383,9 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
                     "-filter_complex_threads",
                     "1",
                     "-filter_complex",
-                    "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=brightness=-0.06,drawbox=color=black@0.30:t=fill[bg];[bg][0:v]overlay=shortest=1,format=yuv420p[v]",
+                    "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+                    f"drawbox=color=black@{design['dim']}:t=fill[bg];"
+                    "[bg][0:v]overlay=shortest=1,format=yuv420p[v]",
                     "-map",
                     "[v]",
                     "-map",
@@ -425,6 +432,7 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
                 "external_delivery": False,
             }
             report = qa(video, p, layout, work)
+            inspection = designer.inspect(video, p["duration"], approved["clip_box"])
             result = {
                 "schema": 1,
                 "app": p["app"],
@@ -436,6 +444,8 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
                 "network_isolation": isolation,
                 "attempt": attempt,
                 "rebuild_reasons": errors,
+                "design": {k: v for k, v in design.items() if k != "footage_path"}
+                | {"inspection": inspection},
                 "external_delivery": False,
             }
             (work / "report.json").write_text(json.dumps(result, ensure_ascii=False, indent=2))
