@@ -328,7 +328,9 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
     }
 
 
-def render(source: Path, destination: Path) -> dict[str, Any]:
+def render(
+    source: Path, destination: Path, *, history: tuple[Path, str] | None = None
+) -> dict[str, Any]:
     value = json.loads((source / "content.json").read_bytes())
     p = validate(value, assets=source)
     verify_fonts(p)
@@ -339,7 +341,7 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
     destination.mkdir(parents=True, mode=0o750)
     errors: list[str] = []
     # The designer agent picks the look once; both attempts render the same decision.
-    design = designer.decide(p, value, footage.load())
+    design = designer.decide(p, value, footage.load(), history=history)
     for attempt in (1, 2):
         work = destination / f"attempt-{attempt}"
         work.mkdir(mode=0o750)
