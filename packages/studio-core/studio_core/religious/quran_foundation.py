@@ -597,7 +597,7 @@ def verify_bundle(path: Path, app: str, now: float) -> dict[str, Any]:
         or literal_tafsir(tafsir["raw"]) != tafsir["text"]
     ):
         raise ValueError("QF_TEXT_CHANGED")
-    verify_tafsir_reference(f'{value["surah"]}:{value["ayah"]}', tafsir)
+    verify_tafsir_reference(f"{value['surah']}:{value['ayah']}", tafsir)
     if value["attribution"] != f"التلاوة: {value['reciter']['name']} — المصدر: مؤسسة القرآن":
         raise ValueError("QF_ATTRIBUTION_CHANGED")
     if value["audio_state"] == "HUMAN_RECITATION":
