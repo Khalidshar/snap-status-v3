@@ -222,3 +222,33 @@ def test_development_metrics_are_not_amazon_and_roles_are_exact(server):
     for app in result["apps"].values():
         assert {a["id"] for a in app["agents"]} == {a["id"] for a in roles}
         assert all(a["state"] == "UNKNOWN" for a in app["agents"])
+
+
+def test_designer_decisions_export_only_the_decision(tmp_path):
+    work = tmp_path / "snap/spool/job/attempts/1/production"
+    work.mkdir(parents=True)
+    (work / "report.json").write_text(
+        json.dumps(
+            {
+                "app": "snap-bot-v2",
+                "key": "news",
+                "content_hash": "secret-payload-hash",
+                "design": {
+                    "agent": "designer",
+                    "style": "solid",
+                    "footage_title": "Sun over hills",
+                    "footage_path": "/opt/private/path.mp4",
+                    "dim": 0.41,
+                    "reasons": ["كل البطاقات فيها صور"],
+                    "inspection": {"moments": 5, "bars": []},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "other.json").write_text("{}")
+    panel._designer_cache.update(at=0.0, root=None, value=[])
+    [decision] = panel.designer_decisions(tmp_path)
+    assert decision["app"] == "snap" and decision["style"] == "solid" and decision["bars"] == 0
+    assert decision["inspected"] and decision["reasons"] == ["كل البطاقات فيها صور"]
+    assert "footage_path" not in json.dumps(decision) and "secret" not in json.dumps(decision)

@@ -51,6 +51,53 @@ def rows(path: Path, sql: str, params: tuple[Any, ...] = ()) -> list[Any] | None
         return None
 
 
+DESIGN_STYLES = {"footage", "mix", "solid"}
+_designer_cache: dict[str, Any] = {"at": 0.0, "root": None, "value": []}
+
+
+def designer_decisions(root: Path, limit: int = 12) -> list[dict[str, Any]]:
+    """Latest decisions of the designer agent, read from finished render reports.
+
+    Only the decision itself leaves: the look, backdrop title, dim, reasons and inspection.
+    Re-scanned at most once a minute.
+    """
+    now = time.time()
+    if _designer_cache["root"] == root and now - _designer_cache["at"] < 60:
+        return list(_designer_cache["value"])
+    found: list[dict[str, Any]] = []
+    try:
+        reports = sorted(
+            root.glob("**/report.json"), key=lambda p: p.stat().st_mtime, reverse=True
+        )[:400]
+    except OSError:
+        reports = []
+    for path in reports:
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            design = value.get("design")
+            if not isinstance(design, dict) or design.get("agent") != "designer":
+                continue
+            found.append(
+                {
+                    "app": "snap" if value.get("app") == "snap-bot-v2" else "status",
+                    "key": str(value.get("key", ""))[:32],
+                    "style": design.get("style") if design.get("style") in DESIGN_STYLES else None,
+                    "footage": str(design.get("footage_title", ""))[:80],
+                    "dim": float(design.get("dim", 0)),
+                    "reasons": [str(r)[:160] for r in design.get("reasons", [])][:5],
+                    "bars": len((design.get("inspection") or {}).get("bars", [])),
+                    "inspected": bool(design.get("inspection")),
+                    "at": path.stat().st_mtime,
+                }
+            )
+        except (OSError, ValueError, TypeError, AttributeError):
+            continue
+        if len(found) >= limit:
+            break
+    _designer_cache.update(at=now, root=root, value=found)
+    return list(found)
+
+
 def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
     result: dict[str, Any] = {
         "at": time.time(),
@@ -349,6 +396,7 @@ class Handler(BaseHTTPRequestHandler):
                     json.dumps(
                         {
                             **snapshot(self.server.databases, self.server.binding),
+                            "designer": designer_decisions(self.server.designer_root),
                             "controls": self.server.controls,
                             "workspace_executor_connected": False,
                         }
@@ -513,6 +561,8 @@ def main() -> None:
     parser.add_argument("--snap-db", type=Path, default=STATE / "snap/jobs.sqlite")
     parser.add_argument("--status-db", type=Path, default=STATE / "status/commands/jobs.sqlite")
     parser.add_argument("--enable-controls", action="store_true")
+    # Where finished render reports live (their "design" block is the designer's decision).
+    parser.add_argument("--designer-root", type=Path, default=STATE)
     args = parser.parse_args()
     token = os.environ.get("MADAR_PANEL_TOKEN", "")
     if len(token) < 32 or not token.isascii() or any(c.isspace() for c in token):
@@ -523,6 +573,7 @@ def main() -> None:
         server.binding = os.environ.get("MADAR_PANEL_STATUS_BINDING", "")  # type: ignore[attr-defined]
         server.databases = {"snap": args.snap_db, "status": args.status_db}  # type: ignore[attr-defined]
         server.controls = args.enable_controls  # type: ignore[attr-defined]
+        server.designer_root = args.designer_root  # type: ignore[attr-defined]
         server.origin = f"http://127.0.0.1:{server.server_port}"  # type: ignore[attr-defined]
         server.control_lock = threading.Lock()  # type: ignore[attr-defined]
         server.serve_forever()
