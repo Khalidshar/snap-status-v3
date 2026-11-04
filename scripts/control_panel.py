@@ -20,7 +20,7 @@ from typing import Any
 from urllib.parse import quote
 
 from studio_core.commands import COMMANDS
-from studio_core.jobs import panel_workspace
+from studio_core.jobs import panel_schedule, panel_workspace
 from studio_core.jobs.panel_queue import enqueue
 from studio_core.sources import load as load_sources
 
@@ -504,6 +504,8 @@ class Handler(BaseHTTPRequestHandler):
             host = value.pop("host", "wsl")
             if host not in {"amazon", "wsl"}:
                 raise ValueError("INVALID_HOST")
+            schedules = value.pop("schedules", {})
+            panel_schedule.validate(schedules)
             if set(value) != {
                 "disk_used",
                 "disk_total",
@@ -530,7 +532,7 @@ class Handler(BaseHTTPRequestHandler):
             if target.is_symlink() or (target / f"{host}.json").is_symlink():
                 raise ValueError("UNSAFE_HEARTBEAT")
             temporary = target / (uuid.uuid4().hex + ".json")
-            temporary.write_text(json.dumps({**value, "at": time.time()}))
+            temporary.write_text(json.dumps({**value, "schedules": schedules, "at": time.time()}))
             temporary.chmod(0o600)
             temporary.replace(target / f"{host}.json")
             self.reply(202, b"{}")
