@@ -339,7 +339,27 @@ def render(source: Path, destination: Path) -> dict[str, Any]:
     destination.mkdir(parents=True, mode=0o750)
     errors: list[str] = []
     # The designer agent picks the look once; both attempts render the same decision.
-    design = designer.decide(p, value, footage.load())
+    clips = footage.load()
+    manifest = source / "background/footage.json"
+    live = None
+    if manifest.is_file():
+        asset = footage.pinned(value, manifest)
+        if asset["provider"] in {"pexels", "pixabay"}:
+            live = {
+                **asset,
+                "title": designer.LIVE_NAMES[asset["pool"]],
+            }
+    if live:
+        try:
+            design = designer.decide(p, value, [live])
+        except (OSError, ValueError, subprocess.SubprocessError):
+            live = None
+    if not live:
+        design = designer.decide(p, value, clips)
+    if live:
+        design["background_source"] = {
+            key: live[key] for key in ("provider", "source", "license", "credit", "sha256")
+        }
     for attempt in (1, 2):
         work = destination / f"attempt-{attempt}"
         work.mkdir(mode=0o750)
