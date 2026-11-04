@@ -41,11 +41,6 @@ from .model import (
 )
 
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
-# Four or more English words in a row: an untranslated phrase, not a product name.
-ENGLISH_WORD = re.compile(r"[A-Za-z][A-Za-z0-9'\u2019.-]*")
-ENGLISH_PHRASE = re.compile(
-    r"[A-Za-z][A-Za-z0-9'\u2019.-]*(?:\s+[A-Za-z][A-Za-z0-9'\u2019.-]*){3,}"
-)
 MUSIC = "https://www.free-stock-music.com/music/maxkomusic/mp3/maxkomusic-true-patriot.mp3"
 MUSIC_CREDIT = "True Patriot by MaxKoMusic | https://maxkomusic.com/\nRoyalty Free Music by https://www.free-stock-music.com\nCC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0/"
 
@@ -522,16 +517,6 @@ class Factory:
                             }
                             for p in points
                         ]
-                    # Owner: no English on screen. Arabic sites still leave phrases such as
-                    # "The Gossip Girl alum" untranslated; a short brand or product name
-                    # (Apple, Galaxy S27 Ultra) may stay; a phrase of four English words, or more
-                    # than four English words in the whole story (4 Nov: "Dia Art", "Storied NYC",
-                    # "Fall Night"...), may not.
-                    shown = "\n".join(
-                        [item["title"], *(t or "" for p in points for t in (p["head"], p["body"]))]
-                    )
-                    if ENGLISH_PHRASE.search(shown) or len(ENGLISH_WORD.findall(shown)) > 4:
-                        continue
                     # Exact extracted paragraphs with their matching article image.
                     selected.append(
                         scene(
