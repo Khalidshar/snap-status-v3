@@ -119,7 +119,7 @@ def test_audit_does_not_fetch_excluded_sources_or_turn_websites_into_feeds():
 )
 def test_feed_failures_are_sanitized_and_never_retried(client):
     checks = audit("tech", client)
-    assert len(checks) == len(client.calls) == 3
+    assert len(checks) == len(client.calls) == 6  # five approved feeds plus Google fallback
     assert all(check["result"] == "UNVERIFIED" for check in checks)
     assert "private-token" not in json.dumps(checks)
 
@@ -174,5 +174,5 @@ def test_source_check_cli_does_not_report_failed_feeds_as_success(package, reach
     assert code == (0 if reachable else 2)
     assert output["ok"] is reachable
     assert output["external_delivery"] is False
-    assert len(fake.calls) == 3
+    assert len(fake.calls) == 6
     assert "private-token" not in json.dumps(output)
