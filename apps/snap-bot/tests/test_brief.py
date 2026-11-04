@@ -25,7 +25,7 @@ class Feed:
         host = url.split("/")[2]
         title = (
             "تقنية جديدة للحواسيب"
-            if any(w in host for w in ("aitnews", "tech-wd"))
+            if any(w in host for w in ("aitnews", "tech-wd", "unlimit-tech", "youm7", "arabhardware"))
             else "الرياض تعلن مبادرة سعودية جديدة"
         )
         date = datetime.fromtimestamp(time.time() - 20, UTC).isoformat()
