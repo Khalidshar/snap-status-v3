@@ -65,6 +65,18 @@ def catalog(tmp_path):
     return path
 
 
+@pytest.fixture(autouse=True)
+def reviewed_tafsir_reference(tmp_path, monkeypatch):
+    sample = "نص اختباري لقياس الصفحة فقط، وليس تفسيراً."
+    path = tmp_path / "tafsir-reference.json"
+    path.write_text(json.dumps({"schema": 1, "sources": {
+        slug: {"resource_id": resource, "verses": {"2:45": qf.sha(sample.encode())}}
+        for (slug, _), resource in zip(qf.TAFSIRS, (16, 170), strict=True)
+    }}))
+    monkeypatch.setattr(qf, "TAFSIR_REFERENCE", path)
+    return path
+
+
 class FixtureClient:
     """Shape follows the documented Content Sync response, not the regular API."""
 
@@ -272,6 +284,17 @@ def test_tafsir_hash_tamper_is_blocked(tmp_path, catalog):
     value["tafsir"]["text"] += " تغيير"
     path.write_text(json.dumps(value))
     with pytest.raises(ValueError, match="TEXT_CHANGED"):
+        qf.verify_bundle(path, APP, store.clock())
+
+
+def test_rehashed_tafsir_cannot_replace_reviewed_text(tmp_path, catalog):
+    store, path = fixture_bundle(tmp_path, catalog)
+    value = json.loads(path.read_bytes())
+    tafsir = value["tafsir"]
+    tafsir["raw"] = tafsir["text"] = "نص اختباري آخر"
+    tafsir["raw_sha256"] = tafsir["sha256"] = qf.sha(tafsir["raw"].encode())
+    path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="QF_TAFSIR_REFERENCE_CHANGED"):
         qf.verify_bundle(path, APP, store.clock())
 
 
@@ -670,7 +693,9 @@ def test_same_existing_command_dispatchers_use_quran_aware_renderer():
     assert service.render is render and content_clips.shared_render is render
 
 
-def test_multiple_ayahs_keep_one_reader_and_exact_source_sequence(tmp_path, catalog):
+def test_multiple_ayahs_keep_one_reader_and_exact_source_sequence(
+    tmp_path, catalog, reviewed_tafsir_reference
+):
     from studio_core.presentation.did_you_know import load_kind, make_content
     from studio_core.religious.quran_pipeline import prepare_selection
 
@@ -696,6 +721,12 @@ def test_multiple_ayahs_keep_one_reader_and_exact_source_sequence(tmp_path, cata
         next(f for f in load_kind("verse") if f["id"] == "verse-16"), time.time(), "verse"
     )
     store = qf.Store(tmp_path / "quran-snap", APP)
+    reference = json.loads(reviewed_tafsir_reference.read_bytes())
+    reference["sources"][qf.TAFSIRS[0][0]]["verses"] = {
+        f'{row["surah"]}:{row["ayah"]}': qf.sha("نص اختباري وليس تفسيراً.".encode())
+        for row in json.loads((faith.DATA / "quran_subset.json").read_bytes())["items"]
+    }
+    reviewed_tafsir_reference.write_text(json.dumps(reference))
     # Production-shaped fixture only: no production connection or credentials.
     selected = prepare_selection(store, Multiple(None, "production"), "a" * 32, content, catalog)
     value = json.loads(selected.read_bytes())
