@@ -11,6 +11,7 @@ from typing import Any
 
 from studio_core.config import Config
 from studio_core.jobs import Repository
+from studio_core.presentation import footage
 from studio_core.renderer import file_sha256, write_once
 
 from .model import budget, canonical, resource, validate
@@ -59,6 +60,28 @@ def choose(repo: Repository, job: str, token: str, attempt: int, key: str) -> di
     return value
 
 
+def expire_backgrounds(root: Path, now: float) -> None:
+    """Expire only downloaded background bytes; keep manifests and render evidence."""
+    for manifest in root.glob("*/attempts/*/input/background/background.json"):
+        if any(path.is_symlink() for path in (manifest, *manifest.parents)):
+            continue
+        try:
+            asset = json.loads(manifest.read_bytes())
+            name = asset["sha256"] + ".mp4"
+            if (
+                asset["provider"] not in {"pexels", "pixabay"}
+                or asset["file"] != name
+                or len(name) != 68
+                or any(ch not in "0123456789abcdef" for ch in name[:-4])
+            ):
+                continue
+            raw = manifest.parent / name
+            if raw.is_file() and not raw.is_symlink() and now - raw.stat().st_mtime >= 7 * 86400:
+                raw.unlink(missing_ok=True)
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+
+
 def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> None:
     source = source_root(app, job)
     p = validate(content, assets=source)
@@ -70,6 +93,15 @@ def stage(content: dict[str, Any], app: str, job: str, input_path: Path) -> None
         path = resource(source, a["file"], a["sha256"])
         write_once(input_path.parent / a["file"], path.read_bytes())
         track_qf(p, input_path.parent / a["file"], asset=a)
+    short = "snap" if app == "snap-bot-v2" else "status"
+    if len(input_path.parents) > 4 and input_path.parents[2].name == "attempts":
+        expire_backgrounds(input_path.parents[4], time.time())
+    footage.prepare(
+        content,
+        input_path.parent / "background",
+        Path(f"/run/madar/{short}-video.sock"),
+        providers=("pexels", "pixabay"),
+    )
     write_once(
         input_path.with_name("legacy.json"),
         canonical({"schema": 1, "app": app, "job": job, "content_hash": content["content_hash"]}),
@@ -96,7 +128,8 @@ def render(
     ) != (config.app, config.app, job, digest, digest) or value["expires_at"] <= time.time():
         raise ValueError("LEGACY_RENDER_SCOPE_CHANGED")
     work = Path(settings["spool_root"]) / job / "attempts" / str(attempt)
-    built = render_scenes(source, work / "production")
+    history = (Path(settings["spool_root"]) / f".designer-{config.app}.sqlite", job)
+    built = render_scenes(source, work / "production", history=history)
     out = work / "output"
     out.mkdir(mode=0o750, exist_ok=True)
     for old, new in [("video.mp4", "did-you-know.mp4"), ("shot-3.jpg", "preview-source.jpg")]:

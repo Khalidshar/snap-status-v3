@@ -9,7 +9,9 @@ After: refuses black or grey bars beside the picture or clip.
 """
 
 import hashlib
+import sqlite3
 import subprocess
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +48,7 @@ NAMES = {
     "mixkit-51500.mp4": "أمواج فيروزية من الأعلى",
     "mixkit-51506.mp4": "أمواج تتكسر على صخرة",
 }
+LIVE_NAMES = {"calm": "طبيعة هادئة", "night": "طبيعة ليلية", "day": "منظر طبيعي"}
 POOLS = {"calm": "الهادئة", "night": "الليلية", "day": "النهارية"}
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 # Mean luma (0-255) the dimmed backdrop should land near so cream and gold text stay readable.
@@ -85,7 +88,44 @@ def luma(path: Path) -> float:
     return sum(values) / len(values)
 
 
-def decide(p: dict[str, Any], value: dict[str, Any], clips: list[dict[str, Any]]) -> dict[str, Any]:
+def choose_background(
+    ranked: list[dict[str, Any]], text: str, history: tuple[Path, str] | None
+) -> tuple[dict[str, Any], bool]:
+    def pick(clips: list[dict[str, Any]]) -> dict[str, Any]:
+        best = [clip for clip in clips if clip["fit"] == clips[0]["fit"]]
+        return best[int(hashlib.sha256(text.encode()).hexdigest()[:8], 16) % len(best)]
+
+    if history is None:
+        return pick(ranked), False
+    path, job = history
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("BEGIN IMMEDIATE")
+        db.execute("CREATE TABLE IF NOT EXISTS picks(job TEXT UNIQUE, footage TEXT NOT NULL)")
+        prior = db.execute("SELECT footage FROM picks WHERE job=?", (job,)).fetchone()
+        if prior:
+            same = next((clip for clip in ranked if clip["file"] == prior[0]), None)
+            if same is not None:
+                return same, False
+        recent = {
+            row[0] for row in db.execute("SELECT footage FROM picks ORDER BY rowid DESC LIMIT 3")
+        }
+        fresh = [
+            clip
+            for clip in ranked
+            if clip["file"] not in recent and (clip["fit"] or not ranked[0]["fit"])
+        ]
+        selected = pick(fresh or ranked)
+        db.execute("INSERT OR REPLACE INTO picks VALUES (?, ?)", (job, selected["file"]))
+        return selected, bool(fresh and len(fresh) < len(ranked))
+
+
+def decide(
+    p: dict[str, Any],
+    value: dict[str, Any],
+    clips: list[dict[str, Any]],
+    *,
+    history: tuple[Path, str] | None = None,
+) -> dict[str, Any]:
     items = [s for s in p["scenes"] if s.get("role") not in {"hook", "cta"}]
     pictures = sum(1 for s in items if s.get("image"))
     reasons = []
@@ -108,18 +148,18 @@ def decide(p: dict[str, Any], value: dict[str, Any], clips: list[dict[str, Any]]
         title = clip["title"].lower()
         return sum(any(word in title for word in TOPICS[topic][1]) for topic in wanted)
 
-    best = max(fits(c) for c in pool)
-    candidates = [c for c in pool if fits(c) == best]
-    # Same content, same backdrop: a retry never changes the picture behind the text.
-    index = int(hashlib.sha256(text.encode()).hexdigest()[:8], 16) % len(candidates)
-    chosen = candidates[index]
+    ranked = sorted(({**c, "fit": fits(c)} for c in pool), key=lambda c: -c["fit"])
+    chosen, rotated = choose_background(ranked, text, history if style != "solid" else None)
+    best = chosen["fit"]
+    if rotated:
+        reasons.append("اختار خلفية مناسبة لم تُستخدم في آخر ثلاثة مقاطع لهذا البوت")
     name = NAMES.get(chosen["file"], chosen["title"])
     if best:
         reasons.append(f"الخلفية تناسب الموضوع: {name}")
     else:
         group = POOLS.get(footage.pool(kind), footage.pool(kind))
         reasons.append(f"لا كلمة تحدد الخلفية، فاختار من الخلفيات {group}: {name}")
-    path = footage.ROOT / chosen["file"]
+    path = Path(chosen["path"]) if "path" in chosen else footage.ROOT / chosen["file"]
     brightness = luma(path)
     dim = round(min(0.55, max(0.15, 1 - TARGET_LUMA / max(brightness, 1.0))), 2)
     reasons.append(
