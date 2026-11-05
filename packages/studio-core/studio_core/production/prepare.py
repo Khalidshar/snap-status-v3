@@ -981,12 +981,12 @@ class Factory:
             if not found or int(found[1]) > latest:
                 continue
             raw = re.sub(r"<ref[^>]*/>|<ref.*?</ref>|\{\{.*?\}\}", "", found[2])
-            link = re.search(r"\[\[([^|\]#]+)", raw)
+            link_match = re.search(r"\[\[([^|\]#]+)", raw)
             text = parsing.clean(re.sub(unlink, r"\1", raw), 220)
             if len(text) < 20 or any(word in text for word in avoid):
                 continue
             rank = (0 if any(word in text for word in saudi) else 1, int(found[1]))
-            events.append((rank, int(found[1]), text, link[1] if link else ""))
+            events.append((rank, int(found[1]), text, link_match[1] if link_match else ""))
         events.sort()
         need = 4 if self.app == "snap-bot-v2" else 3
         if len(events) < 2:
