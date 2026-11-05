@@ -135,6 +135,7 @@ def plan() -> dict[Path, str]:
         "madar-v3-status-content@.service",
         "madar-v3-snap-brief@.service",
         "madar-v3-quran-egress@.service",
+        "madar-v3-production-egress@.service",
         "madar-v3-quran-retention@.service",
         "madar-v3-snap-quran-prepare@.service",
         "madar-v3-status-quran-prepare@.service",
@@ -151,6 +152,14 @@ def plan() -> dict[Path, str]:
         "madar-v3-status-commands.service",
     ):
         files[UNITS / (name + ".d/quran.conf")] = "[Service]\nEnvironment=MADAR_QURAN_AUDIO=0\n"
+    for name in (
+        "madar-v3-snap-render@.service",
+        "madar-v3-snap-render.service",
+        "madar-v3-status-commands.service",
+    ):
+        files[UNITS / (name + ".d/production.conf")] = (
+            "[Service]\nEnvironment=MADAR_LEGACY_PRODUCTION=0\n"
+        )
     return files
 
 
@@ -191,6 +200,12 @@ def main() -> None:
             root.mkdir(mode=0o2770, parents=True, exist_ok=True)
             os.chown(root, account.pw_uid, account.pw_gid)
             root.chmod(0o2770)
+        for app in ("snap", "status"):
+            production = Path("/var/lib/madar") / app / "production"
+            if any(p.is_symlink() for p in (production, *production.parents)):
+                raise ValueError("Unsafe production state")
+            production.mkdir(mode=0o700, parents=True, exist_ok=True)
+            os.chown(production, account.pw_uid, account.pw_gid)
         for path, value in files.items():
             path.parent.mkdir(mode=0o755, exist_ok=True, parents=True)
             if not path.exists():

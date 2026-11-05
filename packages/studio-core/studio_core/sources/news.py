@@ -257,7 +257,7 @@ TOP_BRANDS = (
 
 
 def top_brand(key: str, title: str) -> bool:
-    return key == "style" and any(brand in title for brand in TOP_BRANDS)
+    return key == "style" and any(brand.casefold() in title.casefold() for brand in TOP_BRANDS)
 
 
 def google_headline(title: str) -> tuple[str, str]:

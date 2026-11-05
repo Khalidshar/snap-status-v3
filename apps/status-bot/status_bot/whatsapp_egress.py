@@ -142,15 +142,21 @@ class GraphTransport:
             self.credentials, "media", body, "multipart/form-data; boundary=" + boundary
         )
 
-    def send_video(self, media_id: Any) -> ApiResponse:
+    def send_video(self, media_id: Any, *, caption: str | None = None) -> ApiResponse:
         require(identifier(media_id, "[1-9][0-9]{0,29}"), "WA_MEDIA_INVALID")
-        payload = {
+        payload: dict[str, Any] = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
             "to": self.credentials.recipient,
             "type": "video",
             "video": {"id": media_id},
         }
+        if caption is not None:
+            require(
+                isinstance(caption, str) and 0 < len(caption.encode("utf-16-le")) // 2 <= 1024,
+                "WA_CAPTION_INVALID",
+            )
+            payload["video"]["caption"] = caption
         return graph_post(self.credentials, "messages", json_bytes(payload), "application/json")
 
 

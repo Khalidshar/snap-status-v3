@@ -65,10 +65,13 @@ jobs:
       # Real FFmpeg/ffprobe and fonts for the Snap render tests; no publishing or secrets.
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri pango1.0-tools
       - run: uv sync --all-packages
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
       - run: node apps/snap-bot/tests/run_agent_runtime.mjs
       - run: scripts/test.sh all
         env:
           MADAR_REQUIRE_REAL_RENDER: "1"
+          MADAR_PRODUCTION_REAL_RENDER: "1"
       # Deliberate guard deletions: each must be caught by its named test.
       - if: matrix.python == '3.12'
         run: uv run --frozen python scripts/check_core_mutations.py

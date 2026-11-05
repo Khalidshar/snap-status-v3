@@ -37,6 +37,10 @@ def _number(value: object) -> bool:
 
 def check_voice(result: Any) -> dict[str, Any]:
     """الصوت: one generated ambient bed, measured loud enough and never clipping."""
+    if result.get("legacy_production"):
+        from studio_core.presentation.media_checks import check_voice as shared_voice
+
+        return shared_voice(result)
     if result.get("quran_foundation"):
         from studio_core.presentation.media_checks import check_voice as shared_voice
 
@@ -111,7 +115,7 @@ def _under_root(root: Path, path: Path) -> None:
 
 def check_media(result: Any, settings: Any) -> dict[str, Any]:
     """التحقق من الوسائط: the adopted-to-be bytes are exactly what the result declares."""
-    if result.get("quran_foundation"):
+    if result.get("quran_foundation") or result.get("legacy_production"):
         from studio_core.presentation.media_checks import check_media as shared_media
 
         return shared_media(result, settings)

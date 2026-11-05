@@ -23,6 +23,7 @@ FAST_SOURCE_REPO = "Khalidshar/snap-status-v3"
 OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v30.zip"
 OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
 PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
+QURAN_SUBSET_SHA256 = "75daf530731089ed4128870dd1e08c4e0ee70f2409e89fadde0c318e526c97a2"
 KINDS = ("adhkar_am", "adhkar_pm", "hadith", "dua", "verse", "friday", "kahf", "fast")
 GRADES = ("صحيح", "حسن صحيح", "حسن")
 
@@ -50,7 +51,8 @@ def _verified(item: dict[str, Any], *, quran: bool = False) -> str:
 
 def _document(filename: str, kind: str) -> dict[str, Any]:
     try:
-        obj = json.loads((DATA / filename).read_text(encoding="utf-8"))
+        raw = (DATA / filename).read_bytes()
+        obj = json.loads(raw.decode("utf-8"))
     except (OSError, UnicodeError, ValueError) as error:
         raise ValueError("Missing or unreadable faith data: " + filename) from error
     if (
@@ -65,6 +67,8 @@ def _document(filename: str, kind: str) -> dict[str, Any]:
         or not obj["items"]
     ):
         raise ValueError("Unapproved faith catalog")
+    if kind == "quran_subset" and hashlib.sha256(raw).hexdigest() != QURAN_SUBSET_SHA256:
+        raise ValueError("Quran subset hash mismatch")
     return obj
 
 

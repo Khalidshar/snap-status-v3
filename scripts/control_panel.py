@@ -54,6 +54,32 @@ def rows(path: Path, sql: str, params: tuple[Any, ...] = ()) -> list[Any] | None
 
 
 DESIGN_STYLES = {"footage", "mix", "solid"}
+BACKGROUND_LICENSES = {
+    "pexels": ("https://www.pexels.com/license/", "بيكسلز", "رخصة بيكسلز"),
+    "pixabay": (
+        "https://pixabay.com/service/license-summary/",
+        "بيكساباي",
+        "رخصة محتوى بيكساباي",
+    ),
+}
+
+
+def background_labels(design: dict[str, Any]) -> tuple[str, str]:
+    source = design.get("background_source")
+    if isinstance(source, dict):
+        provider = source.get("provider")
+        known = BACKGROUND_LICENSES.get(provider) if isinstance(provider, str) else None
+        if known:
+            license_url, name, license_label = known
+            return name, license_label if source.get(
+                "license"
+            ) == license_url else "رخصة غير معروفة"
+    elif source is None and design.get("footage"):
+        # The production renderer omits background_source when it uses the pinned Mixkit library.
+        return "المكتبة المحلية", "رخصة ميكس كت المجانية للفيديو"
+    return "مصدر غير معروف", "رخصة غير معروفة"
+
+
 _designer_cache: dict[str, Any] = {"at": 0.0, "root": None, "value": []}
 
 
@@ -85,12 +111,15 @@ def designer_decisions(root: Path, limit: int = 12) -> list[dict[str, Any]]:
             if video in seen:
                 continue
             seen.add(video)
+            background_source, background_license = background_labels(design)
             found.append(
                 {
                     "app": "snap" if value.get("app") == "snap-bot-v2" else "status",
                     "key": str(value.get("key", ""))[:32],
                     "style": design.get("style") if design.get("style") in DESIGN_STYLES else None,
                     "footage": str(design.get("footage_title", ""))[:80],
+                    "background_source": background_source,
+                    "background_license": background_license,
                     "dim": float(design.get("dim", 0)),
                     "reasons": [str(r)[:160] for r in design.get("reasons", [])][:5],
                     "bars": len((design.get("inspection") or {}).get("bars", [])),

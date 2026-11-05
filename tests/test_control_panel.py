@@ -250,6 +250,11 @@ def test_designer_decisions_export_only_the_decision(tmp_path):
                     "agent": "designer",
                     "style": "solid",
                     "footage_title": "Sun over hills",
+                    "background_source": {
+                        "provider": "pexels",
+                        "license": "https://www.pexels.com/license/",
+                        "source": "secret-payload-url",
+                    },
                     "footage_path": "/opt/private/path.mp4",
                     "dim": 0.41,
                     "reasons": ["كل البطاقات فيها صور"],
@@ -264,4 +269,25 @@ def test_designer_decisions_export_only_the_decision(tmp_path):
     [decision] = panel.designer_decisions(tmp_path)
     assert decision["app"] == "snap" and decision["style"] == "solid" and decision["bars"] == 0
     assert decision["inspected"] and decision["reasons"] == ["كل البطاقات فيها صور"]
+    assert decision["background_source"] == "بيكسلز"
+    assert decision["background_license"] == "رخصة بيكسلز"
     assert "footage_path" not in json.dumps(decision) and "secret" not in json.dumps(decision)
+
+
+def test_background_labels_for_library_and_pixabay():
+    assert panel.background_labels({"footage": "local.mp4"}) == (
+        "المكتبة المحلية",
+        "رخصة ميكس كت المجانية للفيديو",
+    )
+    assert panel.background_labels(
+        {
+            "background_source": {
+                "provider": "pixabay",
+                "license": "https://pixabay.com/service/license-summary/",
+            }
+        }
+    ) == ("بيكساباي", "رخصة محتوى بيكساباي")
+    assert panel.background_labels({"background_source": {"provider": "pexels"}}) == (
+        "بيكسلز",
+        "رخصة غير معروفة",
+    )

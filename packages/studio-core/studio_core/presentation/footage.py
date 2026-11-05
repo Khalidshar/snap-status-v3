@@ -64,7 +64,13 @@ def filters(fps: int) -> list[str]:
     ]
 
 
-def prepare(content: dict[str, Any], directory: Path, socket: Path) -> Path:
+def prepare(
+    content: dict[str, Any],
+    directory: Path,
+    socket: Path,
+    *,
+    providers: tuple[str, ...] | None = None,
+) -> Path:
     """Worker-side prefetch. Renderer only consumes this pinned local manifest."""
     from studio_core.network.client import NetworkError
 
@@ -80,6 +86,7 @@ def prepare(content: dict[str, Any], directory: Path, socket: Path) -> Path:
             "calm nature landscape" if pool(content.get("kind")) == "calm" else "nature landscape",
             directory,
             socket,
+            **({"providers": providers} if providers is not None else {}),
         )
         local = verify(fetched)
         data = json.loads(fetched.read_text())

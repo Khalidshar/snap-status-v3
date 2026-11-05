@@ -21,10 +21,10 @@ def test_all_existing_commands_are_inspectable_and_controls_have_no_sources():
         assert bool(result["sources"]) == (command.key in CONTENT_KEYS)
         assert result["publication_enabled"] is False
         assert result["live_feeds_enabled"] is False
-    assert len(CONTENT_KEYS) == 21
+    assert len(CONTENT_KEYS) == 24
 
 
-@pytest.mark.parametrize("name", ["style", "الأناقة", "٩", "9", "👗 الأناقة والجمال"])
+@pytest.mark.parametrize("name", ["style", "الأناقة", "١٠", "10", "👗 الأناقة والجمال"])
 def test_sources_follow_the_bots_existing_exact_command_matching(name):
     assert for_command(name) == for_command("style")
     assert for_command(name) != for_command("tech")
@@ -119,7 +119,7 @@ def test_audit_does_not_fetch_excluded_sources_or_turn_websites_into_feeds():
 )
 def test_feed_failures_are_sanitized_and_never_retried(client):
     checks = audit("tech", client)
-    assert len(checks) == len(client.calls) == 3
+    assert len(checks) == len(client.calls) == 6  # five approved feeds plus Google fallback
     assert all(check["result"] == "UNVERIFIED" for check in checks)
     assert "private-token" not in json.dumps(checks)
 
@@ -174,5 +174,5 @@ def test_source_check_cli_does_not_report_failed_feeds_as_success(package, reach
     assert code == (0 if reachable else 2)
     assert output["ok"] is reachable
     assert output["external_delivery"] is False
-    assert len(fake.calls) == 3
+    assert len(fake.calls) == 6
     assert "private-token" not in json.dumps(output)

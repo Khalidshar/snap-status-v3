@@ -1,0 +1,176 @@
+{
+  "schema": 1,
+  "source": "status-bot@b445281/run.py",
+  "reciters": [
+    {
+      "id": "mp3q:92",
+      "name": "ياسر الدوسري",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:20",
+      "name": "خالد الجليل",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:159",
+      "name": "خالد المهنا",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:86",
+      "name": "ناصر القطامي",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:5",
+      "name": "أحمد العجمي",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:81",
+      "name": "فارس عباد",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:12",
+      "name": "إدريس أبكر",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:43",
+      "name": "صلاح البدير",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:62",
+      "name": "عبدالله الجهني",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:58",
+      "name": "عبدالله البعيجان",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:219",
+      "name": "وديع اليمني",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:221",
+      "name": "رعد الكردي",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:217",
+      "name": "بندر بليلة",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:181",
+      "name": "جمعان العصيمي",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:225",
+      "name": "عبدالرحمن العوسي",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:76",
+      "name": "علي جابر",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:273",
+      "name": "هيثم الدخين",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:314",
+      "name": "أنس العمادي",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "mp3q:232",
+      "name": "إبراهيم الدوسري",
+      "provider": "mp3quran"
+    },
+    {
+      "id": "Yasser_Ad-Dussary_128kbps",
+      "name": "ياسر الدوسري",
+      "provider": "everyayah"
+    },
+    {
+      "id": "MaherAlMuaiqly128kbps",
+      "name": "ماهر المعيقلي",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Alafasy_128kbps",
+      "name": "مشاري العفاسي",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Abdurrahmaan_As-Sudais_192kbps",
+      "name": "عبدالرحمن السديس",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Saood_ash-Shuraym_128kbps",
+      "name": "سعود الشريم",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Nasser_Alqatami_128kbps",
+      "name": "ناصر القطامي",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Ghamadi_40kbps",
+      "name": "سعد الغامدي",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Abdul_Basit_Murattal_192kbps",
+      "name": "عبدالباسط عبدالصمد",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Minshawy_Murattal_128kbps",
+      "name": "محمد صديق المنشاوي",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Husary_128kbps",
+      "name": "محمود خليل الحصري",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Hudhaify_128kbps",
+      "name": "علي الحذيفي",
+      "provider": "everyayah"
+    },
+    {
+      "id": "Muhammad_Ayyoub_128kbps",
+      "name": "محمد أيوب",
+      "provider": "everyayah"
+    }
+  ],
+  "calm": [
+    "Minshawy_Murattal_128kbps",
+    "Yasser_Ad-Dussary_128kbps",
+    "Hudhaify_128kbps",
+    "MaherAlMuaiqly128kbps",
+    "Nasser_Alqatami_128kbps",
+    "Alafasy_128kbps",
+    "mp3q:20",
+    "mp3q:219",
+    "mp3q:273",
+    "mp3q:12",
+    "mp3q:225",
+    "mp3q:159",
+    "mp3q:92"
+  ]
+}

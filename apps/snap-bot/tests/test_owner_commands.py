@@ -299,7 +299,7 @@ class ClipCycleTests(unittest.TestCase):
 
     def test_a_waiting_clip_of_the_same_kind_is_sent_not_rendered_again(self):
         sha = self.runtime.rendered(24)
-        self.studio.answer("7")
+        self.studio.answer("8")
         self.assertEqual(
             self.started, [listener.SEND_UNIT.format(sha=sha)], "guard:no-wasted-render"
         )
@@ -309,7 +309,7 @@ class ClipCycleTests(unittest.TestCase):
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
             11, "نصيحة تقنية", kind="tech", title="تقنية"
         )
-        self.studio.answer("8")
+        self.studio.answer("9")
         self.assertEqual(self.started[0], "madar-v3-snap-render@tech.service", "guard:kind-unit")
         self.assertEqual(self.started[-1], listener.SEND_UNIT.format(sha=f"{11:064x}"))
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(

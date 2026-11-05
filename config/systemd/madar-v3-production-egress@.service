@@ -1,0 +1,24 @@
+[Unit]
+Description=Rawwag %i legacy source broker (manual only)
+[Service]
+Type=simple
+User=root
+Group=ubuntu
+WorkingDirectory=/opt/madar/current
+RuntimeDirectory=madar
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
+Environment=PYTHONDONTWRITEBYTECODE=1
+UnsetEnvironment=HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
+ExecStart=/opt/madar/current/.venv/bin/python -m studio_core.network.production --socket /run/madar/%i-production.sock
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+ReadWritePaths=/run/madar
+MemoryMax=1536M
+Restart=no

@@ -1,0 +1,18 @@
+{
+  "status_commit": "b445281de3f3767dbbdeb58db409fffb69ce8634",
+  "files": {
+    "snap-bot/agents.py": "9830d45bf8d999e296cb4fd693bde2eb0f718816f80f01f1ba014673f728dff0",
+    "snap-bot/qa.py": "4d5fb9b092800be13a44fffbd6676efddd3169e35f1cd87c9d41d983b220a418",
+    "snap-bot/snap.py": "1397069dc863bc0c43817a68115a0fc2fc80470c8768f7214736a428d178636f",
+    "status-bot/content.json": "0c7f6d53a16796b3d401d4a6f9a27e3475dc192a05395e0971d8a58739070fdd",
+    "status-bot/run.py": "2144262ff5a53c96fdb2e618398ca5f62814e8b49b78047f823a3d73ed815cf4",
+    "status-bot/newsroom.py": "9f4f4d24a31be17d4d4f2b5ddb3bd0008ecd2a0cc55ea61a590ed4337b7695b8",
+    "status-bot/religious_sources.py": "3299586b84a8a70e442f022d7bf46090b6198b71c9a5b0a646dc079b9ecc3dd0",
+    "status-bot/qa.py": "a5c84246704b2213d5f3b6007aec877c1ab82571b3955dbe20f5670eff115549",
+    "snap-bot/templates/base.css": "be10bdc08f7b734bfc13d8e5c0b21f0cdf32b63fc0275a63c8b47583686b86f8",
+    "snap-bot/data/facts.json": "84102cb6363c3678bb952f5c0390d527882bdb34c3d2dcb12c96326c2419cb41",
+    "snap-bot/data/funny.json": "f7f6177cfe8356229f4173bf7ee1508453dd4ff19586c43a657c2a968151c151",
+    "snap-bot/data/riddles.json": "88ba2cb75df49d9caca19f1d90ed10df3991c3c27b94c930114fc227f1a78d5b",
+    "snap-bot/data/passages.json": "3f0e0838520af050b259620c85030dc4eecf68be67b03015edd5438240a69257"
+  }
+}

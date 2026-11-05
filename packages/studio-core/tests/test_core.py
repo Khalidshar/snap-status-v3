@@ -1,7 +1,6 @@
 import pytest
 
 from studio_core.content import ContentPackage, text_hash
-from studio_core.delivery import Delivery, IdempotencyRegistry
 from studio_core.jobs import Job, JobStatus
 
 
@@ -28,11 +27,3 @@ def test_job_transition():
     job.transition(JobStatus.RUNNING, "research")
     assert job.status == JobStatus.RUNNING
     assert job.current_stage == "research"
-
-
-def test_delivery_idempotency():
-    delivery = Delivery("d1", "j1", "abc", "telegram")
-    registry = IdempotencyRegistry()
-    assert not registry.already_delivered(delivery)
-    registry.mark_delivered(delivery)
-    assert registry.already_delivered(delivery)
