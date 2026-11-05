@@ -87,7 +87,10 @@ def test_brief_runs_all_twelve_owned_stages(tmp_path):
             host = url.split("/")[2]
             title = (
                 "تقنية جديدة للحواسيب"
-                if any(x in host for x in ("aitnews", "tech-wd", "unlimit-tech", "youm7", "arabhardware"))
+                if any(
+                    x in host
+                    for x in ("aitnews", "tech-wd", "unlimit-tech", "youm7", "arabhardware")
+                )
                 else "الرياض تعلن مبادرة سعودية جديدة"
             )
             at = datetime.fromtimestamp(time.time() - 20, UTC).isoformat()

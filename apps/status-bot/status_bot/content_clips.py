@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -18,6 +19,7 @@ from studio_core.network.client import NetworkClient
 from studio_core.network.video import VideoPolicy
 from studio_core.observability import role_status
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
+from studio_core.observability.failure_code import failure_code
 from studio_core.presentation import command_cards, footage
 from studio_core.presentation.arabic_agent import check_content
 from studio_core.presentation.content_agents import CHECKS, run_check
@@ -261,7 +263,8 @@ def build(
                 lambda value, payload: output(value),
                 bind_dependency=bind,
             )
-        except Exception:
+        except Exception as error:
+            print(f"STATUS_CLIP_FAILURE stage={role} code={failure_code(error)}", file=sys.stderr)
             role_status.record(ledger, "status-bot-v2", role, "FAILED")
             raise
         role_status.record(ledger, "status-bot-v2", role, "SUCCEEDED")
@@ -504,8 +507,10 @@ def send(
                 "INSERT INTO command_videos(tag,binding,kind,state,at) VALUES(?,?,?,'WORKING',?)",
                 (item["tag"], outbox.identity.binding, key, outbox.repo.clock()),
             )
+        phase = "build"
         try:
             content, result, video = build(outbox, item, key, source=source, root=root, start=start)
+            phase = "delivery"
             description = None
             if content.get("legacy_production"):
                 from studio_core.production.caption import platform_caption
@@ -553,7 +558,8 @@ def send(
                     content_kind=key,
                     command_tag=item["tag"],
                 )
-        except Exception:
+        except Exception as error:
+            print(f"STATUS_CLIP_FAILURE stage={phase} code={failure_code(error)}", file=sys.stderr)
             with outbox.repo.transaction() as db:
                 db.execute(
                     "UPDATE command_videos SET state='BLOCKED_OR_UNKNOWN',code='CONTENT_COMMAND_FAILED' WHERE tag=? AND state<>'API_ACCEPTED'",
@@ -567,7 +573,14 @@ def send(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("event")
-    render_event(parser.parse_args().event)
+    args = parser.parse_args()
+    try:
+        render_event(args.event)
+    except Exception as error:
+        print(
+            f"STATUS_CLIP_FAILURE stage=render_worker code={failure_code(error)}", file=sys.stderr
+        )
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":
