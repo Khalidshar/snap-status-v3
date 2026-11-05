@@ -1,11 +1,17 @@
 """Acceptance uses fake state and never contacts systemd in tests."""
 
 import hashlib
+import importlib.util
 import json
 import sqlite3
 from contextlib import closing
+from pathlib import Path
 
-from scripts import check_v3_acceptance as check
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts/check_v3_acceptance.py"
+SPEC = importlib.util.spec_from_file_location("check_v3_acceptance", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+check = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(check)
 
 PRIVATE_MARKER = "PRIVATE_CONTENT_DO_NOT_PRINT"
 

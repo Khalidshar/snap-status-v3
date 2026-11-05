@@ -231,7 +231,7 @@ def bar(raw: bytes, box: dict[str, int], x: int, inward: int) -> str | None:
 
 def inspect(video: Path, duration: float, box: dict[str, int]) -> dict[str, Any]:
     """Five moments of the finished video; the 6 px just inside each side of the window."""
-    found = []
+    found: list[dict[str, Any]] = []
     for k in range(5):
         second = round(duration * (k + 0.5) / 5, 2)
         raw = frame(video, second)

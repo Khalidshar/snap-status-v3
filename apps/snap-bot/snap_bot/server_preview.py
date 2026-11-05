@@ -19,6 +19,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from studio_core.observability.failure_code import failure_code
+
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
 from .did_you_know import DEFAULT_KIND, HISTORY_LIMIT, KINDS, WINDOW_SECONDS
@@ -47,7 +49,17 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         work = Path(temporary)
         os.chown(work, uid, account.pw_gid)
         bundle = work / "bundle"
-        code = "import json,sys,os; assert os.geteuid()!=0; from snap_bot.actions_preview import render_bundle; render_bundle(sys.argv[1],json.loads(sys.argv[2]))"
+        code = """
+import json, os, sys
+from studio_core.observability.failure_code import failure_code
+try:
+    assert os.geteuid() != 0
+    from snap_bot.actions_preview import render_bundle
+    render_bundle(sys.argv[1], json.loads(sys.argv[2]))
+except Exception as error:
+    print("MADAR_RENDER_CODE=" + failure_code(error), file=sys.stderr)
+    raise SystemExit(1) from None
+"""
         env = {"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"}
         # A separate manager-created coordinator does not inherit the root
         # controller's NoNewPrivileges. It needs the existing ubuntu sudo
@@ -88,7 +100,29 @@ def render_bundle(output: Path, provenance: Any) -> Any:
                 )
         if os.environ.get("MADAR_QURAN_AUDIO") == "1":
             command.insert(command.index(sys.executable), "--setenv=MADAR_QURAN_AUDIO=1")
-        subprocess.run(command, env=env, cwd=ROOT, capture_output=True, timeout=3630, check=True)  # noqa: S603  # fixed argv, no shell
+        try:
+            subprocess.run(  # noqa: S603 - fixed argv, no shell
+                command, env=env, cwd=ROOT, capture_output=True, timeout=3630, check=True
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            if isinstance(error, subprocess.CalledProcessError) and isinstance(error.stderr, bytes):
+                for line in error.stderr.splitlines():
+                    match = re.fullmatch(
+                        rb"MADAR_RENDER_CODE=(SUBPROCESS_FAILED|TIMEOUT|PERMISSION_DENIED|FILE_MISSING|IMPORT_FAILED|OS_ERROR|VALIDATION_FAILED|UNEXPECTED_FAILURE)",
+                        line,
+                    )
+                    if match:
+                        print(
+                            "SNAP_PREVIEW_FAILURE stage=isolated_worker code="
+                            + match[1].decode("ascii"),
+                            file=sys.stderr,
+                        )
+                        break
+            print(
+                f"SNAP_PREVIEW_FAILURE stage=coordinator code={failure_code(error)}",
+                file=sys.stderr,
+            )
+            raise
         if Path(output).exists() or any(path.is_symlink() for path in bundle.rglob("*")):
             raise ValueError("Unsafe renderer output")
         # The controller owns the completed snapshot before Repository adjusts DB permissions.
@@ -388,7 +422,14 @@ class Runtime:
                 "fact_history": self.fact_history(),
                 "kind": kind,
             }
-            data = render_bundle(directory, provenance)
+            try:
+                data = render_bundle(directory, provenance)
+            except Exception as error:
+                print(
+                    f"SNAP_PREVIEW_FAILURE stage=render_bundle code={failure_code(error)}",
+                    file=sys.stderr,
+                )
+                raise
             # Project verified per-job observations into the app-local status ledger.
             import sqlite3
 
@@ -593,7 +634,10 @@ def main() -> None:
             else getattr(runtime, args.action)(sha(args.video_sha), channel=args.channel)
         )
         print(json.dumps(value, ensure_ascii=True))
-    except Exception:
+    except Exception as error:
+        print(
+            f"SNAP_PREVIEW_FAILURE stage={args.action} code={failure_code(error)}", file=sys.stderr
+        )
         print("SERVER_PREVIEW_BLOCKED; inspect durable local evidence", file=sys.stderr)
         raise SystemExit(1) from None
 
