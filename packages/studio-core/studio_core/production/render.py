@@ -210,7 +210,7 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         raise ValueError("LEGACY_QA_VIDEO_PROFILE")
     if (a["codec_name"], a["sample_rate"], a["channels"]) != ("aac", "48000", 2):
         raise ValueError("LEGACY_QA_AUDIO_PROFILE")
-    low, high, largest = budget(p["app"])
+    low, high, largest = budget(p["app"], p["key"])
     if not low <= seconds <= high or video.stat().st_size > largest:
         raise ValueError("LEGACY_QA_LENGTH_OR_SIZE")
     if layout["overflow"] or layout["empty"] or layout["tiny"] or not layout["handle"]:

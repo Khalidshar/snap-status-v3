@@ -763,7 +763,7 @@ class Factory:
         except (OSError, ValueError, KeyError, TypeError, RuntimeError):
             return []  # Muyassar alone, still whole
         # Room left for the closing card (5 s) inside the platform's longest clip.
-        room = budget(self.app)[1] - 5.0 - sum(s["seconds"] for s in before)
+        room = budget(self.app, self.key)[1] - 5.0 - sum(s["seconds"] for s in before)
         if sum(s["seconds"] for s in found) > room:
             return []
         return found
@@ -1211,7 +1211,9 @@ class Factory:
                     grade=item["grade"],
                 )
             )
-            remaining = budget(self.app)[1] - 0.3 - 5.0 - sum(s["seconds"] for s in scenes)
+            remaining = (
+                budget(self.app, self.key)[1] - 0.3 - 5.0 - sum(s["seconds"] for s in scenes)
+            )
             scenes += self.adhkar("night", minimum=8, maximum=min(24, remaining))
         elif key == "brief":
             scenes += self.brief()
@@ -1229,7 +1231,7 @@ class Factory:
             )
         )
         total = sum(x["seconds"] for x in scenes)
-        low, high, _ = budget(self.app)
+        low, high, _ = budget(self.app, self.key)
         if total < low:
             # A hair over the floor: float sums landed at 60.99999 and failed the budget.
             extra = low - total + 0.01

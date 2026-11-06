@@ -47,3 +47,11 @@ def test_saadi_scene_is_whole_named_and_sourced(tmp_path: Path) -> None:
 def test_saadi_is_left_out_whole_when_the_clip_has_no_room(tmp_path: Path) -> None:
     long = TEXT + " " + "والشكر يكون بالقلب واللسان والجوارح. " * 30
     assert factory(tmp_path, "status-bot-v2", long).saadi(2, [152], [{"seconds": 20.0}]) == []
+
+
+def test_snap_verse_clips_get_120_seconds_and_other_kinds_keep_90() -> None:
+    from studio_core.production.model import budget
+
+    assert budget("snap-bot-v2", "verse")[1] == 120.0
+    assert budget("snap-bot-v2", "facts")[1] == 90.0
+    assert budget("status-bot-v2", "verse")[1] == 58.0
