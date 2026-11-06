@@ -1,0 +1,13 @@
+name = "madar-v3-panel-reporter"
+main = "worker.mjs"
+compatibility_date = "2026-11-03"
+workers_dev = true
+preview_urls = false
+
+# [[vpc_services]]
+# binding = "PANEL"
+# service_id = "<private-http-service-id>"
+# Free plan only. PANEL is a VPC HTTP service pinned to 127.0.0.1:8876.
+# REPORTER_TOKEN is separate from the owner token; secret input only.
+[observability]
+enabled = false

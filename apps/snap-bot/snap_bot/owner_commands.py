@@ -592,6 +592,36 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
     return max(offset, cursor)
 
 
+def process_panel(token: str, owner: str, studio: Studio) -> None:
+    from studio_core.jobs import panel_queue
+
+    path = STATE / "panel-commands.sqlite"
+    if not path.is_file():
+        return
+    item = panel_queue.claim(path)
+    if item is None:
+        return
+    # The original authenticated-owner route remains the only command executor.
+    update = {
+        "update_id": int(item["id"], 16),
+        "message": {
+            "date": int(time.time()),
+            "chat": {"id": int(owner), "type": "private"},
+            "from": {"id": int(owner)},
+            "text": menu.BY_KEY[item["command"]].label,
+        },
+    }
+
+    def transport(token: str, method: str, *args: Any) -> Any:
+        return [update] if method == "getUpdates" else api(token, method, *args)
+
+    try:
+        poll_once(token, owner, studio, 0, transport)
+        panel_queue.finish(path, item["id"], True)
+    except Exception:
+        panel_queue.finish(path, item["id"], False)
+
+
 def photo_body(chat: str, photo: bytes, caption: str) -> tuple[bytes, str]:
     boundary = "madar" + uuid.uuid4().hex
     while boundary.encode() in photo:
@@ -628,6 +658,7 @@ def main() -> None:
             json.dumps({"event": "owner_commands.ready", "bot": bot, "root": str(ROOT)}), flush=True
         )
         while True:
+            process_panel(token, owner, studio)
             next_offset = poll_once(token, owner, studio, offset)
             if next_offset != offset:
                 save_offset(next_offset)

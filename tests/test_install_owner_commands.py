@@ -21,5 +21,9 @@ def test_command_unit_templates_are_installed():
         for p in (ROOT / "config/systemd").iterdir()
         if p.stem not in NOT_INSTALLED and p.name not in planned
     }
-    # Origin and tunnel are installed by their own documented activation step.
-    assert templates <= {"madar-v3-whatsapp-origin.service", "madar-v3-whatsapp-tunnel.service"}
+    # These units have separate installation steps in their deployment guides.
+    assert templates <= {
+        "madar-v3-whatsapp-origin.service",
+        "madar-v3-whatsapp-tunnel.service",
+        "madar-v3-panel.service",
+    }

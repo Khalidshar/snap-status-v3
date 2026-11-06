@@ -37,7 +37,7 @@ def audit(command: str, client: Client) -> list[dict[str, Any]]:
             try:
                 response = client.get(source.url)
                 if not 200 <= response.status < 300:
-                    raise ValueError("Unsuccessful upstream response")
+                    raise NetworkError(f"UPSTREAM_HTTP_{response.status}")
                 digest = hashlib.sha256(response.body).hexdigest()
                 if digest != response.sha256:
                     raise ValueError("Response integrity failed")
@@ -60,5 +60,7 @@ def audit(command: str, client: Client) -> list[dict[str, Any]]:
             except (NetworkError, ValueError) as error:
                 # Never expose raw URLs, proxy errors, article text or credentials.
                 row.update(result="UNVERIFIED", error_type=type(error).__name__)
+                if isinstance(error, NetworkError) and str(error) == "UPSTREAM_HTTP_403":
+                    row["http_status"] = 403
         result.append(row)
     return result

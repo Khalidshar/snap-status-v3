@@ -1,0 +1,19 @@
+name = "madar-v3-panel"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = true
+preview_urls = false
+
+# [[vpc_services]]
+# binding = "PANEL"
+# service_id = "<private-http-service-id>"
+
+# [vars]
+# ACCESS_AUD = "<owner-access-application-audience>"
+# Workers Free only. Bind PANEL to HTTP VPC Service 127.0.0.1:8876 exclusively.
+# Set ACCESS_AUD to the Access application audience (non-secret).
+# Secret PANEL_ORIGIN_TOKEN matches MADAR_PANEL_TOKEN on the origin; never print it.
+# Access must protect All traffic and allow this exact email only:
+# khalid.sharahili.sa@gmail.com
+[observability]
+enabled = false

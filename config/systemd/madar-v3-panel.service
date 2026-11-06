@@ -1,0 +1,22 @@
+[Unit]
+Description=Madar private owner console loopback only
+After=network.target
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/madar/current
+EnvironmentFile=/etc/madar/panel.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/madar/current/.venv/bin/python scripts/control_panel.py --port 8876 --enable-controls
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+CapabilityBoundingSet=
+StateDirectory=madar/panel
+StateDirectoryMode=0700
+ReadWritePaths=/var/lib/madar/snap /var/lib/madar/status /var/lib/madar/panel
+RestrictAddressFamilies=AF_INET AF_UNIX
+Restart=no
