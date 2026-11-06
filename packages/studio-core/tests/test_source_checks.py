@@ -1,34 +1,40 @@
-"""Read-only, cached NetworkClient-compatible checks and Google topic guards."""
+"""Read-only, cached NetworkClient-compatible checks and publisher source guards."""
 
 import hashlib
 import time
 from datetime import UTC, datetime
 from unittest.mock import Mock
-
-import pytest
+from urllib.parse import urlsplit
 
 from studio_core.network import NetworkResponse
 from studio_core.source_checks import check
-from studio_core.sources import for_command
-from studio_core.sources.news import TITLES, google_matches
+from studio_core.sources.news import TITLES, news_sources
 
 
-def feed(title, at):
+def feed(url, title, at):
     date = datetime.fromtimestamp(at, UTC).isoformat()
     raw = (
         f"<rss><channel><item><title>{title}</title>"
-        f"<link>https://news.google.com/one</link><pubDate>{date}</pubDate>"
+        f"<link>https://{urlsplit(url).hostname}/one</link><pubDate>{date}</pubDate>"
         "</item></channel></rss>"
     ).encode()
     return NetworkResponse(200, "text/xml", raw, hashlib.sha256(raw).hexdigest())
 
 
-def test_every_command_has_arabic_google_fallback():
-    for key in TITLES:
-        assert any(
-            s.id.startswith("gnews-") and s.language == "ar" and s.kind == "rss"
-            for s in for_command(key)
-        )
+def test_every_command_has_a_direct_arabic_publisher_feed():
+    for key in (*TITLES, "news_noon", "brief"):
+        feeds = news_sources(key)
+        assert feeds, key
+        assert all(urlsplit(s.url).hostname != "news.google.com" for s in feeds)
+
+
+def test_named_command_routes_to_the_right_publisher_sections():
+    markets = {s.id for s in news_sources("markets", production=True)}
+    football = {s.id for s in news_sources("football", production=True)}
+    noon = {s.id for s in news_sources("news_noon", production=True)}
+    assert "aawsat-economy" in markets - football
+    assert "aawsat-sport" in football - markets
+    assert "aawsat" in noon and "aawsat-economy" not in noon
 
 
 def test_check_distinguishes_forbidden_stopped_and_no_fresh_and_caches():
@@ -39,7 +45,7 @@ def test_check_distinguishes_forbidden_stopped_and_no_fresh_and_caches():
             return NetworkResponse(403, "text/plain", b"", hashlib.sha256(b"").hexdigest())
         if "bbc" in url:
             return NetworkResponse(503, "text/plain", b"", hashlib.sha256(b"").hexdigest())
-        return feed("عنوان عربي قديم - مصدر عربي", now - 90 * 86400)
+        return feed(url, "عنوان عربي قديم", now - 90 * 86400)
 
     client = Mock()
     client.get.side_effect = get
@@ -52,23 +58,7 @@ def test_check_distinguishes_forbidden_stopped_and_no_fresh_and_caches():
 def test_current_matching_source_is_working_without_exposing_headline():
     now = time.time()
     client = Mock()
-    client.get.return_value = feed("تقنية جديدة للحواسيب - مصدر عربي", now - 10)
+    client.get.side_effect = lambda url: feed(url, "تقنية جديدة للحواسيب", now - 10)
     rows = check(client, now)
     assert any(r["state"] == "يشتغل" and r["command"] == "tech" for r in rows)
     assert all("headline" not in row for row in rows)
-
-
-@pytest.mark.parametrize(
-    "key,title",
-    [
-        ("tech", "فوز فريق في مباراة كرة القدم"),
-        ("football", "بطولة كرة السلة الجديدة"),
-        ("style", "موضة جديدة في سيارات السباق"),
-        ("markets", "طبق طعام جديد في مطعم"),
-        ("urgent", "هجوم على أسعار الوجبات"),
-        ("saudi", "حفل في فرنسا"),
-        ("world", "افتتاح متجر محلي"),
-    ],
-)
-def test_google_rejects_wrong_section(key, title):
-    assert not google_matches(key, title)

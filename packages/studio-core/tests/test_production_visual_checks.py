@@ -54,43 +54,26 @@ def test_inspection_samples_five_frames_and_rejects_bars(monkeypatch):
         designer.inspect(Path("clip.mp4"), 20, BOX)
 
 
-def test_news_picture_uses_exact_story_and_checks_publisher():
+def test_news_picture_uses_only_feed_and_original_article_images():
     item = {
         "image": "https://publisher.example/broken.jpg",
-        "og_image": "",
-        "title": "عنوان تجريبي",
+        "og_image": "https://publisher.example/article.jpg",
         "source": "الناشر",
         "url": "https://publisher.example/story",
     }
-    page_url = "https://publisher.example/confirmed"
-    rss = """<rss><channel>
-      <item><title>عنوان مختلف</title></item>
-      <item><title>عنوان تجريبي</title><source url="https://other.example">مصدر آخر</source></item>
-      <item><title>عنوان تجريبي - الناشر</title><source>الناشر</source>
-        <link>https://publisher.example/confirmed</link></item>
-    </channel></rss>""".encode()
     calls = []
 
-    def get(url):
-        calls.append(url)
-        if url == page_url:
-            return b'<meta property="og:image" content="https://publisher.example/confirmed.jpg">'
-        assert url.startswith("https://news.google.com/rss/search?")
-        return rss
-
     def picture(url, source_url, source):
+        calls.append(url)
+        assert source_url == item["url"]
+        assert source == item["source"]
         if url == item["image"]:
             raise OSError("missing")
-        assert (url, source_url, source) == (
-            "https://publisher.example/confirmed.jpg",
-            page_url,
-            item["source"],
-        )
         return "verified-image"
 
-    source = SimpleNamespace(get=get, picture=picture, save=lambda *_: None)
-    assert Factory.news_picture(source, item) == "verified-image"
-    assert len(calls) == 2
-    source.get = lambda _url: b"<rss><channel /></rss>"
+    factory = SimpleNamespace(picture=picture)
+    assert Factory.news_picture(factory, item) == "verified-image"
+    assert calls == [item["image"], item["og_image"]]
+    item["og_image"] = ""
     with pytest.raises(ValueError, match="LEGACY_EXACT_STORY_IMAGE_UNAVAILABLE"):
-        Factory.news_picture(source, item)
+        Factory.news_picture(factory, item)

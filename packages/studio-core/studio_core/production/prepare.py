@@ -200,7 +200,7 @@ class Factory:
         return target
 
     def news_picture(self, item: dict[str, Any]) -> str:
-        """Use source images first; Google discovery must match the exact headline."""
+        """Try the feed image, then the original article image."""
         for url in dict.fromkeys((item.get("image", ""), item.get("og_image", ""))):
             if not url:
                 continue
@@ -208,52 +208,13 @@ class Factory:
                 return self.picture(url, item["url"], item["source"])
             except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
                 continue
-        expected_title = item.get("original_title", item["title"])
-        url = "https://news.google.com/rss/search?" + urlencode(
-            {"q": '"' + expected_title + '"', "hl": "ar", "gl": "SA", "ceid": "SA:ar"}
-        )
-        raw = self.get(url)
-        self.save(raw, ".xml", url, "Google News — اكتشاف صورة الخبر")
-        for entry in safe_xml(raw).iter("item"):
-            title = parsing.clean(entry.findtext("title") or "")
-            source = parsing.clean(entry.findtext("source") or "")
-            if title.removesuffix(" - " + source) != expected_title:
-                continue
-            publisher = entry.find("source")
-            publisher_host = (
-                urlsplit(publisher.get("url", "") if publisher is not None else "").hostname or ""
-            )
-            article_host = urlsplit(item["url"]).hostname or ""
-            if source != item["source"] and publisher_host.removeprefix(
-                "www."
-            ) != article_host.removeprefix("www."):
-                continue
-            image = parsing._img(entry)
-            try:
-                if image:
-                    return self.picture(image, item["url"], item["source"])
-                link = (entry.findtext("link") or "").strip()
-                if link:
-                    page = self.get(link).decode("utf-8", "replace")
-                    match = re.search(
-                        r'<meta[^>]+(?:property|name)=["\']og:image["\'][^>]+content=["\']([^"\']+)',
-                        page,
-                        re.I,
-                    )
-                    if match:
-                        return self.picture(match[1], link, source or item["source"])
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
-                continue
         raise ValueError("LEGACY_EXACT_STORY_IMAGE_UNAVAILABLE")
 
     def article(self, item: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
-        from studio_core.sources import for_command
-        from studio_core.sources.news import _link
+        from studio_core.sources.news import _link, news_sources
 
         source = next(
-            s
-            for s in for_command("news" if self.key == "news_noon" else self.key)
-            if s.id == item["source_id"]
+            s for s in news_sources(self.key, production=True) if s.id == item["source_id"]
         )
         _link(item["url"], source)  # Reject feed-injected foreign publishers before fetching.
         page = item.pop("page", None) or self.get(item["url"]).decode("utf-8", "replace")
@@ -385,21 +346,18 @@ class Factory:
         )
 
     def news(self) -> list[dict[str, Any]]:
-        from studio_core.sources import for_command
-        from studio_core.sources.news import MAX_AGE, published_label
+        from studio_core.sources.news import MAX_AGE, _link, news_sources, published_label
 
         key = "news" if self.key == "news_noon" else self.key
+        sources = news_sources(self.key, production=True)
         now = time.time()
         candidates: list[dict[str, Any]] = []
-        for source in for_command(key):
-            if (
-                source.status != "approved"
-                or (
-                    source.language != "ar"
-                    and not (self.key in {"tech", "style"} and source.language == "en")
-                )
-                or source.kind != "rss"
-            ):
+        for source in sources:
+            if source.kind == "website":
+                try:
+                    candidates.extend(self.website_candidates(source))
+                except (OSError, ValueError, RuntimeError):
+                    continue
                 continue
             try:
                 raw = self.get(source.url).decode("utf-8", "replace")
@@ -414,9 +372,13 @@ class Factory:
                         or ""
                     )
                     detail = parsing.clean(body)
-                    published = email.utils.parsedate_to_datetime(
-                        entry.findtext("pubDate") or ""
-                    ).timestamp()
+                    try:
+                        _link(url, source)
+                        published = email.utils.parsedate_to_datetime(
+                            entry.findtext("pubDate") or ""
+                        ).timestamp()
+                    except ValueError:
+                        continue
                     if (
                         not title
                         or not url
@@ -444,18 +406,6 @@ class Factory:
                     )
             except (OSError, ValueError, KeyError, ET.ParseError, TypeError, RuntimeError):
                 continue
-        if self.key == "style":
-            for source in for_command("style"):
-                if (
-                    source.status == "approved"
-                    and source.language == "ar"
-                    and source.kind == "website"
-                ):
-                    try:
-                        candidates.extend(self.website_candidates(source))
-                    except (OSError, ValueError, RuntimeError):
-                        continue
-        candidates = [c for c in candidates if urlsplit(c["url"]).hostname != "news.google.com"]
         candidates.sort(key=lambda i: i["published"], reverse=True)
         if self.key == "style":
             from studio_core.sources.news import top_brand
@@ -477,16 +427,9 @@ class Factory:
                 reverse=True,
             )
         elif self.key not in {"tech", "style"}:
-            # Same Saudi-first desk; trend RSS is optional and cannot manufacture a story.
-            try:
-                trends = safe_xml(self.get("https://trends.google.com/trending/rss?geo=SA"))
-                hot = [e.text or "" for e in trends.findall("./channel/item/title")]
-            except (OSError, ValueError, ET.ParseError, RuntimeError):
-                hot = []
             candidates.sort(
                 key=lambda i: (
-                    not any(w in i["title"] + i["detail"] for w in ("السعود", "الرياض", "المملكة")),
-                    not any(w in i["title"] for w in hot),
+                    not any(w in i["title"] + i["detail"] for w in ("السعود", "الرياض", "المملكة"))
                 )
             )
         selected: list[dict[str, Any]] = []

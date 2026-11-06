@@ -87,7 +87,7 @@ class FakeClient:
 def test_audit_reads_each_news_candidate_once_without_returning_headlines():
     client = FakeClient()
     checked = audit("موجز", client)
-    assert len(checked) == len(client.calls) == 11
+    assert len(checked) == len(client.calls) == 10
     assert all(c["result"] == "XML_VERIFIED" and c["valid_items"] == 1 for c in checked)
     assert "Headline" not in json.dumps(checked)
     assert all(c["publication_enabled"] is False for c in checked)

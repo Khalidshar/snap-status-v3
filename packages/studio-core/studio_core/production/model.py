@@ -293,11 +293,10 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 ):
                     raise ValueError("LEGACY_TAFSIR_SOURCE_CHANGED")
             if item.get("role") in {"story", "headline", "point"}:
-                from studio_core.sources import for_command
-                from studio_core.sources.news import MAX_AGE
+                from studio_core.sources.news import MAX_AGE, news_sources
 
                 key = "news" if p["key"] == "news_noon" else p["key"]
-                allowed = {s.id: s for s in for_command(key) if s.status == "approved"}
+                allowed = {s.id: s for s in news_sources(p["key"], production=True)}
                 source = allowed.get(item.get("source_id"))
                 if (
                     source is None
