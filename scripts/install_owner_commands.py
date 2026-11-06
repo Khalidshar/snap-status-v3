@@ -81,6 +81,16 @@ def video_unit(app: str = "snap") -> str:
     return unit.split("[Install]", 1)[0].replace("snap-video.sock", app + "-video.sock")
 
 
+def owner() -> str:
+    """The non-root account the release was installed for (release.py --owner)."""
+    manifest = ROOT / "madar-release.json"
+    if manifest.is_file():
+        value = json.loads(manifest.read_text()).get("owner", "ubuntu")
+        if isinstance(value, str) and re.fullmatch("[a-z_][a-z0-9_-]{0,31}", value):
+            return value
+    return "ubuntu"
+
+
 def plan() -> dict[Path, str]:
     files = {UNITS / f"madar-v3-{app}-video.service": video_unit(app) for app in ("snap", "status")}
     for app in ("snap", "status"):
@@ -191,6 +201,15 @@ def plan() -> dict[Path, str]:
             "madar-v3-status-content@.service",
         ):
             files[UNITS / (name + ".d/node-runtime.conf")] = runtime
+    name = owner()
+    if name != "ubuntu":
+        # A machine whose non-root account is not "ubuntu" (Khalid's local WSL server).
+        files = {
+            path: text.replace("User=ubuntu\n", f"User={name}\n").replace(
+                "Group=ubuntu\n", f"Group={name}\n"
+            )
+            for path, text in files.items()
+        }
     return files
 
 
@@ -223,7 +242,7 @@ def main() -> None:
                 raise ValueError("Unsafe command state")
         for name in ("snap/news", "status/news", "status/commands", "status/command-webhook"):
             Path("/var/lib/madar", name).mkdir(mode=0o700, exist_ok=True, parents=True)
-        account = pwd.getpwnam("ubuntu")
+        account = pwd.getpwnam(owner())
         for app in ("snap", "status"):
             root = Path("/var/lib/madar/quran-" + app)
             if any(p.is_symlink() for p in (root, *root.parents)):

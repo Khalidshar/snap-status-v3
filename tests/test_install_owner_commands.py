@@ -27,3 +27,19 @@ def test_command_unit_templates_are_installed():
         "madar-v3-whatsapp-tunnel.service",
         "madar-v3-panel.service",
     }
+
+
+def test_units_follow_the_release_owner(tmp_path, monkeypatch):
+    spec = importlib.util.spec_from_file_location(
+        "install_owner_commands", ROOT / "scripts/install_owner_commands.py"
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    default = module.plan()
+    assert module.owner() == "ubuntu"
+    assert any("Group=ubuntu\n" in text for text in default.values())
+    (tmp_path / "madar-release.json").write_text('{"owner": "khalid"}')
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    monkeypatch.setattr(module, "ROOT", tmp_path, raising=True)
+    assert module.owner() == "khalid"
