@@ -116,6 +116,10 @@ def plan() -> dict[Path, str]:
     # The WhatsApp clip (sources, background footage, ffmpeg) is built inside this service;
     # 256M left it swapping 1.7G and crawling. Same budget as the Snap clip renderer.
     files[UNITS / "madar-v3-status-commands.service.d/memory.conf"] = "[Service]\nMemoryMax=1536M\n"
+    # A production clip (footage, Quran audio, Chromium scenes, ffmpeg) needs about 8 CPU
+    # minutes; the release's 300 s start limit killed it mid-render. Same as Quran renders.
+    for name in ("madar-v3-snap-render@.service", "madar-v3-snap-render.service"):
+        files[UNITS / (name + ".d/timeout.conf")] = "[Service]\nTimeoutStartSec=1200\n"
     files[UNITS / "madar-v3-snap-commands.service.d/live-news.conf"] = (
         "[Service]\nEnvironment=MADAR_LIVE_NEWS=1\n"
     )
