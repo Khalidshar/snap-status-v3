@@ -7,7 +7,7 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
  const [input,root,out,designFile]=process.argv.slice(2),value=JSON.parse(await fs.readFile(input,'utf8'));
  // The designer agent's decision (production/designer.py); without one, the approved default.
  const design=designFile?JSON.parse(await fs.readFile(designFile,'utf8')):{style:'solid'};
- const p=value.legacy_production;if(!p||p.scenes.length>18||p.duration<(p.app==='snap-bot-v2'?61:32)||p.duration>(p.app==='snap-bot-v2'?90:58))throw Error('plan');
+ const p=value.legacy_production;if(!p||p.scenes.length>18||p.duration<(p.app==='snap-bot-v2'?61:32)||p.duration>(p.app==='snap-bot-v2'?(['verse','dua','friday','kahf','fast','isha'].includes(p.key)?120:90):58))throw Error('plan');
  const repo=path.resolve(__dirname,'..');
  const fonts={body:'assets/fonts/arabeyes/ae_AlMohanad.ttf',naskh:'assets/fonts/notonaskharabic/NotoNaskhArabic-Regular.ttf',quran:'assets/fonts/amiri/AmiriQuran.ttf',emoji:'assets/fonts/notoemoji/NotoEmoji.ttf'};
  let fontcss='';for(const [family,file] of Object.entries(fonts))fontcss+=`@font-face{font-family:${family};src:url(data:font/ttf;base64,${(await fs.readFile((path.isAbsolute(file)?file:path.join(repo,file)))).toString('base64')})}`;
