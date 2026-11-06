@@ -192,7 +192,16 @@ def confirm_text(command: Command) -> str:
 def whatsapp_list(section: str | None = None) -> dict[str, Any]:
     """WhatsApp interactive list: at most 10 rows, titles at most 24 characters."""
     if section is None:
-        rows = [{"id": "s:" + s, "title": t[:24]} for s, t, _ in SECTIONS]
+        # A one-command section (يومك في دقيقة) runs straight from the first list.
+        rows = [
+            {
+                "id": "c:" + str(section_rows(s)[0].number)
+                if len(section_rows(s)) == 1
+                else "s:" + s,
+                "title": t[:24],
+            }
+            for s, t, _ in SECTIONS
+        ]
     else:
         rows = [{"id": "c:" + str(c.number), "title": c.label[:24]} for c in section_rows(section)]
     if len(rows) > 10:
