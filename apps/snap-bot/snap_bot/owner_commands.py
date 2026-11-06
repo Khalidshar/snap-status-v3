@@ -105,7 +105,8 @@ def systemctl_start(unit: str) -> int:
     result = subprocess.run(  # noqa: S603  # fixed argv, unit names are built here
         ["systemctl", "start", unit],  # noqa: S607  # pinned system tool
         capture_output=True,
-        timeout=600,
+        # Longer than the render units' 1200 s TimeoutStartSec (install_owner_commands).
+        timeout=1260,
         check=False,
     )
     return result.returncode
