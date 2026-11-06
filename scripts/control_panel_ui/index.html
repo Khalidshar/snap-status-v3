@@ -1,0 +1,69 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>استديو روّق مع خالد</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head><body><header class="top">
+  <div class="top-in">
+    <div class="brandrow">
+      <div class="brand">
+        <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#21354e" stroke-width="1.5"/><circle cx="20" cy="20" r="10" fill="none" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="3 3"/><circle cx="20" cy="20" r="4" fill="#6fe3c6"/><circle cx="34.7" cy="11.5" r="2.6" fill="#ffcd70"/></svg>
+        <div class="t"><span class="eyebrow">مساحة خالد الخاصة</span><h1>استديو روّق مع خالد</h1></div>
+      </div>
+      <div class="meta">
+        <span class="pill dim" id="p-live"><i></i><span id="connection">بانتظار الاتصال</span></span>
+        <span class="pill" id="p-fresh"><span id="p-fresh-t"></span></span>
+        <span class="pill num" id="clock"></span>
+        <button type="button" class="pill kbtn" id="open-pal" aria-label="بحث سريع">بحث <kbd>Ctrl K</kbd></button>
+      <button type="button" class="pill kbtn" id="refresh">تحديث ↻</button></div>
+    </div>
+    <nav class="tabs" aria-label="أقسام الاستديو"><a href="#overview" data-tab="overview">الرئيسية</a><a href="#production" data-tab="production">الإنتاج</a><a href="#upload" data-tab="upload">رفع مقطع</a><a href="#sources" data-tab="sources">المصادر</a><a href="#schedule" data-tab="schedule">الجدول</a><a href="#servers" data-tab="servers">الخادمين</a><a href="#agents" data-tab="agents">الوكلاء</a><a href="#archive" data-tab="archive">الأرشيف والأداء</a></nav>
+  </div>
+</header><main class="wrap"><p class="notice" id="notice" role="status">الاتصال ببيانات الخادمين…</p><section class="panel" id="login" hidden><h2>دخول المالك المحلي</h2><form id="login-form" class="actions"><input type="password" id="token" aria-label="رمز الدخول المحلي" autocomplete="off" minlength="32" required><button>اتصال</button></form></section><section data-pane="overview" aria-label="الرئيسية">
+  <div class="wrap" data-layout="ref-1">
+    <div class="band panel">
+      <div class="verdict">
+        <span class="eyebrow" id="greet"></span>
+        <h1 id="verdict"></h1>
+        <p id="verdict-sub"></p>
+      </div>
+      <div class="health" id="health"></div>
+    </div>
+    <div class="bots" id="bots"></div>
+    <div class="cols2">
+      <div class="panel">
+        <div class="head"><h2>قرارات تنتظرك</h2><small>لا يتحرك أي منها قبل موافقتك</small></div>
+        <div class="decisions" id="decisions"></div>
+      </div>
+      <div class="panel">
+        <div class="head"><h2>المسار</h2><small>أين وصل كل جزء</small></div>
+        <div class="road" id="road"></div>
+        <div class="head" data-layout="ref-2"><h2>تنبيهات</h2></div>
+        <div class="alerts" id="alerts"></div>
+      </div>
+    </div>
+  </div>
+<div class="panel"><div class="head"><h2>آخر المقاطع</h2></div><div class="cards" id="latest"></div></div></section>
+<section data-pane="production" hidden><div class="cmdgrid"><div class="panel"><div class="head"><h2>أنتج الحين</h2><small>إنتاج ← معاينة ← قرارك</small></div><div class="tools"><select id="production-bot" aria-label="بوت الإنتاج"><option value="snap">سناب · تيليجرام</option><option value="status">الحالات · واتساب</option></select><input id="command-search" type="search" placeholder="ابحث عن أمر" aria-label="ابحث عن أمر"></div><div class="cards section-title" id="commands"></div></div><div><div class="phone"><div class="phone-h"><span class="av">ر</span><div><b>محاكي البوتين</b><small>تجربة داخل اللوحة</small></div></div><div class="chat" id="chat" aria-live="polite"><div class="bubble">اختر أمرًا أو اكتب اسمه لتجربة القائمة.</div></div><form class="compose" id="simulate"><input id="say" placeholder="اسم الأمر أو رقمه" aria-label="رسالة المحاكاة"><button>جرّب</button></form></div><p class="simnote">المحاكي لا يضع أي طلب في طابور الإنتاج.</p></div></div><h2 class="section-title">بانتظار مراجعتك</h2><div class="grid" id="reviews"></div></section>
+<section data-pane="upload" hidden><div class="grid"><div class="panel"><span class="eyebrow">من مقطعك إلى هويتك</span><h2>ارفع مقطعًا</h2><p class="muted">غلاف «روّق مع خالد» وآلية الإخراج المعتمدة، ثم معاينة قبل الإرسال.</p><form class="form section-title" id="upload-form"><label>البوت<select name="app"><option value="snap">سناب</option><option value="status">واتساب</option></select></label><label>الفيديو<input name="file" type="file" accept="video/mp4,video/quicktime" required></label><small class="muted">حتى ٥٠ ميجابايت</small><video class="preview" id="local-video" controls hidden></video><button class="primary">ارفع للتصميم</button></form></div><div class="panel"><h2>دورة مقطعك</h2><ol class="rows"><li>رفع الملف وحفظ الأصل.</li><li>طلب التصميم عبر طابور البوت المختار.</li><li>فحص الجودة والهوية.</li><li>معاينة المقطع الناتج.</li><li>موافقة أو رفض أو إعادة.</li></ol><p class="notice">الإرسال يحتاج موافقتك على بصمة المقطع الناتج.</p></div></div></section>
+<section data-pane="sources" hidden><div class="grid"><div class="panel"><h2>مصادر الاستديو</h2><p class="muted">حالة الاعتماد مستقلة عن فحص الاتصال. لا يُعرض نجاح بلا دليل.</p><div id="source-list" class="section-title"></div></div><div class="panel"><h2>أضف مصدرًا مرشحًا</h2><form id="source-form" class="form"><label>البوت<select name="app"><option value="snap">سناب</option><option value="status">واتساب</option></select></label><label>اسم المصدر<input name="name" maxlength="80" required></label><label>رابط الخلاصة أو الموقع<input name="url" type="url" placeholder="https://" required></label><label>الأمر<select name="command" id="source-command"></select></label><button class="primary">أضف كمرشح</button></form><div id="candidates" class="section-title"></div></div></div></section>
+<section data-pane="schedule" hidden><div class="panel"><div class="head"><h2>مواعيد البوتين</h2><small>توقيت الرياض · تعديل مستقل لكل أمر</small></div><p class="notice">حفظ الإعدادات يرسل طلبًا للعامل؛ لا يفعّل أي مؤقت تلقائيًا.</p><select id="schedule-bot" aria-label="بوت الجدول"><option value="snap">سناب</option><option value="status">واتساب</option></select><div class="tablewrap"><table><thead><tr><th>الأمر</th><th>الموعد</th><th>الحالة المطلوبة</th><th>حفظ</th></tr></thead><tbody id="schedule-rows"></tbody></table></div></div></section>
+<section data-pane="servers" hidden><div class="grid" id="server-cards"></div><div class="panel section-title"><h2>سجل الإجراءات</h2><div id="audit"></div></div></section>
+<section data-pane="agents" aria-label="الوكلاء" hidden>
+  <div class="agrid">
+    <div class="panel orbitbox">
+      <div class="orbit-bar">
+        <div class="seg" id="ag-bot" role="group" aria-label="البوت"></div>
+        <button type="button" class="play" id="play">▶ تتبّع مسار المقطع</button>
+      </div>
+      <svg class="orbit" id="orbit" viewBox="-90 -6 820 652" role="img" aria-label="مدار الوكلاء: 12 في السلسلة و6 أدوات"></svg>
+      <div class="legend" data-layout="ref-3"><span><span class="chip ok">اجتاز</span></span><span><span class="chip info">موصول</span></span><span><span class="chip tool">أداة محلية</span></span></div>
+    </div>
+    <div class="panel detail" id="detail" aria-live="polite"></div>
+  </div>
+  <div class="panel" data-layout="ref-4">
+    <div class="head"><h2>الوكلاء الـ 18 في البوتين</h2><small>نفس الترتيب ونفس العقود؛ يختلف ما يفحصه كل وكيل حسب المحتوى</small></div>
+    <div class="tablewrap"><table id="matrix"><thead><tr><th>#</th><th>الوكيل</th><th>بعد</th><th>سناب</th><th>الحالات</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="panel">
+    <div class="head"><h2>قرارات المصمم</h2><small>آخر المقاطع: الشكل والخلفية والتعتيم وسبب كل قرار، ونتيجة فحصه بعد الرسم</small></div>
+    <div class="grid" id="designer-list"></div>
+  </div>
+</section>
+<section data-pane="archive" hidden><div class="grid"><div class="panel"><h2>أرشيف المقاطع</h2><div id="archive-list"></div></div><div class="panel"><h2>تحسين الأداء</h2><p class="muted">ارفع لقطة إحصاءات سناب لطلب تحليل الوكلاء واقتراحاتهم.</p><form class="form section-title" id="stats-form"><label>البوت<select name="app"><option value="snap">سناب</option><option value="status">واتساب</option></select></label><label>لقطة الإحصاءات<input name="file" type="file" accept="image/png,image/jpeg" required></label><button class="primary">ارفع للتحليل</button></form><h3 class="section-title">طلبات التحليل</h3><div id="analysis-list"></div></div></div></section>
+<footer class="foot"><span>استديو روّق مع خالد</span><span>تحديث كل ٣٠ ثانية · السجلات محفوظة</span></footer></main><dialog id="confirm"><h2>تأكيد الإجراء</h2><p id="confirm-text"></p><div class="actions"><button id="confirm-action" class="primary">أؤكد</button><button id="cancel">رجوع</button></div></dialog><div id="toast" hidden role="status"></div><div class="pal" id="pal" hidden role="dialog" aria-modal="true" aria-label="بحث سريع"><div class="pal-box"><input id="pal-q" placeholder="انتقل أو ابحث: أمر، وكيل، قسم" autocomplete="off" aria-label="بحث"><ul class="pal-list" id="pal-list" role="listbox"></ul></div></div></body></html>

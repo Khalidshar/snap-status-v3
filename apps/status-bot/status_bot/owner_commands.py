@@ -22,7 +22,7 @@ from studio_core.sources.news import TITLES, NewsUnavailable
 from . import content_clips, daily_brief, tool_commands
 from .command_control import STOPPED, change, halted, status_text
 from .command_inbox import claim
-from .server_preview import GRAPH_VERSION, Runtime
+from .server_preview import GRAPH_VERSION, STATE, Runtime
 from .service_window import ensure as ensure_window
 from .service_window import text as window_text
 from .whatsapp_contract import DeliveryBlocked, DeliveryIdentity, require, response_id
@@ -60,6 +60,9 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
 
 
 def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
+    from studio_core.jobs.panel_queue import transfer_status
+
+    transfer_status(STATE / "panel-commands.sqlite", outbox)
     item = claim(outbox.repo, outbox.identity)
     if item is None:
         return False
