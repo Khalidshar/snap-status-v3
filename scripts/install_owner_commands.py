@@ -16,6 +16,8 @@ UNITS = Path("/etc/systemd/system")
 WA_ENV = "/etc/madar/status-whatsapp.env"
 MEDIA_ENV = "/etc/madar/media.env"
 VIDEO_SOCKET = "/run/madar/snap-video.sock"
+# Node 22 + Playwright + headless Chromium for the scene renderer (docs/DEPLOY-V3.md).
+NODE_RUNTIME = Path("/opt/madar/node-runtime")
 
 
 def service(
@@ -160,6 +162,28 @@ def plan() -> dict[Path, str]:
         files[UNITS / (name + ".d/production.conf")] = (
             "[Service]\nEnvironment=MADAR_LEGACY_PRODUCTION=0\n"
         )
+    # The WhatsApp clip itself renders in status-content@, so it needs the same switches;
+    # the owner's zz-*.conf overrides (DEPLOY-V3.md) turn them on for every one of these.
+    files[UNITS / "madar-v3-status-content@.service.d/production.conf"] = (
+        "[Service]\nEnvironment=MADAR_LEGACY_PRODUCTION=0\nEnvironment=MADAR_QURAN_AUDIO=0\n"
+    )
+    browsers = sorted(
+        NODE_RUNTIME.glob("browsers/chromium_headless_shell-*/*/chrome-headless-shell")
+    )
+    if (NODE_RUNTIME / "bin/node").is_file() and browsers:
+        runtime = (
+            "[Service]\n"
+            f"Environment=MADAR_NODE={NODE_RUNTIME}/bin/node\n"
+            f"Environment=NODE_PATH={NODE_RUNTIME}/node_modules\n"
+            f"Environment=MADAR_CHROMIUM={browsers[-1]}\n"
+        )
+        for name in (
+            "madar-v3-snap-render@.service",
+            "madar-v3-snap-render.service",
+            "madar-v3-status-commands.service",
+            "madar-v3-status-content@.service",
+        ):
+            files[UNITS / (name + ".d/node-runtime.conf")] = runtime
     return files
 
 
@@ -206,6 +230,9 @@ def main() -> None:
                 raise ValueError("Unsafe production state")
             production.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.chown(production, account.pw_uid, account.pw_gid)
+            # The non-root renderer must pass through the root-owned app state to reach its
+            # own production folder: traverse only, no listing (files inside stay 0600/0700).
+            production.parent.chmod(0o711)
         for path, value in files.items():
             path.parent.mkdir(mode=0o755, exist_ok=True, parents=True)
             if not path.exists():

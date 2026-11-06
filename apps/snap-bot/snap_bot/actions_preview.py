@@ -224,6 +224,8 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             "User=" + str(os.getuid()),
             "Group=" + str(os.getgid()),
             "ProtectSystem=strict",
+            # Chromium and ffmpeg need a writable /tmp; strict makes the host one read-only.
+            "PrivateTmp=yes",
             "NoNewPrivileges=yes",
             "RestrictAddressFamilies=AF_UNIX",
             "ReadWritePaths=" + str(spool) + " " + str(socket_dir),

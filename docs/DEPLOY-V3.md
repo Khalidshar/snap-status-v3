@@ -77,3 +77,27 @@ sudo sh -eu -c '
 تحقّق بعدها أن مستمعي الجديد موقوفان وأن القديم يعمل. إذا تغير مسار Meta
 أثناء التحويل، أعد توجيهه إلى المسار السابق الموثّق بعد الموافقة. استبقِ
 الإصدارات والطوابير والسجلات كي يمكن تدقيق أي طلب أو إرسال.
+
+## أدوات الرسم والتفعيل (أُضيفت ٦ نوفمبر بعد فحص القبول)
+
+الرسم يحتاج Node 22 وPlaywright ومتصفح Chromium في مسار ثابت خارج الإصدار:
+
+```sh
+NB=/home/ubuntu/.nvm/versions/node/v22.23.3/bin; R=/opt/madar/node-runtime
+sudo install -d -m 0755 $R $R/bin && sudo install -m 0755 $NB/node $R/bin/node
+sudo env PATH=$NB:/usr/bin:/bin npm install --prefix $R playwright@1.62.1 --no-audit --no-fund
+sudo env PATH=$NB:/usr/bin:/bin PLAYWRIGHT_BROWSERS_PATH=$R/browsers $R/bin/node \
+  $R/node_modules/playwright/cli.js install chromium-headless-shell
+sudo chmod -R a+rX $R
+```
+
+بعدها `install_owner_commands.py --apply` يكتب `node-runtime.conf` تلقائيًا، ويجعل
+`/var/lib/madar/{snap,status}` قابلًا للعبور فقط (0711) حتى يصل الرسام غير الجذري إلى مجلد
+الإنتاج. تفعيل الشكل المعتمد والتلاوة بقرار المالك عبر `zz-*.conf` لكل من
+`madar-v3-snap-render@` و`madar-v3-snap-render` و`madar-v3-status-commands` و`madar-v3-status-content@`:
+
+```ini
+[Service]
+Environment=MADAR_LEGACY_PRODUCTION=1
+Environment=MADAR_QURAN_AUDIO=1
+```
