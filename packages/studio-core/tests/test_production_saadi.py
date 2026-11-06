@@ -32,7 +32,7 @@ def test_saadi_text_refuses_other_tafsir_or_verses_outside_the_clip(value: bytes
 
 def factory(tmp_path: Path, app: str, text: str) -> Factory:
     client = SimpleNamespace(get=lambda url: SimpleNamespace(status=200, body=raw(text)))
-    return Factory(app, "verse", "job", tmp_path / "root", client=client, state=tmp_path / "s")
+    return Factory(app, "verse", "a" * 32, tmp_path / "root", client=client, state=tmp_path / "s")
 
 
 def test_saadi_scene_is_whole_named_and_sourced(tmp_path: Path) -> None:
