@@ -109,7 +109,7 @@ def test_old_recipes_real_local_audio_decoding(tmp_path, audio, key, roles):
     value = f.build()
     plan = validate(value, assets=f.root)
     assert [s["role"] for s in plan["scenes"][1:-1]] == roles
-    low, high, _ = budget(plan["app"])
+    low, high, _ = budget(plan["app"], plan["key"])
     assert low <= plan["duration"] <= high
     assert not is_sacred(value)
     assert validate_content(value)["text"] == value["body"]

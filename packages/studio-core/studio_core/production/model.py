@@ -17,11 +17,15 @@ ROOT = Path(__file__).resolve().parents[4]
 DATA = Path(__file__).with_name("data")
 
 
-def budget(app: str) -> tuple[float, float, int]:
+def budget(app: str, key: str = "") -> tuple[float, float, int]:
     """(shortest, longest seconds, largest bytes) per platform (owner decision 3 Nov).
 
     Snap Spotlight pays only for clips longer than one minute; a WhatsApp Status is 58 s at most.
+    Snap verse clips may run 120 s so the whole Sa'di tafsir fits (owner decision 6 Nov);
+    48 MB stays under the Telegram bot upload limit.
     """
+    if app == "snap-bot-v2" and key in QURAN:
+        return 61.0, 120.0, 48_000_000
     if app == "snap-bot-v2":
         return 61.0, 90.0, 40_000_000
     return 32.0, 58.0, 16_000_000
@@ -166,7 +170,7 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 raise ValueError("LEGACY_TAFSIR_CHANGED")
         if scene.get("image") and not scene.get("image_credit"):
             raise ValueError("LEGACY_IMAGE_CREDIT_MISSING")
-    low, high, _ = budget(p.get("app", ""))
+    low, high, _ = budget(p.get("app", ""), p.get("key", ""))
     if not low <= at <= high or abs(p.get("duration", 0) - at) > 0.001:
         raise ValueError("LEGACY_DURATION_OUT_OF_BUDGET")
     if scenes[-1].get("role") != "cta":
@@ -292,6 +296,19 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                     or int(data["aya"]) != ayah
                 ):
                     raise ValueError("LEGACY_TAFSIR_SOURCE_CHANGED")
+            if item.get("role") == "saadi":
+                surah, ayahs = item["saadi"]
+                url = item.get("source_url")
+                responses = [a for a in p["assets"] if a["source_url"] == url]
+                if p["key"] not in QURAN or url not in {SAADI.format(surah, a) for a in ayahs}:
+                    raise ValueError("LEGACY_SAADI_SOURCE_MISSING")
+                if not responses:
+                    raise ValueError("LEGACY_SAADI_SOURCE_MISSING")
+                raw = resource(assets, responses[-1]["file"], responses[-1]["sha256"]).read_bytes()
+                if saadi_text(raw, surah, ayahs) != item["body"] or item.get(
+                    "tafsir_sha256"
+                ) != sha(item["body"].encode()):
+                    raise ValueError("LEGACY_SAADI_SOURCE_CHANGED")
             if item.get("role") in {"story", "headline", "point"}:
                 from studio_core.sources import for_command
                 from studio_core.sources.news import MAX_AGE
@@ -357,6 +374,22 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 if urlsplit(item["source_url"]).hostname == "news.google.com":
                     raise ValueError("LEGACY_AGGREGATOR_IS_NOT_ARTICLE")
     return p
+
+
+# Owner decision (6 Nov 2026): the full Muyassar always, and the full Sa'di beside it
+# whenever the clip's time allows. Never shortened; markup removed, words untouched.
+SAADI = "https://api.quran.com/api/v4/tafsirs/91/by_ayah/{}:{}"
+SAADI_NAME = "تفسير السعدي"
+
+
+def saadi_text(raw: bytes, surah: int, ayahs: list[int]) -> str:
+    from studio_core.religious.quran_foundation import literal_tafsir
+
+    data = json.loads(raw)["tafsir"]
+    covered = {tuple(int(x) for x in k.split(":")) for k in data.get("verses") or {}}
+    if data.get("resource_id") != 91 or not covered or not covered <= {(surah, a) for a in ayahs}:
+        raise ValueError("LEGACY_SAADI_SCOPE")
+    return literal_tafsir(data["text"]).strip()
 
 
 def scene(body: str, seconds: float, **extra: Any) -> dict[str, Any]:

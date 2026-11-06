@@ -24,6 +24,7 @@ BASE = {
     "www.mp3quran.net",
     "everyayah.com",
     "quranenc.com",
+    "api.quran.com",
     "hisnmuslim.com",
     "www.hisnmuslim.com",
     "api.aladhan.com",

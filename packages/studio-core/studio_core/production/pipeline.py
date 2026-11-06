@@ -243,7 +243,7 @@ def check_result(result: dict[str, Any]) -> float:
         or len(judge.get("shots", [])) != 6
         or (qa.get("width"), qa.get("height"), qa.get("codec")) != (1080, 1920, "h264")
         or abs(qa.get("duration", 0) - p["duration"]) > 0.15
-        or not 0 < qa.get("bytes", 0) <= budget(p["app"])[2]
+        or not 0 < qa.get("bytes", 0) <= budget(p["app"], p["key"])[2]
     ):
         raise ValueError("LEGACY_RESULT_AUDIO_OR_JUDGE_CHANGED")
     from studio_core.presentation.brand_frame import load_brand

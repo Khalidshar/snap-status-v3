@@ -30,10 +30,13 @@ from .model import (
     NEWS,
     QURAN,
     ROOT,
+    SAADI,
+    SAADI_NAME,
     SACRED,
     TITLES,
     budget,
     canonical,
+    saadi_text,
     scene,
     sha,
     timed,
@@ -732,6 +735,39 @@ class Factory:
             return extra
         raise ValueError("LEGACY_HUMAN_RECITATION_UNAVAILABLE")
 
+    def saadi(
+        self, surah: int, ayahs: list[int], before: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Sa'di after the verses (Muyassar stays on each verse), only if it fits whole."""
+        found: list[dict[str, Any]] = []
+        try:
+            for ayah in ayahs:
+                url = SAADI.format(surah, ayah)
+                raw = self.get(url)
+                self.save(raw, ".json", url, SAADI_NAME + " — مؤسسة القرآن")
+                text = saadi_text(raw, surah, ayahs)
+                if any(s["body"] == text for s in found):
+                    continue  # one Sa'di passage can explain several of these verses
+                found.append(
+                    scene(
+                        text,
+                        (len(text) + len(SAADI_NAME)) / 17 + 1,
+                        role="saadi",
+                        head=SAADI_NAME,
+                        saadi=[surah, ayahs],
+                        tafsir_sha256=sha(text.encode()),
+                        source=SAADI_NAME + " — مؤسسة القرآن",
+                        source_url=url,
+                    )
+                )
+        except (OSError, ValueError, KeyError, TypeError, RuntimeError):
+            return []  # Muyassar alone, still whole
+        # Room left for the closing card (5 s) inside the platform's longest clip.
+        room = budget(self.app, self.key)[1] - 5.0 - sum(s["seconds"] for s in before)
+        if sum(s["seconds"] for s in found) > room:
+            return []
+        return found
+
     def remember_reader(self, name: str) -> None:
         with sqlite3.connect(self.db, timeout=30) as db:
             db.execute("BEGIN IMMEDIATE")
@@ -1124,6 +1160,7 @@ class Factory:
             for item in candidates:
                 try:
                     scenes += self.quran(item["surah"], item["ayahs"])
+                    scenes += self.saadi(item["surah"], item["ayahs"], scenes)
                     break
                 except ValueError:
                     continue
@@ -1174,7 +1211,9 @@ class Factory:
                     grade=item["grade"],
                 )
             )
-            remaining = budget(self.app)[1] - 0.3 - 5.0 - sum(s["seconds"] for s in scenes)
+            remaining = (
+                budget(self.app, self.key)[1] - 0.3 - 5.0 - sum(s["seconds"] for s in scenes)
+            )
             scenes += self.adhkar("night", minimum=8, maximum=min(24, remaining))
         elif key == "brief":
             scenes += self.brief()
@@ -1192,7 +1231,7 @@ class Factory:
             )
         )
         total = sum(x["seconds"] for x in scenes)
-        low, high, _ = budget(self.app)
+        low, high, _ = budget(self.app, self.key)
         if total < low:
             # A hair over the floor: float sums landed at 60.99999 and failed the budget.
             extra = low - total + 0.01
