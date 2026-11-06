@@ -119,6 +119,35 @@ class GraphTransport:
             "application/json",
         )
 
+    def send_list(self, text: str, action: dict[str, Any]) -> ApiResponse:
+        """Interactive list (owner menu): a «القائمة» button that opens tappable rows."""
+        require(isinstance(text, str) and 0 < len(text) <= 1024, "WA_TEXT_INVALID")
+        sections = action.get("sections") if isinstance(action, dict) else None
+        rows = [r for s in sections or [] for r in s.get("rows", [])]
+        require(
+            isinstance(action.get("button"), str)
+            and 0 < len(action["button"]) <= 20
+            and 0 < len(rows) <= 10
+            and all(
+                0 < len(r.get("title", "")) <= 24 and 0 < len(r.get("id", "")) <= 200 for r in rows
+            ),
+            "WA_LIST_INVALID",
+        )
+        return graph_post(
+            self.credentials,
+            "messages",
+            json_bytes(
+                {
+                    "messaging_product": "whatsapp",
+                    "recipient_type": "individual",
+                    "to": self.credentials.recipient,
+                    "type": "interactive",
+                    "interactive": {"type": "list", "body": {"text": text}, "action": action},
+                }
+            ),
+            "application/json",
+        )
+
     def upload_video(self, video: bytes) -> ApiResponse:
         require(type(video) is bytes and 0 < len(video) <= MAX_VIDEO, "WA_VIDEO_SIZE_INVALID")
         boundary = "statusv2" + uuid.uuid4().hex

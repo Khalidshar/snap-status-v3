@@ -59,6 +59,22 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
     )
 
 
+def menu_list(text: str) -> tuple[str, dict[str, Any]] | None:
+    """The interactive list for a menu or section request; None for anything else."""
+    parsed = menu.parse(text)
+    section = None
+    if text.startswith("s:") and text[2:] in {row[0] for row in menu.SECTIONS}:
+        section = text[2:]
+    elif parsed["kind"] == "section":
+        section = parsed["section"]
+    elif parsed["kind"] != "menu":
+        return None
+    if section is None:
+        return "🤖 اضغط «القائمة» واختر القسم.", menu.whatsapp_list()
+    title = next(t for s, t, _ in menu.SECTIONS if s == section)
+    return title + "\nاضغط «القائمة» واختر الأمر.", menu.whatsapp_list(section)
+
+
 def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
     from studio_core.jobs.panel_queue import transfer_status
 
@@ -115,7 +131,18 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         elif key in content_clips.KINDS:
             content_clips.send(outbox, transport, item, key, runtime)
         else:
-            send(answer(item["text"], runtime, outbox=outbox))
+            choices = menu_list(item["text"])
+            if choices is not None and hasattr(transport, "send_list"):
+                # Same tappable choices as the Telegram keyboard instead of "type a number".
+                ensure_window(outbox)
+                with outbox.repo.transaction() as db:
+                    db.execute(
+                        "UPDATE whatsapp_commands SET state='SEND_INTENT' WHERE tag=?",
+                        (item["tag"],),
+                    )
+                response_id(transport.send_list(*choices), "send", outbox.identity.recipient)
+            else:
+                send(answer(item["text"], runtime, outbox=outbox))
         with outbox.repo.transaction() as db:
             db.execute("UPDATE whatsapp_commands SET state='ACK' WHERE tag=?", (item["tag"],))
     except Exception as error:

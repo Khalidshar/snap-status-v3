@@ -229,7 +229,13 @@ def main() -> None:
             if any(p.is_symlink() for p in (production, *production.parents)):
                 raise ValueError("Unsafe production state")
             production.mkdir(mode=0o700, parents=True, exist_ok=True)
-            os.chown(production, account.pw_uid, account.pw_gid)
+            # Only the Snap renderer is non-root. Status services run as root without
+            # CAP_DAC_OVERRIDE, so an ubuntu-owned status folder refuses them (PermissionError).
+            if app == "snap":
+                os.chown(production, account.pw_uid, account.pw_gid)
+            else:
+                os.chown(production, 0, 0)
+            production.chmod(0o700)
             # The non-root renderer must pass through the root-owned app state to reach its
             # own production folder: traverse only, no listing (files inside stay 0600/0700).
             production.parent.chmod(0o711)
