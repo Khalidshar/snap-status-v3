@@ -39,7 +39,10 @@ def test_units_follow_the_release_owner(tmp_path, monkeypatch):
     default = module.plan()
     assert module.owner() == "ubuntu"
     assert any("Group=ubuntu\n" in text for text in default.values())
-    (tmp_path / "madar-release.json").write_text('{"owner": "khalid"}')
+    import os
+    import pwd
+
+    uid = os.getuid() or 1
+    (tmp_path / "madar-release.json").write_text(f'{{"owner_uid": {uid}}}')
     monkeypatch.setattr(module, "ROOT", tmp_path)
-    monkeypatch.setattr(module, "ROOT", tmp_path, raising=True)
-    assert module.owner() == "khalid"
+    assert module.owner() == pwd.getpwuid(uid).pw_name

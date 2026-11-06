@@ -85,9 +85,10 @@ def owner() -> str:
     """The non-root account the release was installed for (release.py --owner)."""
     manifest = ROOT / "madar-release.json"
     if manifest.is_file():
-        value = json.loads(manifest.read_text()).get("owner", "ubuntu")
-        if isinstance(value, str) and re.fullmatch("[a-z_][a-z0-9_-]{0,31}", value):
-            return value
+        # The manifest pins the owner's uid (release.py); its account name follows from it.
+        uid = json.loads(manifest.read_text()).get("owner_uid")
+        if type(uid) is int and uid > 0:
+            return pwd.getpwuid(uid).pw_name
     return "ubuntu"
 
 
