@@ -113,6 +113,9 @@ def plan() -> dict[Path, str]:
     files[UNITS / "madar-v3-status-command-webhook.service.d/stale-socket.conf"] = (
         "[Service]\nExecStartPre=/bin/rm -f /var/lib/madar/status/command-webhook/incoming.sock\n"
     )
+    # The WhatsApp clip (sources, background footage, ffmpeg) is built inside this service;
+    # 256M left it swapping 1.7G and crawling. Same budget as the Snap clip renderer.
+    files[UNITS / "madar-v3-status-commands.service.d/memory.conf"] = "[Service]\nMemoryMax=1536M\n"
     files[UNITS / "madar-v3-snap-commands.service.d/live-news.conf"] = (
         "[Service]\nEnvironment=MADAR_LIVE_NEWS=1\n"
     )
