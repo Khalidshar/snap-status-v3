@@ -474,7 +474,9 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
     # The panel runs on the server it shows: read this machine directly instead of waiting
     # for an HTTPS heartbeat (owner, 7 Nov 2026: bots run on Khalid's WSL, Amazon stopped).
     host = local_host()
-    if host:
+    current = result["servers"].get(host) if host else None
+    fresh = isinstance(current, dict) and time.time() - float(current.get("at", 0)) < 90
+    if host and not fresh:
         with suppress(OSError, ValueError, KeyError):
             result["servers"][host] = {**local_metrics(), "at": time.time(), "direct": True}
     result["running_on"] = host
