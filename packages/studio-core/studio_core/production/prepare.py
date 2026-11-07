@@ -437,12 +437,21 @@ class Factory:
                 hot = [e.text or "" for e in trends.findall("./channel/item/title")]
             except (OSError, ValueError, ET.ParseError, RuntimeError):
                 hot = []
-            candidates.sort(
-                key=lambda i: (
-                    not any(w in i["title"] + i["detail"] for w in ("السعود", "الرياض", "المملكة")),
-                    not any(w and w in i["title"] for w in hot),
+
+            # status-bot newsroom.stories: two Saudi stories, two others, then the rest;
+            # inside each group the ones Saudi Arabia is searching come first.
+            def trending(i: dict[str, Any]) -> bool:
+                text = (i["title"] + " " + i["detail"][:200]).casefold()
+                return any(t.strip() and t.strip().casefold() in text for t in hot[:25])
+
+            def saudi(i: dict[str, Any]) -> bool:
+                return any(
+                    w in i["title"] + i["detail"][:150] for w in ("السعود", "الرياض", "المملكة")
                 )
-            )
+
+            local = sorted((i for i in candidates if saudi(i)), key=lambda i: not trending(i))
+            rest = sorted((i for i in candidates if not saudi(i)), key=lambda i: not trending(i))
+            candidates = local[:2] + rest[:2] + local[2:] + rest[2:]
         selected: list[dict[str, Any]] = []
         failures: list[dict[str, str]] = []
         # Snap bulletins carry one more story to pass the one-minute Spotlight floor.
