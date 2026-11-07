@@ -15,10 +15,13 @@ from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import Any
 
+from studio_core.delivery.evidence import SHAPE_FIELDS
 from studio_core.network import UnixHTTPConnection
 
 from . import platform_policy
 from .telegram_egress import EXPECTED_BOT, api, multipart
+
+VIDEO_FIELDS = frozenset({"chat_id", "caption", "supports_streaming", "video"})
 
 
 def peer_uid(sock: Any) -> int:
@@ -67,7 +70,11 @@ def approved_video(body: bytes, kind: str, owner: str, digest: str) -> tuple[byt
     )
     parts = list(mail.iter_parts())
     names = [p.get_param("name", header="content-disposition") for p in parts]
-    if sorted(names) != sorted(["chat_id", "caption", "supports_streaming", "video"]):
+    if not (
+        len(names) == len(set(names))
+        and set(names) >= VIDEO_FIELDS
+        and set(names) - VIDEO_FIELDS <= SHAPE_FIELDS
+    ):
         raise ValueError("Invalid fields")
     fields = dict(zip(names, parts, strict=True))
     if fields["chat_id"].get_payload(decode=True).decode() != owner:
