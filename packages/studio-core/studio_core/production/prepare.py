@@ -677,8 +677,8 @@ class Factory:
                             background=background,
                         )
                     )
-                if sum(x["seconds"] for x in recordings) > 50:
-                    raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_58_SECONDS")
+                if sum(x["seconds"] for x in recordings) > self.passage_room():
+                    raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_BUDGET")
                 self.remember_reader(reader["name"])
                 return recordings
             except (
@@ -726,6 +726,42 @@ class Factory:
         room = budget(self.app, self.key)[1] - 5.0 - sum(s["seconds"] for s in before)
         if sum(s["seconds"] for s in found) > room:
             return []
+        return found
+
+    def passage_room(self) -> float:
+        """Seconds a whole passage may take: the platform's longest clip minus the opening
+        title (3.2 s), the closing card (5 s) and a margin. WhatsApp ~49.5, Snap verses ~111.5.
+        """
+        return budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
+
+    def hadiths(self, items: list[dict[str, Any]], day: date) -> list[dict[str, Any]]:
+        """Authentic hadiths, rotating daily, each read aloud, until the clip is full.
+
+        Owner report 8 Nov 2026: one 27-letter hadith stretched over 53 silent seconds.
+        """
+        pool = sorted((i for i in items if i["grade"] == "صحيح"), key=lambda i: i["id"])
+        if not pool:
+            raise ValueError("LEGACY_HADITH_UNAVAILABLE")
+        start = day.toordinal() % len(pool)
+        target = budget(self.app, self.key)[0] - 3.2 - 5.0
+        found: list[dict[str, Any]] = []
+        for item in pool[start:] + pool[:start]:
+            spoken, length = self.spoken(item["text"], "hadith")
+            found.append(
+                scene(
+                    item["text"],
+                    max(length + 1.0, len(item["text"]) / 17 + 1),
+                    role="hadith",
+                    source=item["source"] + " • " + item["grade"],
+                    hadith_id=item["id"],
+                    grade=item["grade"],
+                    audio=spoken,
+                    audio_duration=length,
+                    voice_kind="speech",
+                )
+            )
+            if sum(s["seconds"] for s in found) >= target:
+                break
         return found
 
     def remember_reader(self, name: str) -> None:
@@ -836,8 +872,8 @@ class Factory:
                         asset.update({"qf_job": qf_job, "expires_at": expires})
                         store.track(self.root / item["audio"], qf_job, expires, asset["sha256"])
                         scenes.append(item)
-                    if sum(s["seconds"] for s in scenes) > 50:
-                        raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_58_SECONDS")
+                    if sum(s["seconds"] for s in scenes) > self.passage_room():
+                        raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_BUDGET")
                     self.remember_reader(reader["name"])
                     return scenes
                 except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError):
@@ -888,7 +924,24 @@ class Factory:
         chapter = 28 if period == "night" else 27
         url = f"https://www.hisnmuslim.com/api/ar/{chapter}.json"
         response = self.json(url)
-        rows = next(iter(response.values()))
+        rows = list(next(iter(response.values())))
+        if period not in {"am", "pm"}:
+            return self.adhkar_from(rows, chapter, minimum, maximum)
+        # Chapter 27 holds morning and evening together (owner report 8 Nov 2026: evening was
+        # a copy of morning): morning reads it forward, evening backward, and the start moves
+        # daily; the plain order is the fallback when a rotated one cannot fill the clip.
+        base = rows if period == "am" else rows[::-1]
+        shift = datetime.now(ZoneInfo("Asia/Riyadh")).date().toordinal() % max(1, len(base))
+        for order in (base[shift:] + base[:shift], base):
+            try:
+                return self.adhkar_from(order, chapter, minimum, maximum)
+            except ValueError:
+                continue
+        raise ValueError("LEGACY_MATCHED_HUMAN_ADHKAR_UNAVAILABLE")
+
+    def adhkar_from(
+        self, rows: list[dict[str, Any]], chapter: int, minimum: float, maximum: float
+    ) -> list[dict[str, Any]]:
         selected: list[dict[str, Any]] = []
         total = 0.0
         for row in rows:
@@ -1131,24 +1184,7 @@ class Factory:
         elif key == "hadith":
             from studio_core.presentation import faith
 
-            item = min(
-                (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
-                key=lambda i: len(i["text"]),
-            )
-            spoken, length = self.spoken(item["text"], "hadith")
-            scenes.append(
-                scene(
-                    item["text"],
-                    max(24.0, length + 0.3),
-                    role="hadith",
-                    source=item["source"] + " • " + item["grade"],
-                    hadith_id=item["id"],
-                    grade=item["grade"],
-                    audio=spoken,
-                    audio_duration=length,
-                    voice_kind="speech",
-                )
-            )
+            scenes += self.hadiths(faith.load("hadith"), day)
         elif key == "night":
             from studio_core.presentation import faith
 
