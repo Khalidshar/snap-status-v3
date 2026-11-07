@@ -58,3 +58,13 @@ def test_clip_records_fill_agents_the_ledger_never_saw() -> None:
         "state": "SUCCEEDED",
         "at": 40.0,
     }
+
+
+def test_panel_on_wsl_reads_this_machine_directly(monkeypatch) -> None:
+    module = panel()
+    monkeypatch.setattr(module, "ctl", lambda action, unit: unit.endswith("commands.service"))
+    value = module.local_metrics()
+    assert value["memory_total"] > 0 and value["disk_total"] > 0
+    assert value["services"] == {
+        "snap": "active", "status": "active", "snap_old": "inactive", "status_old": "inactive"
+    }  # fmt: skip

@@ -471,7 +471,42 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
         if heartbeat.is_file() and not heartbeat.is_symlink():
             with suppress(OSError, ValueError):
                 result["servers"][host] = json.loads(heartbeat.read_bytes())
+    # The panel runs on the server it shows: read this machine directly instead of waiting
+    # for an HTTPS heartbeat (owner, 7 Nov 2026: bots run on Khalid's WSL, Amazon stopped).
+    host = local_host()
+    if host:
+        with suppress(OSError, ValueError, KeyError):
+            result["servers"][host] = {**local_metrics(), "at": time.time(), "direct": True}
+    result["running_on"] = host
     return result
+
+
+def local_host() -> str | None:
+    """'wsl' when this panel runs inside WSL, else None (Amazon reports by heartbeat)."""
+    with suppress(OSError):
+        if "microsoft" in Path("/proc/sys/kernel/osrelease").read_text().lower():
+            return "wsl"
+    return None
+
+
+def local_metrics() -> dict[str, Any]:
+    memory = {}
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        key, value = line.split(":", 1)
+        if key in {"MemTotal", "MemAvailable"}:
+            memory[key] = int(value.split()[0]) * 1024
+    disk = shutil.disk_usage(STATE)
+    units = {**UNITS, "snap_old": "snap-bot.timer", "status_old": "status-bot.timer"}
+    return {
+        "disk_used": disk.used,
+        "disk_total": disk.total,
+        "memory_total": memory["MemTotal"],
+        "memory_available": memory["MemAvailable"],
+        "load": os.getloadavg()[0],
+        "services": {
+            app: "active" if ctl("is-active", unit) else "inactive" for app, unit in units.items()
+        },
+    }
 
 
 class Handler(BaseHTTPRequestHandler):
