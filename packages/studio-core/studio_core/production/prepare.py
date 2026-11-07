@@ -1380,6 +1380,8 @@ class Factory:
                 verses = self.quran(surah, ayahs, background=True)
             except ValueError:
                 continue
+            if cursor + sum(v["audio_duration"] for v in verses) > 3.2 + 45.0:
+                continue  # a passage is never cut: it must end with the four cards
             for v in verses:
                 self.brief_audio.append(
                     {"file": v["audio"], "at": cursor, "seconds": v["audio_duration"]}
