@@ -1368,14 +1368,25 @@ class Factory:
             raise ValueError("LEGACY_BRIEF_WEATHER_DISAGREES")
         fact = data["facts"][day.toordinal() % len(data["facts"])]
         hist, year = data["history"][day.toordinal() % len(data["history"])]
-        verses = self.quran(94, [5, 6], background=True)
+        # Old bot: calm human recitation (~40 s) under all four cards; one short passage left
+        # most of the minute silent (owner sample review, 8 Nov 2026). Whole approved passages
+        # follow one another until the cards are covered.
         self.brief_audio = []
         cursor = 3.2
-        for v in verses:
-            self.brief_audio.append(
-                {"file": v["audio"], "at": cursor, "seconds": v["audio_duration"]}
-            )
-            cursor += v["audio_duration"]
+        for surah, ayahs in ((94, [5, 6, 7, 8]), (89, [27, 28, 29, 30]), (112, [1, 2, 3, 4])):
+            if cursor >= 3.2 + 35.0:
+                break
+            try:
+                verses = self.quran(surah, ayahs, background=True)
+            except ValueError:
+                continue
+            for v in verses:
+                self.brief_audio.append(
+                    {"file": v["audio"], "at": cursor, "seconds": v["audio_duration"]}
+                )
+                cursor += v["audio_duration"]
+        if not self.brief_audio:
+            raise ValueError("LEGACY_BRIEF_RECITATION_UNAVAILABLE")
         return [
             scene(prayers, 12.0, role="brief", head="أوقات الصلاة • الرياض"),
             scene(
