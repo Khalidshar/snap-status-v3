@@ -925,12 +925,23 @@ class Factory:
         url = f"https://www.hisnmuslim.com/api/ar/{chapter}.json"
         response = self.json(url)
         rows = list(next(iter(response.values())))
-        if rows and period in {"am", "pm"}:
-            # Chapter 27 holds morning and evening together: each period starts elsewhere
-            # and the start moves daily, so morning != evening and today != yesterday.
-            day = datetime.now(ZoneInfo("Asia/Riyadh")).date().toordinal()
-            shift = (day * 3 + (len(rows) // 2 if period == "pm" else 0)) % len(rows)
-            rows = rows[shift:] + rows[:shift]
+        if period not in {"am", "pm"}:
+            return self.adhkar_from(rows, chapter, minimum, maximum)
+        # Chapter 27 holds morning and evening together (owner report 8 Nov 2026: evening was
+        # a copy of morning): morning reads it forward, evening backward, and the start moves
+        # daily; the plain order is the fallback when a rotated one cannot fill the clip.
+        base = rows if period == "am" else rows[::-1]
+        shift = datetime.now(ZoneInfo("Asia/Riyadh")).date().toordinal() % max(1, len(base))
+        for order in (base[shift:] + base[:shift], base):
+            try:
+                return self.adhkar_from(order, chapter, minimum, maximum)
+            except ValueError:
+                continue
+        raise ValueError("LEGACY_MATCHED_HUMAN_ADHKAR_UNAVAILABLE")
+
+    def adhkar_from(
+        self, rows: list[dict[str, Any]], chapter: int, minimum: float, maximum: float
+    ) -> list[dict[str, Any]]:
         selected: list[dict[str, Any]] = []
         total = 0.0
         for row in rows:
