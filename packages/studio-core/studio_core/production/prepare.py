@@ -734,6 +734,36 @@ class Factory:
         """
         return budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
 
+    def hadiths(self, items: list[dict[str, Any]], day: date) -> list[dict[str, Any]]:
+        """Authentic hadiths, rotating daily, each read aloud, until the clip is full.
+
+        Owner report 8 Nov 2026: one 27-letter hadith stretched over 53 silent seconds.
+        """
+        pool = sorted((i for i in items if i["grade"] == "صحيح"), key=lambda i: i["id"])
+        if not pool:
+            raise ValueError("LEGACY_HADITH_UNAVAILABLE")
+        start = day.toordinal() % len(pool)
+        target = budget(self.app, self.key)[0] - 3.2 - 5.0
+        found: list[dict[str, Any]] = []
+        for item in pool[start:] + pool[:start]:
+            spoken, length = self.spoken(item["text"], "hadith")
+            found.append(
+                scene(
+                    item["text"],
+                    max(length + 1.0, len(item["text"]) / 17 + 1),
+                    role="hadith",
+                    source=item["source"] + " • " + item["grade"],
+                    hadith_id=item["id"],
+                    grade=item["grade"],
+                    audio=spoken,
+                    audio_duration=length,
+                    voice_kind="speech",
+                )
+            )
+            if sum(s["seconds"] for s in found) >= target:
+                break
+        return found
+
     def remember_reader(self, name: str) -> None:
         with sqlite3.connect(self.db, timeout=30) as db:
             db.execute("BEGIN IMMEDIATE")
@@ -894,7 +924,13 @@ class Factory:
         chapter = 28 if period == "night" else 27
         url = f"https://www.hisnmuslim.com/api/ar/{chapter}.json"
         response = self.json(url)
-        rows = next(iter(response.values()))
+        rows = list(next(iter(response.values())))
+        if rows and period in {"am", "pm"}:
+            # Chapter 27 holds morning and evening together: each period starts elsewhere
+            # and the start moves daily, so morning != evening and today != yesterday.
+            day = datetime.now(ZoneInfo("Asia/Riyadh")).date().toordinal()
+            shift = (day * 3 + (len(rows) // 2 if period == "pm" else 0)) % len(rows)
+            rows = rows[shift:] + rows[:shift]
         selected: list[dict[str, Any]] = []
         total = 0.0
         for row in rows:
@@ -1137,24 +1173,7 @@ class Factory:
         elif key == "hadith":
             from studio_core.presentation import faith
 
-            item = min(
-                (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
-                key=lambda i: len(i["text"]),
-            )
-            spoken, length = self.spoken(item["text"], "hadith")
-            scenes.append(
-                scene(
-                    item["text"],
-                    max(24.0, length + 0.3),
-                    role="hadith",
-                    source=item["source"] + " • " + item["grade"],
-                    hadith_id=item["id"],
-                    grade=item["grade"],
-                    audio=spoken,
-                    audio_duration=length,
-                    voice_kind="speech",
-                )
-            )
+            scenes += self.hadiths(faith.load("hadith"), day)
         elif key == "night":
             from studio_core.presentation import faith
 
