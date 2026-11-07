@@ -135,6 +135,116 @@ def designer_decisions(root: Path, limit: int = 12) -> list[dict[str, Any]]:
     return list(found)
 
 
+STEP_STATES = {"RUNNING", "SUCCEEDED", "FAILED", "UNKNOWN"}
+CLIP_ROOTS = {"snap": "snap/previews", "status": "status/content-clips"}
+
+
+def _clip_title(folder: Path) -> str:
+    for pattern in (
+        "state/renders/*/input/content.json",
+        "spool/renders/*/input/content.json",
+        "spool/renders/*/attempts/*/input/content.json",
+    ):
+        for path in folder.glob(pattern):
+            with suppress(OSError, ValueError, AttributeError):
+                return str(json.loads(path.read_text(encoding="utf-8")).get("title", ""))[:40]
+    return ""
+
+
+def clip_trail(root: Path = STATE, limit: int = 8) -> list[dict[str, Any]]:
+    """Each recent clip of both bots, agent by agent, read-only from its own job database.
+
+    Owner decision 7 Nov 2026: see the agents work live. Only role names, states, times,
+    durations and fixed failure codes leave; never message text, payloads or secrets.
+    """
+    commands = {
+        r[0]: r[1]
+        for r in rows(
+            root / "status/commands/jobs.sqlite", "SELECT tag,text FROM whatsapp_commands"
+        )
+        or []
+    }
+    labels = {str(c.number): c.label for c in COMMANDS}
+    clips: list[dict[str, Any]] = []
+    for app, sub in CLIP_ROOTS.items():
+        base = root / sub
+        try:
+            folders = sorted(
+                (p for p in base.iterdir() if p.is_dir() and not p.is_symlink()),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )[:limit]
+        except OSError:
+            continue
+        for folder in folders:
+            db = folder / "state/jobs.sqlite"
+            timed = rows(
+                db,
+                "SELECT role,status,started_at,duration_ms,error_code FROM agent_runs"
+                " ORDER BY started_at",
+            )
+            steps = [
+                {"role": r, "state": s, "at": a, "ms": m, "code": c}
+                for r, s, a, m, c in timed or []
+                if s in STEP_STATES
+            ]
+            if app == "snap":
+                # Snap keeps the twelve chain agents' outcomes in its contract table.
+                seen = {s["role"] for s in steps}
+                for role, state, code in (
+                    rows(
+                        db,
+                        "SELECT role,status,error_code FROM owned_agent_contracts ORDER BY rowid",
+                    )
+                    or []
+                ):
+                    if state in STEP_STATES and role not in seen:
+                        steps.append(
+                            {"role": role, "state": state, "at": None, "ms": None, "code": code}
+                        )
+            text = str(commands.get(folder.name, ""))
+            title = _clip_title(folder) or labels.get(text.removeprefix("c:"), text[:30])
+            states = {s["state"] for s in steps}
+            overall = (
+                "FAILED"
+                if "FAILED" in states
+                else "RUNNING"
+                if "RUNNING" in states or not steps
+                else "SUCCEEDED"
+            )
+            if overall == "RUNNING" and time.time() - folder.stat().st_mtime > 1800:
+                overall = "UNKNOWN"  # stopped without a final record
+            clips.append(
+                {
+                    "app": app,
+                    "id": folder.name[:12],
+                    "title": title,
+                    "at": folder.stat().st_mtime,
+                    "state": overall,
+                    "steps": steps[:24],
+                }
+            )
+    clips.sort(key=lambda c: c["at"], reverse=True)
+    return clips[: limit * 2]
+
+
+def with_trail(state: dict[str, Any], trail: list[dict[str, Any]]) -> None:
+    """Newer per-clip agent records win over the app ledger, which misses the six tools."""
+    for app, item in state.get("apps", {}).items():
+        latest: dict[str, tuple[str, float]] = {}
+        for clip in trail:
+            if clip["app"] != app:
+                continue
+            for step in clip["steps"]:
+                at = step["at"] or clip["at"]
+                if step["role"] not in latest or at > latest[step["role"]][1]:
+                    latest[step["role"]] = (step["state"], at)
+        for agent in item.get("agents", []):
+            found = latest.get(agent["id"])
+            if found and (agent.get("at") is None or found[1] > agent["at"]):
+                agent["state"], agent["at"] = found
+
+
 def source_health() -> dict[str, tuple[float, str]]:
     """Read operator-saved source-check output, emitting only a status and timestamp."""
     latest: dict[str, tuple[float, str]] = {}
@@ -439,12 +549,16 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(404, b"{}")
         elif self.path == "/api/snapshot" and self.authorized():
             try:
+                state = snapshot(self.server.databases, self.server.binding)
+                trail = clip_trail()
+                with_trail(state, trail)
                 self.reply(
                     200,
                     json.dumps(
                         {
-                            **snapshot(self.server.databases, self.server.binding),
+                            **state,
                             "designer": designer_decisions(self.server.designer_root),
+                            "trail": trail,
                             "controls": self.server.controls,
                             "workspace_executor_connected": False,
                         }

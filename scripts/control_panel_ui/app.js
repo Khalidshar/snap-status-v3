@@ -20,7 +20,7 @@ function render(){if(!current)return;const all=Object.keys(names).flatMap(app=>w
 $('connection').textContent='متصل باللوحة';$('p-fresh-t').textContent='آخر قراءة: '+date(current.at);if($('p-live'))$('p-live').className='pill '+(Object.values(current.apps).every(a=>a.active===true)?'live ok':'dim');$('notice').textContent=current.workspace_executor_connected?'طلبات اللوحة محفوظة. حالة التنفيذ من سجل العامل.':'نسخة قيد التنفيذ: طلبات اللوحة تُحفظ، ومنفّذات الإنتاج والإرسال والتبديل والتحليل لم تُربط بعد. البوت الجديد يبقى موقوفًا.';
 renderOverview();
 $('latest').innerHTML=all.slice(0,3).map(({app,p})=>`<div class="card"><h3>${names[app]}</h3><p>${state(p.state)}</p><small>${date(p.at)}</small></div>`).join('')||empty('لا توجد مقاطع مسجّلة بعد');
-renderCommands();renderSchedules();renderAgents();renderDesigner();
+renderCommands();renderSchedules();renderAgents();renderDesigner();renderTrail();
 $('reviews').innerHTML=all.filter(x=>x.p.state==='REVIEW').map(({app,p})=>previewCard(app,p)).join('')||empty('لا توجد معاينات تنتظر المراجعة');
 $('archive-list').innerHTML=all.map(({app,p})=>previewCard(app,p)+`<label>التقييم <select data-rate="${p.id}" data-app="${app}"><option value="">اختر</option>${[1,2,3,4,5].map(n=>`<option value="${n}">${n.toLocaleString('ar-SA')}</option>`).join('')}</select></label>`).join('')||empty('الأرشيف ينتظر أول مقطع');
 $('source-list').innerHTML=(current.sources||[]).map(s=>`<div class="card"><div class="head"><b>${esc(s.name)}</b><span class="chip">${state(s.state)}</span></div><small>الاتصال: ${s.health==='ok'?'يشتغل':s.health==='403'?'يرفض 403':s.health==='down'?'متعطل':'لم يُفحص'}${s.checked_at?' · '+date(s.checked_at):''}</small></div>`).join('');
@@ -69,6 +69,14 @@ const tx=esc,chip=(text,tone)=>'<span class="chip '+tone+'"><span>'+esc(text)+'<
 const CX=320,CY=320,R1=238,R2=112;
 function pos(i,n,r){const a=-Math.PI/2+i*2*Math.PI/n;return[CX+r*Math.cos(a),CY+r*Math.sin(a)]}
 function col(st){return st==='passed'?'#6fe3c6':st==='failed'?'#ff8796':st==='running'?'#7cc7ff':'#93a9c3'}
+function renderTrail(){
+ const box=$('trail');if(!box)return;const clips=current.trail||[],roleName=Object.fromEntries((current.agent_roles||[]).map(r=>[r.id,r.name]));
+ const cls=s=>s==='SUCCEEDED'?'ok':s==='FAILED'?'bad':s==='RUNNING'?'warn':'dim',word=s=>({SUCCEEDED:'اجتاز',FAILED:'فشل',RUNNING:'يعمل',UNKNOWN:'غير معروف'})[s]||s;
+ const ms=m=>m==null?'':(m<1000?m+' مللي':(m/1000).toFixed(1)+' ث');
+ box.innerHTML=clips.length?clips.map(c=>'<div class="card"><div class="head"><b>'+esc(names[c.app])+' · '+esc(c.title||'مقطع')+'</b> <span class="chip '+cls(c.state)+'">'+word(c.state)+'</span></div><small class="muted">'+esc(date(c.at))+'</small><div class="actions" style="flex-wrap:wrap;gap:6px;margin-top:8px">'+c.steps.map(s=>'<span class="chip '+cls(s.state)+'" title="'+esc((s.code||'')+(s.at?' · '+date(s.at):''))+'">'+esc(roleName[s.role]||s.role)+(s.ms!=null?' · '+ms(s.ms):'')+(s.code?' · '+esc(s.code):'')+'</span>').join('')+'</div></div>').join(''):'<p class="muted">لا توجد مقاطع بعد.</p>';
+ const live=clips.some(c=>c.state==='RUNNING');$('trail-note').textContent=live?'يعمل الآن · يتحدّث كل ٥ ثوانٍ':'آخر المقاطع في البوتين، وكيل وكيل: الحالة والوقت وسبب الفشل';
+ clearTimeout(window.__trail);if(live)window.__trail=setTimeout(refresh,5000);
+}
 function renderAgents(){
  const roles=current.agent_roles||[];
  const classify=s=>['PASS','SUCCEEDED'].includes(s)?'passed':['FAIL','FAILED'].includes(s)?'failed':['RUNNING','STARTED'].includes(s)?'running':'unknown';
