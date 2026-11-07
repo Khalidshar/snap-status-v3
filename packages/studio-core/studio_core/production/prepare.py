@@ -430,9 +430,17 @@ class Factory:
                 reverse=True,
             )
         elif self.key not in {"tech", "style"}:
+            # Old bot's desk (owner decision 7 Nov): Saudi first, then Google Trends SA.
+            # Trends only rank the publishers' stories; they never supply a story.
+            try:
+                trends = safe_xml(self.get("https://trends.google.com/trending/rss?geo=SA"))
+                hot = [e.text or "" for e in trends.findall("./channel/item/title")]
+            except (OSError, ValueError, ET.ParseError, RuntimeError):
+                hot = []
             candidates.sort(
                 key=lambda i: (
-                    not any(w in i["title"] + i["detail"] for w in ("السعود", "الرياض", "المملكة"))
+                    not any(w in i["title"] + i["detail"] for w in ("السعود", "الرياض", "المملكة")),
+                    not any(w and w in i["title"] for w in hot),
                 )
             )
         selected: list[dict[str, Any]] = []
