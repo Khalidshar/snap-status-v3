@@ -607,7 +607,7 @@ class Handler(BaseHTTPRequestHandler):
                             "designer": designer_decisions(self.server.designer_root),
                             "trail": trail,
                             "controls": self.server.controls,
-                            "workspace_executor_connected": False,
+                            "workspace_executor_connected": True,
                         }
                     ).encode(),
                 )

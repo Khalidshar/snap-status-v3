@@ -472,6 +472,69 @@ def complete(outbox: Any, item: dict[str, Any], root: Path) -> None:
     repo.transition(control["job"], control["token"], "COMPLETED")
 
 
+def deliver_built(
+    outbox: Any,
+    transport: Any,
+    item: dict[str, Any],
+    key: str,
+    content: dict[str, Any],
+    result: dict[str, Any],
+    video: bytes,
+    runtime: Any,
+    *,
+    root: Path,
+    source: Any,
+    locks: Any,
+    lease: Any,
+) -> None:
+    """Upload and send one built clip once; the chat command and panel approval share it."""
+    description = None
+    if content.get("legacy_production"):
+        from studio_core.production.caption import platform_caption
+
+        description = platform_caption(content)
+    require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
+    window(outbox)
+    locks.assert_holder(lease)
+    with outbox.repo.transaction() as db:
+        db.execute(
+            "UPDATE command_videos SET state='UPLOAD_INTENT',video_sha=? WHERE tag=?",
+            (result["video_sha256"], item["tag"]),
+        )
+    if result.get("quran_foundation"):
+        from studio_core.religious.quran_pipeline import check_result
+
+        check_result(result)
+    media = response_id(transport.upload_video(video), "upload", outbox.identity.recipient)
+    require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
+    window(outbox)
+    locks.assert_holder(lease)
+    valid(content, source is not None)
+    with outbox.repo.transaction() as db:
+        db.execute("UPDATE command_videos SET state='SEND_INTENT' WHERE tag=?", (item["tag"],))
+    if result.get("quran_foundation"):
+        check_result(result)
+    sent = (
+        transport.send_video(media, caption=description)
+        if description is not None
+        else transport.send_video(media)
+    )
+    message = response_id(sent, "send", outbox.identity.recipient)
+    with outbox.repo.transaction() as db:
+        db.execute(
+            "UPDATE command_videos SET state='API_ACCEPTED',acked_at=?,message_tag=? WHERE tag=?",
+            (outbox.repo.clock(), outbox.identity.tag("message", message), item["tag"]),
+        )
+    complete(outbox, item, root)
+    with runtime.locked():
+        runtime.append(
+            "ACK",
+            video_sha=result["video_sha256"],
+            content_kind=key,
+            command_tag=item["tag"],
+        )
+
+
 def send(
     outbox: Any,
     transport: Any,
@@ -511,53 +574,20 @@ def send(
         try:
             content, result, video = build(outbox, item, key, source=source, root=root, start=start)
             phase = "delivery"
-            description = None
-            if content.get("legacy_production"):
-                from studio_core.production.caption import platform_caption
-
-                description = platform_caption(content)
-            require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
-            window(outbox)
-            locks.assert_holder(lease)
-            with outbox.repo.transaction() as db:
-                db.execute(
-                    "UPDATE command_videos SET state='UPLOAD_INTENT',video_sha=? WHERE tag=?",
-                    (result["video_sha256"], item["tag"]),
-                )
-            if result.get("quran_foundation"):
-                from studio_core.religious.quran_pipeline import check_result
-
-                check_result(result)
-            media = response_id(transport.upload_video(video), "upload", outbox.identity.recipient)
-            require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
-            window(outbox)
-            locks.assert_holder(lease)
-            valid(content, source is not None)
-            with outbox.repo.transaction() as db:
-                db.execute(
-                    "UPDATE command_videos SET state='SEND_INTENT' WHERE tag=?", (item["tag"],)
-                )
-            if result.get("quran_foundation"):
-                check_result(result)
-            sent = (
-                transport.send_video(media, caption=description)
-                if description is not None
-                else transport.send_video(media)
+            deliver_built(
+                outbox,
+                transport,
+                item,
+                key,
+                content,
+                result,
+                video,
+                runtime,
+                root=root,
+                source=source,
+                locks=locks,
+                lease=lease,
             )
-            message = response_id(sent, "send", outbox.identity.recipient)
-            with outbox.repo.transaction() as db:
-                db.execute(
-                    "UPDATE command_videos SET state='API_ACCEPTED',acked_at=?,message_tag=? WHERE tag=?",
-                    (outbox.repo.clock(), outbox.identity.tag("message", message), item["tag"]),
-                )
-            complete(outbox, item, root)
-            with runtime.locked():
-                runtime.append(
-                    "ACK",
-                    video_sha=result["video_sha256"],
-                    content_kind=key,
-                    command_tag=item["tag"],
-                )
         except Exception as error:
             print(f"STATUS_CLIP_FAILURE stage={phase} code={failure_code(error)}", file=sys.stderr)
             with outbox.repo.transaction() as db:

@@ -190,7 +190,10 @@ def main() -> int:
         print("STATUS_OWNER_COMMANDS_READY", flush=True)
         runtime = Runtime()
         while True:
-            if not process_one(outbox, transport, news, runtime):
+            from .panel_actions import process as process_actions
+
+            acted = process_actions(outbox, transport, runtime, STATE / "panel-commands.sqlite")
+            if not process_one(outbox, transport, news, runtime) and not acted:
                 time.sleep(1)
     except KeyboardInterrupt:
         return 0
