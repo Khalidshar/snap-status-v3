@@ -21,7 +21,10 @@ OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v
 OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
 PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
 PUBLICATION_DATE = "2026-09-30"
-OUTPUT = Path(__file__).resolve().parents[1] / "apps/snap-bot/snap_bot/data/faith/quran_subset.json"
+OUTPUT = (
+    Path(__file__).resolve().parents[1]
+    / "packages/studio-core/studio_core/presentation/data/faith/quran_subset.json"
+)
 
 # Reference structure copied from status-bot@b445281; contains no sacred text.
 MANIFEST = {
@@ -172,6 +175,23 @@ MANIFEST = {
         [114, 4],
         [114, 5],
         [114, 6],
+        # Owner decision 8 Nov 2026: fasting, Kahf and good-night verses used by production.
+        [2, 183],
+        [2, 185],
+        [2, 187],
+        [9, 40],
+        [18, 46],
+        [18, 109],
+        [18, 110],
+        [33, 35],
+        [48, 4],
+        [67, 1],
+        [67, 2],
+        [67, 13],
+        [67, 14],
+        [67, 15],
+        [67, 19],
+        [67, 22],
     ],
 }
 
