@@ -43,7 +43,10 @@ def ctl(action: str, unit: str) -> bool:
 
 
 def rows(path: Path, sql: str, params: tuple[Any, ...] = ()) -> list[Any] | None:
-    if not path.is_file() or any(p.is_symlink() for p in (path, *path.parents)):
+    try:
+        if not path.is_file() or any(p.is_symlink() for p in (path, *path.parents)):
+            return None
+    except OSError:
         return None
     try:
         with sqlite3.connect("file:" + quote(str(path)) + "?mode=ro", uri=True, timeout=1) as db:
@@ -152,6 +155,13 @@ def _clip_title(folder: Path) -> str:
 
 
 def clip_trail(root: Path = STATE, limit: int = 8) -> list[dict[str, Any]]:
+    try:
+        return _clip_trail(root, limit)
+    except (OSError, sqlite3.Error, ValueError):
+        return []  # unreadable state never breaks the panel
+
+
+def _clip_trail(root: Path, limit: int) -> list[dict[str, Any]]:
     """Each recent clip of both bots, agent by agent, read-only from its own job database.
 
     Owner decision 7 Nov 2026: see the agents work live. Only role names, states, times,
