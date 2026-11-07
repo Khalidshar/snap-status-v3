@@ -401,3 +401,45 @@ def timed(scenes: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], float]:
         item["at"] = at
         at += item["seconds"]
     return scenes, at
+
+
+REPEAT_GAP = 0.6  # seconds of breath between two whole recitations
+
+
+def recitation_repeats(scenes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Owner decision 8 Nov 2026: no silent tafsir pages in Quran clips.
+
+    The same human recitation of the shown verse repeats under its Muyassar tafsir, and the
+    recitations of the explained verses take turns under the Sa'di pages. Every play is a
+    whole ayah: a play that cannot end inside its page is not added. Nothing is generated.
+    """
+    verses = {tuple(s["verse"]): s for s in scenes if s.get("verse") and s.get("audio")}
+    out: list[dict[str, Any]] = []
+
+    def fill(start: float, end: float, plays: list[dict[str, Any]]) -> None:
+        cursor, k = start, 0
+        while plays:
+            play = plays[k % len(plays)]
+            if cursor + play["audio_duration"] > end:
+                return
+            out.append(
+                {
+                    "file": play["audio"],
+                    "at": round(cursor, 3),
+                    "seconds": play["audio_duration"],
+                    "kind": "human",
+                    "repeat": True,
+                }
+            )
+            cursor += play["audio_duration"] + REPEAT_GAP
+            k += 1
+
+    for s in scenes:
+        end = s["at"] + s["seconds"] - 0.2
+        if s.get("verse") and s.get("audio"):
+            fill(s["at"] + 0.15 + s["audio_duration"] + REPEAT_GAP, end, [s])
+        elif s.get("role") == "saadi":
+            surah, ayahs = s["saadi"]
+            plays = [verses[(surah, a)] for a in ayahs if (surah, a) in verses]
+            fill(s["at"] + 0.3, end, plays)
+    return out

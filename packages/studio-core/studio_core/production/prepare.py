@@ -36,6 +36,7 @@ from .model import (
     TITLES,
     budget,
     canonical,
+    recitation_repeats,
     saadi_text,
     scene,
     sha,
@@ -1254,6 +1255,8 @@ class Factory:
                         "kind": item.get("voice_kind", "human"),
                     }
                 )
+        if key in QURAN:
+            self.audio += recitation_repeats(scenes)
         if key == "brief":
             self.audio = self.brief_audio
         music = None
