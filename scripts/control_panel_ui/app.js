@@ -20,7 +20,7 @@ function render(){if(!current)return;const all=Object.keys(names).flatMap(app=>w
 $('connection').textContent='متصل باللوحة';$('p-fresh-t').textContent='آخر قراءة: '+date(current.at);if($('p-live'))$('p-live').className='pill '+(Object.values(current.apps).every(a=>a.active===true)?'live ok':'dim');$('notice').textContent=current.workspace_executor_connected?'طلبات اللوحة محفوظة. حالة التنفيذ من سجل العامل.':'نسخة قيد التنفيذ: طلبات اللوحة تُحفظ، ومنفّذات الإنتاج والإرسال والتبديل والتحليل لم تُربط بعد. البوت الجديد يبقى موقوفًا.';
 renderOverview();
 $('latest').innerHTML=all.slice(0,3).map(({app,p})=>`<div class="card"><h3>${names[app]}</h3><p>${state(p.state)}</p><small>${date(p.at)}</small></div>`).join('')||empty('لا توجد مقاطع مسجّلة بعد');
-renderCommands();renderSchedules();renderAgents();renderDesigner();
+renderCommands();renderSchedules();renderAgents();renderDesigner();renderTrail();
 $('reviews').innerHTML=all.filter(x=>x.p.state==='REVIEW').map(({app,p})=>previewCard(app,p)).join('')||empty('لا توجد معاينات تنتظر المراجعة');
 $('archive-list').innerHTML=all.map(({app,p})=>previewCard(app,p)+`<label>التقييم <select data-rate="${p.id}" data-app="${app}"><option value="">اختر</option>${[1,2,3,4,5].map(n=>`<option value="${n}">${n.toLocaleString('ar-SA')}</option>`).join('')}</select></label>`).join('')||empty('الأرشيف ينتظر أول مقطع');
 $('source-list').innerHTML=(current.sources||[]).map(s=>`<div class="card"><div class="head"><b>${esc(s.name)}</b><span class="chip">${state(s.state)}</span></div><small>الاتصال: ${s.health==='ok'?'يشتغل':s.health==='403'?'يرفض 403':s.health==='down'?'متعطل':'لم يُفحص'}${s.checked_at?' · '+date(s.checked_at):''}</small></div>`).join('');
@@ -69,6 +69,14 @@ const tx=esc,chip=(text,tone)=>'<span class="chip '+tone+'"><span>'+esc(text)+'<
 const CX=320,CY=320,R1=238,R2=112;
 function pos(i,n,r){const a=-Math.PI/2+i*2*Math.PI/n;return[CX+r*Math.cos(a),CY+r*Math.sin(a)]}
 function col(st){return st==='passed'?'#6fe3c6':st==='failed'?'#ff8796':st==='running'?'#7cc7ff':'#93a9c3'}
+function renderTrail(){
+ const box=$('trail');if(!box)return;const clips=current.trail||[],roleName=Object.fromEntries((current.agent_roles||[]).map(r=>[r.id,r.name]));
+ const cls=s=>s==='SUCCEEDED'?'ok':s==='FAILED'?'bad':s==='RUNNING'?'warn':'dim',word=s=>({SUCCEEDED:'اجتاز',FAILED:'فشل',RUNNING:'يعمل',UNKNOWN:'غير معروف'})[s]||s;
+ const ms=m=>m==null?'':(m<1000?m+' مللي':(m/1000).toFixed(1)+' ث');
+ box.innerHTML=clips.length?clips.map(c=>'<div class="card"><div class="head"><b>'+esc(names[c.app])+' · '+esc(c.title||'مقطع')+'</b> <span class="chip '+cls(c.state)+'">'+word(c.state)+'</span></div><small class="muted">'+esc(date(c.at))+'</small><div class="actions" style="flex-wrap:wrap;gap:6px;margin-top:8px">'+c.steps.map(s=>'<span class="chip '+cls(s.state)+'" title="'+esc((s.code||'')+(s.at?' · '+date(s.at):''))+'">'+esc(roleName[s.role]||s.role)+(s.ms!=null?' · '+ms(s.ms):'')+(s.code?' · '+esc(s.code):'')+'</span>').join('')+'</div></div>').join(''):'<p class="muted">لا توجد مقاطع بعد.</p>';
+ const live=clips.some(c=>c.state==='RUNNING');$('trail-note').textContent=live?'يعمل الآن · يتحدّث كل ٥ ثوانٍ':'آخر المقاطع في البوتين، وكيل وكيل: الحالة والوقت وسبب الفشل';
+ clearTimeout(window.__trail);if(live)window.__trail=setTimeout(refresh,5000);
+}
 function renderAgents(){
  const roles=current.agent_roles||[];
  const classify=s=>['PASS','SUCCEEDED'].includes(s)?'passed':['FAIL','FAILED'].includes(s)?'failed':['RUNNING','STARTED'].includes(s)?'running':'unknown';
@@ -142,7 +150,7 @@ function ring(done,total,tone){const r=34,C=2*Math.PI*r,f=total?done/total:0;
 return '<svg class="ring" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="'+r+'" fill="none" stroke="#21354e" stroke-width="7"/>'+'<circle cx="42" cy="42" r="'+r+'" fill="none" stroke="var(--'+tone+')" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+(C*f).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 42 42)"/>'+'<text x="42" y="40" text-anchor="middle" font-family="Readex Pro,sans-serif" font-size="20" font-weight="600" fill="#e8f2fd">'+done+'</text><text x="42" y="56" text-anchor="middle" font-size="10" fill="#93a9c3" font-family="Readex Pro,sans-serif">من '+total+' مسجّل</text></svg>';}
 function renderOverview(){
  const freshness=key=>current.servers?.[key]&&Date.now()/1000-current.servers[key].at<90;
- const health=[['خادم أمازون',freshness('amazon')?'قراءة حديثة':'غير متاح',current.servers?.amazon?'آخر قراءة: '+date(current.servers.amazon.at):'بانتظار اتصال الخادم',freshness('amazon')?'ok':'dim'],['جهاز خالد',freshness('wsl')?'قراءة حديثة':'غير متاح',current.servers?.wsl?'آخر قراءة: '+date(current.servers.wsl.at):'بانتظار عميل الحالة',freshness('wsl')?'ok':'dim'],...Object.keys(names).map(app=>{const a=current.apps[app];return ['بوت '+names[app],a.halted?'إيقاف كامل':a.active===true?'يعمل':a.active===false?'موقوف':'غير معروف',a.jobs?'حالات المهام من قاعدة البوت':'لا توجد قراءة لقاعدة المهام',a.active===true?'ok':'dim'];})];
+ const health=[['خادم أمازون',freshness('amazon')?'قراءة حديثة':(current.running_on==='wsl'?'موقف حاليًا':'غير متاح'),current.servers?.amazon?'آخر قراءة: '+date(current.servers.amazon.at):(current.running_on==='wsl'?'التشغيل على جهاز خالد':'بانتظار اتصال الخادم'),freshness('amazon')?'ok':'dim'],['جهاز خالد',freshness('wsl')?'قراءة حديثة':'غير متاح',current.servers?.wsl?'آخر قراءة: '+date(current.servers.wsl.at):'بانتظار عميل الحالة',freshness('wsl')?'ok':'dim'],...Object.keys(names).map(app=>{const a=current.apps[app];return ['بوت '+names[app],a.halted?'إيقاف كامل':a.active===true?'يعمل':a.active===false?'موقوف':'غير معروف',a.jobs?'حالات المهام من قاعدة البوت':'لا توجد قراءة لقاعدة المهام',a.active===true?'ok':'dim'];})];
  $('greet').textContent='أهلًا يا خالد';$('verdict').textContent='الخادمان والبوتان، أمامك.';$('verdict-sub').textContent='كل مقطع ينتظر موافقتك. حالة التشغيل تظهر من السجلات، والبيانات الغائبة غير متاحة.';
  $('health').innerHTML=health.map(h=>'<div class="hc '+h[3]+'"><small>'+esc(h[0])+'</small><b>'+esc(h[1])+'</b><span>'+esc(h[2])+'</span></div>').join('');
  $('bots').innerHTML=Object.keys(names).map(app=>{const a=current.apps[app],w=workspace(app),registered=a.agents.length,total=(current.agent_roles||[]).length,passed=a.agents.filter(x=>['PASS','SUCCEEDED'].includes(x.state)).length,last=w.previews[0];

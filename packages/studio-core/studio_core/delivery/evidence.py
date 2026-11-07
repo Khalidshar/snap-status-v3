@@ -70,6 +70,56 @@ def remember_review(
     )
 
 
+def _boxes(data: bytes, start: int, end: int) -> list[tuple[bytes, int, int]]:
+    found, i = [], start
+    while i + 8 <= end:
+        size = int.from_bytes(data[i : i + 4], "big")
+        header = 8
+        if size == 1:
+            size, header = int.from_bytes(data[i + 8 : i + 16], "big"), 16
+        elif size == 0:
+            size = end - i
+        if size < header or i + size > end:
+            break
+        found.append((data[i + 4 : i + 8], i + header, i + size))
+        i += size
+    return found
+
+
+def video_shape(video: bytes) -> dict[str, str]:
+    """Width, height and whole seconds read from the MP4 itself; empty when unreadable.
+
+    Telegram guesses an unannounced shape and sometimes shows a 1080x1920 clip as a small
+    square (owner report, 7 Nov 2026), so every send states it.
+    """
+    try:
+        moov = next(b for b in _boxes(video, 0, len(video)) if b[0] == b"moov")
+        shape: dict[str, str] = {}
+        for kind, start, end in _boxes(video, moov[1], moov[2]):
+            if kind == b"mvhd":
+                v1 = video[start] == 1
+                scale = int.from_bytes(
+                    video[start + (20 if v1 else 12) : start + (24 if v1 else 16)], "big"
+                )
+                at = start + (24 if v1 else 16)
+                length = int.from_bytes(video[at : at + (8 if v1 else 4)], "big")
+                if scale:
+                    shape["duration"] = str(max(1, round(length / scale)))
+            if kind == b"trak" and "width" not in shape:
+                for inner, _s, e in _boxes(video, start, end):
+                    width = int.from_bytes(video[e - 8 : e - 4], "big") >> 16
+                    height = int.from_bytes(video[e - 4 : e], "big") >> 16
+                    if inner == b"tkhd" and width and height:
+                        shape["width"], shape["height"] = str(width), str(height)
+        return shape if {"width", "height"} <= set(shape) else {}
+    except (StopIteration, IndexError, ValueError):
+        return {}
+
+
+# Optional fields a Telegram video send may carry besides the four fixed ones.
+SHAPE_FIELDS = frozenset({"width", "height", "duration"})
+
+
 def multipart(chat: int | str, video: bytes, caption: str, filename: str) -> tuple[bytes, str]:
     boundary = "studio" + uuid.uuid4().hex
     chunks = []
@@ -77,6 +127,7 @@ def multipart(chat: int | str, video: bytes, caption: str, filename: str) -> tup
         "chat_id": str(chat),
         "caption": caption,
         "supports_streaming": "true",
+        **video_shape(video),
     }.items():
         chunks.append(
             (

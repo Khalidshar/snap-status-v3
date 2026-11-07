@@ -45,6 +45,10 @@
 <section data-pane="schedule" hidden><div class="panel"><div class="head"><h2>مواعيد البوتين</h2><small>توقيت الرياض · تعديل مستقل لكل أمر</small></div><p class="notice">حفظ الإعدادات يرسل طلبًا للعامل؛ لا يفعّل أي مؤقت تلقائيًا.</p><select id="schedule-bot" aria-label="بوت الجدول"><option value="snap">سناب</option><option value="status">واتساب</option></select><div class="tablewrap"><table><thead><tr><th>الأمر</th><th>الموعد</th><th>الحالة المطلوبة</th><th>حفظ</th></tr></thead><tbody id="schedule-rows"></tbody></table></div></div></section>
 <section data-pane="servers" hidden><div class="grid" id="server-cards"></div><div class="panel section-title"><h2>سجل الإجراءات</h2><div id="audit"></div></div></section>
 <section data-pane="agents" aria-label="الوكلاء" hidden>
+  <div class="panel">
+    <div class="head"><h2>شغل الوكلاء الآن</h2><small id="trail-note">آخر المقاطع في البوتين، وكيل وكيل: الحالة والوقت وسبب الفشل</small></div>
+    <div class="cards" id="trail"></div>
+  </div>
   <div class="agrid">
     <div class="panel orbitbox">
       <div class="orbit-bar">

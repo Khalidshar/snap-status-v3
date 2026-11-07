@@ -17,6 +17,7 @@ from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import Any
 
+from studio_core.delivery.evidence import SHAPE_FIELDS
 from studio_core.network import UnixHTTPConnection
 
 from .telegram_egress import EXPECTED_BOT, api, multipart
@@ -31,6 +32,9 @@ MESSAGES = {
     "failed": "تعذر إكمال المهمة. حُفظ الخطأ للفحص، ولن يُعاد إرسال نتيجة غير مؤكدة تلقائيًا.",
     "status": "المستمع يعمل، والأمر /weather متاح. النسخة الحالية تجريبية للطقس.",
 }
+
+
+VIDEO_FIELDS = frozenset({"chat_id", "caption", "supports_streaming", "video"})
 
 
 def normalize_updates(updates: Any, owner: str, now: float) -> dict[str, Any]:
@@ -76,7 +80,11 @@ def validated_video(body: bytes, kind: str, owner: str) -> tuple[bytes, str]:
     )
     parts = list(mail.iter_parts())
     names = [p.get_param("name", header="content-disposition") for p in parts]
-    if sorted(names) != sorted(["chat_id", "caption", "supports_streaming", "video"]):
+    if not (
+        len(names) == len(set(names))
+        and set(names) >= VIDEO_FIELDS
+        and set(names) - VIDEO_FIELDS <= SHAPE_FIELDS
+    ):
         raise ValueError("Unexpected fields")
     fields = dict(zip(names, parts, strict=True))
     if fields["chat_id"].get_payload(decode=True).decode() != owner:

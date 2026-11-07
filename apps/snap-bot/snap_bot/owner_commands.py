@@ -292,6 +292,7 @@ class Studio:
             return None
         return {
             "sha": event["video_sha"],
+            "preview": preview,
             "kind": content.get("kind", "did_you_know"),
             "title": content.get("title", "هل تعلم؟"),
             "body": content.get("body", ""),
@@ -373,7 +374,7 @@ class Studio:
         return self.make("kahf")
 
     def isha(self) -> str:
-        return self.make("verse")
+        return self.make("isha")  # «ليلة طيبة» has its own clip, not «آية اليوم»
 
     def riddle(self) -> str:
         return self.make("riddle")
@@ -660,6 +661,9 @@ def main() -> None:
         )
         while True:
             process_panel(token, owner, studio)
+            from .panel_actions import process as process_actions
+
+            process_actions(studio, STATE / "panel-commands.sqlite")
             next_offset = poll_once(token, owner, studio, offset)
             if next_offset != offset:
                 save_offset(next_offset)
