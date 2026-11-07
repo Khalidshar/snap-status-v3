@@ -677,8 +677,8 @@ class Factory:
                             background=background,
                         )
                     )
-                if sum(x["seconds"] for x in recordings) > 50:
-                    raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_58_SECONDS")
+                if sum(x["seconds"] for x in recordings) > self.passage_room():
+                    raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_BUDGET")
                 self.remember_reader(reader["name"])
                 return recordings
             except (
@@ -727,6 +727,12 @@ class Factory:
         if sum(s["seconds"] for s in found) > room:
             return []
         return found
+
+    def passage_room(self) -> float:
+        """Seconds a whole passage may take: the platform's longest clip minus the opening
+        title (3.2 s), the closing card (5 s) and a margin. WhatsApp ~49.5, Snap verses ~111.5.
+        """
+        return budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
 
     def remember_reader(self, name: str) -> None:
         with sqlite3.connect(self.db, timeout=30) as db:
@@ -836,8 +842,8 @@ class Factory:
                         asset.update({"qf_job": qf_job, "expires_at": expires})
                         store.track(self.root / item["audio"], qf_job, expires, asset["sha256"])
                         scenes.append(item)
-                    if sum(s["seconds"] for s in scenes) > 50:
-                        raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_58_SECONDS")
+                    if sum(s["seconds"] for s in scenes) > self.passage_room():
+                        raise ValueError("LEGACY_WHOLE_PASSAGE_EXCEEDS_BUDGET")
                     self.remember_reader(reader["name"])
                     return scenes
                 except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError):

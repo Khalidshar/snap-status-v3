@@ -55,3 +55,10 @@ def test_snap_verse_clips_get_120_seconds_and_other_kinds_keep_90() -> None:
     assert budget("snap-bot-v2", "verse")[1] == 120.0
     assert budget("snap-bot-v2", "facts")[1] == 90.0
     assert budget("status-bot-v2", "verse")[1] == 58.0
+
+
+def test_whole_passage_room_follows_the_platform_budget(tmp_path: Path) -> None:
+    snap = factory(tmp_path / "a", "snap-bot-v2", TEXT)
+    status = factory(tmp_path / "b", "status-bot-v2", TEXT)
+    assert round(snap.passage_room(), 1) == 111.5
+    assert round(status.passage_room(), 1) == 49.5
