@@ -207,8 +207,6 @@ def fingerprint(text: str) -> str:
     return hashlib.sha256(normalize(_plain(text)).encode()).hexdigest()
 
 
-# Google News titles end « - <publisher>». Sports and food sites also say «موضة».
-GOOGLE_EXCLUDED = ("Kooora", "كووورة", "يلا كورة", "سبورت", "الرياضية", "kora")
 STYLE_EXCLUDED = (
     "رونالدو",
     "ميسي",
@@ -260,38 +258,6 @@ def top_brand(key: str, title: str) -> bool:
     return key == "style" and any(brand.casefold() in title.casefold() for brand in TOP_BRANDS)
 
 
-def google_headline(title: str) -> tuple[str, str]:
-    """«عطر جديد من ديور - مجلة هي» → («عطر جديد من ديور», «مجلة هي»)."""
-    headline, separator, publisher = title.rpartition(" - ")
-    headline, publisher = headline.strip(), publisher.strip()
-    if (
-        not separator
-        or not headline
-        or not 1 <= len(publisher) <= 40
-        or any(word.casefold() in publisher.casefold() for word in GOOGLE_EXCLUDED)
-    ):
-        raise ValueError("Unusable Google News headline")
-    # The publisher may be a Latin domain (www.hiamag.com); the headline must be Arabic.
-    for prefix in ("https://", "http://", "www."):
-        publisher = publisher.removeprefix(prefix)
-    publisher = publisher.rstrip("/")
-    if not publisher:
-        raise ValueError("Unusable Google News headline")
-    return headline, publisher
-
-
-def _publisher_ok(value: object, source: Any) -> bool:
-    """A catalog source names itself; Google News names the original publisher."""
-    if not source.id.startswith("gnews-"):
-        return bool(value == source.name)
-    return (
-        isinstance(value, str)
-        and 1 <= len(value) <= 40
-        and value == value.strip()
-        and not any(word.casefold() in value.casefold() for word in GOOGLE_EXCLUDED)
-    )
-
-
 def matches(key: str, text: str) -> bool:
     if key not in TITLES:
         raise ValueError("Unsupported live news command")
@@ -321,37 +287,30 @@ def matches(key: str, text: str) -> bool:
     return key in {"news", "tech"} or any(word in text for word in WORDS[key])
 
 
-def google_matches(key: str, text: str) -> bool:
-    """Search feeds must still prove their category; a query alone is not evidence."""
-    if key == "tech":
-        words = (
-            "تقني",
-            "تكنولوج",
-            "ذكاء",
-            "اصطناع",
-            "حاسوب",
-            "حواسيب",
-            "هاتف",
-            "هواتف",
-            "برمج",
-            "تطبيق",
-            "معالج",
-            "شريحة",
-            "رقمي",
-            "أبل",
-            "آيفون",
-            "جوجل",
-            "مايكروسوفت",
-            "سامسونج",
-            "أندرويد",
-            "إنترنت",
-            "سيبراني",
-            "روبوت",
+def news_sources(command: str, *, production: bool = False) -> tuple[Source, ...]:
+    """Select direct publisher sources for one command before any network request."""
+    key = command_key(command)
+    return tuple(
+        source
+        for source in for_command(key)
+        if source.status == "approved"
+        and urlsplit(source.url).hostname != "news.google.com"
+        and (
+            (
+                source.kind == "rss"
+                and (
+                    source.language == "ar"
+                    or (production and key in {"tech", "style"} and source.language == "en")
+                )
+            )
+            or (
+                production
+                and key == "style"
+                and source.kind == "website"
+                and source.language == "ar"
+            )
         )
-        return any(word in text for word in words) and not any(
-            word in text for word in SPORTS_EXCLUDED
-        )
-    return matches(key, text)
+    )
 
 
 def published_label(timestamp: float) -> str:
@@ -411,11 +370,8 @@ def collect(
         raise ValueError("Unsupported news request")
     candidates: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
-    for source in for_command(key):
+    for source in news_sources(key):
         if source_ids is not None and source.id not in source_ids:
-            continue
-        # Candidates may be fetched for PRIVATE REVIEW, never treated as publication approval.
-        if source.kind != "rss" or source.status != "approved" or source.language != "ar":
             continue
         try:
             response = client.get(source.url)
@@ -436,16 +392,13 @@ def collect(
             )
             for item in items:
                 try:
-                    title, publisher = item["title"], source.name
-                    if source.id.startswith("gnews-"):
-                        title, publisher = google_headline(title)
+                    title = item["title"]
                     at = datetime.fromisoformat(item["date"]).timestamp()
                     mark = fingerprint(title)
                     if (
                         not 1 <= len(title) <= 180
                         or not arabic(title)
                         or not matches(key, title)
-                        or (source.id.startswith("gnews-") and not google_matches(key, title))
                         or not 0 <= now - at < MAX_AGE[key]
                         or mark in seen
                         or (predicate is not None and not predicate(title))
@@ -455,7 +408,7 @@ def collect(
                         {
                             "headline": title,
                             "source_id": source.id,
-                            "source": publisher,
+                            "source": source.name,
                             "source_url": _link(item["link"], source),
                             "published_at": at,
                             "published_label": published_label(at),
@@ -515,13 +468,8 @@ def validate(content: dict[str, Any], now: float) -> None:
     ):
         raise ValueError("Invalid news review")
     key = content["command"]
-    source = next((s for s in for_command(key) if s.id == content.get("source_id")), None)
-    if (
-        source is None
-        or source.kind != "rss"
-        or source.status != "approved"
-        or source.language != "ar"
-    ):
+    source = next((s for s in news_sources(key) if s.id == content.get("source_id")), None)
+    if source is None:
         raise ValueError("Unapproved review source")
     title = _plain(content["headline"])
     at, fetched, expiry = (content[k] for k in ("published_at", "fetched_at", "expires_at"))
@@ -533,10 +481,9 @@ def validate(content: dict[str, Any], now: float) -> None:
         or not 1 <= len(title) <= 180
         or not arabic(title)
         or not matches(key, title)
-        or (source.id.startswith("gnews-") and not google_matches(key, title))
         or content.get("fingerprint") != fingerprint(title)
         or content.get("title") != TITLES[key]
-        or not _publisher_ok(content.get("source"), source)
+        or content.get("source") != source.name
         or content.get("published_label") != published_label(at)
         or _link(content["source_url"], source) != content["source_url"]
     ):

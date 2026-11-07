@@ -39,7 +39,7 @@ class Feed:
     def get(self, url):
         source = next(s for s in for_command(self.key) if s.url == url)
         host = source.url.split("/")[2]
-        title = HEADLINES[self.key] + (" - مجلة هي" if source.id.startswith("gnews-") else "")
+        title = HEADLINES[self.key]
         date = datetime.fromtimestamp(time.time() - 30, UTC).isoformat()
         raw = f"<rss><channel><item><title>{title}</title><link>https://{host}/one</link><pubDate>{date}</pubDate></item></channel></rss>".encode()
         return NetworkResponse(200, "text/xml", raw, hashlib.sha256(raw).hexdigest())
