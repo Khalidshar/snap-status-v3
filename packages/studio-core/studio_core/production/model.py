@@ -162,7 +162,12 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             s, a = scene["verse"]
             if scene["body"] != exact_ayah(s, a):
                 raise ValueError("LEGACY_SACRED_TEXT_CHANGED")
-            if scene["seconds"] < max(
+            if scene.get("phrases"):
+                # «تلاوة»: the tafsir goes to the caption, the recitation is never cut.
+                check_phrases(scene)
+                if scene["seconds"] < scene.get("audio_duration", 0) + 0.15:
+                    raise ValueError("LEGACY_VERSE_OR_TAFSIR_TRUNCATED")
+            elif scene["seconds"] < max(
                 len(scene.get("tafsir", "")) / 17 + 1, scene.get("audio_duration", 0) + 0.15
             ):
                 raise ValueError("LEGACY_VERSE_OR_TAFSIR_TRUNCATED")
@@ -401,3 +406,52 @@ def timed(scenes: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], float]:
         item["at"] = at
         at += item["seconds"]
     return scenes, at
+
+
+# Owner decision 8 Nov 2026 («تلاوة»): a short phrase of the official text follows the reciter.
+PAUSE_MARKS = "ۖۗۘۙۚۛۜ"
+PHRASE_WORDS = 3
+REPLAY_GAP = 0.6
+
+
+def ayah_words(text: str) -> list[str]:
+    """The official ayah split on its own spaces; the last token (۝ and number) is not a word."""
+    tokens = text.split(" ")
+    return tokens[:-1] if tokens and tokens[-1].startswith("۝") else tokens
+
+
+def phrases_for(text: str, segments: list[list[int]], seconds: float) -> list[dict[str, Any]]:
+    """Groups of up to three words, closed early at a pause mark, timed by the reciter's words."""
+    words = ayah_words(text)
+    if len(segments) != len(words):
+        raise ValueError("LEGACY_WORD_TIMING_MISMATCH")
+    groups: list[list[int]] = []
+    group: list[int] = []
+    for i, word in enumerate(words):
+        group.append(i)
+        if any(c in word for c in PAUSE_MARKS) or len(group) == PHRASE_WORDS:
+            groups.append(group)
+            group = []
+    if group:
+        groups.append(group)
+    out = []
+    for n, g in enumerate(groups):
+        start = 0.0 if n == 0 else segments[g[0]][2] / 1000
+        end = segments[groups[n + 1][0]][2] / 1000 if n + 1 < len(groups) else seconds
+        out.append({"words": [g[0], g[-1]], "start": round(start, 3), "end": round(end, 3)})
+    return out
+
+
+def check_phrases(scene: dict[str, Any]) -> None:
+    """Phrases only point into the verified ayah: in order, gap-free, inside the recitation."""
+    words = ayah_words(scene["body"])
+    expected, last = 0, 0.0
+    for item in scene["phrases"]:
+        first, final = item["words"]
+        if first != expected or final < first or final >= len(words) or final - first >= 6:
+            raise ValueError("LEGACY_PHRASE_OUTSIDE_AYAH")
+        if not last <= item["start"] < item["end"] <= scene["audio_duration"] + 0.001:
+            raise ValueError("LEGACY_PHRASE_TIMING_INVALID")
+        expected, last = final + 1, item["end"]
+    if expected != len(words):
+        raise ValueError("LEGACY_PHRASE_INCOMPLETE")

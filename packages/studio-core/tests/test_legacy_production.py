@@ -74,9 +74,9 @@ class Sources:
         return NetworkResponse(200, "application/json", raw, sha(raw))
 
 
-def factory(tmp_path, key, client):
+def factory(tmp_path, key, client, app="snap-bot-v2"):
     return Factory(
-        "snap-bot-v2",
+        app,
         key,
         uuid.uuid4().hex,
         tmp_path / key,
@@ -749,9 +749,10 @@ def test_six_oversight_roles_are_durable_for_both_source_pipelines(
     assert {r["role"] for r in rows if r["status"] == "SUCCEEDED"} == set(ROLES)
 
 
+@pytest.mark.parametrize("timed", [False, True])
 @pytest.mark.parametrize("app,short", [("snap-bot-v2", "snap"), ("status-bot-v2", "status")])
 def test_foundation_is_optional_third_human_provider_and_tracks_retention(
-    tmp_path, monkeypatch, audio, app, short
+    tmp_path, monkeypatch, audio, app, short, timed
 ):
     import importlib
 
@@ -779,6 +780,12 @@ def test_foundation_is_optional_third_human_provider_and_tracks_retention(
             assert verse == "94:5" and reader["id"] == 999
             return audio
 
+        def segments(self, verse, reader):
+            if not timed:
+                raise ValueError("QF_WORD_TIMING_UNAVAILABLE")
+            words = quran_foundation.exact_ayah(94, 5).split(" ")[:-1]
+            return [[i, i + 1, i * 300, i * 300 + 290] for i in range(len(words))]
+
     monkeypatch.setattr(module, "NetworkClient", lambda config: Broker())
     monkeypatch.setattr(quran_foundation, "Source", Foundation)
 
@@ -798,6 +805,8 @@ def test_foundation_is_optional_third_human_provider_and_tracks_retention(
     )
     scenes = f.quran(94, [5])
     assert "مؤسسة القرآن" in scenes[0]["source"] and "قارئ جديد" in scenes[0]["source"]
+    # «تلاوة» (8 Nov 2026): phrases only with the reciter's own word timings, never guessed.
+    assert bool(scenes[0].get("phrases")) is timed
     asset = next(a for a in f.assets if a.get("qf_job"))
     copied = f.root / asset["file"]
     assert copied.is_file()
@@ -927,3 +936,54 @@ def test_independent_final_qa_rejects_bad_audio_or_video_claims(
         result["qa"]["judge"]["criteria"]["audio"] = False
         with pytest.raises(ValueError, match="JUDGE_CHANGED"):
             pipeline.check_result(result)
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+def test_markets_filters_feed_and_article_before_selecting_images(tmp_path, monkeypatch, app):
+    import email.utils
+    from urllib.parse import urlsplit
+
+    from studio_core.sources import news as feeds
+
+    source = next(
+        s for s in feeds.news_sources("markets", production=True) if s.id == "aawsat-economy"
+    )
+    monkeypatch.setattr(feeds, "news_sources", lambda *_args, **_kwargs: (source,))
+    host = urlsplit(source.url).hostname
+    published = email.utils.formatdate(time.time() - 60, usegmt=True)
+    entries = [
+        ("الدولار يرتفع بعد الانتخابات", "ارتفع الدولار مقابل العملات الرئيسية اليوم"),
+        ("ارتفاع أسعار الذهب اليوم", "التفاصيل تتناول قصفا عسكريا واستهداف مواقع قرب العاصمة"),
+        ("صعود أسهم البنوك في البورصة", "سجلت أسهم البنوك ارتفاعا عند إغلاق جلسة التداول"),
+        ("هبوط أسعار النفط اليوم", "تراجعت أسعار النفط بعد صدور أرقام مخزونات الخام"),
+    ]
+    rss = (
+        "<rss><channel>"
+        + "".join(
+            f"<item><title>{title}</title><link>https://{host}/story-{n}</link>"
+            f"<pubDate>{published}</pubDate></item>"
+            for n, (title, _) in enumerate(entries)
+        )
+        + "</channel></rss>"
+    )
+    f = factory(tmp_path, "markets", Sources(b""), app)
+    articles, pictures = [], []
+
+    def get(url):
+        if url == source.url:
+            return rss.encode()
+        if url.startswith(f"https://{host}/story-"):
+            index = int(url.rsplit("-", 1)[1])
+            articles.append(index)
+            return f"<article><p>{entries[index][1]}</p></article>".encode()
+        raise OSError("fixture has no trends")
+
+    def picture(item):
+        pictures.append(item["title"])
+        return "market.jpg"
+
+    monkeypatch.setattr(f, "get", get)
+    monkeypatch.setattr(f, "news_picture", picture)
+    assert [scene["head"] for scene in f.news()] == [entries[2][0], entries[3][0]]
+    assert articles == [1, 2, 3]
+    assert pictures == [entries[2][0], entries[3][0]]

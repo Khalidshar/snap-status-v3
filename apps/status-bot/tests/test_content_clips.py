@@ -12,7 +12,7 @@ import test_status_whatsapp_outbox as fixtures
 
 from snap_bot import command_cards
 from snap_bot.did_you_know import KINDS as SHARED_KINDS
-from status_bot import content_clips
+from status_bot import content_clips, panel_actions
 from status_bot.whatsapp_contract import DeliveryBlocked
 
 
@@ -249,3 +249,58 @@ def test_window_rechecked_after_upload_and_halt_is_independent(fixture, tmp_path
         with pytest.raises(DeliveryBlocked, match="SEND_HALTED"):
             content_clips.send(f.outbox, transport, {"tag": "8" * 64}, "verse", f.runtime)
     transport.send_video.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("failure_stage", "error", "state", "code"),
+    [
+        ("upload_video", DeliveryBlocked("WA_WINDOW_CLOSED"), "BLOCKED", "WA_WINDOW_CLOSED"),
+        ("send_video", ConnectionResetError("private detail"), "BLOCKED_OR_UNKNOWN", "OS_ERROR"),
+        (
+            "send_video",
+            DeliveryBlocked("WA_TRANSPORT_UNKNOWN"),
+            "BLOCKED_OR_UNKNOWN",
+            "WA_TRANSPORT_UNKNOWN",
+        ),
+    ],
+)
+def test_panel_approval_failure_closes_attempt_and_only_reopens_before_send(
+    fixture, tmp_path, monkeypatch, failure_stage, error, state, code
+):
+    f = fixture
+    transport = fixtures.OfflineTransport(f.identity)
+    path = tmp_path / "panel.sqlite"
+    preview, tag = "1" * 32, "2" * 64
+    workspace = panel_actions.workspace
+    sha = workspace.record_preview(path, preview, "verse", b"video", [])
+    panel_actions.media(path, preview, ".json").write_text(
+        json.dumps({"tag": tag, "command": "verse", "content": {}, "result": {"video_sha256": sha}})
+    )
+    monkeypatch.setattr(content_clips, "complete", Mock())
+    monkeypatch.setattr(content_clips, "valid", Mock(return_value=True))
+    failing = getattr(transport, failure_stage)
+    failing.side_effect = error
+    payload = {"preview": preview, "sha": sha}
+    assert workspace.submit(path, "3" * 32, "approve", payload)
+    assert panel_actions.process(f.outbox, transport, f.runtime, path)
+    with f.repo.connect() as db:
+        assert tuple(db.execute("SELECT state,code FROM command_videos").fetchone()) == (
+            state,
+            code,
+        )
+    failing.side_effect = None
+    if state == "BLOCKED":
+        transport.send_video.assert_not_called()
+        assert workspace.submit(path, "4" * 32, "approve", payload)
+        assert panel_actions.process(f.outbox, transport, f.runtime, path)
+        with f.repo.connect() as db:
+            assert tuple(db.execute("SELECT state,code FROM command_videos").fetchone()) == (
+                "API_ACCEPTED",
+                None,
+            )
+    else:
+        with pytest.raises(ValueError, match="PREVIEW_NOT_REVIEWABLE"):
+            workspace.submit(path, "4" * 32, "approve", payload)
+        with pytest.raises(DeliveryBlocked, match="WA_COMMAND_ALREADY_CONSUMED"):
+            panel_actions.approve(f.outbox, transport, f.runtime, path, preview, sha)
+    transport.send_video.assert_called_once()

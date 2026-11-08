@@ -176,7 +176,10 @@ def render(
     for path in (
         out / "did-you-know.mp4",
         work / "production/video.mp4",
-        *sorted((work / "production").glob("attempt-*/*.mp4")),
+        # Only files carrying the recitation; the «تلاوة» backdrop montage is silent footage
+        # and its name is (rightly) not a Quran copy type (8 Nov 2026: QF_COPY_TYPE_DENIED).
+        *sorted((work / "production").glob("attempt-*/clip.mp4")),
+        *sorted((work / "production").glob("attempt-*/video.mp4")),
         *sorted((work / "production").glob("attempt-*/mix.wav")),
     ):
         track_qf(p, path)

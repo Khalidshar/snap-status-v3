@@ -207,10 +207,25 @@ def claim(path: Path) -> dict[str, Any] | None:
         return {**dict(row), "payload": json.loads(row["payload"])}
 
 
-def finish(path: Path, identifier: str, ok: bool) -> None:
+def finish(path: Path, identifier: str, ok: bool, *, retry_preview: bool = False) -> None:
     with database(path) as db:
         initialize(db)
+        db.execute("BEGIN IMMEDIATE")
         state = "DONE" if ok else "UNKNOWN"
+        if retry_preview and not ok:
+            action = db.execute(
+                "SELECT payload FROM panel_actions WHERE id=?"
+                " AND action='approve' AND state='INTENT'",
+                (identifier,),
+            ).fetchone()
+            if action is not None:
+                payload = json.loads(action["payload"])
+                db.execute(
+                    "UPDATE panel_previews SET state='REVIEW'"
+                    " WHERE id=? AND sha=? AND state='APPROVED'",
+                    (payload["preview"], payload["sha"]),
+                )
+                state = "BLOCKED"
         db.execute(
             "UPDATE panel_actions SET state=? WHERE id=? AND state='INTENT'", (state, identifier)
         )
