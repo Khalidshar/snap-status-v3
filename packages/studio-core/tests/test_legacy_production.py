@@ -833,9 +833,9 @@ def test_production_caption_keeps_credits_and_article_links(tmp_path, audio):
     f = factory(tmp_path, "facts", Sources(audio))
     value = f.build()
     description = platform_caption(value)
-    assert "@rawwag_khalid" in description and "True Patriot" in description
-    assert "creativecommons.org/licenses/by-sa/3.0/" in description
-    assert "True Patriot" in caption(value)
+    assert "@rawwag_khalid" in description and "Tech Corporate" in description
+    assert "creativecommons.org/licenses/by/4.0/" in description
+    assert "Tech Corporate" in caption(value)
     changed = copy.deepcopy(value)
     changed["legacy_production"]["scenes"][0]["source"] = "مصدر طويل " * 200
     with pytest.raises(ValueError, match="CAPTION_TOO_LONG"):
