@@ -74,9 +74,9 @@ class Sources:
         return NetworkResponse(200, "application/json", raw, sha(raw))
 
 
-def factory(tmp_path, key, client):
+def factory(tmp_path, key, client, app="snap-bot-v2"):
     return Factory(
-        "snap-bot-v2",
+        app,
         key,
         uuid.uuid4().hex,
         tmp_path / key,
@@ -936,3 +936,54 @@ def test_independent_final_qa_rejects_bad_audio_or_video_claims(
         result["qa"]["judge"]["criteria"]["audio"] = False
         with pytest.raises(ValueError, match="JUDGE_CHANGED"):
             pipeline.check_result(result)
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+def test_markets_filters_feed_and_article_before_selecting_images(tmp_path, monkeypatch, app):
+    import email.utils
+    from urllib.parse import urlsplit
+
+    from studio_core.sources import news as feeds
+
+    source = next(
+        s for s in feeds.news_sources("markets", production=True) if s.id == "aawsat-economy"
+    )
+    monkeypatch.setattr(feeds, "news_sources", lambda *_args, **_kwargs: (source,))
+    host = urlsplit(source.url).hostname
+    published = email.utils.formatdate(time.time() - 60, usegmt=True)
+    entries = [
+        ("الدولار يرتفع بعد الانتخابات", "ارتفع الدولار مقابل العملات الرئيسية اليوم"),
+        ("ارتفاع أسعار الذهب اليوم", "التفاصيل تتناول قصفا عسكريا واستهداف مواقع قرب العاصمة"),
+        ("صعود أسهم البنوك في البورصة", "سجلت أسهم البنوك ارتفاعا عند إغلاق جلسة التداول"),
+        ("هبوط أسعار النفط اليوم", "تراجعت أسعار النفط بعد صدور أرقام مخزونات الخام"),
+    ]
+    rss = (
+        "<rss><channel>"
+        + "".join(
+            f"<item><title>{title}</title><link>https://{host}/story-{n}</link>"
+            f"<pubDate>{published}</pubDate></item>"
+            for n, (title, _) in enumerate(entries)
+        )
+        + "</channel></rss>"
+    )
+    f = factory(tmp_path, "markets", Sources(b""), app)
+    articles, pictures = [], []
+
+    def get(url):
+        if url == source.url:
+            return rss.encode()
+        if url.startswith(f"https://{host}/story-"):
+            index = int(url.rsplit("-", 1)[1])
+            articles.append(index)
+            return f"<article><p>{entries[index][1]}</p></article>".encode()
+        raise OSError("fixture has no trends")
+
+    def picture(item):
+        pictures.append(item["title"])
+        return "market.jpg"
+
+    monkeypatch.setattr(f, "get", get)
+    monkeypatch.setattr(f, "news_picture", picture)
+    assert [scene["head"] for scene in f.news()] == [entries[2][0], entries[3][0]]
+    assert articles == [1, 2, 3]
+    assert pictures == [entries[2][0], entries[3][0]]
