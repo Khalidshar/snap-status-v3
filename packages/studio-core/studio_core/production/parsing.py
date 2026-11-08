@@ -113,7 +113,15 @@ _MARKET_TERMS = re.compile(
     r"\b[وفبكل]{0,3}(?:ال)?(?:اقتصاد(?:ي[ةه]?)?|اسهم|بورص[ةه]|تاسي|"
     r"نفط|برنت|ذهب|فض[ةه]|تضخم|فائد[ةه]|بنك|بنوك|مصارف|ارباح|"
     r"عمل[ةه]|عملات|دولار|يورو|ريال|ين|شرك[ةه]|شركات|سندات|صكوك|"
-    r"استثمار(?:ات)?|مؤشرات الاسواق|اسعار الصرف|الناتج المحلي)\b"
+    r"استثمار(?:ات)?|مؤشرات الاسواق|اسعار الصرف|الناتج المحلي|"
+    r"تداول السعودي[ةه]|(?:جلس[ةه]|حجم|قيم[ةه]) التداول)\b"
+)
+# Generic market words need a financial movement cue, e.g. «الأسواق تسجل ارتفاعًا».
+_MARKET_MOVEMENT = re.compile(
+    r"\b(?:ال)?(?:اسواق|سوق|مؤشر(?:ات)?)"
+    r"(?: ال(?:عالمي|محلي|مالي|سعودي|رئيسي)[ةه]?)? "
+    r"(?:(?:تسجل|يسجل|تشهد|يشهد) (?:ارتفاع|تراجع|صعود|هبوط|مكاسب|خسائر)(?:ا)?|"
+    r"(?:ت|ي)(?:رتفع|تراجع|صعد|هبط))\b"
 )
 _MARKET_EXCLUSIONS = re.compile(
     r"\b[وفبكل]{0,3}(?:ال)?(?:حرب|حروب|هجوم(?:ات)?|قصف|غار[ةه]|غارات|صاروخ|صواريخ|"
@@ -122,7 +130,10 @@ _MARKET_EXCLUSIONS = re.compile(
     r"سياسي(?:[ةه]|ون)?|سياس[ةه](?! (?:ال)?(?:نقدي[ةه]|مالي[ةه]))|"
     r"دبلوماسي(?:[ةه]|ون)?|حمل[ةه] انتخابي[ةه]|"
     r"مبارا[ةه]|مباريات|كر[ةه] القدم|دوري|بطول[ةه]|كاس العالم|"
-    r"انتقالات اللاعبين|لاعب(?:ون|ين)?|ناد(?:ي)?|اندية|ركل[ةه] جزاء)(?:ا)?\b"
+    r"انتقالات اللاعبين|لاعب(?:ون|ين)?|ناد(?:ي)?|اندية|ركل[ةه] جزاء|"
+    # «الريال» may refer to a club; keep financial uses of goal and target.
+    r"ريال مدريد|برشلون[ةه]|يهزم|هزم|يتعادل|تعادل سلبي|"
+    r"يسجل هدف(?:ين)?|تسجيل هدف(?:ين)?)(?:ا)?\b"
 )
 
 
@@ -136,7 +147,10 @@ def market_excluded(text: str) -> bool:
 
 def market_story(text: str) -> bool:
     """Require financial subject matter and veto political, conflict and sports cues."""
-    return not market_excluded(text) and _MARKET_TERMS.search(_market_text(text)) is not None
+    normalized = _market_text(text)
+    return _MARKET_EXCLUSIONS.search(normalized) is None and bool(
+        _MARKET_TERMS.search(normalized) or _MARKET_MOVEMENT.search(normalized)
+    )
 
 
 CONFLICTS = {
