@@ -162,7 +162,7 @@ def track(result: dict[str, Any], path: Path, digest: str) -> None:
     if result.get("legacy_production"):
         from studio_core.production.pipeline import track_qf
 
-        track_qf(result["legacy_production"]["content"]["legacy_production"], path)
+        track_qf(result["legacy_production"]["content"]["legacy_production"], path, digest=digest)
         return
     record = result.get("quran_foundation")
     if record:

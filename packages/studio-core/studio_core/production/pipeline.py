@@ -186,7 +186,13 @@ def render(
     return result
 
 
-def track_qf(plan: dict[str, Any], path: Path, *, asset: dict[str, Any] | None = None) -> None:
+def track_qf(
+    plan: dict[str, Any],
+    path: Path,
+    *,
+    asset: dict[str, Any] | None = None,
+    digest: str | None = None,
+) -> None:
     records = (
         [a for a in plan["assets"] if a.get("qf_job")]
         if asset is None
@@ -201,7 +207,9 @@ def track_qf(plan: dict[str, Any], path: Path, *, asset: dict[str, Any] | None =
     store = store_for(plan["app"])
     store.sweep()
     record = min(records, key=lambda a: a["expires_at"])
-    store.track(path, record["qf_job"], record["expires_at"], file_sha256(path))
+    # The Snap adoption registers its final copy before writing it (8 Nov 2026), so the
+    # verified digest is passed in rather than read from a file that does not exist yet.
+    store.track(path, record["qf_job"], record["expires_at"], digest or file_sha256(path))
 
 
 def check_result(result: dict[str, Any]) -> float:
