@@ -520,6 +520,10 @@ def main() -> int:
                     "-m",
                     "pytest",
                     str(CORE / "tests"),
+                    # The full suite runs in CI before this script; each mutant
+                    # needs only the test named in its guard contract.
+                    "-k",
+                    test,
                     "-q",
                     "-p",
                     "no:cacheprovider",
