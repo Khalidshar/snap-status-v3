@@ -588,8 +588,12 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
             transport(token, "sendPhoto", body, kind)
             continue
         message = {"chat_id": owner, "text": reply}
-        if menu.parse(text)["kind"] == "menu":
-            message["reply_markup"] = reply_keyboard()
+        shown = menu.parse(text)
+        # Same sections as the WhatsApp list (owner 8 Nov 2026); a section shows its commands.
+        if shown["kind"] == "menu":
+            message["reply_markup"] = menu.telegram_keyboard()
+        elif shown["kind"] == "section":
+            message["reply_markup"] = menu.telegram_keyboard(shown["section"])
         transport(token, "sendMessage", json.dumps(message).encode())
     return max(offset, cursor)
 
