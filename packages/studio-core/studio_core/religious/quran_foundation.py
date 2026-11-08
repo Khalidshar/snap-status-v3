@@ -490,14 +490,14 @@ class Source:
         ]
         if len(rows) != 1 or not isinstance(rows[0].get("segments"), list):
             raise ValueError("QF_WORD_TIMING_UNAVAILABLE")
-        out = []
+        out: list[list[int]] = []
         for item in rows[0]["segments"]:
             word, end_word, start, stop = (int(x) for x in item[:4])
-            if end_word != word + 1 or start < 0 or stop < start:
+            # Some reciters' timings join two or three words into one span (8 Nov 2026:
+            # Abdul Basit 2:255 words 11-12); each joined word shares that span's time.
+            if word != len(out) or end_word <= word or start < 0 or stop < start:
                 raise ValueError("QF_WORD_TIMING_INVALID")
-            out.append([word, end_word, start, stop])
-        if [s[0] for s in out] != list(range(len(out))):
-            raise ValueError("QF_WORD_TIMING_INVALID")
+            out += [[w, w + 1, start, stop] for w in range(word, end_word)]
         return out
 
     def audio(self, verse: str, reciter: dict[str, Any]) -> bytes:

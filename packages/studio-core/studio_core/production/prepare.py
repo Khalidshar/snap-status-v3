@@ -857,8 +857,11 @@ class Factory:
         extra: dict[str, Any] = {}
         if segments is not None:
             # «تلاوة» (owner 8 Nov 2026): phrases follow the reciter; the tafsir is not paged.
-            extra["phrases"] = phrases_for(text, segments, seconds)
-            hold = seconds + 0.8
+            try:
+                extra["phrases"] = phrases_for(text, segments, seconds)
+                hold = seconds + 0.8
+            except ValueError:
+                pass  # word counts differ: the whole ayah is shown, never a guessed phrase
         return scene(
             text,
             hold,
