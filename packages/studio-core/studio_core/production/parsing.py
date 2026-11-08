@@ -113,10 +113,18 @@ def plain_points(text: str, desc: str) -> list[dict]:
 _ARABIC_MARKS = re.compile(r"[\u0610-\u061a\u064b-\u065f\u0670\u0640]")
 _ARABIC_ALEF = str.maketrans("أإآٱ", "اااا")
 _MARKET_TERMS = re.compile(
-    r"\b[وفبكل]{0,3}(?:ال)?(?:اقتصاد(?:ي[ةه]?)?|اسهم|اسواق|سوق|تداول|مؤشر(?:ات)?|بورص[ةه]|تاسي|"
+    r"\b[وفبكل]{0,3}(?:ال)?(?:اقتصاد(?:ي[ةه]?)?|اسهم|بورص[ةه]|تاسي|"
     r"نفط|برنت|ذهب|فض[ةه]|تضخم|فائد[ةه]|بنك|بنوك|مصارف|ارباح|"
     r"عمل[ةه]|عملات|دولار|يورو|ريال|ين|شرك[ةه]|شركات|سندات|صكوك|"
-    r"استثمار(?:ات)?|مؤشرات الاسواق|اسعار الصرف|الناتج المحلي)\b"
+    r"استثمار(?:ات)?|مؤشرات الاسواق|اسعار الصرف|الناتج المحلي|"
+    r"تداول السعودي[ةه]|(?:جلس[ةه]|حجم|قيم[ةه]) التداول)\b"
+)
+# Generic market words need a financial movement cue, e.g. «الأسواق تسجل ارتفاعًا».
+_MARKET_MOVEMENT = re.compile(
+    r"\b(?:ال)?(?:اسواق|سوق|مؤشر(?:ات)?)"
+    r"(?: ال(?:عالمي|محلي|مالي|سعودي|رئيسي)[ةه]?)? "
+    r"(?:(?:تسجل|يسجل|تشهد|يشهد) (?:ارتفاع|تراجع|صعود|هبوط|مكاسب|خسائر)(?:ا)?|"
+    r"(?:ت|ي)(?:رتفع|تراجع|صعد|هبط))\b"
 )
 _MARKET_EXCLUSIONS = re.compile(
     r"\b[وفبكل]{0,3}(?:ال)?(?:حرب|حروب|هجوم(?:ات)?|قصف|غار[ةه]|غارات|صاروخ|صواريخ|"
@@ -126,8 +134,9 @@ _MARKET_EXCLUSIONS = re.compile(
     r"دبلوماسي(?:[ةه]|ون)?|حمل[ةه] انتخابي[ةه]|"
     r"مبارا[ةه]|مباريات|كر[ةه] القدم|دوري|بطول[ةه]|كاس العالم|"
     r"انتقالات اللاعبين|لاعب(?:ون|ين)?|ناد(?:ي)?|اندية|ركل[ةه] جزاء|"
-    # «الريال» is also Real Madrid: a match verb or a club name vetoes the currency reading.
-    r"ريال مدريد|برشلون[ةه]|فالنسيا|يهزم|هزم|يتعادل|تعادل|فوز|يفوز|ثلاثي[ةه]|هدف|اهداف)(?:ا)?\b"
+    # «الريال» may refer to a club; keep financial uses of goal and target.
+    r"ريال مدريد|برشلون[ةه]|يهزم|هزم|يتعادل|تعادل سلبي|"
+    r"يسجل هدف(?:ين)?|تسجيل هدف(?:ين)?)(?:ا)?\b"
 )
 
 
@@ -141,7 +150,10 @@ def market_excluded(text: str) -> bool:
 
 def market_story(text: str) -> bool:
     """Require financial subject matter and veto political, conflict and sports cues."""
-    return not market_excluded(text) and _MARKET_TERMS.search(_market_text(text)) is not None
+    normalized = _market_text(text)
+    return _MARKET_EXCLUSIONS.search(normalized) is None and bool(
+        _MARKET_TERMS.search(normalized) or _MARKET_MOVEMENT.search(normalized)
+    )
 
 
 CONFLICTS = {
