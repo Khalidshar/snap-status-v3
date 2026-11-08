@@ -143,7 +143,10 @@ class Factory:
         )
 
     def save(self, raw: bytes, suffix: str, url: str, credit: str) -> str:
-        name = f"assets/{len(self.assets):03d}{suffix}"
+        # A running number, never reused: dropped assets must not hand their name to a new one.
+        serial = self.__dict__.get("_serial", len(self.assets))
+        self._serial = serial + 1
+        name = f"assets/{serial:03d}{suffix}"
         path = self.root / name
         path.write_bytes(raw)
         path.chmod(0o640)
@@ -933,6 +936,10 @@ class Factory:
                     return scenes
                 except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError):
                     store.failed(qf_job)
+                    # 8 Nov 2026: a rejected attempt (e.g. an ayah missing from the approved
+                    # text) left its audio in the plan bound to a failed reservation, and the
+                    # isolated Snap renderer refused the whole clip when tracking it.
+                    self.assets = [a for a in self.assets if a.get("qf_job") != qf_job]
                     continue
         except (OSError, ValueError, KeyError, RuntimeError):
             return []
