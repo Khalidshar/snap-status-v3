@@ -29,7 +29,7 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
    await page.route('**/*',r=>r.request().url().startsWith('data:')?r.continue():r.abort());
    await page.setContent(doc);await page.evaluate(()=>document.fonts.ready);
    const visual=await page.evaluate((input)=>{
-    const output=[],bad=[];let overflow=0,tiny=0;
+    const output=[],bad=[],cut=[];let overflow=0,tiny=0;
     const fitsAll=e=>{const c=e.querySelector('.card');return c.scrollHeight<=c.clientHeight+2&&e.scrollHeight<=e.clientHeight+2&&c.scrollWidth<=c.clientWidth+2&&e.scrollWidth<=e.clientWidth+2;};
     const grow=e=>{if(e.classList.contains('hook'))return;const ns=[...e.querySelectorAll('h2,.body,.tafsir,.punch')].filter(n=>n.textContent.trim());if(!ns.length)return;const base=ns.map(n=>parseFloat(getComputedStyle(n).fontSize));let k=1;for(let s=1.05;s<=1.6;s+=.05){ns.forEach((n,i)=>n.style.fontSize=base[i]*s+'px');if(ns.some((n,i)=>base[i]*s>(n.classList.contains('quran')?115:110))||!fitsAll(e))break;k=s;}ns.forEach((n,i)=>n.style.fontSize=base[i]*k+'px');};
     const originals=[...document.querySelectorAll(".scene")];
@@ -63,6 +63,7 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
        const full=b.textContent;let done=false;
        for(const m of [...full.matchAll(/[.!؟?…،؛](?=\s)/gu)].reverse()){b.textContent=full.slice(0,m.index+1).replace(/[،؛]$/,'…');if(fits(e)){done=true;break;}}
        if(!done){const words=full.split(/\s+/);while(words.length>3&&!fits(e)){words.pop();b.textContent=words.join(' ')+'…';}}
+       if(b.textContent!==full)cut.push(index);
       }
       chunks.push(e);
       }
@@ -131,7 +132,7 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
       }
      }
     }
-    return {scenes:output,bad,overflow,tiny,empty:[...document.querySelectorAll('.scene')].filter(s=>!s.innerText.trim()).length,handle:document.querySelector('.cta .handle')?.innerText==='@rawwag_khalid'&&document.querySelector('.top .handle b')?.innerText==='@rawwag_khalid'};
+    return {scenes:output,bad,cut,overflow,tiny,empty:[...document.querySelectorAll('.scene')].filter(s=>!s.innerText.trim()).length,handle:document.querySelector('.cta .handle')?.innerText==='@rawwag_khalid'&&document.querySelector('.top .handle b')?.innerText==='@rawwag_khalid'};
    },{scenes:p.scenes,sacred,key:p.key,cards:(design.type&&design.type.cards)||[]});
    const {scenes:timeline,...report}=visual;
    reports.push(report);if(report.overflow||report.empty||report.tiny)throw Error("overflow "+(report.bad||[]).join(" ")+" tiny "+report.tiny+" empty "+report.empty);
@@ -139,5 +140,5 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
    await page.close();
   })()));
  }finally{await browser.close();}
- await fs.writeFile(path.join(out,'layout.json'),JSON.stringify({overflow:reports.reduce((n,r)=>n+r.overflow,0),tiny:reports.reduce((n,r)=>n+r.tiny,0),empty:reports.reduce((n,r)=>n+r.empty,0),handle:reports.every(r=>r.handle),frames:Math.ceil(p.duration*15),fps:15}));
+ await fs.writeFile(path.join(out,'layout.json'),JSON.stringify({overflow:reports.reduce((n,r)=>n+r.overflow,0),tiny:reports.reduce((n,r)=>n+r.tiny,0),empty:reports.reduce((n,r)=>n+r.empty,0),handle:reports.every(r=>r.handle),cut:(reports[0]&&reports[0].cut)||[],frames:Math.ceil(p.duration*15),fps:15}));
 })().catch(e=>{process.stderr.write('LEGACY_CHROMIUM_RENDER_FAILED '+String(e.message).replace(/[^A-Za-z0-9 _-]/g,'').slice(0,100)+'\n');process.exitCode=1});
