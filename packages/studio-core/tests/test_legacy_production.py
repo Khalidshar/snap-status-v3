@@ -749,9 +749,10 @@ def test_six_oversight_roles_are_durable_for_both_source_pipelines(
     assert {r["role"] for r in rows if r["status"] == "SUCCEEDED"} == set(ROLES)
 
 
+@pytest.mark.parametrize("timed", [False, True])
 @pytest.mark.parametrize("app,short", [("snap-bot-v2", "snap"), ("status-bot-v2", "status")])
 def test_foundation_is_optional_third_human_provider_and_tracks_retention(
-    tmp_path, monkeypatch, audio, app, short
+    tmp_path, monkeypatch, audio, app, short, timed
 ):
     import importlib
 
@@ -779,6 +780,12 @@ def test_foundation_is_optional_third_human_provider_and_tracks_retention(
             assert verse == "94:5" and reader["id"] == 999
             return audio
 
+        def segments(self, verse, reader):
+            if not timed:
+                raise ValueError("QF_WORD_TIMING_UNAVAILABLE")
+            words = quran_foundation.exact_ayah(94, 5).split(" ")[:-1]
+            return [[i, i + 1, i * 300, i * 300 + 290] for i in range(len(words))]
+
     monkeypatch.setattr(module, "NetworkClient", lambda config: Broker())
     monkeypatch.setattr(quran_foundation, "Source", Foundation)
 
@@ -798,6 +805,8 @@ def test_foundation_is_optional_third_human_provider_and_tracks_retention(
     )
     scenes = f.quran(94, [5])
     assert "مؤسسة القرآن" in scenes[0]["source"] and "قارئ جديد" in scenes[0]["source"]
+    # «تلاوة» (8 Nov 2026): phrases only with the reciter's own word timings, never guessed.
+    assert bool(scenes[0].get("phrases")) is timed
     asset = next(a for a in f.assets if a.get("qf_job"))
     copied = f.root / asset["file"]
     assert copied.is_file()
