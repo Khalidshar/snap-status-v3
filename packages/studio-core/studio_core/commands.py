@@ -225,5 +225,8 @@ def telegram_keyboard(section: str | None = None) -> dict[str, Any]:
             labels.append(rows[0].label if len(rows) == 1 else t)
     else:
         labels = [c.label for c in section_rows(section)] + [BY_KEY["menu"].label]
-    rows = [labels[i : i + 2] for i in range(0, len(labels), 2)]
-    return {"keyboard": [[{"text": t} for t in row] for row in rows], "resize_keyboard": True}
+    keyboard_rows = [labels[i : i + 2] for i in range(0, len(labels), 2)]
+    return {
+        "keyboard": [[{"text": t} for t in row] for row in keyboard_rows],
+        "resize_keyboard": True,
+    }
