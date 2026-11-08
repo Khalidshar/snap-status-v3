@@ -74,6 +74,8 @@ RENDER_KINDS = {"facts": "did_you_know", "tech": "tech", "style": "style", "funn
                 "friday": "friday", "kahf": "kahf", "riddle": "riddle", "isha": "verse"}  # fmt: skip
 SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
 SENT = "✅ أُرسل "
+TELEGRAM_MENU_TEXT = "🤖 اضغط القسم من الأزرار تحت."
+TELEGRAM_SECTION_TEXT = "اختر الأمر من الأزرار."
 NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
 
 
@@ -590,9 +592,13 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
         message = {"chat_id": owner, "text": reply}
         shown = menu.parse(text)
         # Same sections as the WhatsApp list (owner 8 Nov 2026); a section shows its commands.
+        # Same short prompts as the WhatsApp list instead of a long numbered menu.
         if shown["kind"] == "menu":
+            message["text"] = TELEGRAM_MENU_TEXT
             message["reply_markup"] = menu.telegram_keyboard()
         elif shown["kind"] == "section":
+            title = next(t for s, t, _ in menu.SECTIONS if s == shown["section"])
+            message["text"] = title + chr(10) + TELEGRAM_SECTION_TEXT
             message["reply_markup"] = menu.telegram_keyboard(shown["section"])
         transport(token, "sendMessage", json.dumps(message).encode())
     return max(offset, cursor)

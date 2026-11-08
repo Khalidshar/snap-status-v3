@@ -64,6 +64,8 @@ def test_qf_tilawa_crosses_worker_and_preview_bundle(tmp_path, monkeypatch):
     monkeypatch.setenv("MADAR_LEGACY_PRODUCTION", "1")
     monkeypatch.setenv("MADAR_QURAN_AUDIO", "1")
     monkeypatch.setenv("MADAR_PRODUCTION_STATE_ROOT", str(tmp_path / "snap/production"))
+    # The worker is simulated, so this fixture's private pytest directory is shared.
+    monkeypatch.setattr(actions_preview, "renderer_workspace_parent", lambda: tmp_path)
     store = quran_foundation.Store(tmp_path / "quran-snap", "snap-bot-v2")
     monkeypatch.setattr(quran_pipeline, "store_for", lambda app: store)
     qf_job = "a" * 32
