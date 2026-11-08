@@ -48,6 +48,18 @@ MUSIC = "https://www.free-stock-music.com/music/maxkomusic/mp3/maxkomusic-true-p
 MUSIC_CREDIT = "True Patriot by MaxKoMusic | https://maxkomusic.com/\nRoyalty Free Music by https://www.free-stock-music.com\nCC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0/"
 
 
+def cut_matches(seconds: float, references: list[float]) -> bool:
+    """A cut ayah is believed only near the median length of the same ayah elsewhere.
+
+    Reciters differ in pace (Maher 42 s and Minshawy 68 s for Ayat al-Kursi), so the window
+    is wide; it still refuses a neighbouring ayah (2:255 is 55 s, 2:256 is 25 s).
+    """
+    if not references:
+        return False  # no reference, no belief
+    middle = sorted(references)[len(references) // 2]
+    return 0.6 * middle <= seconds <= 1.6 * middle
+
+
 def duration(path: Path) -> float:
     result = run(
         [
@@ -617,7 +629,15 @@ class Factory:
             reads = self.json("https://mp3quran.net/api/v3/ayat_timing/reads")
         except (OSError, ValueError, RuntimeError):
             reads = []
-        for reader in mp3 + fallback:
+        # Owner report 8 Nov 2026 («المكتوب آية الكرسي والصوت آية أخرى»): one file per ayah,
+        # named by its number, comes first; a cut from a whole-surah file is only a fallback
+        # and must match the length of the same ayah from per-ayah recordings.
+        # Owner 8 Nov 2026: our Quran Foundation access (official, one file per ayah) first.
+        extra = self.foundation_recitation(surah, ayahs, last_name, background=background)
+        if extra:
+            return extra
+        references: dict[int, list[float]] = {}
+        for reader in fallback + mp3:
             if reader["name"] == last_name:
                 continue
             try:
@@ -663,6 +683,10 @@ class Factory:
                             ],
                             180,
                         )
+                        if ayah not in references:
+                            references[ayah] = self.reference_seconds(surah, ayah, fallback)
+                        if not cut_matches(duration(audio), references[ayah]):
+                            raise ValueError("LEGACY_AYAH_CUT_MISMATCH")
                     else:
                         url = f"https://everyayah.com/data/{reader['id']}/{surah:03d}{ayah:03d}.mp3"
                         audio.write_bytes(self.get(url))
@@ -690,10 +714,24 @@ class Factory:
                 subprocess.SubprocessError,
             ):
                 continue
-        extra = self.foundation_recitation(surah, ayahs, last_name, background=background)
-        if extra:
-            return extra
         raise ValueError("LEGACY_HUMAN_RECITATION_UNAVAILABLE")
+
+    def reference_seconds(
+        self, surah: int, ayah: int, readers: list[dict[str, Any]]
+    ) -> list[float]:
+        """Lengths of the same ayah from up to three per-ayah recordings (EveryAyah)."""
+        found: list[float] = []
+        for reader in readers:
+            url = f"https://everyayah.com/data/{reader['id']}/{surah:03d}{ayah:03d}.mp3"
+            path = self.root / f"reference-{reader['id']}-{ayah}.mp3"
+            try:
+                path.write_bytes(self.get(url))
+                found.append(duration(path))
+            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+                continue
+            if len(found) == 3:
+                break
+        return found
 
     def saadi(
         self, surah: int, ayahs: list[int], before: list[dict[str, Any]]
