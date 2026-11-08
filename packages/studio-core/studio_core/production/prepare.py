@@ -27,6 +27,7 @@ from studio_core.weather import content_hash
 from . import parsing
 from .model import (
     DATA,
+    HADITH_LEAD,
     NEWS,
     QURAN,
     ROOT,
@@ -772,6 +773,10 @@ class Factory:
         """
         return budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
 
+    def hadith_voice(self, text: str) -> tuple[str, float]:
+        """Owner 8 Nov 2026: «لابد من ذكر قال رسول الله» — said before the unchanged text."""
+        return self.spoken(HADITH_LEAD + " " + text, "hadith")
+
     def hadiths(self, items: list[dict[str, Any]], day: date) -> list[dict[str, Any]]:
         """Authentic hadiths, rotating daily, each read aloud, until the clip is full.
 
@@ -784,12 +789,14 @@ class Factory:
         target = budget(self.app, self.key)[0] - 3.2 - 5.0
         found: list[dict[str, Any]] = []
         for item in pool[start:] + pool[:start]:
-            spoken, length = self.spoken(item["text"], "hadith")
+            spoken, length = self.hadith_voice(item["text"])
             found.append(
                 scene(
                     item["text"],
                     max(length + 1.0, len(item["text"]) / 17 + 1),
                     role="hadith",
+                    head=HADITH_LEAD,
+                    spoken_lead=len(HADITH_LEAD) + 1,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
@@ -1231,7 +1238,7 @@ class Factory:
                 (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
                 key=lambda i: len(i["text"]),
             )
-            spoken, length = self.spoken(item["text"], "hadith")
+            spoken, length = self.hadith_voice(item["text"])
             scenes.append(
                 scene(
                     item["text"],
@@ -1240,6 +1247,8 @@ class Factory:
                     audio_duration=length,
                     voice_kind="speech",
                     role="hadith",
+                    head=HADITH_LEAD,
+                    spoken_lead=len(HADITH_LEAD) + 1,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
