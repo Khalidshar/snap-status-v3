@@ -207,3 +207,23 @@ def whatsapp_list(section: str | None = None) -> dict[str, Any]:
     if len(rows) > 10:
         raise ValueError("WhatsApp lists allow at most 10 rows")
     return {"button": "القائمة", "sections": [{"title": "الأوامر", "rows": rows}]}
+
+
+def telegram_keyboard(section: str | None = None) -> dict[str, Any]:
+    """Telegram reply keyboard with the same sections as the WhatsApp list (owner 8 Nov 2026).
+
+    The first keyboard shows the sections (a one-command section runs straight away); a
+    section shows its commands with a button back to the menu. Buttons send their label,
+    which ``parse`` already understands, so no command can be reached by a different path.
+    """
+    if section is None:
+        labels = []
+        for s, t, _ in SECTIONS:
+            rows = [c for c in section_rows(s) if c.key != "menu"]
+            # A section with one real command shows that command (يومك في دقيقة, أضف معلومة):
+            # «❓ مساعدة» itself reads as the menu, so a title button would never open it.
+            labels.append(rows[0].label if len(rows) == 1 else t)
+    else:
+        labels = [c.label for c in section_rows(section)] + [BY_KEY["menu"].label]
+    rows = [labels[i : i + 2] for i in range(0, len(labels), 2)]
+    return {"keyboard": [[{"text": t} for t in row] for row in rows], "resize_keyboard": True}
