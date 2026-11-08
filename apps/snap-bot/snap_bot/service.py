@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import signal
 import socket
 import socketserver
 import struct
@@ -90,6 +91,32 @@ class RenderHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+
+def watch_coordinator(path: Path) -> None:
+    """Stop this transient unit when the coordinator releases its kernel lock."""
+    import fcntl
+
+    lock = path.open("rb")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        # A separate thread also watches during a blocked render. systemd then
+        # tears down the rest of the transient unit's processes.
+        def stop_on_release() -> None:
+            with lock:
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX)
+                finally:
+                    os.kill(os.getpid(), signal.SIGTERM)
+
+        threading.Thread(target=stop_on_release, daemon=True).start()
+    except BaseException:
+        lock.close()
+        raise
+    else:
+        lock.close()
+        raise RuntimeError("Preview coordinator already exited")
 
 
 def renderer(config: Config, settings: dict[str, Any]) -> None:
@@ -420,6 +447,7 @@ def resume_render_adoption(config: Config, settings: dict[str, Any], claim: Any)
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--coordinator-lock", type=Path)
     parser.add_argument("action", choices=["proxy", "renderer", "weather", "did_you_know"])
     args = parser.parse_args()
     config = Config.load(args.config)
@@ -428,6 +456,8 @@ def main() -> None:
         with EgressServer(config) as server:
             server.serve_forever()
     elif args.action == "renderer":
+        if args.coordinator_lock is not None:
+            watch_coordinator(args.coordinator_lock)
         renderer(config, settings)
     elif args.action == "did_you_know":
         secret = os.environ["STUDIO_GATEWAY_SECRET"]

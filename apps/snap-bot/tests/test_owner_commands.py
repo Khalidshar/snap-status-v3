@@ -150,7 +150,8 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertEqual(calls[0][1]["offset"], 3)
         self.assertEqual({m for m, _ in calls}, {"getUpdates", "sendMessage"})
 
-    def test_menu_and_start_send_the_registered_working_keyboard_offline(self):
+    def test_menu_and_start_send_the_whatsapp_sections_offline(self):
+        # Owner 8 Nov 2026: Telegram shows the same sections as the WhatsApp list.
         for text in ("القائمة", "/start"):
             calls = []
 
@@ -160,26 +161,20 @@ class OwnerCommandTests(unittest.TestCase):
                 return [update(15, text)] if method == "getUpdates" else {}
 
             listener.poll_once("t", OWNER, self.studio, 0, transport)
-            message = calls[-1][1]
             self.assertEqual(calls[-1][0], "sendMessage")
-            keyboard = message["reply_markup"]
-            self.assertTrue(keyboard["resize_keyboard"])
-            buttons = [button for row in keyboard["keyboard"] for button in row]
-            expected = {key for row in listener.KEYBOARD_ROWS for key in row}
-            self.assertEqual(len(buttons), 22)
-            resolved = set()
-            for button in buttons:
-                parsed = listener.menu.parse(button["text"])
-                self.assertEqual(parsed["kind"], "command")
-                command = parsed["command"]
-                self.assertEqual(button["text"], listener.menu.BY_KEY[command.key].label)
-                self.assertIn(
-                    command.key, listener.ACTIONS | listener.READ_ONLY | listener.COMMAND_ACTIONS
-                )
-                if command.key not in listener.COMMAND_ACTIONS:
-                    self.assertTrue(callable(getattr(self.studio, command.key)))
-                resolved.add(command.key)
-            self.assertEqual(resolved, expected)
+            self.assertEqual(calls[-1][1]["reply_markup"], listener.menu.telegram_keyboard())
+
+    def test_a_section_sends_its_commands_and_a_way_back(self):
+        calls = []
+        title = next(t for s, t, _ in listener.menu.SECTIONS if s == "faith")
+
+        def transport(token, method, body=b""):
+            payload = json.loads(body or b"{}")
+            calls.append((method, payload))
+            return [update(16, title)] if method == "getUpdates" else {}
+
+        listener.poll_once("t", OWNER, self.studio, 0, transport)
+        self.assertEqual(calls[-1][1]["reply_markup"], listener.menu.telegram_keyboard("faith"))
 
     def test_keyboard_omits_a_disabled_handler(self):
         with patch.object(listener, "ACTIONS", listener.ACTIONS - {"tech"}):

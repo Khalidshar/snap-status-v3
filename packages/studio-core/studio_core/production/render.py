@@ -18,7 +18,7 @@ from studio_core.renderer import ensure_glyphs, proof, run
 
 from . import designer, review
 from .isolation import deny_ip_sockets
-from .model import ROOT, budget, resource, sha, validate
+from .model import ROOT, SACRED, budget, resource, sha, validate
 
 
 def verify_fonts(p: dict[str, Any]) -> None:
@@ -383,6 +383,13 @@ def render(
             mix = audio_mix(p, source, work)
             clip = work / "clip.mp4"
             background = {"path": design["footage_path"]}
+            if p["key"] in SACRED:
+                # «تلاوة» (owner 8 Nov 2026): Islamic and nature backdrops taking turns.
+                montage = work / "montage.mp4"
+                run(footage.montage_command(value["content_hash"], p["duration"], montage), 900)
+                background = {"path": str(montage)}
+                design["dim"] = min(design["dim"], 0.3)
+                design["montage"] = footage.montage_order(value["content_hash"])
             run(
                 [
                     "/usr/bin/ffmpeg",

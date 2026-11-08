@@ -133,3 +133,79 @@ def pinned(content: dict[str, Any], manifest: Path) -> dict[str, Any]:
     if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != asset["sha256"]:
         raise ValueError("Prepared footage fingerprint changed")
     return dict(asset)
+
+
+FAITH = ROOT / "faith"
+SHOT, FADE = 4.5, 0.8
+
+
+def faith(root: Path = FAITH) -> list[dict[str, Any]]:
+    """Reviewed Islamic backdrops (owner decision 8 Nov 2026, «تلاوة»), pinned by fingerprint."""
+    clips: list[dict[str, Any]] = json.loads((root / "manifest.json").read_text(encoding="utf-8"))[
+        "clips"
+    ]
+    for clip in clips:
+        path = root / clip["file"]
+        if (
+            clip["provider"] != "Pexels"
+            or clip["license"] != "Pexels License"
+            or path.is_symlink()
+            or path.parent != root
+            or hashlib.sha256(path.read_bytes()).hexdigest() != clip["sha256"]
+        ):
+            raise ValueError("Footage fingerprint or license changed")
+    return [{**c, "path": str(root / c["file"])} for c in clips]
+
+
+def montage_order(seed: str) -> list[str]:
+    """Islamic and calm nature backdrops taking turns (owner: «إسلامية مع خلفيات أخرى»)."""
+    islamic = [c["path"] for c in faith()]
+    nature = [str(ROOT / c["file"]) for c in load() if c["pool"] in {"calm", "night"}]
+    start = int(hashlib.sha256(seed.encode()).hexdigest()[:8], 16)
+    islamic = islamic[start % len(islamic) :] + islamic[: start % len(islamic)]
+    nature = nature[start % len(nature) :] + nature[: start % len(nature)]
+    order: list[str] = []
+    for i in range(max(len(islamic), len(nature))):
+        order.append(islamic[i % len(islamic)])
+        if i % 2 == 1:  # two Islamic shots for every nature shot
+            order.append(nature[(i // 2) % len(nature)])
+    return order
+
+
+def montage_command(seed: str, duration: float, out: Path) -> list[str]:
+    """Darkened warm backdrops changing every 4.5 s with a soft fade, as in the approved sample."""
+    order = montage_order(seed)
+    shots = int((duration - FADE) // (SHOT - FADE)) + 2
+    args = ["/usr/bin/ffmpeg", "-v", "error", "-nostdin", "-y", "-threads", "2"]
+    graph = []
+    for k in range(shots):
+        args += ["-stream_loop", "-1", "-i", order[k % len(order)]]
+        graph.append(
+            f"[{k}:v]trim=start={(k * 1.7) % 4:.1f}:duration={SHOT},setpts=PTS-STARTPTS,"
+            "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,"
+            "eq=brightness=-0.20:saturation=0.65:contrast=1.04,"
+            "colorchannelmixer=rr=1.07:gg=0.97:bb=0.80,gblur=sigma=1.2,format=yuv420p"
+            f"[b{k}]"
+        )
+    last = "b0"
+    for k in range(1, shots):
+        graph.append(
+            f"[{last}][b{k}]xfade=transition=fade:duration={FADE}:offset={k * (SHOT - FADE):.3f}[x{k}]"
+        )
+        last = f"x{k}"
+    graph.append(f"[{last}]trim=duration={duration:.3f}[v]")
+    return [
+        *args,
+        "-filter_complex",
+        ";".join(graph),
+        "-map",
+        "[v]",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "20",
+        str(out),
+    ]

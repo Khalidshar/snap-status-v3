@@ -1,7 +1,10 @@
+import json
 import subprocess
 from pathlib import Path
 
-from studio_core.production import review
+import pytest
+
+from studio_core.production import render, review
 
 
 def fake_run(black="", silence=""):
@@ -51,3 +54,87 @@ def test_fixer_changes_only_the_design():
     assert review.fix({**again, "type": {"cards": [{}, {"pages": 2, "size": 64}]}}, cut)[1] == [
         "البطاقة ٤: صفحتان بدل القص"
     ]
+
+
+@pytest.mark.parametrize("persistent_black", [False, True])
+def test_render_retries_review_findings_once(tmp_path, monkeypatch, persistent_black):
+    source = tmp_path / "source"
+    source.mkdir()
+    content = {"content_hash": "a" * 64}
+    original = json.dumps(content)
+    (source / "content.json").write_text(original)
+    clip_plan = {**plan(), "app": "snap-bot-v2"}
+    design = {"style": "solid", "dim": 0.3, "footage_path": "background.mp4"}
+    applied = []
+    mixes = []
+
+    monkeypatch.setattr(render, "validate", lambda *_args, **_kwargs: clip_plan)
+    monkeypatch.setattr(render, "verify_fonts", lambda _: None)
+    monkeypatch.setattr(render, "deny_ip_sockets", lambda: None)
+    monkeypatch.setattr(render, "proof", lambda _: {})
+    monkeypatch.setattr(render.footage, "load", list)
+    monkeypatch.setattr(render.designer, "decide", lambda *_args, **_kwargs: design)
+    monkeypatch.setattr(render.designer, "inspect", lambda *_args: {})
+    monkeypatch.setattr(
+        render.brand_frame,
+        "load_brand",
+        lambda: {"clip_box": [], "overlay": {"sha256": "b" * 64}},
+    )
+    monkeypatch.setattr(
+        render.brand_frame,
+        "command",
+        lambda ffmpeg, clip, video, *args: [
+            ffmpeg,
+            "-preset",
+            "stub",
+            "-crf",
+            "0",
+            "-maxrate",
+            "0",
+            "-bufsize",
+            "0",
+            str(video),
+        ],
+    )
+
+    def mix(plan, source, work):
+        mixes.append(plan["audio"])
+        return work / "mix.wav"
+
+    def qa(video, plan, layout, work):
+        for i in range(1, 7):
+            (work / f"shot-{i}.jpg").write_bytes(b"frame")
+        return {"result": "PASS"}
+
+    def run(args, timeout):
+        if args[1].endswith("render_legacy_scenes.cjs"):
+            frames = Path(args[4])
+            frames.mkdir()
+            applied.append(json.loads(Path(args[5]).read_bytes()))
+            (frames / "layout.json").write_text(
+                json.dumps({"cut": [0] if len(applied) == 1 else []})
+            )
+        elif "blackdetect=d=0.5:pix_th=0.06" in args:
+            black = persistent_black or len(applied) == 1
+            return fake_run(black="black_duration:1.0" if black else "")(args, timeout)
+        else:
+            Path(args[-1]).write_bytes(b"rendered video")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(render, "run", run)
+    monkeypatch.setattr(render, "audio_mix", mix)
+    monkeypatch.setattr(render, "qa", qa)
+    out = tmp_path / "out"
+    if persistent_black:
+        with pytest.raises(ValueError, match="LEGACY_REVIEW_BLACK_FRAMES"):
+            render.render(source, out)
+        assert not (out / "video.mp4").exists()
+    else:
+        result = render.render(source, out)
+        assert result["attempt"] == 2
+        assert result["review"]["findings"] == []
+        assert len(result["review"]["fixes"]) == 2
+    assert len(applied) == 2
+    assert "type" not in applied[0] and applied[1]["type"]["cards"][0]["pages"] == 2
+    assert mixes == [clip_plan["audio"], clip_plan["audio"]]
+    assert (source / "content.json").read_text() == original

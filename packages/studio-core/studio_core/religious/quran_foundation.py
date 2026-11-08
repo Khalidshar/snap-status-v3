@@ -469,11 +469,42 @@ class Source:
     def catalog(self, policy: dict[str, Any]) -> dict[str, Any]:
         return eligible(self.recitations(), policy)
 
+    def recitation_rows(self, reciter_id: int) -> list[dict[str, Any]]:
+        """One snapshot per reciter per request (audio files and their word timings)."""
+        cache = self.__dict__.setdefault("_rows", {})
+        if reciter_id not in cache:
+            cache[reciter_id] = self.snapshot("recitations", reciter_id)
+        return list(cache[reciter_id])
+
+    def segments(self, verse: str, reciter: dict[str, Any]) -> list[list[int]]:
+        """Word timings of one ayah: [word index, word index + 1, start ms, end ms].
+
+        Owner decision 8 Nov 2026 («تلاوة»): the shown phrase follows the reciter word by word.
+        """
+        rows = [
+            r
+            for r in self.recitation_rows(reciter["id"])
+            if r.get("record_type") == "audio_file"
+            and r.get("verse_key") == verse
+            and r.get("recitation_id") == reciter["id"]
+        ]
+        if len(rows) != 1 or not isinstance(rows[0].get("segments"), list):
+            raise ValueError("QF_WORD_TIMING_UNAVAILABLE")
+        out: list[list[int]] = []
+        for item in rows[0]["segments"]:
+            word, end_word, start, stop = (int(x) for x in item[:4])
+            # Some reciters' timings join two or three words into one span (8 Nov 2026:
+            # Abdul Basit 2:255 words 11-12); each joined word shares that span's time.
+            if word != len(out) or end_word <= word or start < 0 or stop < start:
+                raise ValueError("QF_WORD_TIMING_INVALID")
+            out += [[w, w + 1, start, stop] for w in range(word, end_word)]
+        return out
+
     def audio(self, verse: str, reciter: dict[str, Any]) -> bytes:
         matches = [r for r in self.recitations() if r.get("id") == reciter["id"]]
         if len(matches) != 1 or reciter_name(matches[0]) != reciter["name"]:
             raise ValueError("QF_RECITER_IDENTITY_UNVERIFIED")
-        rows = self.snapshot("recitations", reciter["id"])
+        rows = self.recitation_rows(reciter["id"])
         files = [
             r
             for r in rows

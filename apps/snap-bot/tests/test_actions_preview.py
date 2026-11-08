@@ -1,5 +1,8 @@
 import json
 import os
+import select
+import signal
+import subprocess
 import sys
 import tempfile
 import time
@@ -308,3 +311,50 @@ class ActionsRealPreviewTests(unittest.TestCase):
             print(
                 "Actual Actions owned preview seconds=" + str(round(time.monotonic() - started, 3))
             )
+
+
+@unittest.skipUnless(sys.platform == "linux", "Linux transient renderer lifetime")
+class CoordinatorLifetimeTests(unittest.TestCase):
+    def test_renderer_watch_exits_when_coordinator_finishes_or_is_killed(self):
+        for killed in (False, True):
+            with self.subTest(killed=killed), tempfile.TemporaryDirectory() as directory:
+                lock = str(Path(directory) / "coordinator.lock")
+                controller = [
+                    sys.executable,
+                    "-c",
+                    "import fcntl, sys; "
+                    "lock = open(sys.argv[1], 'xb'); fcntl.flock(lock, fcntl.LOCK_EX); "
+                    "print('ready', flush=True); sys.stdin.read()",
+                    lock,
+                ]
+                renderer = [
+                    sys.executable,
+                    "-c",
+                    "from snap_bot.service import watch_coordinator; "
+                    "from pathlib import Path; import sys, time; "
+                    "watch_coordinator(Path(sys.argv[1])); print('ready', flush=True); time.sleep(60)",
+                    lock,
+                ]
+                with subprocess.Popen(
+                    controller, stdin=subprocess.PIPE, stdout=subprocess.PIPE
+                ) as owner:
+                    try:
+                        self.assertTrue(select.select([owner.stdout], [], [], 5)[0])
+                        self.assertEqual(owner.stdout.readline(), b"ready\n")
+                        with subprocess.Popen(renderer, stdout=subprocess.PIPE) as worker:
+                            try:
+                                self.assertTrue(select.select([worker.stdout], [], [], 5)[0])
+                                self.assertEqual(worker.stdout.readline(), b"ready\n")
+                                self.assertIsNone(worker.poll())
+                                if killed:
+                                    owner.kill()
+                                else:
+                                    owner.stdin.close()
+                                owner.wait(timeout=5)
+                                self.assertEqual(worker.wait(timeout=5), -signal.SIGTERM)
+                            finally:
+                                if worker.poll() is None:
+                                    worker.kill()
+                    finally:
+                        if owner.poll() is None:
+                            owner.kill()
