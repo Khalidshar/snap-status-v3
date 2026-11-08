@@ -15,6 +15,7 @@ from studio_core.jobs.component_lock import ComponentLocks
 
 from . import content_clips
 from .command_control import change
+from .server_preview import STATE, safe_path
 from .whatsapp_contract import require
 
 
@@ -23,7 +24,7 @@ def media(path: Path, preview: str, suffix: str) -> Path:
 
 
 def produce(outbox: Any, path: Path, identifier: str, command: str) -> bool:
-    require(not content_clips.safe_path(content_clips.STATE / "HALT").exists(), "WA_SEND_HALTED")
+    require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
     item = {"tag": hashlib.sha256(("panel:" + identifier).encode()).hexdigest()}
     content_clips.initialize(outbox.repo)
     locks = ComponentLocks(outbox.repo)
