@@ -17,5 +17,5 @@ ProtectHome=yes
 RestrictAddressFamilies=AF_UNIX
 CapabilityBoundingSet=
 ReadWritePaths=/var/lib/madar/status
-MemoryMax=1536M
+MemoryMax=3G
 TimeoutStartSec=900

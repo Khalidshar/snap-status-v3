@@ -17,5 +17,5 @@ ProtectSystem=strict
 ProtectHome=yes
 CapabilityBoundingSet=
 ReadWritePaths=/var/lib/madar/quran-snap
-MemoryMax=1536M
+MemoryMax=3G
 TimeoutStartSec=1200
