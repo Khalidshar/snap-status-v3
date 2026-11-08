@@ -113,22 +113,6 @@ WORDS = {
         "النصر",
         "الاتحاد",
     ),
-    "markets": (
-        "اقتصاد",
-        "الأسهم",
-        "البورصة",
-        "تداول",
-        "أسواق",
-        "الأسواق",
-        "النفط",
-        "التضخم",
-        "الفائدة",
-        "البنوك",
-        "الذهب",
-        "الأرباح",
-        "الريال",
-        "الدولار",
-    ),
     "style": (
         "موضة",
         "أزياء",
@@ -261,6 +245,10 @@ def top_brand(key: str, title: str) -> bool:
 def matches(key: str, text: str) -> bool:
     if key not in TITLES:
         raise ValueError("Unsupported live news command")
+    if key == "markets":
+        from studio_core.production.parsing import market_story
+
+        return market_story(text)
     if key == "football" and any(word in text for word in SPORTS_EXCLUDED):
         return False
     if key == "urgent":

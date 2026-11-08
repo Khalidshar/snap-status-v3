@@ -476,6 +476,8 @@ class Factory:
         for item in candidates[:25]:
             try:
                 text, points = self.article(item)
+                if key == "markets" and parsing.market_excluded(parsing.words_only(text)):
+                    continue
                 if self.key in {"tech", "style"} and len(parsing.words_only(text)) < 300:
                     continue
                 image = self.news_picture(item)
