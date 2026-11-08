@@ -14,6 +14,9 @@ TZ = dt.timezone(dt.timedelta(hours=3))
 
 def clean(text: str, limit: int = 0) -> str:
     t = html.unescape(re.sub("<[^>]+>", " ", text or ""))
+    # Source emoji are decoration and the approved emoji font lacks many of them (8 Nov 2026:
+    # «📷» failed every tech clip on the glyph gate). Every letter and digit stays.
+    t = re.sub("[\U0001f000-\U0001faff☀-➿️‍]", "", t)
     t = re.sub("\\s+", " ", t).strip()
     t = re.sub("(ظهرت المقالة|The post) .*$", "", t).strip()
     if limit and len(t) > limit:
