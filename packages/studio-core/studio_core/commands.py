@@ -217,9 +217,12 @@ def telegram_keyboard(section: str | None = None) -> dict[str, Any]:
     which ``parse`` already understands, so no command can be reached by a different path.
     """
     if section is None:
-        labels = [
-            section_rows(s)[0].label if len(section_rows(s)) == 1 else t for s, t, _ in SECTIONS
-        ]
+        labels = []
+        for s, t, _ in SECTIONS:
+            rows = [c for c in section_rows(s) if c.key != "menu"]
+            # A section with one real command shows that command (يومك في دقيقة, أضف معلومة):
+            # «❓ مساعدة» itself reads as the menu, so a title button would never open it.
+            labels.append(rows[0].label if len(rows) == 1 else t)
     else:
         labels = [c.label for c in section_rows(section)] + [BY_KEY["menu"].label]
     rows = [labels[i : i + 2] for i in range(0, len(labels), 2)]

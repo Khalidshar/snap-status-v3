@@ -12,7 +12,8 @@ def test_first_keyboard_has_every_whatsapp_section():
     whatsapp = [r["title"] for r in menu.whatsapp_list()["sections"][0]["rows"]]
     assert len(top) == len(whatsapp) == len(menu.SECTIONS)
     for label in top:
-        assert menu.parse(label)["kind"] in {"section", "command"}
+        assert menu.parse(label)["kind"] in {"section", "command", "add_fact", "menu"}
+        assert menu.parse(label)["kind"] != "menu" or label == menu.BY_KEY["menu"].label
 
 
 def test_every_command_is_reachable_through_its_section():
@@ -22,6 +23,8 @@ def test_every_command_is_reachable_through_its_section():
             parsed = menu.parse(label)
             if parsed["kind"] == "command":
                 reached.add(parsed["command"].key)
+            elif label == menu.BY_KEY["add_fact"].label:
+                reached.add("add_fact")
             else:
                 assert parsed["kind"] == "menu"  # the back button
     assert reached == {c.key for c in menu.COMMANDS} - {"menu"}
