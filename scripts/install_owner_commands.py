@@ -166,6 +166,12 @@ def plan() -> dict[Path, str]:
     files[UNITS / "madar-v3-status-content@.service.d/quran.conf"] = (
         "[Service]\nReadWritePaths=-/var/lib/madar/quran-status\n"
     )
+    # The WhatsApp clip is prepared in the command consumer; its Quran Foundation reservations
+    # live in quran-status, which strict sandboxing left read-only, so every WhatsApp clip fell
+    # back to EveryAyah without word timings (owner 8 Nov 2026: «تلاوة» in both bots).
+    files[UNITS / "madar-v3-status-commands.service.d/quran-store.conf"] = (
+        "[Service]\nReadWritePaths=-/var/lib/madar/quran-status\n"
+    )
     for name in (
         "madar-v3-snap-render@.service",
         "madar-v3-snap-render.service",
