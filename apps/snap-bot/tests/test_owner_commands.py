@@ -163,6 +163,7 @@ class OwnerCommandTests(unittest.TestCase):
             listener.poll_once("t", OWNER, self.studio, 0, transport)
             self.assertEqual(calls[-1][0], "sendMessage")
             self.assertEqual(calls[-1][1]["reply_markup"], listener.menu.telegram_keyboard())
+            self.assertEqual(calls[-1][1]["text"], listener.TELEGRAM_MENU_TEXT)
 
     def test_a_section_sends_its_commands_and_a_way_back(self):
         calls = []
@@ -175,6 +176,7 @@ class OwnerCommandTests(unittest.TestCase):
 
         listener.poll_once("t", OWNER, self.studio, 0, transport)
         self.assertEqual(calls[-1][1]["reply_markup"], listener.menu.telegram_keyboard("faith"))
+        self.assertEqual(calls[-1][1]["text"], title + chr(10) + listener.TELEGRAM_SECTION_TEXT)
 
     def test_keyboard_omits_a_disabled_handler(self):
         with patch.object(listener, "ACTIONS", listener.ACTIONS - {"tech"}):
