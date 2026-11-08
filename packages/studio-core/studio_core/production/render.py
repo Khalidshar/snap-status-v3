@@ -253,8 +253,8 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         if sound
         else {"max_volume_db": measure_silence(video, profile, run)}
     )
-    low, high = LOUDNESS_GATE
-    if sound and (not low <= audio["integrated_lufs"] <= high or audio["true_peak_dbtp"] > -1):
+    quiet, loud = LOUDNESS_GATE
+    if sound and (not quiet <= audio["integrated_lufs"] <= loud or audio["true_peak_dbtp"] > -1):
         raise ValueError("LEGACY_QA_LOUDNESS")
     if not sound and audio["max_volume_db"] > -80:
         raise ValueError("LEGACY_QA_SACRED_NOT_SILENT")
@@ -302,7 +302,7 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         "codec": v["codec_name"] == "h264" and a["codec_name"] == "aac",
         "duration": low <= seconds <= high,
         "size": video.stat().st_size <= largest,
-        "audio": (low <= audio["integrated_lufs"] <= high and audio["true_peak_dbtp"] <= -1)
+        "audio": (quiet <= audio["integrated_lufs"] <= loud and audio["true_peak_dbtp"] <= -1)
         if sound
         else audio["max_volume_db"] <= -80,
         "safe_window": not layout["overflow"] and not layout["tiny"],
