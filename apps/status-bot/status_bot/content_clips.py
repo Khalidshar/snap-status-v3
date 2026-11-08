@@ -37,7 +37,7 @@ from studio_core.sources import event_video
 from studio_core.sources.news import validate as validate_news
 
 from .server_preview import STATE, safe_path
-from .whatsapp_contract import identifier, require, response_id
+from .whatsapp_contract import DeliveryBlocked, identifier, require, response_id
 from .whatsapp_outbox import MAX_VIDEO, read_bound
 
 ROOT = STATE / "content-clips"
@@ -472,6 +472,25 @@ def complete(outbox: Any, item: dict[str, Any], root: Path) -> None:
     repo.transition(control["job"], control["token"], "COMPLETED")
 
 
+def close_failure(outbox: Any, tag: str, error: Exception) -> bool:
+    """Return whether this attempt failed before any send intent was recorded."""
+    code = failure_code(error)
+    if isinstance(error, DeliveryBlocked) and identifier(str(error), r"WA_[A-Z0-9_]{1,80}"):
+        code = str(error)
+    with outbox.repo.transaction() as db:
+        retryable = db.execute(
+            "UPDATE command_videos SET state='BLOCKED',code=? WHERE tag=?"
+            " AND state IN ('WORKING','UPLOAD_INTENT')",
+            (code, tag),
+        ).rowcount
+        db.execute(
+            "UPDATE command_videos SET state='BLOCKED_OR_UNKNOWN',code=? WHERE tag=?"
+            " AND state='SEND_INTENT'",
+            (code, tag),
+        )
+    return bool(retryable)
+
+
 def deliver_built(
     outbox: Any,
     transport: Any,
@@ -590,11 +609,7 @@ def send(
             )
         except Exception as error:
             print(f"STATUS_CLIP_FAILURE stage={phase} code={failure_code(error)}", file=sys.stderr)
-            with outbox.repo.transaction() as db:
-                db.execute(
-                    "UPDATE command_videos SET state='BLOCKED_OR_UNKNOWN',code='CONTENT_COMMAND_FAILED' WHERE tag=? AND state<>'API_ACCEPTED'",
-                    (item["tag"],),
-                )
+            close_failure(outbox, item["tag"], error)
             raise
     finally:
         locks.release(lease)

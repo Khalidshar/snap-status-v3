@@ -107,6 +107,40 @@ def plain_points(text: str, desc: str) -> list[dict]:
     return pts[:6] or [{"head": "", "body": clean(desc, 200)}]
 
 
+_ARABIC_MARKS = re.compile(r"[\u0610-\u061a\u064b-\u065f\u0670\u0640]")
+_ARABIC_ALEF = str.maketrans("أإآٱ", "اااا")
+_MARKET_TERMS = re.compile(
+    r"\b[وفبكل]{0,3}(?:ال)?(?:اقتصاد(?:ي[ةه]?)?|اسهم|اسواق|سوق|تداول|مؤشر(?:ات)?|بورص[ةه]|تاسي|"
+    r"نفط|برنت|ذهب|فض[ةه]|تضخم|فائد[ةه]|بنك|بنوك|مصارف|ارباح|"
+    r"عمل[ةه]|عملات|دولار|يورو|ريال|ين|شرك[ةه]|شركات|سندات|صكوك|"
+    r"استثمار(?:ات)?|مؤشرات الاسواق|اسعار الصرف|الناتج المحلي)\b"
+)
+_MARKET_EXCLUSIONS = re.compile(
+    r"\b[وفبكل]{0,3}(?:ال)?(?:حرب|حروب|هجوم(?:ات)?|قصف|غار[ةه]|غارات|صاروخ|صواريخ|"
+    r"اشتباك(?:ات)?|جيش|عسكري(?:[ةه]|ون)?|غزو|معارك|وقف اطلاق النار|"
+    r"عقوبات دولي[ةه]|انتخاب(?:ات)?|برلمان|معارض[ةه]|تحالف سياسي|"
+    r"سياسي(?:[ةه]|ون)?|سياس[ةه](?! (?:ال)?(?:نقدي[ةه]|مالي[ةه]))|"
+    r"دبلوماسي(?:[ةه]|ون)?|حمل[ةه] انتخابي[ةه]|"
+    r"مبارا[ةه]|مباريات|كر[ةه] القدم|دوري|بطول[ةه]|كاس العالم|"
+    r"انتقالات اللاعبين|لاعب(?:ون|ين)?|ناد(?:ي)?|اندية|ركل[ةه] جزاء|"
+    # «الريال» is also Real Madrid: a match verb or a club name vetoes the currency reading.
+    r"ريال مدريد|برشلون[ةه]|فالنسيا|يهزم|هزم|يتعادل|تعادل|فوز|يفوز|ثلاثي[ةه]|هدف|اهداف)(?:ا)?\b"
+)
+
+
+def _market_text(text: str) -> str:
+    return " ".join(_ARABIC_MARKS.sub("", text).translate(_ARABIC_ALEF).split())
+
+
+def market_excluded(text: str) -> bool:
+    return _MARKET_EXCLUSIONS.search(_market_text(text)) is not None
+
+
+def market_story(text: str) -> bool:
+    """Require financial subject matter and veto political, conflict and sports cues."""
+    return not market_excluded(text) and _MARKET_TERMS.search(_market_text(text)) is not None
+
+
 CONFLICTS = {
     "روسيا وأوكرانيا": ("روسيا", "أوكرانيا", "كييف", "موسكو", "دونباس", "القرم"),
     "إسرائيل وفلسطين": ("فلسطين", "غزة", "الضفة", "إسرائيل", "إسرائيلي", "حماس", "رفح", "الأقصى"),
