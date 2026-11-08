@@ -166,6 +166,12 @@ def plan() -> dict[Path, str]:
     files[UNITS / "madar-v3-status-content@.service.d/quran.conf"] = (
         "[Service]\nReadWritePaths=-/var/lib/madar/quran-status\n"
     )
+    # The WhatsApp clip is prepared in the command consumer; its Quran Foundation reservations
+    # live in quran-status, which strict sandboxing left read-only, so every WhatsApp clip fell
+    # back to EveryAyah without word timings (owner 8 Nov 2026: «تلاوة» in both bots).
+    files[UNITS / "madar-v3-status-commands.service.d/quran-store.conf"] = (
+        "[Service]\nReadWritePaths=-/var/lib/madar/quran-status\n"
+    )
     for name in (
         "madar-v3-snap-render@.service",
         "madar-v3-snap-render.service",
@@ -249,7 +255,13 @@ def main() -> None:
             if any(p.is_symlink() for p in (root, *root.parents)):
                 raise ValueError("Unsafe Quran state")
             root.mkdir(mode=0o2770, parents=True, exist_ok=True)
-            os.chown(root, account.pw_uid, account.pw_gid)
+            # Same rule as the production folders below: status services run as root without
+            # CAP_DAC_OVERRIDE, so an owner-held quran-status refused them and every WhatsApp
+            # Quran clip silently fell back to EveryAyah (8 Nov 2026). Snap stays the owner's.
+            uid, gid = (account.pw_uid, account.pw_gid) if app == "snap" else (0, 0)
+            for path in (root, *root.rglob("*")):
+                if not path.is_symlink():
+                    os.chown(path, uid, gid)
             root.chmod(0o2770)
         for app in ("snap", "status"):
             production = Path("/var/lib/madar") / app / "production"

@@ -328,3 +328,32 @@ def test_style_puts_the_ten_strongest_houses_first_without_limiting_others():
     assert news.matches("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")
     assert not news.matches("style", "إي اف چي هيرميس ترتب تمويلًا لشركة عقارية")
     assert not news.matches("style", "تجار المجوهرات يؤجلون شراء الذهب")
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "النفط يرتفع بعد غارات على مواقع عسكرية",
+        "الأسهم تتراجع بعد نتائج الانتخابات",
+        "أرباح النادي ترتفع بعد مباراة الدوري",
+        "ارتفاع أسعار تذاكر كأس العالم بالدولار",
+        "تداول صور من مهرجان سياحي",
+        "افتتاح أسواق شعبية للزوار",
+    ],
+)
+def test_markets_reject_non_financial_or_excluded_headlines(title):
+    with pytest.raises(NewsUnavailable):
+        collect("markets", Feed(title), NOW)
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "صعود مؤشرات البورصة وأسهم الشركات",
+        "ارتفاع الذهب وتراجع الدولار مقابل اليورو",
+        "النفط يسجل أعلى مستوى منذ بداية الشهر",
+        "البنك المركزي يراجع السياسة النقدية وأسعار الفائدة",
+    ],
+)
+def test_markets_accept_financial_headlines(title):
+    assert collect("markets", Feed(title), NOW)["content"]["headline"] == title
