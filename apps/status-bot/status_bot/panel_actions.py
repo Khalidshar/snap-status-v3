@@ -42,6 +42,10 @@ def produce(outbox: Any, path: Path, identifier: str, command: str) -> bool:
     return True
 
 
+class ApprovalBlockedBeforeSend(RuntimeError):
+    """The same preview can be explicitly approved again."""
+
+
 def approve(outbox: Any, transport: Any, runtime: Any, path: Path, preview: str, sha: str) -> bool:
     raw = media(path, preview, ".mp4").read_bytes()
     require(hashlib.sha256(raw).hexdigest() == sha, "PANEL_PREVIEW_CHANGED")
@@ -50,21 +54,25 @@ def approve(outbox: Any, transport: Any, runtime: Any, path: Path, preview: str,
     locks = ComponentLocks(outbox.repo)
     lease = locks.acquire("command-clips", "USE", 1200)
     try:
+        content_clips.initialize(outbox.repo)
         with outbox.repo.transaction() as db:
-            require(
-                not db.execute(
-                    "SELECT 1 FROM command_videos WHERE tag=?", (item["tag"],)
-                ).fetchone(),
-                "WA_COMMAND_ALREADY_CONSUMED",
-            )
-            db.execute(
-                "INSERT INTO command_videos(tag,binding,kind,state,at) VALUES(?,?,?,'WORKING',?)",
+            changed = db.execute(
+                "INSERT INTO command_videos(tag,binding,kind,state,at) VALUES(?,?,?,'WORKING',?)"
+                " ON CONFLICT(tag) DO UPDATE SET state='WORKING',at=excluded.at,"
+                " code=NULL,video_sha=NULL WHERE command_videos.state='BLOCKED'"
+                " AND command_videos.binding=excluded.binding AND command_videos.kind=excluded.kind",
                 (item["tag"], outbox.identity.binding, key, outbox.repo.clock()),
-            )
-        content_clips.deliver_built(
-            outbox, transport, item, key, saved["content"], saved["result"], raw, runtime,
-            root=content_clips.ROOT, source=None, locks=locks, lease=lease,
-        )  # fmt: skip
+            ).rowcount
+            require(changed == 1, "WA_COMMAND_ALREADY_CONSUMED")
+        try:
+            content_clips.deliver_built(
+                outbox, transport, item, key, saved["content"], saved["result"], raw, runtime,
+                root=content_clips.ROOT, source=None, locks=locks, lease=lease,
+            )  # fmt: skip
+        except Exception as error:
+            if content_clips.close_failure(outbox, item["tag"], error):
+                raise ApprovalBlockedBeforeSend from error
+            raise
     finally:
         locks.release(lease)
     return True
@@ -112,12 +120,14 @@ def process(outbox: Any, transport: Any, runtime: Any, path: Path) -> bool:
     item = workspace.claim(path)
     if item is None:
         return False
-    ok = False
+    ok = retry_preview = False
     try:
         ok = run(outbox, transport, runtime, path, item)
+    except ApprovalBlockedBeforeSend:
+        retry_preview = True
     except Exception as error:  # closes as UNKNOWN; never retried or replayed
         print("STATUS_PANEL_ACTION_FAILED " + type(error).__name__, flush=True)
         ok = False
     finally:
-        workspace.finish(path, item["id"], ok)
+        workspace.finish(path, item["id"], ok, retry_preview=retry_preview)
     return True
