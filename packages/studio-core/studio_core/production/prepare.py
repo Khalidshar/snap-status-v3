@@ -29,6 +29,7 @@ from .model import (
     DATA,
     NEWS,
     QURAN,
+    REPLAY_GAP,
     ROOT,
     SAADI,
     SAADI_NAME,
@@ -36,6 +37,7 @@ from .model import (
     TITLES,
     budget,
     canonical,
+    phrases_for,
     saadi_text,
     scene,
     sha,
@@ -822,6 +824,7 @@ class Factory:
         provider: str,
         *,
         background: bool,
+        segments: list[list[int]] | None = None,
     ) -> dict[str, Any]:
         from studio_core.religious.quran_foundation import exact_ayah
 
@@ -851,6 +854,14 @@ class Factory:
         tafsir = html.unescape(re.sub("<[^>]*>", "", result["translation"]))
         text = exact_ayah(surah, ayah)
         hold = seconds + 0.8 if background else seconds + 0.8 + max(len(tafsir) / 17 + 1, 5.0)
+        extra: dict[str, Any] = {}
+        if segments is not None:
+            # «تلاوة» (owner 8 Nov 2026): phrases follow the reciter; the tafsir is not paged.
+            try:
+                extra["phrases"] = phrases_for(text, segments, seconds)
+                hold = seconds + 0.8
+            except ValueError:
+                pass  # word counts differ: the whole ayah is shown, never a guessed phrase
         return scene(
             text,
             hold,
@@ -861,6 +872,7 @@ class Factory:
             source=f"بصوت {name} — التلاوة: {provider}",
             audio=self.local(audio, url, name),
             audio_duration=seconds,
+            **extra,
         )
 
     def foundation_recitation(
@@ -897,6 +909,10 @@ class Factory:
                         store.sweep()
                         audio = store.directory(qf_job) / f"{surah}-{ayah}.mp3"
                         audio.write_bytes(source.audio(f"{surah}:{ayah}", reader))
+                        try:
+                            timing = source.segments(f"{surah}:{ayah}", reader)
+                        except ValueError:
+                            timing = None  # no estimated timing: the classic page instead
                         item = self.recitation_scene(
                             surah,
                             ayah,
@@ -905,6 +921,7 @@ class Factory:
                             reader["name"],
                             "مؤسسة القرآن",
                             background=background,
+                            segments=timing,
                         )
                         asset = next(a for a in self.assets if a["file"] == item["audio"])
                         asset.update({"qf_job": qf_job, "expires_at": expires})
@@ -1211,7 +1228,8 @@ class Factory:
             for item in candidates:
                 try:
                     scenes += self.quran(item["surah"], item["ayahs"])
-                    scenes += self.saadi(item["surah"], item["ayahs"], scenes)
+                    if not any(s.get("phrases") for s in scenes):
+                        scenes += self.saadi(item["surah"], item["ayahs"], scenes)
                     break
                 except ValueError:
                     continue
@@ -1292,6 +1310,22 @@ class Factory:
                         "kind": item.get("voice_kind", "human"),
                     }
                 )
+        for item in scenes:
+            if item.get("phrases"):
+                # The same whole recitation again while the clip lasts; never a cut ayah.
+                length = item["audio_duration"]
+                room = item["seconds"] - 0.15 - length - 0.3
+                item["replays"] = max(0, int(room // (length + REPLAY_GAP)))
+                for k in range(1, item["replays"] + 1):
+                    self.audio.append(
+                        {
+                            "file": item["audio"],
+                            "at": round(item["at"] + 0.15 + k * (length + REPLAY_GAP), 3),
+                            "seconds": length,
+                            "kind": "human",
+                            "repeat": True,
+                        }
+                    )
         if key == "brief":
             self.audio = self.brief_audio
         music = None

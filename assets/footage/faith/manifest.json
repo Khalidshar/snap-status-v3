@@ -1,0 +1,66 @@
+{
+ "schema": 1,
+ "decision": "docs/DECISIONS.md — 8 Nov 2026 tilawa: Islamic backdrops mixed with calm nature; reviewed by eye, no faces or brands",
+ "clips": [
+  {
+   "file": "pexels-holy-quran-book.mp4",
+   "title": "غلاف مصحف مذهّب",
+   "provider": "Pexels",
+   "license": "Pexels License",
+   "license_url": "https://www.pexels.com/license/",
+   "source_url": "https://www.pexels.com/video/close-up-of-quran-and-misbaha-8165766/",
+   "credit": "Alena Darmel",
+   "sha256": "d28a150d300fe7deb739deda014f0d01a85d07d8e019f46cc5fe5c16c43543a4"
+  },
+  {
+   "file": "pexels-mosque-night.mp4",
+   "title": "مسجد مضاء ليلًا",
+   "provider": "Pexels",
+   "license": "Pexels License",
+   "license_url": "https://www.pexels.com/license/",
+   "source_url": "https://www.pexels.com/video/majestic-mosque-illuminated-at-night-34918472/",
+   "credit": "Md Amir Umar",
+   "sha256": "5db43fd2f591ed0cb4ead2cdce73fe413a4bce55fc56115f28272139fa88c483"
+  },
+  {
+   "file": "pexels-quran-reading.mp4",
+   "title": "مصحف مفتوح",
+   "provider": "Pexels",
+   "license": "Pexels License",
+   "license_url": "https://www.pexels.com/license/",
+   "source_url": "https://www.pexels.com/video/an-open-page-of-quran-8165472/",
+   "credit": "Alena Darmel",
+   "sha256": "cf8b7d06e99ec38e3ed560a5919eff1c99b92b170fb0cfe4fcb9447243575d07"
+  },
+  {
+   "file": "pexels-prayer-beads.mp4",
+   "title": "سبحة بين اليدين",
+   "provider": "Pexels",
+   "license": "Pexels License",
+   "license_url": "https://www.pexels.com/license/",
+   "source_url": "https://www.pexels.com/video/close-up-on-hand-with-rosary-10943542/",
+   "credit": "Muhammed İKİTEPE",
+   "sha256": "a4d683a46b4a66cc2543f1b7fa16a5a73846f54f01c4924f7aab78905a63632c"
+  },
+  {
+   "file": "pexels-mosque-interior.mp4",
+   "title": "مصلون في مسجد",
+   "provider": "Pexels",
+   "license": "Pexels License",
+   "license_url": "https://www.pexels.com/license/",
+   "source_url": "https://www.pexels.com/video/peaceful-worship-scene-in-a-mosque-36301882/",
+   "credit": "Atif Dar",
+   "sha256": "b45a42e0d6121f64a5779c7cfd0cf49ffdc4dcac6f327e0b89edade3987c1645"
+  },
+  {
+   "file": "pexels-islamic-arch.mp4",
+   "title": "أقواس مسجد",
+   "provider": "Pexels",
+   "license": "Pexels License",
+   "license_url": "https://www.pexels.com/license/",
+   "source_url": "https://www.pexels.com/video/the-courtyard-of-a-mosque-with-arches-and-columns-25912841/",
+   "credit": "Pexels User",
+   "sha256": "cbf7d83ac9602315912668dcda9ee7c11b964c1f7c8787bda3d1e74a40c1291c"
+  }
+ ]
+}
