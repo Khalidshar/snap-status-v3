@@ -632,6 +632,10 @@ class Factory:
         # Owner report 8 Nov 2026 («المكتوب آية الكرسي والصوت آية أخرى»): one file per ayah,
         # named by its number, comes first; a cut from a whole-surah file is only a fallback
         # and must match the length of the same ayah from per-ayah recordings.
+        # Owner 8 Nov 2026: our Quran Foundation access (official, one file per ayah) first.
+        extra = self.foundation_recitation(surah, ayahs, last_name, background=background)
+        if extra:
+            return extra
         references: dict[int, list[float]] = {}
         for reader in fallback + mp3:
             if reader["name"] == last_name:
@@ -710,9 +714,6 @@ class Factory:
                 subprocess.SubprocessError,
             ):
                 continue
-        extra = self.foundation_recitation(surah, ayahs, last_name, background=background)
-        if extra:
-            return extra
         raise ValueError("LEGACY_HUMAN_RECITATION_UNAVAILABLE")
 
     def reference_seconds(
