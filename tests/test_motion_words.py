@@ -20,3 +20,8 @@ def test_words_keep_the_laid_out_text() -> None:
 
 def test_years_do_not_count_up() -> None:
     assert r"year=/^\d{4}$/.test(raw)&&v>=1300&&v<=2100" in TEXT
+
+
+def test_designer_decisions_reach_the_renderer() -> None:
+    assert "cards:(design.type&&design.type.cards)||[]" in TEXT
+    assert "plan.pages===2" in TEXT and "sp.classList.add('key')" in TEXT
