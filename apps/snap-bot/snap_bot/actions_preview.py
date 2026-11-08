@@ -139,6 +139,8 @@ def new_output_directory(output: Path) -> None:
 
 def render_bundle(output: Path, provenance: Any) -> Any:
     """Actual owned pipeline, renderer systemd sandbox and SQLite backup."""
+    import fcntl
+
     from studio_core.config import Config
     from studio_core.jobs import Repository
     from studio_core.jobs.gateway import CommandGateway
@@ -248,6 +250,7 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         ):
             if name in os.environ:
                 args += ["--setenv=" + name + "=" + os.environ[name]]
+        lifetime = socket_dir / "coordinator.lock"
         args += [
             "--setenv=PYTHONPATH=" + str(ROOT / "apps/snap-bot"),
             "--setenv=PYTHONDONTWRITEBYTECODE=1",
@@ -256,9 +259,12 @@ def render_bundle(output: Path, provenance: Any) -> Any:
             "snap_bot.service",
             "--config",
             str(path),
+            "--coordinator-lock",
+            str(lifetime),
             "renderer",
         ]
-        try:
+        with lifetime.open("xb") as coordinator:
+            fcntl.flock(coordinator, fcntl.LOCK_EX)
             subprocess.run(args, check=True, capture_output=True, text=True, timeout=30)  # noqa: S603  # fixed argv, no shell
             deadline = time.monotonic() + 20
             while not Path(settings["render_socket"]).exists():
@@ -318,12 +324,6 @@ def render_bundle(output: Path, provenance: Any) -> Any:
                 json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
             )
             return metadata
-        finally:
-            subprocess.run(  # noqa: S603  # fixed argv, no shell
-                ["sudo", "-n", "systemctl", "stop", unit],  # noqa: S607  # pinned system tool
-                capture_output=True,
-                timeout=30,
-            )
 
 
 def digest_guard(video: bytes, result: Any, content: Any, env: Mapping[str, str]) -> None:
