@@ -1,0 +1,8 @@
+[Unit]
+Description=Madar scheduled noon clip (both bots, 13:00 Riyadh)
+[Timer]
+OnCalendar=*-*-* 13:00:00 Asia/Riyadh
+Unit=madar-v3-schedule@noon.service
+Persistent=false
+[Install]
+WantedBy=timers.target

@@ -164,6 +164,11 @@ def plan() -> dict[Path, str]:
         "madar-v3-status-quran-prepare@.service",
         "madar-v3-snap-quran-render@.service",
         "madar-v3-status-quran-render@.service",
+        # Owner decision 9 Nov 2026: three scheduled clips a day in both bots.
+        "madar-v3-schedule@.service",
+        "madar-v3-schedule-morning.timer",
+        "madar-v3-schedule-noon.timer",
+        "madar-v3-schedule-night.timer",
     ):
         files[UNITS / name] = (templates / name).read_text()
     files[UNITS / "madar-v3-status-content@.service.d/quran.conf"] = (
