@@ -13,7 +13,7 @@ HOST = "speech.platform.bing.com"
 
 def approved(url: str) -> str:
     from studio_core.presentation import faith
-    from studio_core.production.model import DATA
+    from studio_core.production.model import DATA, HADITH_LEAD
 
     parts = urlsplit(url)
     query = parse_qs(parts.query, strict_parsing=True)
@@ -27,7 +27,7 @@ def approved(url: str) -> str:
         raise PolicyDenied("PRODUCTION_SPEECH_SCOPE_DENIED")
     text = query["text"][0]
     allowed = (
-        [i["text"] for i in faith.load("hadith")]
+        [form for i in faith.load("hadith") for form in (i["text"], HADITH_LEAD + " " + i["text"])]
         if parts.hostname == "hadith"
         else [i["a"] for i in json.loads((DATA / "riddles.json").read_bytes())]
     )
