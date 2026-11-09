@@ -24,7 +24,7 @@ from studio_core.observability.failure_code import failure_code
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
 from .did_you_know import DEFAULT_KIND, HISTORY_LIMIT, KINDS, WINDOW_SECONDS
-from .send_evidence import failure_receipt, network_started
+from .send_evidence import VideoSendTimeout, failure_receipt, network_started
 from .send_reconciliation import receipt_allows
 from .telegram_egress import CHANNELS, EXPECTED_BOT, DeliveryConfirmed, deliver, main_bot
 
@@ -594,14 +594,16 @@ class Runtime:
             except DeliveryConfirmed:
                 self.append("ACK_EVIDENCE_PENDING", video_sha=video_sha)
                 raise RuntimeError("Confirmed delivery requires local reconciliation") from None
-            except Exception:
+            except Exception as error:
                 proof = failure_receipt(
                     directory / "server-failure.json",
                     run_id=intent["run_id"],
                     video_sha=video_sha,
                     intent_id=intent["id"],
                     content_hash=intent["content_hash"],
-                    reason="SERVER_SEND_FAILED",
+                    reason=error.reason
+                    if isinstance(error, VideoSendTimeout)
+                    else "SERVER_SEND_FAILED",
                 )
                 proven = receipt_allows(proof, {"id": intent["id"]}, intent)
                 self.append("PRE_NETWORK_BLOCKED" if proven else "UNKNOWN", video_sha=video_sha)

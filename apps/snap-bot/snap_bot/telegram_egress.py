@@ -7,6 +7,7 @@ never from the environment). Both deliver only to a verified private owner chat.
 
 import hashlib
 import json
+import math
 import os
 import re
 import sqlite3
@@ -31,11 +32,16 @@ from studio_core.storage import Storage
 
 from .did_you_know import validate_content
 from .render import video_filename
+from .send_evidence import VideoSendTimeout, delivery_evidence
 from .weather import content_hash
 
 EXPECTED_BOT = "khalid_snap_v2_test_bot"
 CHANNELS = ("test", "main")
 BOT_NAME = r"[A-Za-z][A-Za-z0-9_]{1,29}[Bb][Oo][Tt]"
+REQUEST_TIMEOUT = 45
+VIDEO_CONNECT_TIMEOUT = 15
+VIDEO_ACK_GRACE = 45
+VIDEO_UPLOAD_BYTES_PER_SECOND = 512_000
 
 
 def main_bot(value: str) -> str:
@@ -70,9 +76,23 @@ def api(token: str, method: str, body: bytes = b"", content_type: str = "applica
     host, address, path = validate_target(
         "https://api.telegram.org/bot" + token + "/" + method, ("api.telegram.org",)
     )
-    connection = PinnedHTTPSConnection(host, address, 45)
+    video = method == "sendVideo"
+    connection = PinnedHTTPSConnection(
+        host, address, VIDEO_CONNECT_TIMEOUT if video else REQUEST_TIMEOUT
+    )
     try:
+        if video:
+            connection.connect()
+            if connection.sock is None:
+                raise ConnectionError("Telegram connection did not open")
+            connection.sock.settimeout(
+                max(REQUEST_TIMEOUT, 10 + math.ceil(len(body) / VIDEO_UPLOAD_BYTES_PER_SECOND))
+            )
         connection.request("POST", path, body, {"Content-Type": content_type})
+        if video and connection.sock is not None:
+            # Wait out the acknowledgement grace period on this same POST. A socket
+            # that has actually timed out cannot be used to recover the HTTP response.
+            connection.sock.settimeout(REQUEST_TIMEOUT + VIDEO_ACK_GRACE)
         response = connection.getresponse()
         raw = response.read(1024 * 1024 + 1)
         if len(raw) > 1024 * 1024:
@@ -131,9 +151,6 @@ def confirmed_result(
         return reconcile_published(config, job_id, digest, review_mode, bot)
     except Exception as cause:
         raise DeliveryConfirmed(job_id, digest, review_mode) from cause
-
-
-from .send_evidence import delivery_evidence  # noqa: E402  # import cycle: send_evidence uses api
 
 
 @delivery_evidence
@@ -371,9 +388,14 @@ def deliver(
                 body, kind = delivery.multipart(
                     chat, video, production_caption, video_filename(content.get("type", "weather"))
                 )
-            sent = transport(token, "sendVideo", body, kind)
-            if str(sent.get("chat", {}).get("id")) != chat or not isinstance(
-                sent.get("message_id"), int
+            try:
+                sent = transport(token, "sendVideo", body, kind)
+            except TimeoutError:
+                raise VideoSendTimeout("DELIVERY_UNKNOWN; manual reconciliation required") from None
+            if (
+                str(sent.get("chat", {}).get("id")) != chat
+                or type(sent.get("message_id")) is not int
+                or sent["message_id"] <= 0
             ):
                 raise ValueError("Unverified Telegram acknowledgement")
         finally:
@@ -396,7 +418,7 @@ def deliver(
             return confirmed_result(config, job_id, digest, review_mode, bot)
         repo.mark_artifacts_terminal(job_id, "PUBLISHED")
         return confirmed_result(config, job_id, digest, review_mode, bot)
-    except Exception:
+    except Exception as error:
         with repo.transaction() as db:
             acknowledged = db.execute(
                 "SELECT state FROM telegram_outbox WHERE video_sha=?", (digest,)
@@ -412,4 +434,6 @@ def deliver(
             repo.transition(job_id, lease, "FAILED", {"code": "DELIVERY_UNKNOWN"})
         except LeaseLost:
             pass
+        if isinstance(error, VideoSendTimeout):
+            raise
         raise RuntimeError("DELIVERY_UNKNOWN; manual reconciliation required") from None
