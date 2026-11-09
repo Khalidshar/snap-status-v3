@@ -47,8 +47,53 @@ from .model import (
 )
 
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
-MUSIC = "https://www.free-stock-music.com/music/maxkomusic/mp3/maxkomusic-true-patriot.mp3"
-MUSIC_CREDIT = "True Patriot by MaxKoMusic | https://maxkomusic.com/\nRoyalty Free Music by https://www.free-stock-music.com\nCC BY-SA 3.0 https://creativecommons.org/licenses/by-sa/3.0/"
+# Owner decision 8 Nov 2026: one fixed theme per kind, like a TV channel's music package —
+# never random. All CC BY (commercial use with credit); the credit goes into every caption.
+BY3 = "CC BY 3.0 https://creativecommons.org/licenses/by/3.0/"
+BY4 = "CC BY 4.0 https://creativecommons.org/licenses/by/4.0/"
+FSM = "Royalty Free Music by https://www.free-stock-music.com"
+
+
+def theme(artist: str, slug: str, title: str, license_: str) -> tuple[str, str]:
+    page = f"https://www.free-stock-music.com/{slug}.html"
+    url = f"https://www.free-stock-music.com/music/{artist}/mp3/{slug}.mp3"
+    return url, chr(10).join((f"{title} | {page}", FSM, license_))
+
+
+THEMES = {
+    "news": theme(
+        "alex-productions",
+        "alex-productions-breaking-news",
+        "Breaking News by Alex-Productions",
+        BY3,
+    ),
+    "funny": theme(
+        "alex-productions", "alex-productions-have-fun", "Have Fun by Alex-Productions", BY3
+    ),
+    "riddle": theme("fsm-team", "fsm-team-escp-pendulum", "Pendulum by FSM Team & escp", BY4),
+    "tech": theme(
+        "mixaund", "mixaund-tech-corporate-loop", "Tech Corporate (Loop) by Mixaund", BY4
+    ),
+    "style": theme(
+        "fsm-team", "fsm-team-escp-downtown-walk", "Downtown Walk by FSM Team & escp", BY4
+    ),
+    "history": theme(
+        "alexander-nakarada",
+        "alexander-nakarada-tranquil-fields-eastern",
+        "Tranquil Fields (Eastern) by Alexander Nakarada",
+        BY4,
+    ),
+}
+THEME_OF = {
+    **dict.fromkeys(
+        ("urgent", "saudi", "world", "football", "markets", "news", "news_noon"), "news"
+    ),
+    **dict.fromkeys(("tech", "facts", "did_you_know"), "tech"),
+    "funny": "funny",
+    "riddle": "riddle",
+    "style": "style",
+    "history": "history",
+}
 
 
 def cut_matches(seconds: float, references: list[float]) -> bool:
@@ -1348,7 +1393,8 @@ class Factory:
             self.audio = self.brief_audio
         music = None
         if key not in SACRED:
-            music = self.save(self.get(MUSIC), ".mp3", MUSIC, MUSIC_CREDIT)
+            url, credit = THEMES[THEME_OF.get(key, "tech")]
+            music = self.save(self.get(url), ".mp3", url, credit)
             duration(self.root / music)
         p = {
             "schema": 1,
