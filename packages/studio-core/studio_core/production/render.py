@@ -16,7 +16,7 @@ from studio_core.presentation import brand_frame, footage
 from studio_core.presentation.fact_audio import measure_audio, measure_silence
 from studio_core.renderer import ensure_glyphs, proof, run
 
-from . import designer
+from . import designer, review
 from .isolation import deny_ip_sockets
 from .model import ROOT, SACRED, budget, resource, sha, validate
 
@@ -71,6 +71,13 @@ def verify_fonts(p: dict[str, Any]) -> None:
         ensure_glyphs("".join(c for c in text if c not in "\n\r\ufe0f\u200d"), charset)
 
 
+TARGET_LUFS = -16.0
+LOUDNESS_GATE = (-17.5, -14.5)  # integrated LUFS accepted after the mix
+MUSIC_UNDER_VOICE = 0.25  # -12 dB: speech stays ~12 LU above the theme
+SIGNATURE_SECONDS = 1.5
+SIGNATURE = ((0.05, 659), (0.3, 880), (0.55, 1319))
+
+
 def audio_mix(p: dict[str, Any], source: Path, work: Path) -> Path:
     """Human recordings stay whole. Never add generated sound to sacred content."""
     seconds = p["duration"]
@@ -95,6 +102,9 @@ def audio_mix(p: dict[str, Any], source: Path, work: Path) -> Path:
     clips = list(p["audio"])
     if p["music"]:
         clips.append({"file": p["music"], "at": 0, "seconds": seconds, "music": True})
+    # Owner decision 8 Nov 2026 (TV practice, Torcoli 2019): speech stays about 12 LU above
+    # the music, which dips under every voice and fades in after the channel signature.
+    voiced = "+".join(f"between(t,{a['at']:.2f},{a['at'] + a['seconds']:.2f})" for a in p["audio"])
     for i, clip in enumerate(clips, 1):
         path = resource(source, clip["file"], assets[clip["file"]])
         args += ["-protocol_whitelist", "file,pipe"]
@@ -102,12 +112,25 @@ def audio_mix(p: dict[str, Any], source: Path, work: Path) -> Path:
             args += ["-stream_loop", "-1"]
         args += ["-i", str(path)]
         delay = round(clip["at"] * 1000)
+        shape = ""
+        if clip.get("music"):
+            if voiced:
+                shape += f",volume='if({voiced},{MUSIC_UNDER_VOICE},1)':eval=frame"
+            if p["effects"]:
+                shape += f",afade=t=in:st=0:d={SIGNATURE_SECONDS}"
         filters.append(
-            f"[{i}:a]atrim=0:{clip['seconds']},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo,adelay={delay}|{delay}[a{i}]"
+            f"[{i}:a]atrim=0:{clip['seconds']},asetpts=PTS-STARTPTS,aresample=48000,aformat=channel_layouts=stereo{shape},adelay={delay}|{delay}[a{i}]"
         )
         labels.append(f"[a{i}]")
     # Old whoosh / pop / riddle ticks: local synthesis, never under religious material.
     if p["effects"]:
+        # The «روّق مع خالد» signature: three rising notes, made here, same on every clip.
+        for k, (at, hz) in enumerate(SIGNATURE):
+            delay = round(at * 1000)
+            filters.append(
+                f"sine=frequency={hz}:sample_rate=48000:duration=0.9,volume=0.22,afade=t=out:st=0.05:d=0.85:curve=exp,aformat=channel_layouts=stereo,adelay={delay}|{delay}[s{k}]"
+            )
+            labels.append(f"[s{k}]")
         events = []
         for s in p["scenes"][1:]:
             events.append((s["at"], 0.11, 600))
@@ -152,11 +175,12 @@ def audio_mix(p: dict[str, Any], source: Path, work: Path) -> Path:
     )
     if clips:
         # One pass misses on very dynamic music (4 Nov: Snap «حدث اليوم» failed the loudness
-        # gate). Measure the mix and correct it once toward -15 LUFS under the same limiter.
+        # gate). Measure the mix and correct it once toward -16 LUFS (owner 8 Nov 2026,
+        # Snap guidance) under the same limiter.
         level = measure_audio(out, {"ffmpeg": "/usr/bin/ffmpeg", "timeout_seconds": 300}, run)
-        if not -17 <= level["integrated_lufs"] <= -12 or level["true_peak_dbtp"] > -1.5:
+        if not -16.8 <= level["integrated_lufs"] <= -15.2 or level["true_peak_dbtp"] > -1.5:
             fixed = work / "mix-level.wav"
-            gain = -15 - level["integrated_lufs"]
+            gain = TARGET_LUFS - level["integrated_lufs"]
             run(
                 [
                     "/usr/bin/ffmpeg",
@@ -229,7 +253,8 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         if sound
         else {"max_volume_db": measure_silence(video, profile, run)}
     )
-    if sound and (not -18 <= audio["integrated_lufs"] <= -11 or audio["true_peak_dbtp"] > -1):
+    quiet, loud = LOUDNESS_GATE
+    if sound and (not quiet <= audio["integrated_lufs"] <= loud or audio["true_peak_dbtp"] > -1):
         raise ValueError("LEGACY_QA_LOUDNESS")
     if not sound and audio["max_volume_db"] > -80:
         raise ValueError("LEGACY_QA_SACRED_NOT_SILENT")
@@ -277,7 +302,7 @@ def qa(video: Path, p: dict[str, Any], layout: dict[str, Any], work: Path) -> di
         "codec": v["codec_name"] == "h264" and a["codec_name"] == "aac",
         "duration": low <= seconds <= high,
         "size": video.stat().st_size <= largest,
-        "audio": (-18 <= audio["integrated_lufs"] <= -11 and audio["true_peak_dbtp"] <= -1)
+        "audio": (quiet <= audio["integrated_lufs"] <= loud and audio["true_peak_dbtp"] <= -1)
         if sound
         else audio["max_volume_db"] <= -80,
         "safe_window": not layout["overflow"] and not layout["tiny"],
@@ -462,6 +487,18 @@ def render(
             }
             report = qa(video, p, layout, work)
             inspection = designer.inspect(video, p["duration"], approved["clip_box"])
+            # Reviewer and fixer (owner 8 Nov 2026): inspect the finished clip; what the
+            # fixer can repair through the design is rendered once more in attempt 2.
+            findings = review.review(p, layout, video, run)
+            fixable = [f for f in findings if f["fixable"]]
+            if fixable and attempt == 1:
+                design, actions = review.fix(design, fixable)
+                if actions:
+                    raise ValueError(
+                        "LEGACY_REVIEW_FIXING: " + " ".join(f["code"] for f in fixable)
+                    )
+            if any(f["code"] == "BLACK_FRAMES" for f in findings):
+                raise ValueError("LEGACY_REVIEW_BLACK_FRAMES")
             result = {
                 "schema": 1,
                 "app": p["app"],
@@ -473,6 +510,7 @@ def render(
                 "network_isolation": isolation,
                 "attempt": attempt,
                 "rebuild_reasons": errors,
+                "review": {"findings": findings, "fixes": design.get("fixes", [])},
                 "design": {k: v for k, v in design.items() if k != "footage_path"}
                 | {"inspection": inspection},
                 "external_delivery": False,

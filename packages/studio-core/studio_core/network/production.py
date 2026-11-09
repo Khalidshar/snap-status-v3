@@ -135,7 +135,8 @@ def fetch(url: str, config: ProductionPolicy) -> dict[str, Any]:
         try:
             headers = {"User-Agent": config.network_user_agent}
             if host in {"www.free-stock-music.com", "free-stock-music.com"}:
-                headers["Referer"] = "https://www.free-stock-music.com/maxkomusic-true-patriot.html"
+                # The site serves its MP3s to visitors of its own pages (one theme per kind).
+                headers["Referer"] = "https://www.free-stock-music.com/"
             connection.request("GET", path, headers=headers)
             response = connection.getresponse()
             if response.status in {301, 302, 303, 307, 308}:

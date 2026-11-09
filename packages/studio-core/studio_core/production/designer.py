@@ -9,6 +9,7 @@ After: refuses black or grey bars beside the picture or clip.
 """
 
 import hashlib
+import re
 import sqlite3
 import subprocess
 from contextlib import closing
@@ -53,6 +54,65 @@ POOLS = {"calm": "الهادئة", "night": "الليلية", "day": "النها
 DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
 # Mean luma (0-255) the dimmed backdrop should land near so cream and gold text stay readable.
 TARGET_LUMA = 70.0
+# Owner decision 8 Nov 2026: the designer also owns contrast where the text sits. The
+# brightest tenth of the text band should land near this level, up to 65% dimming.
+TARGET_SPOTS = 120.0
+MAX_DIM = 0.65
+# The approved type (owner: the designer decides font and size). Base body size by length.
+FONT = "body"  # المهند، الخط المعتمد
+SHORT, LONG = 60, 160
+SIZES = {"short": 84, "normal": 72, "long": 72}
+# Places and bodies that deserve the eye first; at most two highlighted words per card.
+KEY_WORDS = (
+    "السعودية",
+    "الرياض",
+    "جدة",
+    "مكة",
+    "المدينة",
+    "الدمام",
+    "الخبر",
+    "نيوم",
+    "العلا",
+    "أبها",
+    "تبوك",
+    "القصيم",
+    "الأحساء",
+    "الطائف",
+    "الهلال",
+    "النصر",
+    "الاتحاد",
+    "الأهلي",
+    "الشباب",
+    "أرامكو",
+    "تاسي",
+    "الخليج",
+    "الإمارات",
+    "الكويت",
+    "قطر",
+    "البحرين",
+    "عمان",
+    "مصر",
+    "الأردن",
+    "أمريكا",
+    "الصين",
+    "اليابان",
+    "أوروبا",
+    "بريطانيا",
+    "فرنسا",
+    "ألمانيا",
+    "آبل",
+    "جوجل",
+    "مايكروسوفت",
+    "سامسونج",
+    "تسلا",
+    "ميتا",
+    "إنفيديا",
+    "الذهب",
+    "النفط",
+    "بيتكوين",
+    "رؤية",
+)
+MAX_KEYS = 2
 
 
 def luma(path: Path) -> float:
@@ -86,6 +146,74 @@ def luma(path: Path) -> float:
     if not values:
         raise ValueError("DESIGNER_FOOTAGE_UNREADABLE")
     return sum(values) / len(values)
+
+
+def bright_spots(path: Path) -> float:
+    """Brightest tenth (90th percentile) of the band where cards sit, over three frames."""
+    values: list[int] = []
+    for second in (0.5, 2.0, 4.0):
+        raw = subprocess.run(  # noqa: S603 - fixed tool path, generated arguments
+            [
+                "/usr/bin/ffmpeg",
+                "-v",
+                "error",
+                "-nostdin",
+                "-ss",
+                str(second),
+                "-i",
+                str(path),
+                "-frames:v",
+                "1",
+                # The text band: the middle 70% of the height, full width.
+                "-vf",
+                "crop=iw:ih*0.7:0:ih*0.15,scale=32:40,format=gray",
+                "-f",
+                "rawvideo",
+                "-",
+            ],
+            check=True,
+            capture_output=True,
+            timeout=60,
+        ).stdout
+        values += list(raw)
+    if not values:
+        raise ValueError("DESIGNER_FOOTAGE_UNREADABLE")
+    values.sort()
+    return float(values[int(len(values) * 0.9)])
+
+
+def typography(p: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Font, base size, two-page permission and highlighted words for every card.
+
+    Display only: the renderer never changes a letter. Sacred clips keep the approved
+    sizes with no highlight and no splitting rules of this agent.
+    """
+    sacred = p.get("effects") is False
+    cards: list[dict[str, Any]] = []
+    counts = {"short": 0, "normal": 0, "long": 0}
+    keyed = 0
+    for scene in p["scenes"]:
+        body = scene.get("body", "")
+        if sacred or scene.get("verse") or scene.get("role") in {"hook", "cta"}:
+            cards.append({})
+            continue
+        size = "short" if len(body) <= SHORT else "long" if len(body) > LONG else "normal"
+        counts[size] += 1
+        keys = [m.strip("«»") for m in re.findall(r"«[^»]{2,30}»", body)]
+        for word in KEY_WORDS:
+            if re.search(r"(?<![\w])(?:ال|و|ب|ل|في)?" + re.escape(word) + r"(?![\w])", body):
+                keys.append(word)
+        keys = list(dict.fromkeys(keys))[:MAX_KEYS]
+        keyed += bool(keys)
+        cards.append({"size": SIZES[size], "pages": 2 if size == "long" else 1, "keys": keys})
+    reasons = []
+    if not sacred:
+        reasons.append(
+            f"الخط المعتمد (المهند)؛ نص قصير {counts['short']} بحجم كبير، "
+            f"عادي {counts['normal']}، طويل {counts['long']} يتوزع على صفحتين بدل القص؛ "
+            f"إبراز كلمة مهمة في {keyed} بطاقة".translate(DIGITS)
+        )
+    return {"font": FONT, "cards": cards}, reasons
 
 
 def choose_background(
@@ -161,10 +289,21 @@ def decide(
         reasons.append(f"لا كلمة تحدد الخلفية، فاختار من الخلفيات {group}: {name}")
     path = Path(chosen["path"]) if "path" in chosen else footage.ROOT / chosen["file"]
     brightness = luma(path)
-    dim = round(min(0.55, max(0.15, 1 - TARGET_LUMA / max(brightness, 1.0))), 2)
+    spots = bright_spots(path)
+    by_mean = min(0.55, max(0.15, 1 - TARGET_LUMA / max(brightness, 1.0)))
+    by_spots = 1 - TARGET_SPOTS / max(spots, 1.0)
+    dim = round(min(MAX_DIM, max(by_mean, by_spots)), 2)
     reasons.append(
         f"سطوع الخلفية {brightness:.0f} من 255، فصار التعتيم {int(dim * 100)}٪".translate(DIGITS)
     )
+    if by_spots > by_mean:
+        reasons.append(
+            f"بقع فاتحة خلف النص ({spots:.0f} من 255)، فزاد التعتيم ليبقى النص واضحًا".translate(
+                DIGITS
+            )
+        )
+    type_, type_reasons = typography(p)
+    reasons += type_reasons
     return {
         "schema": 1,
         "agent": "designer",
@@ -174,6 +313,8 @@ def decide(
         "footage_path": str(path),
         "footage_luma": round(brightness, 1),
         "dim": dim,
+        "footage_spots": spots,
+        "type": type_,
         "reasons": reasons,
     }
 
