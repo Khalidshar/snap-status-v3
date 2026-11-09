@@ -23,7 +23,7 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
  const browser=await chromium.launch({headless:true,...(process.env.MADAR_CHROMIUM?{executablePath:process.env.MADAR_CHROMIUM}:{}),args:['--no-sandbox','--disable-background-networking','--no-proxy-server']});
  const reports=[];
  try{
-  const count=Math.ceil(p.duration*15),workers=Math.max(1,Math.min(8,parseInt(process.env.MADAR_RENDER_WORKERS||"2",10)||2));
+  const count=Math.ceil(p.duration*15),workers=Math.max(1,Math.min(8,parseInt(process.env.MADAR_RENDER_WORKERS||String(Math.max(2,Math.floor(require("node:os").cpus().length/2))),10)||2));
   await Promise.all(Array.from({length:workers},(_,worker)=>(async()=>{
    const page=await browser.newPage({viewport:{width:1080,height:1920},deviceScaleFactor:1});
    await page.route('**/*',r=>r.request().url().startsWith('data:')?r.continue():r.abort());
