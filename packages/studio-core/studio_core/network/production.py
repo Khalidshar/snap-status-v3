@@ -97,7 +97,10 @@ def hosts() -> set[str]:
     # Publisher/feeds from the approved registry only; do not fetch a new source merely
     # because a page asks us to. Dedicated image CDNs are listed separately above.
     catalog = json.loads((ROOT / "config/media/legacy-production.json").read_text())
-    return BASE | set(catalog["hosts"])
+    from studio_core.sources.panel import hosts as panel_hosts
+
+    # Owner decision 9 Nov 2026: a source Khalid approves in the panel opens its host.
+    return BASE | set(catalog["hosts"]) | panel_hosts()
 
 
 @dataclass(frozen=True)
