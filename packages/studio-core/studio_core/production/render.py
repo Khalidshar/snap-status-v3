@@ -424,7 +424,7 @@ def render(
                     "-c:v",
                     "libx264",
                     "-threads:v",
-                    "2",
+                    "4",
                     "-preset",
                     "veryfast",
                     "-crf",
@@ -453,7 +453,7 @@ def render(
                 ("-bufsize", "3600k"),
             ]:
                 command[command.index(flag) + 1] = setting
-            command[1:1] = ["-threads", "2", "-filter_complex_threads", "1"]
+            command[1:1] = ["-threads", "4", "-filter_complex_threads", "1"]
             run(command, 900)
             brand = {
                 "clip_box": approved["clip_box"],
