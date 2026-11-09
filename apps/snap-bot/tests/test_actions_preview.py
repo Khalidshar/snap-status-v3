@@ -43,6 +43,37 @@ def blocked(call):
 
 
 class ActionsPreviewTests(unittest.TestCase):
+    def test_private_tmp_uses_a_visible_workspace(self):
+        for hidden in ("/tmp", "/var/tmp/nested"):  # noqa: S108 -- path-selection fixture
+            with (
+                self.subTest(hidden=hidden),
+                patch.object(tempfile, "gettempdir", return_value=hidden),
+                patch.object(Path, "home", return_value=Path("/home/render-test")),
+                patch.dict(os.environ, {"MADAR_QURAN_AUDIO": "0"}),
+            ):
+                self.assertEqual(actions.renderer_workspace_parent(), Path("/home/render-test"))
+
+    def test_explicit_workspace_outside_private_tmp_is_preserved(self):
+        with patch.object(tempfile, "gettempdir", return_value="/var/lib/madar/render-work"):
+            self.assertEqual(
+                actions.renderer_workspace_parent(), Path("/var/lib/madar/render-work")
+            )
+
+    def test_quran_uses_snap_retention_scope_when_default_tmp_is_hidden(self):
+        with (
+            patch.object(tempfile, "gettempdir", return_value="/tmp"),  # noqa: S108
+            patch.dict(
+                os.environ,
+                {
+                    "MADAR_QURAN_AUDIO": "1",
+                    "MADAR_PRODUCTION_STATE_ROOT": "/var/lib/madar/snap/production",
+                },
+            ),
+        ):
+            self.assertEqual(
+                actions.renderer_workspace_parent(), Path("/var/lib/madar/snap/production")
+            )
+
     def test_new_output_directory_creates_missing_parent(self):
         for name in ("manual-preview", "send-intent"):
             with self.subTest(name=name), tempfile.TemporaryDirectory() as d:

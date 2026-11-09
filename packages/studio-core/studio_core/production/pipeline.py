@@ -205,11 +205,15 @@ def track_qf(
     from studio_core.religious.quran_pipeline import store_for
 
     store = store_for(plan["app"])
-    store.sweep()
+    # Retention is swept at source preparation. An isolated renderer can register
+    # its outputs but cannot remove earlier copies from the coordinator's state.
     record = min(records, key=lambda a: a["expires_at"])
-    # The Snap adoption registers its final copy before writing it (8 Nov 2026), so the
-    # verified digest is passed in rather than read from a file that does not exist yet.
-    store.track(path, record["qf_job"], record["expires_at"], digest or file_sha256(path))
+    store.track(
+        path,
+        record["qf_job"],
+        record["expires_at"],
+        file_sha256(path) if digest is None else digest,
+    )
 
 
 def check_result(result: dict[str, Any]) -> float:

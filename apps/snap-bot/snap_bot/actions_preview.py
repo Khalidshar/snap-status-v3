@@ -137,6 +137,24 @@ def new_output_directory(output: Path) -> None:
     output.mkdir(mode=0o750)
 
 
+def renderer_workspace_parent() -> Path:
+    """Use a workspace visible to both coordinator and the PrivateTmp renderer."""
+    private_temp = (Path("/tmp"), Path("/var/tmp"))  # noqa: S108 -- systemd mount locations
+    parent = Path(tempfile.gettempdir()).resolve()
+    if not any(parent.is_relative_to(root) for root in private_temp):
+        return parent
+    if os.environ.get("MADAR_QURAN_AUDIO") == "1":
+        from studio_core.production.pipeline import source_root
+
+        # Keep every Quran copy in the Snap retention store's existing app scope.
+        parent = source_root("snap-bot-v2", "").parent.resolve()
+    else:
+        parent = Path.home().resolve()
+    if any(parent.is_relative_to(root) for root in private_temp):
+        raise ValueError("RENDER_WORKSPACE_HIDDEN_BY_PRIVATE_TMP")
+    return parent
+
+
 def render_bundle(output: Path, provenance: Any) -> Any:
     """Actual owned pipeline, renderer systemd sandbox and SQLite backup."""
     import fcntl
@@ -154,7 +172,7 @@ def render_bundle(output: Path, provenance: Any) -> Any:
     if output.exists():
         raise ValueError("Output must be new")
     started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix="madar-manual-") as d:
+    with tempfile.TemporaryDirectory(prefix="madar-manual-", dir=renderer_workspace_parent()) as d:
         runtime = Path(d)
         state = runtime / "state"
         spool = runtime / "spool/renders"
