@@ -6,6 +6,7 @@ import signal
 import socket
 import socketserver
 import struct
+import sys
 import threading
 import time
 import tomllib
@@ -42,6 +43,10 @@ from .render_agents import run_render_check
 from .render_commit import AdoptionPending, adopt_render, observe_owned, owned_views, stage_input
 from .telegram_egress import DeliveryConfirmed
 from .weather import fetch_weather
+
+# A legacy result embeds the whole plan, including the reciter's phrase timings.
+MAX_RENDER_RESULT_BYTES = 1024 * 1024
+_RENDER_CODE = re.compile(r"(?:QF|LEGACY|TILAWA|RENDER)_[A-Z0-9_]{1,80}")
 
 
 def render_request(request: Any) -> dict[str, Any]:
@@ -84,9 +89,16 @@ class RenderHandler(BaseHTTPRequestHandler):
             )
             code = 200
         except Exception as exc:
-            result = {"error": type(exc).__name__}
+            name = type(exc).__name__
+            result = {"error": name}
+            if isinstance(exc, ValueError):
+                reason = str(exc).partition(":")[0]
+                if _RENDER_CODE.fullmatch(reason):
+                    result["code"] = reason
+            detail = " " + result["code"] if "code" in result else ""
+            print(f"SNAP_RENDER_FAILED {name}{detail}", file=sys.stderr, flush=True)
             code = 422
-        body = json.dumps(result).encode()
+        body = json.dumps(result, ensure_ascii=False).encode()
         self.send_response(code)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -264,9 +276,16 @@ def execute(
                     ),
                 )
                 response = connection.getresponse()
-                result = json.loads(response.read(65536))
+                raw = response.read(MAX_RENDER_RESULT_BYTES + 1)
+                if len(raw) > MAX_RENDER_RESULT_BYTES:
+                    raise ValueError("RENDER_RESULT_TOO_LARGE")
+                result = json.loads(raw)
                 if response.status != 200:
-                    raise RuntimeError("Render failed: " + result.get("error", "UNKNOWN"))
+                    error = result.get("error", "UNKNOWN")
+                    code = result.get("code", "")
+                    if isinstance(code, str) and _RENDER_CODE.fullmatch(code):
+                        error += " " + code
+                    raise RuntimeError("Render failed: " + error)
                 if result.get("content_hash") != content["content_hash"]:
                     raise ValueError("Render content mismatch")
                 return result
