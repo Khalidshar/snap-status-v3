@@ -516,10 +516,12 @@ def deliver_built(
     window(outbox)
     locks.assert_holder(lease)
     with outbox.repo.transaction() as db:
-        db.execute(
-            "UPDATE command_videos SET state='UPLOAD_INTENT',video_sha=? WHERE tag=?",
+        changed = db.execute(
+            "UPDATE command_videos SET state='UPLOAD_INTENT',video_sha=? WHERE tag=?"
+            " AND state='WORKING'",
             (result["video_sha256"], item["tag"]),
-        )
+        ).rowcount
+        require(changed == 1, "WA_COMMAND_ALREADY_CONSUMED")
     if result.get("quran_foundation"):
         from studio_core.religious.quran_pipeline import check_result
 
