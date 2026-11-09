@@ -17,6 +17,7 @@ def plan(*scenes, key="news"):
 @pytest.fixture(autouse=True)
 def measured(monkeypatch):
     monkeypatch.setattr(designer, "luma", lambda path: 140.0)
+    monkeypatch.setattr(designer, "bright_spots", lambda path: 150.0)
 
 
 def test_style_follows_the_pictures():
@@ -52,3 +53,30 @@ def test_bars_are_refused_but_a_dark_backdrop_or_green_is_not():
     assert designer.bar(frame((90, 90, 90), picture), BOX, BOX["x"] + 6, 80) == "grey"
     assert designer.bar(frame((4, 26, 18), picture), BOX, BOX["x"] + 6, 80) is None
     assert designer.bar(frame((3, 3, 3), (4, 4, 4)), BOX, BOX["x"] + 6, 80) is None
+
+
+def test_bright_spots_behind_text_raise_the_dimming(monkeypatch):
+    monkeypatch.setattr(designer, "bright_spots", lambda path: 250.0)
+    chosen = designer.decide(plan({"body": "خبر"}), {}, CLIPS)
+    assert chosen["dim"] == 0.52 and any("بقع فاتحة" in r for r in chosen["reasons"])
+    monkeypatch.setattr(designer, "bright_spots", lambda path: 400.0)
+    assert designer.decide(plan({"body": "خبر"}), {}, CLIPS)["dim"] == designer.MAX_DIM
+
+
+def test_designer_owns_type_size_pages_and_key_words():
+    short = {"body": "الرياض تستضيف الحدث"}
+    long_ = {"body": "كلمة " * 40}
+    quoted = {"body": "أطلقت الشركة «المنصة الجديدة» اليوم في جدة والنصر يفوز"}
+    t = designer.decide(plan(short, long_, quoted), {}, CLIPS)["type"]
+    assert t["font"] == "body"
+    hook, a, b, c, cta = t["cards"]
+    assert hook == {} and cta == {}
+    assert a["size"] == 84 and a["pages"] == 1 and a["keys"] == ["الرياض"]
+    assert b["size"] == 72 and b["pages"] == 2 and b["keys"] == []
+    assert c["keys"] == ["المنصة الجديدة", "جدة"]
+
+
+def test_sacred_clips_get_no_type_decisions():
+    p = {**plan({"body": "الرياض"}, key="hadith"), "effects": False}
+    t = designer.decide(p, {}, CLIPS)["type"]
+    assert all(card == {} for card in t["cards"])

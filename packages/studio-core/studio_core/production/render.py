@@ -16,7 +16,7 @@ from studio_core.presentation import brand_frame, footage
 from studio_core.presentation.fact_audio import measure_audio, measure_silence
 from studio_core.renderer import ensure_glyphs, proof, run
 
-from . import designer
+from . import designer, review
 from .isolation import deny_ip_sockets
 from .model import ROOT, SACRED, budget, resource, sha, validate
 
@@ -487,6 +487,18 @@ def render(
             }
             report = qa(video, p, layout, work)
             inspection = designer.inspect(video, p["duration"], approved["clip_box"])
+            # Reviewer and fixer (owner 8 Nov 2026): inspect the finished clip; what the
+            # fixer can repair through the design is rendered once more in attempt 2.
+            findings = review.review(p, layout, video, run)
+            fixable = [f for f in findings if f["fixable"]]
+            if fixable and attempt == 1:
+                design, actions = review.fix(design, fixable)
+                if actions:
+                    raise ValueError(
+                        "LEGACY_REVIEW_FIXING: " + " ".join(f["code"] for f in fixable)
+                    )
+            if any(f["code"] == "BLACK_FRAMES" for f in findings):
+                raise ValueError("LEGACY_REVIEW_BLACK_FRAMES")
             result = {
                 "schema": 1,
                 "app": p["app"],
@@ -498,6 +510,7 @@ def render(
                 "network_isolation": isolation,
                 "attempt": attempt,
                 "rebuild_reasons": errors,
+                "review": {"findings": findings, "fixes": design.get("fixes", [])},
                 "design": {k: v for k, v in design.items() if k != "footage_path"}
                 | {"inspection": inspection},
                 "external_delivery": False,

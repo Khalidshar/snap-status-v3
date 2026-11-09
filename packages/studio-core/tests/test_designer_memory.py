@@ -3,6 +3,7 @@ from studio_core.production import designer
 
 def test_designer_rotates_three_clips_per_bot_and_pins_retries(tmp_path, monkeypatch):
     monkeypatch.setattr(designer, "luma", lambda _: 80.0)
+    monkeypatch.setattr(designer, "bright_spots", lambda _: 90.0)
     plan = {"key": "facts", "scenes": [{"body": "مقطع نصي"}]}
     clips = [{"file": f"clip-{i}.mp4", "title": "خلفية", "pool": "day"} for i in range(4)]
 
