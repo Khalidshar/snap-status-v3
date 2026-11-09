@@ -10,7 +10,7 @@ A = "a" * 32
 B = "b" * 32
 
 
-def setup(tmp_path):
+def make_panel(tmp_path):
     root = tmp_path / "state"
     db = root / "snap" / "panel-commands.sqlite"
     db.parent.mkdir(parents=True)
@@ -24,14 +24,14 @@ def setup(tmp_path):
 
 
 def test_candidate_source_is_not_reachable(tmp_path):
-    root, db = setup(tmp_path)
+    root, db = make_panel(tmp_path)
     assert not (db.parent / panel.FILE).exists()
     assert panel.hosts(root) == set()
     assert panel.approved("snap-bot-v2", "saudi", root) == ()
 
 
 def test_approval_opens_the_host_for_its_command_only(tmp_path):
-    root, db = setup(tmp_path)
+    root, db = make_panel(tmp_path)
     with sqlite3.connect(db) as conn:
         source = conn.execute("SELECT id FROM panel_sources").fetchone()[0]
     panel_workspace.submit(db, B, "source_approve", {"source": source})
