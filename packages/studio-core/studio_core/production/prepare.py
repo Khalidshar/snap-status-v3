@@ -415,7 +415,9 @@ class Factory:
         from studio_core.sources.news import MAX_AGE, _link, news_sources, published_label
 
         key = "news" if self.key == "news_noon" else self.key
-        sources = news_sources(self.key, production=True)
+        from studio_core.sources.panel import approved as panel_sources
+
+        sources = news_sources(self.key, production=True) + panel_sources(self.app, key)
         now = time.time()
         candidates: list[dict[str, Any]] = []
         for source in sources:

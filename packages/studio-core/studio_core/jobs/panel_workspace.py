@@ -132,6 +132,7 @@ def submit(path: Path, identifier: str, action: str, payload: dict[str, Any]) ->
         raise ValueError("INVALID_PANEL_REQUEST")
     validate(action, payload)
     encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    exported = False
     with database(path) as db:
         initialize(db)
         db.execute("BEGIN IMMEDIATE")
@@ -174,6 +175,7 @@ def submit(path: Path, identifier: str, action: str, payload: dict[str, Any]) ->
             ).rowcount
             if changed != 1:
                 raise ValueError("SOURCE_NOT_CANDIDATE")
+            exported = True
         # Preferences are saved, never enabled as a running timer by the panel.
         if action == "schedule":
             db.execute(
@@ -186,6 +188,11 @@ def submit(path: Path, identifier: str, action: str, payload: dict[str, Any]) ->
             (identifier, action, encoded, time.time()),
         )
         audit(db, identifier, "QUEUED")
+    if exported:
+        # Only Khalid's approval opens a panel source to the broker and the news fetch.
+        from studio_core.sources.panel import export
+
+        export(path)
     return True
 
 
