@@ -1,0 +1,23 @@
+{
+  "madar-v3-snap-brief@.service": {
+    "a928c671a515eacabfb6989e622c99b081b396015e0210b0364ebe9858401218": "20b9115ae449320d0c2a4222385f750321e020e4"
+  },
+  "madar-v3-snap-news-clip@.service": {
+    "215ec069bbf24617325f3a4543c8d2d66568dfc5426e1e04ab71858f3681d810": "5befa8b76076676afd8d361ab214a03717b357a9"
+  },
+  "madar-v3-snap-quran-render@.service": {
+    "92139265f5bb0cd0427a8b78e9f54ead9bca32b808f9d862634c3062cc589c8e": "20b9115ae449320d0c2a4222385f750321e020e4"
+  },
+  "madar-v3-snap-video.service": {
+    "e224788828220ebf9080f10de2e4280110bc4bb6652f8ca45d0a0715b466e4fd": "5befa8b76076676afd8d361ab214a03717b357a9"
+  },
+  "madar-v3-status-commands.service.d/memory.conf": {
+    "a8bc3bd6caf64972a6be6a4bb574591e95a937dfc9f6e9cde25ac466e4a3670e": "20b9115ae449320d0c2a4222385f750321e020e4"
+  },
+  "madar-v3-status-content@.service": {
+    "c5c11379dfcfb63913b699ada7a4d380536397f305d89b9cfef42b4c63a185e1": "20b9115ae449320d0c2a4222385f750321e020e4"
+  },
+  "madar-v3-status-quran-render@.service": {
+    "598d81a551193bc82cf039c9e804813d4d648fcd9ae85c6d5ad966a6bdb374a0": "20b9115ae449320d0c2a4222385f750321e020e4"
+  }
+}

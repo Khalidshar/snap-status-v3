@@ -89,6 +89,32 @@ def test_unknown_send_never_retries(fixture, tmp_path):
     assert "sensitive" not in repr(row)
 
 
+def test_reconciled_row_cannot_be_uploaded(fixture, tmp_path, monkeypatch):
+    f = fixture
+    transport = fixtures.OfflineTransport(f.identity)
+    item = {"tag": "a" * 64}
+
+    def close_during_build(*args, **kwargs):
+        with f.repo.transaction() as db:
+            db.execute(
+                "UPDATE command_videos SET state='BLOCKED_OR_UNKNOWN',"
+                "code='WA_STALE_WORKING_PRE_107' WHERE tag=?",
+                (item["tag"],),
+            )
+        return {}, {"video_sha256": "a" * 64}, b"video"
+
+    monkeypatch.setattr(content_clips, "build", close_during_build)
+    with pytest.raises(DeliveryBlocked, match="WA_COMMAND_ALREADY_CONSUMED"):
+        content_clips.send(f.outbox, transport, item, "riddle", f.runtime, root=tmp_path)
+    transport.upload_video.assert_not_called()
+    transport.send_video.assert_not_called()
+    with f.repo.connect() as db:
+        assert tuple(db.execute("SELECT state,code FROM command_videos").fetchone()) == (
+            "BLOCKED_OR_UNKNOWN",
+            "WA_STALE_WORKING_PRE_107",
+        )
+
+
 def test_foreign_recipient_or_closed_window_does_not_upload(fixture):
     f = fixture
     transport = fixtures.OfflineTransport(f.identity)

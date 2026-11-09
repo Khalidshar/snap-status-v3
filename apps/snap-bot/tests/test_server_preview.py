@@ -5,7 +5,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import test_telegram_delivery as fixtures
 
@@ -120,10 +120,46 @@ class ServerPreviewTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.runtime.send(self.sha, transport)
         self.assertEqual(self.runtime.events()[-1]["kind"], "UNKNOWN", "guard:unknown")
+        proof = json.loads((self.directory / "server-failure.json").read_text())
+        self.assertEqual(proof["reason"], "TELEGRAM_VIDEO_TIMEOUT_UNCONFIRMED")
         before = list(self.fixture.calls)
         with self.assertRaises(ValueError):
             server.Runtime(self.runtime.root).send(self.sha, self.fixture.transport)
         self.assertEqual(before, self.fixture.calls, "guard:no-retry")
+
+    def test_late_video_response_acknowledges_the_same_post(self):
+        from snap_bot import telegram_egress
+
+        self.approve()
+        connection = Mock()
+        connection.getresponse.return_value.status = 200
+        connection.getresponse.return_value.read.return_value = json.dumps(
+            {"ok": True, "result": {"message_id": 7, "chat": {"id": 42}}}
+        ).encode()
+
+        def late_response():
+            # The first response bytes arrive at 50 s, beyond the old 45 s timeout.
+            if connection.sock.settimeout.call_args.args[0] < 50:
+                raise TimeoutError
+            return response
+
+        response = connection.getresponse.return_value
+        connection.getresponse.side_effect = late_response
+
+        def transport(*args):
+            if args[1] == "sendVideo":
+                return telegram_egress.api(*args)
+            return self.fixture.transport(*args)
+
+        with (
+            patch.object(telegram_egress, "validate_target", return_value=("host", "ip", "/send")),
+            patch.object(telegram_egress, "PinnedHTTPSConnection", return_value=connection),
+        ):
+            ack = self.runtime.send(self.sha, transport)
+        self.assertEqual((ack["kind"], ack["message_id"]), ("ACK", 7))
+        connection.request.assert_called_once()
+        connection.getresponse.assert_called_once()
+        self.assertFalse((self.directory / "server-failure.json").exists())
 
     def test_duplicate_rejected(self):
         self.approve()

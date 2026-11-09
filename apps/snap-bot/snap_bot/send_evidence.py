@@ -9,6 +9,12 @@ from typing import Any
 network_started: ContextVar[bool] = ContextVar("telegram_network_started", default=False)
 
 
+class VideoSendTimeout(RuntimeError):
+    """The one sendVideo attempt ended without a verifiable acknowledgement."""
+
+    reason = "TELEGRAM_VIDEO_TIMEOUT_UNCONFIRMED"
+
+
 def tracked_transport(transport: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(transport)
     def call(*args: Any, **kwargs: Any) -> Any:
@@ -92,19 +98,22 @@ def delivery_evidence(function: Callable[..., Any]) -> Callable[..., Any]:
                 review_mode=review_mode,
                 **kwargs,
             )
-        except Exception:
+        except Exception as error:
             environ = __import__("os").environ
             if kwargs.get("channel") == "main":
                 names, missing = ("TG_TOKEN", "TG_CHAT"), "INVALID_MAIN_CREDENTIALS"
             else:
                 names, missing = ("TG_TEST_TOKEN", "TG_TEST_CHAT"), "INVALID_TEST_CREDENTIALS"
+            reason = (
+                missing
+                if not all(environ.get(name) for name in names)
+                else "DELIVERY_REJECTED_OR_UNKNOWN"
+            )
             failure_receipt(
                 Storage(config).workspace(job_id) / "output/pre-network-receipt.json",
                 run_id=environ.get("GITHUB_RUN_ID", ""),
                 video_sha=reviewed_sha,
-                reason=missing
-                if not all(environ.get(name) for name in names)
-                else "DELIVERY_REJECTED_OR_UNKNOWN",
+                reason=error.reason if isinstance(error, VideoSendTimeout) else reason,
             )
             raise
         finally:

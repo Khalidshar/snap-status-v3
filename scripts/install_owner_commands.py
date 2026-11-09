@@ -5,14 +5,17 @@ No public listener, TLS, firewall, token creation or Meta subscription changes.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import pwd
 import re
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 UNITS = Path("/etc/systemd/system")
+BACKUPS = Path("/var/backups/madar-owner-command-units")
 WA_ENV = "/etc/madar/status-whatsapp.env"
 MEDIA_ENV = "/etc/madar/media.env"
 VIDEO_SOCKET = "/run/madar/snap-video.sock"
@@ -220,11 +223,98 @@ def plan() -> dict[Path, str]:
     return files
 
 
+def read_unit(path: Path) -> bytes | None:
+    if any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError("Symlink unit refused")
+    if not path.exists():
+        return None
+    if not path.is_file():
+        raise ValueError(f"Non-file unit refused: {path}")
+    return path.read_bytes()
+
+
+def unit_changes(files: dict[Path, str]) -> dict[Path, bytes | None]:
+    """Validate every target before the first write and keep the approved bytes."""
+    # The manifest maps each relative unit path to exact SHA-256 hashes and their
+    # source commits. When changing a unit, record its previous released bytes here.
+    history = json.loads((ROOT / "config/owner-command-unit-history.json").read_text())
+    changes = {}
+    for path, value in files.items():
+        old = read_unit(path)
+        if old == value.encode():
+            continue
+        if old is not None:
+            known = history.get(path.relative_to(UNITS).as_posix(), {})
+            if hashlib.sha256(old).hexdigest() not in known:
+                raise ValueError(f"Existing different unit refused: {path}")
+        changes[path] = old
+    return changes
+
+
+def sync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def backup_units(changes: dict[Path, bytes | None]) -> Path | None:
+    if all(old is None for old in changes.values()):
+        return None
+    if any(p.is_symlink() for p in (BACKUPS, *BACKUPS.parents)):
+        raise ValueError("Symlink backup directory refused")
+    BACKUPS.mkdir(mode=0o700, exist_ok=True)
+    info = BACKUPS.stat()
+    if info.st_uid != os.geteuid() or info.st_mode & 0o077:
+        raise ValueError("Untrusted backup directory")
+    directory = Path(tempfile.mkdtemp(prefix="install-", dir=BACKUPS))
+    for path, old in changes.items():
+        if old is None:
+            continue
+        backup = directory / path.relative_to(UNITS)
+        backup.parent.mkdir(mode=0o700, exist_ok=True, parents=True)
+        with backup.open("xb") as stream:
+            stream.write(old)
+            stream.flush()
+            os.fsync(stream.fileno())
+        sync_directory(backup.parent)
+    sync_directory(directory)
+    sync_directory(BACKUPS)
+    sync_directory(BACKUPS.parent)
+    return directory
+
+
+def install_unit(path: Path, value: bytes, old: bytes | None) -> None:
+    path.parent.mkdir(mode=0o755, exist_ok=True, parents=True)
+    fd, filename = tempfile.mkstemp(dir=path.parent)
+    staged = Path(filename)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(value)
+            stream.flush()
+            os.fchmod(stream.fileno(), 0o644)
+            os.fsync(stream.fileno())
+        current = read_unit(path)
+        if current == value:
+            return
+        if current != old:
+            raise ValueError(f"Unit changed during install: {path}")
+        if old is None:
+            os.link(staged, path)
+        else:
+            os.replace(staged, path)
+    finally:
+        staged.unlink(missing_ok=True)
+    sync_directory(path.parent)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     files = plan()
+    backup = None
     if args.apply:
         manifest = json.loads((ROOT / "madar-release.json").read_text())
         if (
@@ -237,12 +327,7 @@ def main() -> None:
         # Never open media.env: systemd loads it only when an operator starts the unit.
         if not (ROOT / "packages/studio-core/studio_core/network/video.py").is_file():
             raise ValueError("Video gateway module missing; merge and install #72 first")
-        # Validate every target before the first write; never replace a different unit.
-        for path, value in files.items():
-            if any(p.is_symlink() for p in (path, *path.parents)):
-                raise ValueError("Symlink unit refused")
-            if path.exists() and path.read_text() != value:
-                raise ValueError("Existing different unit refused")
+        changes = unit_changes(files)
         for app in ("snap", "status"):
             path = Path(f"/var/lib/madar/{app}/news")
             if any(p.is_symlink() for p in (path, *path.parents)):
@@ -278,16 +363,15 @@ def main() -> None:
             # The non-root renderer must pass through the root-owned app state to reach its
             # own production folder: traverse only, no listing (files inside stay 0600/0700).
             production.parent.chmod(0o711)
-        for path, value in files.items():
-            path.parent.mkdir(mode=0o755, exist_ok=True, parents=True)
-            if not path.exists():
-                with path.open("x") as stream:
-                    stream.write(value)
+        backup = backup_units(changes)
+        for path, old in changes.items():
+            install_unit(path, files[path].encode(), old)
     print(
         json.dumps(
             {
                 "applied": args.apply,
                 "files": [str(p) for p in files],
+                "backup": str(backup) if backup else None,
                 "started_services": [],
                 "public_listener_created": False,
             }
