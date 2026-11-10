@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "run_id": "8",
+  "video_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "state": "NOT_SENT_PRE_NETWORK",
+  "reason": "SEND_REJECTED_OR_UNKNOWN",
+  "intent_artifact_id": "9",
+  "content_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}
