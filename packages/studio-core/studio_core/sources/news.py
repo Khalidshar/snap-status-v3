@@ -152,7 +152,34 @@ WORDS = {
         "إطلالة",
     ),
 }
-SPORTS_EXCLUDED = ("كرة السلة", "كرة اليد", "كرة الطائرة", "التنس", "الفورمولا", "الجولف")
+# Other sports, without the article: «التنس», «للتنس» and «بالتنس» are all tennis, while
+# «تنسيق» is not (owner repair 11 Nov 2026: the tennis federation entered the football clip).
+SPORTS_EXCLUDED = (
+    "كرة السلة",
+    "كرة اليد",
+    "كرة الطائرة",
+    "كرة المضرب",
+    "تنس",
+    "فورمولا",
+    "جولف",
+    "غولف",
+    "ملاكمة",
+    "مصارعة",
+    "ألعاب القوى",
+    "سباحة",
+    "دراجات",
+    "فروسية",
+    "بادل",
+    "اسكواش",
+    "كريكت",
+    "رغبي",
+    "سلة",
+)
+OTHER_SPORT = re.compile(
+    "(?<![ء-ي])[وفبك]?(?:ال|لل)?(?:"
+    + "|".join(SPORTS_EXCLUDED)
+    + ")(?![ء-ي])"
+)
 DAYS = ("الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد")
 MONTHS = (
     "يناير",
@@ -249,7 +276,7 @@ def matches(key: str, text: str) -> bool:
         from studio_core.production.parsing import market_story
 
         return market_story(text)
-    if key == "football" and any(word in text for word in SPORTS_EXCLUDED):
+    if key == "football" and OTHER_SPORT.search(text):
         return False
     if key == "urgent":
         security = (
