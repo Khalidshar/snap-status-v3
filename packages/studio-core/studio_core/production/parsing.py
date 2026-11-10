@@ -268,11 +268,11 @@ def words(t: str) -> set:
 
 
 # Words that many unrelated stories share; they never decide that two stories are one.
-TOPIC_COMMON = frozenset(
+TOPIC_COMMON = frozenset(  # noqa: SIM905  (one readable Arabic line beats sixty literals)
     "الثلاثاء الاثنين الأربعاء الخميس الجمعة السبت الأحد اليوم خلال التي الذي الذين بعد قبل "
     "حول على إلى جديد جديدة يعلن تعلن أعلن أعلنت رئيس وزير وزراء وزارة قال قالت العام عام "
     "بين هذا هذه ذلك أكثر عدد منذ حتى أمس نحو ضمن عبر لدى دون مليون مليار دولار محمد عبد "
-    "السعودية السعودي المملكة الرياض العربية".split()  # noqa: SIM905
+    "السعودية السعودي المملكة الرياض العربية".split()
 )
 
 
