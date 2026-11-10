@@ -208,7 +208,7 @@ class DeliveryWorker:
 
     def deliver(self, outbox_id: Any, token: str, review: Any, signature: Any) -> Any:
         locks = ComponentLocks(self.outbox.repo)
-        lease = locks.acquire("whatsapp-delivery", "USE", 120)
+        lease = locks.acquire_live("whatsapp-delivery", "USE", 120, 1200)
         started = False
         phase = "upload"
         try:

@@ -41,6 +41,9 @@ from .whatsapp_contract import DeliveryBlocked, identifier, require, response_id
 from .whatsapp_outbox import MAX_VIDEO, read_bound
 
 ROOT = STATE / "content-clips"
+# Longest life of a clip holder (its unit timeout); a lock older than this past its
+# deadline has no process behind it (owner repair 11 Nov 2026).
+CLIPS_GRACE = 1200
 KINDS = {
     "facts": "did_you_know",
     "tech": "tech",
@@ -578,7 +581,7 @@ def send(
     require(not safe_path(STATE / "HALT").exists(), "WA_SEND_HALTED")
     window(outbox)
     locks = ComponentLocks(outbox.repo)
-    lease = locks.acquire("command-clips", "USE", 1200)
+    lease = locks.acquire_live("command-clips", "USE", 1200, CLIPS_GRACE)
     try:
         with outbox.repo.transaction() as db:
             require(

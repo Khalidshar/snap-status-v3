@@ -77,6 +77,49 @@ class ComponentLocks:
             )
             return lease
 
+    def reclaim_abandoned(self, component: str, grace: float) -> bool:
+        """Free a lock whose holder is certainly dead, and record that it happened.
+
+        Owner repair 11 Nov 2026: a holder killed mid-work left «command-clips» locked for
+        23 hours. The caller passes a grace no shorter than the longest time its holders can
+        live (their systemd timeout), so a lock this far past its deadline has no process
+        behind it. A late holder had already lost ownership at the deadline.
+        """
+        if type(grace) not in (int, float) or not math.isfinite(grace) or grace < 0:
+            raise ValueError("COMPONENT_REQUEST_INVALID")
+        with self.repo.transaction() as db:
+            initialize(db)
+            row = db.execute(
+                "SELECT purpose,acquired_at,deadline FROM component_locks"
+                " WHERE app=? AND component=?",
+                (self.repo.config.app, component),
+            ).fetchone()
+            if not row or row["deadline"] + grace > self.repo.clock():
+                return False
+            db.execute(
+                "DELETE FROM component_locks WHERE app=? AND component=? AND deadline=?",
+                (self.repo.config.app, component, row["deadline"]),
+            )
+            self.repo.event(
+                db,
+                None,
+                "component_lock_reclaimed",
+                {
+                    "component": component,
+                    "purpose": row["purpose"],
+                    "acquired_at": row["acquired_at"],
+                    "deadline": row["deadline"],
+                },
+            )
+            return True
+
+    def acquire_live(
+        self, component: str, purpose: str, seconds: float, grace: float
+    ) -> ComponentLease:
+        """Acquire after freeing a lock abandoned for longer than the grace."""
+        self.reclaim_abandoned(component, grace)
+        return self.acquire(component, purpose, seconds)
+
     def assert_holder(self, lease: ComponentLease) -> None:
         if not isinstance(lease, ComponentLease) or lease.app != self.repo.config.app:
             raise ComponentOwnershipLost("COMPONENT_OWNER_INVALID")
