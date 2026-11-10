@@ -4,7 +4,6 @@ from typing import Any
 
 from .model import validate
 
-
 # Owner 11 Nov 2026 («أعتمد كل مقطع»): a clip with machine-translated text reaches him with
 # this notice, apart from the caption he copies, so nothing translated is posted unread.
 TRANSLATED_NOTE = (
