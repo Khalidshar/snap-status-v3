@@ -2,7 +2,6 @@
 """Source factory port: all downloads go through the application's source broker."""
 
 import array
-import email.utils
 import html
 import json
 import math
