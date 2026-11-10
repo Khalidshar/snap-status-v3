@@ -28,7 +28,7 @@ def produce(outbox: Any, path: Path, identifier: str, command: str) -> bool:
     item = {"tag": hashlib.sha256(("panel:" + identifier).encode()).hexdigest()}
     content_clips.initialize(outbox.repo)
     locks = ComponentLocks(outbox.repo)
-    lease = locks.acquire("command-clips", "USE", 1200)
+    lease = locks.acquire_live("command-clips", "USE", 1200, content_clips.CLIPS_GRACE)
     try:
         content, result, video = content_clips.build(outbox, item, command)
     finally:
@@ -53,7 +53,7 @@ def approve(outbox: Any, transport: Any, runtime: Any, path: Path, preview: str,
     saved = json.loads(media(path, preview, ".json").read_text())
     item, key = {"tag": saved["tag"]}, saved["command"]
     locks = ComponentLocks(outbox.repo)
-    lease = locks.acquire("command-clips", "USE", 1200)
+    lease = locks.acquire_live("command-clips", "USE", 1200, content_clips.CLIPS_GRACE)
     try:
         content_clips.initialize(outbox.repo)
         with outbox.repo.transaction() as db:

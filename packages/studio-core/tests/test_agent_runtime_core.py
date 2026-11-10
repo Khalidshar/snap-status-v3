@@ -252,6 +252,27 @@ class CoreAgentRuntime(unittest.TestCase):
         with locks.hold("render", "REPAIR"):
             pass
 
+    def test_abandoned_lock_is_reclaimed_only_after_grace_and_recorded(self):
+        locks = ComponentLocks(self.repo)
+        dead = locks.acquire("clips", "USE", 10)
+        self.now += 11
+        self.assertFalse(locks.reclaim_abandoned("clips", 100))  # expired, still inside grace
+        with self.assertRaises(ComponentBusy):
+            locks.acquire_live("clips", "USE", 10, 100)
+        self.now += 100
+        lease = locks.acquire_live("clips", "USE", 10, 100)
+        with self.assertRaises(ComponentOwnershipLost):
+            locks.release(dead)  # the dead holder can never release the new lease
+        locks.assert_holder(lease)
+        locks.release(lease)
+        with self.repo.connect() as db:
+            rows = db.execute(
+                "SELECT details FROM events WHERE event='component_lock_reclaimed'"
+            ).fetchall()
+        self.assertEqual(len(rows), 1)
+        self.assertNotIn(dead.token, rows[0]["details"])
+        self.assertFalse(locks.reclaim_abandoned("clips", 0))  # nothing left to free
+
     def test_wrong_token_cannot_release_component(self):
         locks = ComponentLocks(self.repo)
         lease = locks.acquire("render", "USE")

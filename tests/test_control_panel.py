@@ -17,6 +17,12 @@ panel = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(panel)
 
 
+@pytest.fixture(autouse=True)
+def _state_is_never_the_live_one(tmp_path_factory, monkeypatch):
+    """No test may read the running bots' state under /var/lib/madar (repair 11 Nov)."""
+    monkeypatch.setattr(panel, "STATE", tmp_path_factory.mktemp("panel-state"))
+
+
 @pytest.fixture
 def server(tmp_path):
     srv = ThreadingHTTPServer(("127.0.0.1", 0), panel.Handler)
