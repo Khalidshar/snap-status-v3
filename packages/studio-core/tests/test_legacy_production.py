@@ -295,11 +295,17 @@ def test_bulletin_and_article_points_have_actual_source_assets(tmp_path, audio, 
     host = "https://www.bbc.com/arabic" if key == "news" else "https://aitnews.com"
     title = "أخبار السعودية والتقنية الجديدة"
     paragraph = "تطور جديد في المملكة العربية السعودية والتقنية الحديثة ومعلومات من المصدر الرسمي. "
+    # Three different events: a bulletin takes one story per event (repair 11 Nov 2026).
+    events = [
+        (title, paragraph),
+        ("افتتاح معرض الكتاب الدولي في جدة", "يفتتح معرض الكتاب أبوابه للزوار بمشاركة دور نشر عديدة. "),
+        ("انطلاق بطولة التنس للناشئين في الدمام", "تنطلق منافسات البطولة بمشاركة لاعبين من أندية مختلفة. "),
+    ]
     rss = (
         "<rss><channel>"
         + "".join(
-            f"<item><title>{title} {n}</title><link>{host}/story{n}</link>"
-            f"<pubDate>{published}</pubDate><description>{paragraph}</description></item>"
+            f"<item><title>{events[n][0]} {n}</title><link>{host}/story{n}</link>"
+            f"<pubDate>{published}</pubDate><description>{events[n][1]}</description></item>"
             for n in range(3)
         )
         + "</channel></rss>"

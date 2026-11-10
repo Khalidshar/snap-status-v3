@@ -23,8 +23,7 @@ OTHERS = [
 
 def test_one_event_from_two_publishers_is_one_topic():
     assert same_topic(FRANCE[1], [FRANCE[0]])
-    assert same_topic(FRANCE[2], [FRANCE[0]])
-    assert same_topic(FRANCE[2], [OTHERS[0], FRANCE[1]])
+    assert same_topic(FRANCE[2], [OTHERS[0], FRANCE[0], FRANCE[1]])
 
 
 def test_different_events_stay_separate():
