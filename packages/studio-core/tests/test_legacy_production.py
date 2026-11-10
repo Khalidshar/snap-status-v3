@@ -332,7 +332,7 @@ def test_bulletin_and_article_points_have_actual_source_assets(tmp_path, audio, 
     assert all(s.get("image") and s.get("source") and s.get("published_label") for s in core)
     if key == "news":
         assert len(core) == 3 and all(s["role"] == "story" for s in core)
-        # Snap pads to its 61 s floor evenly: every story keeps the same pace, at least 12 s.
+        # Snap pads to its 65 s floor evenly: every story keeps the same pace, at least 12 s.
         assert len({round(s["seconds"], 3) for s in core}) == 1 and core[0]["seconds"] >= 12
     else:
         assert core[0]["role"] == "headline" and all(s["role"] == "point" for s in core[1:])
