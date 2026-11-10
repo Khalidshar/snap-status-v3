@@ -325,6 +325,141 @@
       "evidence": "https://www.skynewsarabia.com/rss/technology.xml"
     },
     {
+      "id": "okaz",
+      "name": "عكاظ",
+      "url": "https://www.okaz.com.sa/rssFeed/0",
+      "commands": [
+        "urgent",
+        "saudi",
+        "news",
+        "news_noon"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "asharq",
+      "name": "الشرق للأخبار",
+      "url": "https://asharq.com/rss.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "news_noon"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "asharq-business",
+      "name": "اقتصاد الشرق",
+      "url": "https://asharqbusiness.com/rss.xml",
+      "commands": [
+        "markets"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "cnn-ar",
+      "name": "CNN بالعربية",
+      "url": "https://arabic.cnn.com/api/v1/rss/rss.xml",
+      "commands": [
+        "world",
+        "news",
+        "news_noon"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "un-ar",
+      "name": "أخبار الأمم المتحدة",
+      "url": "https://news.un.org/feed/subscribe/ar/news/all/rss.xml",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "euronews-ar",
+      "name": "يورونيوز عربية",
+      "url": "https://arabic.euronews.com/rss",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "arriyadiyah",
+      "name": "الرياضية",
+      "url": "https://arriyadiyah.com/rss",
+      "commands": [
+        "football"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ لكن روابط الأخبار في الخلاصة ترد ٤٠٤ في الفحص الحي؛ يبقى مرشحًا حتى تعمل روابطه.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "dw-ar",
+      "name": "DW عربية",
+      "url": "https://rss.dw.com/rdf/rss-ar-all",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ لكن صفحات الأخبار بلا صورة معلنة والروابط على نطاق آخر (www.dw.com)؛ يبقى مرشحًا لأن كل خبر يحتاج صورة من مصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "independent-ar",
+      "name": "اندبندنت عربية",
+      "url": "https://www.independentarabia.com/rss.xml",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ لكن روابط الخلاصة تذهب إلى الموقع الإنجليزي (independent.co.uk) بنص غير عربي؛ يبقى مرشحًا.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
       "id": "hadath",
       "name": "الحدث",
       "url": "https://www.alhadath.net/.mrss/alhadath.xml",
