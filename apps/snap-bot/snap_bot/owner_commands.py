@@ -103,7 +103,7 @@ def reply_keyboard() -> dict[str, Any]:
     return {"keyboard": [row for row in rows if row], "resize_keyboard": True}
 
 
-def unit_outcome(unit: str) -> tuple[str, str]:
+def unit_outcome(unit: str) -> tuple[str | None, str]:
     result = subprocess.run(  # noqa: S603
         ["systemctl", "show", "--property=InvocationID", "--property=ExecMainStatus", unit],  # noqa: S607
         capture_output=True,
@@ -111,15 +111,15 @@ def unit_outcome(unit: str) -> tuple[str, str]:
         check=False,
     )
     if result.returncode != 0:
-        return "", ""
+        return None, ""
     properties = dict(
         line.partition("=")[::2]
         for line in result.stdout.decode("ascii", "replace").splitlines()
         if "=" in line
     )
     invocation = properties.get("InvocationID", "")
-    if not re.fullmatch("[0-9a-f]{32}", invocation):
-        return "", ""
+    if invocation and not re.fullmatch("[0-9a-f]{32}", invocation):
+        return None, ""
     return invocation, properties.get("ExecMainStatus", "")
 
 
@@ -135,7 +135,7 @@ def systemctl_start(unit: str) -> int:
     )
     if result.returncode:
         invocation, status = unit_outcome(unit)
-        if invocation and invocation != before and status == "3":
+        if before is not None and invocation and invocation != before and status == "3":
             return 3
     return result.returncode
 

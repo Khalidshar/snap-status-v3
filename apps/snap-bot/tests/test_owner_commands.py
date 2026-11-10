@@ -488,13 +488,20 @@ def test_urgent_empty_response_and_other_failures_stay_distinct(tmp_path):
 def test_start_reads_only_current_unit_invocation():
     from types import SimpleNamespace
 
-    for new_id, expected in [("b" * 32, 3), ("a" * 32, 1), ("", 1)]:
+    for old_id, new_id, expected in [
+        ("a" * 32, "b" * 32, 3),
+        ("a" * 32, "a" * 32, 1),
+        ("a" * 32, "", 1),
+        ("", "b" * 32, 3),
+        ("invalid", "b" * 32, 1),
+    ]:
         with patch.object(
             listener.subprocess,
             "run",
             side_effect=[
                 SimpleNamespace(
-                    returncode=0, stdout=b"InvocationID=" + b"a" * 32 + b"\nExecMainStatus=3\n"
+                    returncode=0,
+                    stdout=("InvocationID=" + old_id + "\nExecMainStatus=3\n").encode(),
                 ),
                 SimpleNamespace(returncode=1),
                 SimpleNamespace(
