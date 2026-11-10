@@ -24,14 +24,12 @@ def budget(app: str, key: str = "") -> tuple[float, float, int]:
     Snap verse clips may run 120 s so the whole Sa'di tafsir fits (owner decision 6 Nov);
     48 MB stays under the Telegram bot upload limit.
     """
+    # Owner 10 Nov 2026: every Snap clip at least 65 s — a safety margin over the 1-minute
+    # Spotlight revenue floor («كل المقاطع مو الأخبار بس»).
     if app == "snap-bot-v2" and key in QURAN:
-        return 61.0, 120.0, 48_000_000
-    if app == "snap-bot-v2" and key in NEWS:
-        # Owner 10 Nov 2026: Snap news at least 65 s — a safety margin over the 1-minute
-        # Spotlight revenue floor («Yes, make it 65»).
-        return 65.0, 90.0, 40_000_000
+        return 65.0, 120.0, 48_000_000
     if app == "snap-bot-v2":
-        return 61.0, 90.0, 40_000_000
+        return 65.0, 90.0, 40_000_000
     return 32.0, 58.0, 16_000_000
 
 

@@ -1196,7 +1196,7 @@ class Factory:
         items = json.loads(
             (DATA / ("riddles.json" if key == "riddle" else f"{key}.json")).read_text()
         )
-        # Snap runs 61 s+: more items instead of one item left on screen for half a minute.
+        # Snap runs 65 s+: more items instead of one item left on screen for half a minute.
         need = 3 if key == "riddle" else (6 if self.app == "snap-bot-v2" else 4)
         selected = []
         for item in items:
