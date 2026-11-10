@@ -26,6 +26,7 @@ from typing import Any
 
 from studio_core import command_news
 from studio_core import commands as menu
+from studio_core.observability.failure_code import NO_FRESH_CONTENT_MESSAGE
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES
 
@@ -111,6 +112,15 @@ def systemctl_start(unit: str) -> int:
         timeout=1260,
         check=False,
     )
+    if result.returncode:
+        status = subprocess.run(  # noqa: S603
+            ["systemctl", "show", "--property=ExecMainStatus", "--value", unit],  # noqa: S607
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+        if status.returncode == 0 and status.stdout.strip() == b"3":
+            return 3
     return result.returncode
 
 
@@ -325,7 +335,10 @@ class Studio:
         clip = self.pending()
         if not clip or clip["kind"] != kind:
             unit = RENDER_UNIT if kind == "did_you_know" else KIND_RENDER_UNIT.format(kind=kind)
-            if self.start(unit) != 0:
+            status = self.start(unit)
+            if kind == "urgent" and status == 3:
+                return NO_FRESH_CONTENT_MESSAGE
+            if status != 0:
                 return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص " + unit + " على السيرفر."
             clip = self.pending()
             if not clip or clip["kind"] != kind:
