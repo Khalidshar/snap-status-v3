@@ -268,6 +268,7 @@ def words(t: str) -> set:
 
 
 # Words that many unrelated stories share; they never decide that two stories are one.
+# fmt: off
 TOPIC_COMMON = frozenset(
     {
         "الثلاثاء", "الاثنين", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد", "اليوم", "خلال",
@@ -278,7 +279,7 @@ TOPIC_COMMON = frozenset(
         "الرياض", "العربية",
     }
 )
-)
+# fmt: on
 
 
 def topic_keys(text: str) -> list[frozenset[str]]:
