@@ -529,9 +529,13 @@ class Factory:
             candidates = desk_order(self.key, candidates, hot)
         selected: list[dict[str, Any]] = []
         failures: list[dict[str, str]] = []
+        topics: list[str] = []  # one story per event inside a bulletin
         # Snap bulletins carry one more story to pass the one-minute Spotlight floor.
         count = 1 if self.key in {"tech", "style"} else (4 if self.app == "snap-bot-v2" else 3)
         for item in candidates[:25]:
+            topic = item["title"] + " " + item["detail"][:120]
+            if self.key not in {"tech", "style"} and parsing.same_topic(topic, topics):
+                continue
             try:
                 text, points = self.article(item)
                 if key == "markets" and parsing.market_excluded(parsing.words_only(text)):
@@ -646,6 +650,7 @@ class Factory:
                         )
                         selected_scene["source_url"] = item["url"]
                 self.used(item["url"])
+                topics.append(topic)
                 if self.key in {"tech", "style"} or len(selected) >= count:
                     break
             except (

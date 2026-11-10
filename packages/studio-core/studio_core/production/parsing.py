@@ -267,6 +267,43 @@ def words(t: str) -> set:
     }
 
 
+# Words that many unrelated stories share; they never decide that two stories are one.
+TOPIC_COMMON = frozenset(
+    "الثلاثاء الاثنين الأربعاء الخميس الجمعة السبت الأحد اليوم خلال التي الذي الذين بعد قبل "
+    "حول على إلى جديد جديدة يعلن تعلن أعلن أعلنت رئيس وزير وزراء وزارة قال قالت العام عام "
+    "بين هذا هذه ذلك أكثر عدد منذ حتى أمس نحو ضمن عبر لدى دون مليون مليار دولار محمد عبد "
+    "السعودية السعودي المملكة الرياض العربية".split()
+)
+
+
+def topic_keys(text: str) -> list[frozenset[str]]:
+    """Crude keys of the Arabic words: as written and without a one-letter prefix."""
+    text = re.sub("[ً-ْـ]", "", text)
+    keys = []
+    for word in re.findall("[ء-ي]{4,}", text):
+        if word in TOPIC_COMMON:
+            continue
+        word = word.translate(str.maketrans("أإآىة", "ااايه"))
+        forms = {word, re.sub("^[وفبلك](?=.{4,})", "", word)}
+        forms = {re.sub("^ال(?=.{3,})", "", form) for form in forms}
+        keys.append(frozenset(form[:4] for form in forms if len(form) >= 4))
+    return keys
+
+
+def same_topic(text: str, others: list[str]) -> bool:
+    """Whether a story (title and opening) is the same event as one already in the bulletin.
+
+    Owner repair 11 Nov 2026: three of four «العالم» stories were one event from two
+    publishers. Three shared word keys decide; the story's own text is never changed.
+    """
+    mine = topic_keys(text)
+    for other in others:
+        pool: set[str] = set().union(*topic_keys(other))
+        if len({min(key) for key in mine if key & pool}) >= 3:
+            return True
+    return False
+
+
 def same_story(title: str, titles: list[str]) -> bool:
     a = words(title)
     return any(len(a & (b := words(x))) >= max(3, 0.5 * min(len(a), len(b) or 1)) for x in titles)
