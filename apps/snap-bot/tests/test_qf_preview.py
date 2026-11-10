@@ -92,7 +92,7 @@ def test_qf_tilawa_crosses_worker_and_preview_bundle(tmp_path, monkeypatch):
                 scene("آية اليوم", 3, role="hook"),
                 scene(
                     ayah,
-                    54,
+                    58,  # 3 + 58 + 5 = 66 s, over the 65 s Snap floor (10 Nov)
                     role="verse",
                     verse=[94, 5],
                     phrases=phrases,
