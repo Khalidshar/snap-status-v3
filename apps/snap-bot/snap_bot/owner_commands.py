@@ -103,8 +103,29 @@ def reply_keyboard() -> dict[str, Any]:
     return {"keyboard": [row for row in rows if row], "resize_keyboard": True}
 
 
+def unit_outcome(unit: str) -> tuple[str, str]:
+    result = subprocess.run(  # noqa: S603
+        ["systemctl", "show", "--property=InvocationID", "--property=ExecMainStatus", unit],  # noqa: S607
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    if result.returncode != 0:
+        return "", ""
+    properties = dict(
+        line.partition("=")[::2]
+        for line in result.stdout.decode("ascii", "replace").splitlines()
+        if "=" in line
+    )
+    invocation = properties.get("InvocationID", "")
+    if not re.fullmatch("[0-9a-f]{32}", invocation):
+        return "", ""
+    return invocation, properties.get("ExecMainStatus", "")
+
+
 def systemctl_start(unit: str) -> int:
-    """Start one oneshot unit and wait for it; the unit does the work, never this process."""
+    """Wait for one oneshot, accepting no-content only from this invocation."""
+    before, _ = unit_outcome(unit)
     result = subprocess.run(  # noqa: S603  # fixed argv, unit names are built here
         ["systemctl", "start", unit],  # noqa: S607  # pinned system tool
         capture_output=True,
@@ -113,13 +134,8 @@ def systemctl_start(unit: str) -> int:
         check=False,
     )
     if result.returncode:
-        status = subprocess.run(  # noqa: S603
-            ["systemctl", "show", "--property=ExecMainStatus", "--value", unit],  # noqa: S607
-            capture_output=True,
-            timeout=10,
-            check=False,
-        )
-        if status.returncode == 0 and status.stdout.strip() == b"3":
+        invocation, status = unit_outcome(unit)
+        if invocation and invocation != before and status == "3":
             return 3
     return result.returncode
 

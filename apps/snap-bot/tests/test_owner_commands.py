@@ -485,16 +485,26 @@ def test_urgent_empty_response_and_other_failures_stay_distinct(tmp_path):
         send.assert_not_called()
 
 
-def test_start_reads_exact_unit_exit_status_only():
+def test_start_reads_only_current_unit_invocation():
     from types import SimpleNamespace
 
-    with patch.object(
-        listener.subprocess,
-        "run",
-        side_effect=[SimpleNamespace(returncode=1), SimpleNamespace(returncode=0, stdout=b"3\n")],
-    ) as run:
-        assert listener.systemctl_start("madar-v3-snap-render@urgent.service") == 3
-    assert run.call_args.args[0][-1] == "madar-v3-snap-render@urgent.service"
+    for new_id, expected in [("b" * 32, 3), ("a" * 32, 1), ("", 1)]:
+        with patch.object(
+            listener.subprocess,
+            "run",
+            side_effect=[
+                SimpleNamespace(
+                    returncode=0, stdout=b"InvocationID=" + b"a" * 32 + b"\nExecMainStatus=3\n"
+                ),
+                SimpleNamespace(returncode=1),
+                SimpleNamespace(
+                    returncode=0,
+                    stdout=("InvocationID=" + new_id + "\nExecMainStatus=3\n").encode(),
+                ),
+            ],
+        ) as run:
+            assert listener.systemctl_start("madar-v3-snap-render@urgent.service") == expected
+            assert run.call_args.args[0][-1] == "madar-v3-snap-render@urgent.service"
 
 
 def test_isolated_coordinator_propagates_only_exact_no_fresh_marker(tmp_path):
