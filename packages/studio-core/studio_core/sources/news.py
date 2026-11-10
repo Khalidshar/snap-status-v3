@@ -339,7 +339,7 @@ def _link(value: str, source: Source) -> str:
     host = parts.hostname or ""
     publisher = urlsplit(source.url).hostname or ""
     permitted = {publisher, publisher.removeprefix("www."), "www." + publisher.removeprefix("www.")}
-    if source.id == "bbc-ar":
+    if source.id.startswith("bbc-ar"):  # the section feeds too (repair 11 Nov 2026)
         permitted |= {"www.bbc.com", "www.bbc.co.uk", "bbc.com", "bbc.co.uk"}
     if (
         parts.scheme != "https"
