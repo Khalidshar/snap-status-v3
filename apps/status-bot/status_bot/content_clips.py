@@ -128,13 +128,20 @@ def render_event(tag: str, root: Path = ROOT) -> None:
             try:
                 directory = safe_path(root / tag)
                 request = json.loads(read_bound(directory, "request.json", 65536))
-                if request.get("app") == "status-bot-v2":
+                content = request.get("content") if isinstance(request, dict) else None
+                content_hash = content.get("content_hash") if isinstance(content, dict) else None
+                if (
+                    isinstance(request, dict)
+                    and request.get("app") == "status-bot-v2"
+                    and isinstance(content_hash, str)
+                    and re.fullmatch("[0-9a-f]{64}", content_hash)
+                ):
                     write_once(
                         directory / "render-failure.json",
                         json.dumps(
                             {
                                 "schema": 1,
-                                "content_hash": request["content"]["content_hash"],
+                                "content_hash": content_hash,
                                 "diagnostic": diagnostic(error),
                             }
                         ).encode(),
