@@ -26,6 +26,10 @@ def budget(app: str, key: str = "") -> tuple[float, float, int]:
     """
     if app == "snap-bot-v2" and key in QURAN:
         return 61.0, 120.0, 48_000_000
+    if app == "snap-bot-v2" and key in NEWS:
+        # Owner 10 Nov 2026: Snap news at least 65 s — a safety margin over the 1-minute
+        # Spotlight revenue floor («Yes, make it 65»).
+        return 65.0, 90.0, 40_000_000
     if app == "snap-bot-v2":
         return 61.0, 90.0, 40_000_000
     return 32.0, 58.0, 16_000_000
