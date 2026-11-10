@@ -288,8 +288,8 @@ class ClipCycleTests(unittest.TestCase):
                  "time": time.time()}
             )  # fmt: skip
 
-        self.on_start[listener.KIND_RENDER_UNIT.format(kind="style")] = (
-            lambda unit: self.runtime.rendered(1, kind="style", translated=True)
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            1, "خبر مترجم", kind="style", title="الأناقة", translated=True
         )
         self.on_start["madar-v3-snap-send-main"] = ack
         reply = self.studio.answer("الأناقة")
