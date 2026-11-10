@@ -87,11 +87,14 @@ class FakeClient:
 def test_audit_reads_each_news_candidate_once_without_returning_headlines():
     client = FakeClient()
     checked = audit("موجز", client)
-    assert len(checked) == len(client.calls) == 10
-    assert all(c["result"] == "XML_VERIFIED" and c["valid_items"] == 1 for c in checked)
+    # Four working publishers are read; the six blocked Al Hadath feeds are listed, never fetched.
+    assert len(client.calls) == 4 and len(checked) == 10
+    read = [c for c in checked if c["result"] != "EXCLUDED"]
+    assert len(read) == 4
+    assert all(c["result"] == "XML_VERIFIED" and c["valid_items"] == 1 for c in read)
     assert "Headline" not in json.dumps(checked)
     assert all(c["publication_enabled"] is False for c in checked)
-    assert all(s.status == "approved" for s in for_command("news"))
+    assert {s.status for s in for_command("news")} == {"approved", "excluded"}
 
 
 def test_audit_does_not_fetch_excluded_sources_or_turn_websites_into_feeds():
@@ -119,7 +122,7 @@ def test_audit_does_not_fetch_excluded_sources_or_turn_websites_into_feeds():
 )
 def test_feed_failures_are_sanitized_and_never_retried(client):
     checks = audit("tech", client)
-    assert len(checks) == len(client.calls) == 6  # five approved feeds plus Google fallback
+    assert len(checks) == len(client.calls) == 8  # seven approved feeds plus Google fallback
     assert all(check["result"] == "UNVERIFIED" for check in checks)
     assert "private-token" not in json.dumps(checks)
 
@@ -174,5 +177,5 @@ def test_source_check_cli_does_not_report_failed_feeds_as_success(package, reach
     assert code == (0 if reachable else 2)
     assert output["ok"] is reachable
     assert output["external_delivery"] is False
-    assert len(fake.calls) == 6
+    assert len(fake.calls) == 8
     assert "private-token" not in json.dumps(output)

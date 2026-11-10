@@ -151,7 +151,7 @@ def test_source_failures_are_bounded_and_secret_free():
     client = Feed(HEADLINES["tech"], failure=True)
     with pytest.raises(NewsUnavailable) as error:
         collect("tech", client, NOW)
-    assert len(client.calls) == 6  # Five approved technology feeds plus Google fallback.
+    assert len(client.calls) == 8  # Seven approved technology feeds plus Google fallback.
     assert "token-that" not in str(error.value)
 
 

@@ -267,6 +267,48 @@ def words(t: str) -> set:
     }
 
 
+ARABIC_MONTHS = (
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
+)
+
+
+def feed_time(text: str) -> float:
+    """A feed item's publication time: the standard form, or the Arabic civil form.
+
+    «الأربعاء، 11 نوفمبر 2026 01:00 ص» (اليوم السابع) is Cairo time; its stories were all
+    dropped as undated until 11 Nov 2026. Anything else stays an error.
+    """
+    from email.utils import parsedate_to_datetime
+    from zoneinfo import ZoneInfo
+
+    try:
+        return parsedate_to_datetime(text).timestamp()
+    except ValueError:
+        found = re.search(r"(\d{1,2}) (\S+) (\d{4}) (\d{1,2}):(\d{2}) ([صم])", text)
+        if not found or found[2] not in ARABIC_MONTHS:
+            raise
+        hour = int(found[4]) % 12 + (12 if found[6] == "م" else 0)
+        return dt.datetime(
+            int(found[3]),
+            ARABIC_MONTHS.index(found[2]) + 1,
+            int(found[1]),
+            hour,
+            int(found[5]),
+            tzinfo=ZoneInfo("Africa/Cairo"),
+        ).timestamp()
+
+
 # Words that many unrelated stories share; they never decide that two stories are one.
 # fmt: off
 TOPIC_COMMON = frozenset(
