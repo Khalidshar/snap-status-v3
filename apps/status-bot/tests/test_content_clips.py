@@ -330,3 +330,73 @@ def test_panel_approval_failure_closes_attempt_and_only_reopens_before_send(
         with pytest.raises(DeliveryBlocked, match="WA_COMMAND_ALREADY_CONSUMED"):
             panel_actions.approve(f.outbox, transport, f.runtime, path, preview, sha)
     transport.send_video.assert_called_once()
+
+
+def test_worker_persists_bound_safe_design_failure(tmp_path, monkeypatch, capsys):
+    import subprocess
+
+    tag = "f" * 64
+    folder = tmp_path / tag
+    folder.mkdir()
+    (folder / "request.json").write_text(
+        json.dumps(
+            {
+                "app": "status-bot-v2",
+                "content": {"content_hash": "a" * 64},
+            }
+        )
+    )
+    error = subprocess.CalledProcessError(
+        1, ["/private/node", "SECRET"], stderr=b"SECRET: Cannot find module /private/renderer"
+    )
+    monkeypatch.setattr(content_clips, "_render_event", Mock(side_effect=error))
+    with pytest.raises(subprocess.CalledProcessError):
+        content_clips.render_event(tag, tmp_path)
+    proof = json.loads((folder / "render-failure.json").read_text())
+    assert proof["content_hash"] == "a" * 64
+    assert proof["diagnostic"]["reason"] == "MISSING_DEPENDENCY"
+    assert proof["diagnostic"]["tool"] == "NODE"
+    assert "SECRET" not in json.dumps(proof) + capsys.readouterr().err
+    assert "/private" not in json.dumps(proof)
+
+
+@pytest.mark.parametrize("scope", ["matched", "changed", "missing", "invalid"])
+def test_design_failure_reaches_parent_only_with_current_content_binding(
+    fixture, tmp_path, monkeypatch, capsys, scope
+):
+    from studio_core.observability.render_failure import RenderWorkerFailure, diagnostic
+
+    f = fixture
+    item = {"tag": "e" * 64}
+    content_clips.initialize(f.repo)
+    original = subprocess.CalledProcessError(1, ["/usr/bin/systemctl", "private-unit"])
+
+    def start(unit):
+        folder = tmp_path / item["tag"]
+        request = json.loads((folder / "request.json").read_text())
+        if scope != "missing":
+            value = {
+                "schema": 1,
+                "content_hash": request["content"]["content_hash"]
+                if scope == "matched"
+                else "0" * 64,
+                "diagnostic": diagnostic(
+                    subprocess.CalledProcessError(
+                        1, ["node", "SECRET"], stderr=b"Cannot find module SECRET"
+                    )
+                ),
+            }
+            (folder / "render-failure.json").write_text(
+                json.dumps([] if scope == "invalid" else value)
+            )
+        raise original
+
+    with pytest.raises(subprocess.CalledProcessError) as caught:
+        content_clips.build(f.outbox, item, "riddle", root=tmp_path, start=start)
+    if scope == "matched":
+        assert isinstance(caught.value, RenderWorkerFailure)
+        assert caught.value.diagnostic["reason"] == "MISSING_DEPENDENCY"
+        assert "tool=NODE exit=1 reason=MISSING_DEPENDENCY" in capsys.readouterr().err
+    else:
+        assert caught.value is original
+    assert "SECRET" not in repr(caught.value)
