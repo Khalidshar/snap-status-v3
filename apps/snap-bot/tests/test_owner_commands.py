@@ -42,7 +42,14 @@ class FakeRuntime:
         self.list.append({"kind": "HUMAN_FRAME", "video_sha": sha, "time": time.time()})
 
     def rendered(
-        self, n, body="نص المعلومة", expires=600, kind=None, title="هل تعلم؟", commit=None
+        self,
+        n,
+        body="نص المعلومة",
+        expires=600,
+        kind=None,
+        title="هل تعلم؟",
+        commit=None,
+        translated=False,
     ):
         """A kept preview exactly as the server render leaves it."""
         sha, preview, job = f"{n:064x}", f"{n:032x}", f"{n + 9:032x}"
@@ -59,6 +66,11 @@ class FakeRuntime:
                     "category": "body",
                     "title": title,
                     **({"kind": kind} if kind else {}),
+                    **(
+                        {"legacy_production": {"scenes": [{"translations": {"body": "source"}}]}}
+                        if translated
+                        else {}
+                    ),
                 },
                 ensure_ascii=False,
             ),
@@ -266,6 +278,23 @@ class ClipCycleTests(unittest.TestCase):
         self.assertEqual(self.runtime.approved, [(sha, "main", True)], "guard:main-only")
         self.assertEqual(self.started, [listener.RENDER_UNIT, listener.SEND_UNIT.format(sha=sha)])
         self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP, "guard:sent-once")
+
+    def test_a_translated_clip_is_sent_with_the_review_notice(self):
+        sha = f"{1:064x}"
+
+        def ack(unit):
+            self.runtime.list.append(
+                {"kind": "ACK", "video_sha": sha, "bot": "khalid_s2ss_bot", "message_id": 951,
+                 "time": time.time()}
+            )  # fmt: skip
+
+        self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
+            1, "خبر مترجم", kind="style", title="الأناقة", translated=True
+        )
+        self.on_start["madar-v3-snap-send-main"] = ack
+        reply = self.studio.answer("الأناقة")
+        self.assertEqual(reply, listener.TRANSLATED_NOTE, "guard:translated-clip-is-flagged")
+        self.assertEqual(self.runtime.approved, [(sha, "main", True)])
 
     def test_a_sent_clip_gets_no_text_reply_but_a_failure_does(self):
         calls = []
