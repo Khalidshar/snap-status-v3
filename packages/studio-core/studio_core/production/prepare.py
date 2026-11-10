@@ -465,9 +465,7 @@ class Factory:
                     detail = parsing.clean(body)
                     try:
                         _link(url, source)
-                        published = email.utils.parsedate_to_datetime(
-                            entry.findtext("pubDate") or ""
-                        ).timestamp()
+                        published = parsing.feed_time(entry.findtext("pubDate") or "")
                     except ValueError:
                         continue
                     if (
