@@ -84,9 +84,9 @@ THEMES = {
         BY4,
     ),
 }
-def desk_order(
-    key: str, candidates: list[dict[str, Any]], hot: list[str]
-) -> list[dict[str, Any]]:
+
+
+def desk_order(key: str, candidates: list[dict[str, Any]], hot: list[str]) -> list[dict[str, Any]]:
     """Order a bulletin's stories; what Saudi Arabia is searching comes first in each group.
 
     status-bot newsroom.stories: two Saudi stories, two others, then the rest. «العالم» is
