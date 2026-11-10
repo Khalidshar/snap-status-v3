@@ -600,7 +600,9 @@ class Factory:
                 else:
                     detail = parsing.clean(
                         item["detail"] or parsing.words_only(text),
-                        min(115, max(70, 200 - len(item["title"]))),
+                        # Owner decision 3 Nov 2026 (old bot build_news): detail up to 230 letters
+                        # with the title, from the source text; restored 10 Nov («انقلها للجديد»).
+                        max(100, 230 - len(item["title"])),
                     )
                     if not detail or detail == item["title"]:
                         continue
