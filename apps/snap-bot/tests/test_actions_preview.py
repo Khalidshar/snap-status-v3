@@ -286,10 +286,15 @@ class ActionsPreviewTests(unittest.TestCase):
     def test_invalid_approval_never_reaches_github_or_telegram(self):
         env = environment()
         env["HUMAN_APPROVAL"] = ""
-        with patch.object(actions, "github_get") as fetch:
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(actions, "github_get") as fetch,
+        ):
+            bundle = Path(directory) / "missing"
             with self.assertRaises(ValueError):
-                actions.send_bundle(Path("missing"), env)
+                actions.send_bundle(bundle, env)
             fetch.assert_not_called()
+            self.assertTrue((bundle / "receipt.json").is_file())
 
     # The lab's GitHub Actions workflows are not part of v3 (GRADUATION.md: actions path not moved).
 
