@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
   workflow_call:
@@ -72,9 +74,6 @@ jobs:
         env:
           MADAR_REQUIRE_REAL_RENDER: "1"
           MADAR_PRODUCTION_REAL_RENDER: "1"
-      # Deliberate guard deletions: each must be caught by its named test.
-      - if: matrix.python == '3.12'
-        run: uv run --frozen python scripts/check_core_mutations.py
       # Reports are a convenience: a full storage quota must not fail passing tests.
       - if: always()
         uses: actions/upload-artifact@v7
@@ -84,6 +83,24 @@ jobs:
           path: reports/
           if-no-files-found: ignore
           retention-days: 3
+
+  core-mutations:
+    name: Core guard mutations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg fontconfig fonts-dejavu-core fonts-freefont-ttf fonts-hosny-amiri pango1.0-tools
+      - run: uv sync --all-packages
+      # Deliberate guard deletions have their own budget, outside the test matrix.
+      - run: uv run --frozen python scripts/check_core_mutations.py
 
   app-mutations:
     name: App guard mutations
@@ -229,7 +246,7 @@ jobs:
   ci-ok:
     name: CI passed
     if: always()
-    needs: [changes, lint, test, app-mutations, status-render, release-install, secret-scan, workflow-lint, build]
+    needs: [changes, lint, test, core-mutations, app-mutations, status-render, release-install, secret-scan, workflow-lint, build]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:

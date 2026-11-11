@@ -115,6 +115,37 @@ def test_reconciled_row_cannot_be_uploaded(fixture, tmp_path, monkeypatch):
         )
 
 
+@pytest.mark.parametrize("notice_fails", [False, True])
+def test_translated_clip_is_followed_by_the_review_notice(
+    fixture, tmp_path, monkeypatch, notice_fails
+):
+    from studio_core.production.caption import TRANSLATED_NOTE
+
+    f = fixture
+    f.webhook(inbound=True)
+    transport = fixtures.OfflineTransport(f.identity)
+    transport.send_text = Mock(side_effect=OSError("offline") if notice_fails else None)
+    translated = {"legacy_production": {"scenes": [{"translations": {"body": "source"}}]}}
+    delivered = Mock()
+    monkeypatch.setattr(content_clips, "STATE", tmp_path)
+    monkeypatch.setattr(
+        content_clips, "build", lambda *a, **k: (translated, {"video_sha256": "a" * 64}, b"v")
+    )
+    monkeypatch.setattr(content_clips, "deliver_built", delivered)
+    # A lost notice never fails or repeats the delivered clip.
+    content_clips.send(f.outbox, transport, {"tag": "d" * 64}, "style", f.runtime, root=tmp_path)
+    delivered.assert_called_once()
+    transport.send_text.assert_called_once_with(TRANSLATED_NOTE)
+
+    plain = Mock()
+    transport.send_text = plain
+    monkeypatch.setattr(
+        content_clips, "build", lambda *a, **k: ({}, {"video_sha256": "b" * 64}, b"v")
+    )
+    content_clips.send(f.outbox, transport, {"tag": "e" * 64}, "style", f.runtime, root=tmp_path)
+    plain.assert_not_called()
+
+
 def test_foreign_recipient_or_closed_window_does_not_upload(fixture):
     f = fixture
     transport = fixtures.OfflineTransport(f.identity)

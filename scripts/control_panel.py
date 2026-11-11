@@ -293,7 +293,7 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
                 "label": c.label,
                 "confirm": c.confirm,
                 "section": c.section,
-                "content": c.section in {"news", "general", "faith", "brief"},
+                "content": c.section in {"news", "general", "fashion", "faith", "brief"},
             }
             for c in COMMANDS
         ],
