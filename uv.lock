@@ -207,15 +207,6 @@ toml = [
 ]
 
 [[package]]
-name = "hijridate"
-version = "2.5.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b5/e6/ce409c1c745255cd3b756e3765a92415c5690bb7aa06dd01ca38ed24e429/hijridate-2.5.0.tar.gz", hash = "sha256:b47f0b2e5333d5d898c6f3472f5cee4a3f045c82d69c073c7a026f5a7aec5821", size = 35287, upload-time = "2024-05-24T21:08:05.142Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/9d/f93aac492d04146fa7746f74a0e3c3194f60b0a012be030401d42367cf42/hijridate-2.5.0-py3-none-any.whl", hash = "sha256:f6871bacbb0d3c8eff3cab155fa822877b73517354f9d834ebe6a722a9caf35c", size = 14407, upload-time = "2024-05-24T21:08:03.609Z" },
-]
-
-[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -559,12 +550,6 @@ requires-dist = [{ name = "studio-core", editable = "packages/studio-core" }]
 name = "studio-core"
 version = "0.1.0"
 source = { editable = "packages/studio-core" }
-dependencies = [
-    { name = "hijridate" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "hijridate", specifier = "==2.5.0" }]
 
 [[package]]
 name = "tomli"

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from hijridate import Gregorian
+from studio_core.religious.ummalqura import convert
 
 CATALOG = Path(__file__).with_name("data") / "hadith-calendar.json"
 SEASONS = {"general", "ramadan", "hajj", "ashura", "eid_fitr", "eid_adha"}
@@ -84,13 +84,7 @@ def load(path: Path | None = None) -> list[dict[str, Any]]:
 
 
 def hijri(day: date) -> tuple[int, int, int]:
-    if type(day) is not date:
-        raise ValueError("HADITH_GREGORIAN_DAY_REQUIRED")
-    try:
-        value = Gregorian.fromdate(day).to_hijri()
-    except (ValueError, OverflowError) as error:
-        raise ValueError("UMM_AL_QURA_DATE_UNAVAILABLE") from error
-    return value.year, value.month, value.day
+    return convert(day)
 
 
 def seasons(month: int, day: int) -> set[str]:
