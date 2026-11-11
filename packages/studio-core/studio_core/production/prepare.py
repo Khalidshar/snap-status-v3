@@ -266,6 +266,9 @@ class Factory(NewsPreparation, VarietyPreparation):
             "expires_at": time.time() + 3600,
             "legacy_production": p,
         }
+        from .publication import target
+
+        value["publication_target"] = target(value)
         value["content_hash"] = content_hash(value)
         validate(value, assets=self.root)
         (self.root / "content.json").write_bytes(canonical(value))
