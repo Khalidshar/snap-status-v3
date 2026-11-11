@@ -100,7 +100,8 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         elif (
             parsed["kind"] == "command"
             and (
-                parsed["command"].section in {"news", "general", "faith", "brief"} or key == "send"
+                parsed["command"].section in {"news", "general", "fashion", "faith", "brief"}
+                or key == "send"
             )
             and halted()
         ):

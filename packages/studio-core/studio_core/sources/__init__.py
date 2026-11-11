@@ -16,7 +16,7 @@ from studio_core.commands import BY_KEY, COMMANDS, INDEX, normalize
 
 CATALOG = Path(__file__).with_name("catalog.json")
 CONTENT_KEYS = frozenset(
-    c.key for c in COMMANDS if c.section in {"news", "general", "faith", "brief"}
+    c.key for c in COMMANDS if c.section in {"news", "general", "fashion", "faith", "brief"}
 )
 FAITH_KEYS = frozenset(c.key for c in COMMANDS if c.section == "faith")
 KINDS = {"rss", "website", "catalog", "reference", "human_audio", "weather"}

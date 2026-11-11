@@ -39,11 +39,14 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
     ("general", "💡 هل تعلم ومنوعات", (
         ("facts", "💡 هل تعلم", (), False),
         ("tech", "📱 التقنية", ("تقنية",), False),
-        ("style", "👗 الأناقة والجمال", ("الأناقة",), False),
         ("riddle", "🧠 لغز اليوم", ("لغز",), False),
         ("funny", "😂 مواقف طريفة", ("طرائف",), False),
         ("history", "📜 حدث اليوم", ("في مثل هذا اليوم", "حدث اليوم"), False),
         ("night", "🌙 قبل النوم", (), False),
+    )),
+    # Owner 11 Nov 2026: fashion is its own section; its six commands join it when built.
+    ("fashion", "👗 الأناقة", (
+        ("style", "👗 الأناقة والجمال", ("الأناقة",), False),
     )),
     ("faith", "🕌 أذكار ودين", (
         ("adhkar_am", "🌅 أذكار الصباح", ("اذكار الصباح",), False),
@@ -125,7 +128,7 @@ def _index() -> dict[str, Command]:
     for _, title, _ in SECTIONS:
         # A section title may only equal a command when that command is the section's own.
         same = index.get(normalize(title))
-        if same and same.key not in ("brief", "menu"):
+        if same and same.key not in ("brief", "menu", "style"):
             raise ValueError("Section title collides with a command: " + title)
     return index
 
