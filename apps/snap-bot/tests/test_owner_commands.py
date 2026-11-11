@@ -496,3 +496,83 @@ class LiveNewsPollingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_urgent_empty_response_and_other_failures_stay_distinct(tmp_path):
+    from unittest.mock import Mock
+
+    runtime = FakeRuntime(root=tmp_path)
+    studio = listener.Studio(runtime=runtime, start=Mock(return_value=3))
+    with (
+        patch.object(studio, "pending", return_value=None),
+        patch.object(studio, "deliver") as send,
+    ):
+        assert studio.make("urgent") == "لا يوجد خبر عاجل الآن"
+        assert "تعذّر" in studio.make("world")
+        studio.start.return_value = 1
+        assert "تعذّر" in studio.make("urgent")
+        send.assert_not_called()
+
+
+def test_start_reads_only_current_unit_invocation():
+    from types import SimpleNamespace
+
+    for old_id, new_id, expected in [
+        ("a" * 32, "b" * 32, 3),
+        ("a" * 32, "a" * 32, 1),
+        ("a" * 32, "", 1),
+        ("", "b" * 32, 3),
+        ("invalid", "b" * 32, 1),
+    ]:
+        with patch.object(
+            listener.subprocess,
+            "run",
+            side_effect=[
+                SimpleNamespace(
+                    returncode=0,
+                    stdout=("InvocationID=" + old_id + "\nExecMainStatus=3\n").encode(),
+                ),
+                SimpleNamespace(returncode=1),
+                SimpleNamespace(
+                    returncode=0,
+                    stdout=("InvocationID=" + new_id + "\nExecMainStatus=3\n").encode(),
+                ),
+            ],
+        ) as run:
+            assert listener.systemctl_start("madar-v3-snap-render@urgent.service") == expected
+            assert run.call_args.args[0][-1] == "madar-v3-snap-render@urgent.service"
+
+
+def test_isolated_coordinator_propagates_only_exact_no_fresh_marker(tmp_path):
+    import os
+    import pwd
+    import subprocess
+
+    from snap_bot import server_preview
+    from studio_core.observability.failure_code import NoFreshContent
+
+    account = pwd.getpwuid(os.getuid())
+    work = tmp_path / "work"
+    work.mkdir(mode=0o711)
+    for marker, expected in [
+        (b"MADAR_RENDER_CODE=NO_FRESH_CONTENT\n", NoFreshContent),
+        (b"private NO_FRESH_CONTENT payload\n", subprocess.CalledProcessError),
+    ]:
+        with (
+            patch.object(server_preview.os, "geteuid", return_value=0),
+            patch.object(server_preview.os, "chown"),
+            patch.object(server_preview, "source_info", return_value=("a" * 40, account.pw_uid)),
+            patch.object(server_preview, "RENDER_WORK", work),
+            patch.object(
+                server_preview.subprocess,
+                "run",
+                side_effect=subprocess.CalledProcessError(1, ["private-command"], stderr=marker),
+            ),
+            patch.object(Path, "stat", autospec=True) as stat,
+        ):
+            # The staging directory is trusted; all filesystem writes remain temporary.
+            from types import SimpleNamespace
+
+            stat.return_value = SimpleNamespace(st_uid=0, st_mode=0o40711)
+            with unittest.TestCase().assertRaises(expected):
+                server_preview.render_bundle(tmp_path / "output", {"kind": "urgent"})

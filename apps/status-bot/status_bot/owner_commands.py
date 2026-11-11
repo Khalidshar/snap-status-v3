@@ -16,6 +16,7 @@ from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.config import Config
 from studio_core.jobs import Repository
+from studio_core.observability.failure_code import NO_FRESH_CONTENT_MESSAGE, NoFreshContent
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, NewsUnavailable
 
@@ -107,7 +108,12 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         ):
             send(STOPPED)
         elif production_content(key):
-            content_clips.send(outbox, transport, item, str(key), runtime)
+            try:
+                content_clips.send(outbox, transport, item, str(key), runtime)
+            except NoFreshContent:
+                if key != "urgent":
+                    raise
+                send(NO_FRESH_CONTENT_MESSAGE)
         elif key == "brief":
             daily_brief.send(outbox, transport, news, item, runtime)
         elif key == "agents":

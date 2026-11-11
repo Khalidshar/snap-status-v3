@@ -669,6 +669,10 @@ class Factory:
             self.key not in {"tech", "style"} and len(selected) < (3 if self.key == "urgent" else 2)
         ) or not selected:
             (self.root / "source-failures.json").write_bytes(canonical(failures))
+            if self.key == "urgent":
+                from studio_core.observability.failure_code import NoFreshContent
+
+                raise NoFreshContent()
             raise ValueError("LEGACY_NEWS_WITH_IMAGES_UNAVAILABLE")
         if self.key in NEWS:
             for n, item in enumerate(selected, 1):
