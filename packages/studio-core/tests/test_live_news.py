@@ -117,8 +117,8 @@ def test_foreign_or_credential_article_links_cannot_claim_a_trusted_publisher(li
         collect("news", Feed(HEADLINES["news"], link=link), NOW)
 
 
-def test_date_label_uses_riyadh_arabic_twelve_hour_time_without_zone_label():
-    assert published_label(NOW) == "الجمعة - ٣٠ - أكتوبر - ٢٠٢٦ - ١١:٠٠ ص"
+def test_date_label_is_the_riyadh_arabic_day_and_date_without_clock_time():
+    assert published_label(NOW) == "الجمعة - ٣٠ - أكتوبر - ٢٠٢٦"
     assert not matches("football", "مباراة كرة السلة في الدوري المصري")
     assert not matches("style", "صدور قرار في أسواق النفط")
     assert not matches("urgent", "هجوم الهلال يتفوق في مباراة كرة القدم")
