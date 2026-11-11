@@ -383,11 +383,9 @@ def news_sources(command: str, *, production: bool = False) -> tuple[Source, ...
 
 
 def published_label(timestamp: float) -> str:
+    """Day and date only, in Riyadh time (owner 12 Nov 2026: no clock time on any clip)."""
     d = datetime.fromtimestamp(timestamp, ZoneInfo("Asia/Riyadh"))
-    time = f"{d.hour % 12 or 12}:{d.minute:02d} {'ص' if d.hour < 12 else 'م'}"
-    return f"{DAYS[d.weekday()]} - {d.day} - {MONTHS[d.month - 1]} - {d.year} - {time}".translate(
-        DIGITS
-    )
+    return f"{DAYS[d.weekday()]} - {d.day} - {MONTHS[d.month - 1]} - {d.year}".translate(DIGITS)
 
 
 def _link(value: str, source: Source) -> str:
