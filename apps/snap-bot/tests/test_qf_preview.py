@@ -272,3 +272,32 @@ def test_renderer_reports_only_safe_failure_codes(monkeypatch, capsys, error, co
     assert response.status == 422
     assert json.loads(response.read()) == expected
     assert capsys.readouterr().err.strip() == " ".join(["SNAP_RENDER_FAILED", *expected.values()])
+
+
+def test_snap_worker_reports_safe_subprocess_cause(monkeypatch, capsys):
+    def fail(*args):
+        raise subprocess.CalledProcessError(
+            1, ["/private/ffmpeg", "SECRET"], stderr=b"SECRET: No space left on device"
+        )
+
+    monkeypatch.setattr(service, "render", fail)
+    worker = WorkerConnection(
+        SimpleNamespace(config=None, settings={"worker_uid": 1, "renderer_uid": 1})
+    )
+    worker.request(
+        "POST",
+        "/render",
+        json.dumps(
+            {
+                "job_id": "a" * 32,
+                "content_hash": "b" * 64,
+                "attempt": 1,
+            }
+        ),
+    )
+    response = worker.getresponse()
+    assert response.status == 422
+    assert json.loads(response.read()) == {"error": "CalledProcessError"}
+    log = capsys.readouterr().err
+    assert "tool=FFMPEG exit=1 reason=NO_SPACE" in log
+    assert "SECRET" not in log and "/private" not in log
