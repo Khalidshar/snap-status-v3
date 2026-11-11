@@ -6,6 +6,7 @@ import signal
 import socket
 import socketserver
 import struct
+import subprocess
 import sys
 import threading
 import time
@@ -22,6 +23,7 @@ from studio_core.network import NetworkClient, UnixHTTPConnection
 from studio_core.network.egress import EgressServer
 from studio_core.network.resilience import ResilientClient
 from studio_core.observability import Redactor
+from studio_core.observability.render_failure import fields
 from studio_core.religious.quran_pipeline import render
 from studio_core.repair.adoption import claim_attempt, expire_pending_adoptions, mark_pending
 from studio_core.storage import Storage
@@ -97,6 +99,8 @@ class RenderHandler(BaseHTTPRequestHandler):
                     result["code"] = reason
             detail = " " + result["code"] if "code" in result else ""
             print(f"SNAP_RENDER_FAILED {name}{detail}", file=sys.stderr, flush=True)
+            if isinstance(exc, subprocess.SubprocessError):
+                print("SNAP_RENDER_FAILURE " + fields(exc), file=sys.stderr, flush=True)
             code = 422
         body = json.dumps(result, ensure_ascii=False).encode()
         self.send_response(code)
