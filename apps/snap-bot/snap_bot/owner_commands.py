@@ -27,6 +27,7 @@ from typing import Any
 from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.observability.failure_code import NO_FRESH_CONTENT_MESSAGE
+from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES
 
@@ -322,6 +323,7 @@ class Studio:
             "sha": event["video_sha"],
             "preview": preview,
             "kind": content.get("kind", "did_you_know"),
+            "translated": machine_translated(content),
             "title": content.get("title", "هل تعلم؟"),
             "body": content.get("body", ""),
             "category": content.get("category", ""),
@@ -363,7 +365,9 @@ class Studio:
             return self.describe(clip) + "\n\n" + SEND_HALTED
         outcome = self.deliver(clip["sha"])
         # The clip itself is the reply: a sent clip needs no text; any failure is reported.
-        return "" if outcome.startswith(SENT) else outcome
+        if outcome.startswith(SENT):
+            return TRANSLATED_NOTE if clip.get("translated") else ""
+        return outcome
 
     def facts(self) -> str:
         return self.make("did_you_know")
