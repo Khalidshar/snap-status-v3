@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from studio_core.religious import hadith_daily
+from studio_core.religious import hadith_catalog
 from studio_core.religious import hadith_text_check as gate
 
 TEXT = "نَصٌّ اخْتِبَارِيٌّ غَيْرُ دِينِيٍّ"
@@ -101,7 +101,7 @@ def test_ci_placeholder_is_explicit_and_never_emits_the_body(tmp_path, monkeypat
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     path = tmp_path / "pending.json"
-    monkeypatch.setattr(hadith_daily, "CATALOG", path)
+    monkeypatch.setattr(hadith_catalog, "CATALOG", path)
     pending = {"schema": 1, "approved": False, "calendar": "umm_al_qura", "entries": []}
     path.write_text(json.dumps(pending))
     assert module.main() == 0

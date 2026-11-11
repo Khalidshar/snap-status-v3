@@ -3,17 +3,17 @@
 import json
 from contextlib import suppress
 
-from studio_core.religious import hadith_daily
+from studio_core.religious import hadith_catalog
 
 
 def main() -> int:
     try:
-        entries = hadith_daily.load()
+        entries = hadith_catalog.load()
     except ValueError as error:
         pending = False
         if str(error) == "HADITH_DAILY_NOT_APPROVED":
             with suppress(OSError, ValueError):
-                pending = json.loads(hadith_daily.CATALOG.read_bytes()) == {
+                pending = json.loads(hadith_catalog.CATALOG.read_bytes()) == {
                     "schema": 1,
                     "approved": False,
                     "calendar": "umm_al_qura",
