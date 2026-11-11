@@ -451,6 +451,10 @@ class Factory:
                 continue
             try:
                 raw = self.get(source.url).decode("utf-8", "replace")
+                if source.id == "arriyadiyah":
+                    from studio_core.sources.publisher_feeds import HOME, arriyadiyah
+
+                    raw = arriyadiyah(raw.encode(), self.get(HOME).decode()).decode()
                 feed = self.save(raw.encode(), ".xml", source.url, source.name)
                 raw = re.sub(r"&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)", "&amp;", raw)
                 for entry in safe_xml(raw.encode()).iter("item"):
