@@ -2,7 +2,6 @@
 """Source factory port: all downloads go through the application's source broker."""
 
 import array
-import email.utils
 import html
 import json
 import math
@@ -465,9 +464,7 @@ class Factory:
                     detail = parsing.clean(body)
                     try:
                         _link(url, source)
-                        published = email.utils.parsedate_to_datetime(
-                            entry.findtext("pubDate") or ""
-                        ).timestamp()
+                        published = parsing.feed_time(entry.findtext("pubDate") or "")
                     except ValueError:
                         continue
                     if (
@@ -672,6 +669,10 @@ class Factory:
             self.key not in {"tech", "style"} and len(selected) < (3 if self.key == "urgent" else 2)
         ) or not selected:
             (self.root / "source-failures.json").write_bytes(canonical(failures))
+            if self.key == "urgent":
+                from studio_core.observability.failure_code import NoFreshContent
+
+                raise NoFreshContent()
             raise ValueError("LEGACY_NEWS_WITH_IMAGES_UNAVAILABLE")
         if self.key in NEWS:
             for n, item in enumerate(selected, 1):

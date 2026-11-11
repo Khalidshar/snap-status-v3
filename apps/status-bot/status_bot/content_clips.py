@@ -30,6 +30,7 @@ from studio_core.presentation.did_you_know import (
     validate_content,
 )
 from studio_core.presentation.media_checks import check_media, check_voice
+from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
 from studio_core.religious.quran_pipeline import render as shared_render
 from studio_core.religious.quran_pipeline import stage as stage_quran
 from studio_core.renderer import write_once
@@ -618,6 +619,12 @@ def send(
             raise
     finally:
         locks.release(lease)
+    if machine_translated(content):
+        # The clip is already delivered; a lost notice is logged, never a reason to resend.
+        try:
+            transport.send_text(TRANSLATED_NOTE)
+        except Exception as error:
+            print(f"STATUS_TRANSLATED_NOTE_FAILED code={failure_code(error)}", file=sys.stderr)
 
 
 def main() -> None:

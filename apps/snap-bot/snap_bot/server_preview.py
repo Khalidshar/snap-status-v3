@@ -19,7 +19,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from studio_core.observability.failure_code import failure_code
+from studio_core.observability.failure_code import NoFreshContent, failure_code
 
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
@@ -108,10 +108,12 @@ except Exception as error:
             if isinstance(error, subprocess.CalledProcessError) and isinstance(error.stderr, bytes):
                 for line in error.stderr.splitlines():
                     match = re.fullmatch(
-                        rb"MADAR_RENDER_CODE=(SUBPROCESS_FAILED|TIMEOUT|PERMISSION_DENIED|FILE_MISSING|IMPORT_FAILED|OS_ERROR|VALIDATION_FAILED|UNEXPECTED_FAILURE)",
+                        rb"MADAR_RENDER_CODE=(NO_FRESH_CONTENT|SUBPROCESS_FAILED|TIMEOUT|PERMISSION_DENIED|FILE_MISSING|IMPORT_FAILED|OS_ERROR|VALIDATION_FAILED|UNEXPECTED_FAILURE)",
                         line,
                     )
                     if match:
+                        if match[1] == b"NO_FRESH_CONTENT":
+                            raise NoFreshContent() from None
                         print(
                             "SNAP_PREVIEW_FAILURE stage=isolated_worker code="
                             + match[1].decode("ascii"),
@@ -641,7 +643,7 @@ def main() -> None:
             f"SNAP_PREVIEW_FAILURE stage={args.action} code={failure_code(error)}", file=sys.stderr
         )
         print("SERVER_PREVIEW_BLOCKED; inspect durable local evidence", file=sys.stderr)
-        raise SystemExit(1) from None
+        raise SystemExit(3 if isinstance(error, NoFreshContent) else 1) from None
 
 
 if __name__ == "__main__":

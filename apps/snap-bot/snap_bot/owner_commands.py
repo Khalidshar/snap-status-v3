@@ -26,6 +26,8 @@ from typing import Any
 
 from studio_core import command_news
 from studio_core import commands as menu
+from studio_core.observability.failure_code import NO_FRESH_CONTENT_MESSAGE
+from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES
 
@@ -102,8 +104,29 @@ def reply_keyboard() -> dict[str, Any]:
     return {"keyboard": [row for row in rows if row], "resize_keyboard": True}
 
 
+def unit_outcome(unit: str) -> tuple[str | None, str]:
+    result = subprocess.run(  # noqa: S603
+        ["systemctl", "show", "--property=InvocationID", "--property=ExecMainStatus", unit],  # noqa: S607
+        capture_output=True,
+        timeout=10,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None, ""
+    properties = dict(
+        line.partition("=")[::2]
+        for line in result.stdout.decode("ascii", "replace").splitlines()
+        if "=" in line
+    )
+    invocation = properties.get("InvocationID", "")
+    if invocation and not re.fullmatch("[0-9a-f]{32}", invocation):
+        return None, ""
+    return invocation, properties.get("ExecMainStatus", "")
+
+
 def systemctl_start(unit: str) -> int:
-    """Start one oneshot unit and wait for it; the unit does the work, never this process."""
+    """Wait for one oneshot, accepting no-content only from this invocation."""
+    before, _ = unit_outcome(unit)
     result = subprocess.run(  # noqa: S603  # fixed argv, unit names are built here
         ["systemctl", "start", unit],  # noqa: S607  # pinned system tool
         capture_output=True,
@@ -111,6 +134,10 @@ def systemctl_start(unit: str) -> int:
         timeout=1260,
         check=False,
     )
+    if result.returncode:
+        invocation, status = unit_outcome(unit)
+        if before is not None and invocation and invocation != before and status == "3":
+            return 3
     return result.returncode
 
 
@@ -296,6 +323,7 @@ class Studio:
             "sha": event["video_sha"],
             "preview": preview,
             "kind": content.get("kind", "did_you_know"),
+            "translated": machine_translated(content),
             "title": content.get("title", "هل تعلم؟"),
             "body": content.get("body", ""),
             "category": content.get("category", ""),
@@ -325,7 +353,10 @@ class Studio:
         clip = self.pending()
         if not clip or clip["kind"] != kind:
             unit = RENDER_UNIT if kind == "did_you_know" else KIND_RENDER_UNIT.format(kind=kind)
-            if self.start(unit) != 0:
+            status = self.start(unit)
+            if kind == "urgent" and status == 3:
+                return NO_FRESH_CONTENT_MESSAGE
+            if status != 0:
                 return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص " + unit + " على السيرفر."
             clip = self.pending()
             if not clip or clip["kind"] != kind:
@@ -334,7 +365,9 @@ class Studio:
             return self.describe(clip) + "\n\n" + SEND_HALTED
         outcome = self.deliver(clip["sha"])
         # The clip itself is the reply: a sent clip needs no text; any failure is reported.
-        return "" if outcome.startswith(SENT) else outcome
+        if outcome.startswith(SENT):
+            return TRANSLATED_NOTE if clip.get("translated") else ""
+        return outcome
 
     def facts(self) -> str:
         return self.make("did_you_know")

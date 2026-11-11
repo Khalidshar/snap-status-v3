@@ -4,6 +4,21 @@ from typing import Any
 
 from .model import validate
 
+# Owner 11 Nov 2026 («أعتمد كل مقطع»): a clip with machine-translated text reaches him with
+# this notice, apart from the caption he copies, so nothing translated is posted unread.
+TRANSLATED_NOTE = (
+    "⚠️ هذا المقطع فيه نص مترجم آليًا من مصدر إنجليزي. راجع الترجمة قبل النشر؛ لا يُنشر إلا باعتمادك."
+)
+
+
+def machine_translated(value: Any) -> bool:
+    """Whether any scene of this clip carries text translated from its source."""
+    plan = value.get("legacy_production") if isinstance(value, dict) else None
+    scenes = plan.get("scenes") if isinstance(plan, dict) else None
+    return isinstance(scenes, list) and any(
+        isinstance(scene, dict) and bool(scene.get("translations")) for scene in scenes
+    )
+
 
 def caption(value: dict[str, Any]) -> str:
     p = validate(value)

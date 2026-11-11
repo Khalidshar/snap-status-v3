@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "reviewed_at": "2026-10-30",
+  "reviewed_at": "2026-11-11",
   "sources": [
     {
       "id": "aawsat",
@@ -157,6 +157,76 @@
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
+      "id": "bbc-ar-sport",
+      "name": "بي بي سي عربي",
+      "url": "https://feeds.bbci.co.uk/arabic/sports/rss.xml",
+      "commands": [
+        "football"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (بي بي سي عربي)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://feeds.bbci.co.uk/arabic/sports/rss.xml"
+    },
+    {
+      "id": "bbc-ar-business",
+      "name": "بي بي سي عربي",
+      "url": "https://feeds.bbci.co.uk/arabic/business/rss.xml",
+      "commands": [
+        "markets"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (بي بي سي عربي)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://feeds.bbci.co.uk/arabic/business/rss.xml"
+    },
+    {
+      "id": "bbc-ar-scitech",
+      "name": "بي بي سي عربي",
+      "url": "https://feeds.bbci.co.uk/arabic/scienceandtech/rss.xml",
+      "commands": [
+        "tech"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (بي بي سي عربي)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://feeds.bbci.co.uk/arabic/scienceandtech/rss.xml"
+    },
+    {
+      "id": "bbc-ar-world",
+      "name": "بي بي سي عربي",
+      "url": "https://feeds.bbci.co.uk/arabic/worldnews/rss.xml",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (بي بي سي عربي)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://feeds.bbci.co.uk/arabic/worldnews/rss.xml"
+    },
+    {
+      "id": "bbc-ar-middleeast",
+      "name": "بي بي سي عربي",
+      "url": "https://feeds.bbci.co.uk/arabic/middleeast/rss.xml",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (بي بي سي عربي)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://feeds.bbci.co.uk/arabic/middleeast/rss.xml"
+    },
+    {
       "id": "france24-ar",
       "name": "فرانس ٢٤ عربي",
       "url": "https://www.france24.com/ar/rss",
@@ -176,6 +246,20 @@
       "permission": "unverified",
       "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
+    },
+    {
+      "id": "france24-ar-sport",
+      "name": "فرانس ٢٤ عربي",
+      "url": "https://www.france24.com/ar/%D8%B1%D9%8A%D8%A7%D8%B6%D8%A9/rss",
+      "commands": [
+        "football"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (فرانس ٢٤ عربي)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://www.france24.com/ar/%D8%B1%D9%8A%D8%A7%D8%B6%D8%A9/rss"
     },
     {
       "id": "skynews-ar",
@@ -199,6 +283,183 @@
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
+      "id": "skynews-ar-sport",
+      "name": "سكاي نيوز عربية",
+      "url": "https://www.skynewsarabia.com/rss/sport.xml",
+      "commands": [
+        "football"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (سكاي نيوز عربية)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://www.skynewsarabia.com/rss/sport.xml"
+    },
+    {
+      "id": "skynews-ar-business",
+      "name": "سكاي نيوز عربية",
+      "url": "https://www.skynewsarabia.com/rss/business.xml",
+      "commands": [
+        "markets"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (سكاي نيوز عربية)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://www.skynewsarabia.com/rss/business.xml"
+    },
+    {
+      "id": "skynews-ar-tech",
+      "name": "سكاي نيوز عربية",
+      "url": "https://www.skynewsarabia.com/rss/technology.xml",
+      "commands": [
+        "tech"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "خلاصة القسم الرسمية من ناشر معتمد أصلًا (سكاي نيوز عربية)؛ أضيفت ١١ نوفمبر ٢٠٢٦ بعد فحص حي: تعمل وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "https://www.skynewsarabia.com/rss/technology.xml"
+    },
+    {
+      "id": "okaz",
+      "name": "عكاظ",
+      "url": "https://www.okaz.com.sa/rssFeed/0",
+      "commands": [
+        "urgent",
+        "saudi",
+        "news",
+        "news_noon"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "asharq",
+      "name": "الشرق للأخبار",
+      "url": "https://asharq.com/rss.xml",
+      "commands": [
+        "urgent",
+        "saudi",
+        "world",
+        "news",
+        "news_noon"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "asharq-business",
+      "name": "اقتصاد الشرق",
+      "url": "https://asharqbusiness.com/rss.xml",
+      "commands": [
+        "markets"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "cnn-ar",
+      "name": "CNN بالعربية",
+      "url": "https://arabic.cnn.com/api/v1/rss/rss.xml",
+      "commands": [
+        "world",
+        "news",
+        "news_noon"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "un-ar",
+      "name": "أخبار الأمم المتحدة",
+      "url": "https://news.un.org/feed/subscribe/ar/news/all/rss.xml",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "euronews-ar",
+      "name": "يورونيوز عربية",
+      "url": "https://arabic.euronews.com/rss",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "approved",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ («جميعهم اعتمديهم بحيث ما يتكرر الخبر») بعد فحص حي من جهازه: الخلاصة تعمل، وروابط الأخبار على موقع الناشر، وكل خبر بصورة. إذن إعادة النشر غير متحقق؛ يُنسب الخبر لمصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "arriyadiyah",
+      "name": "الرياضية",
+      "url": "https://arriyadiyah.com/rss",
+      "commands": [
+        "football"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ لكن روابط الأخبار في الخلاصة ترد ٤٠٤ في الفحص الحي؛ يبقى مرشحًا حتى تعمل روابطه.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "dw-ar",
+      "name": "DW عربية",
+      "url": "https://rss.dw.com/rdf/rss-ar-all",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ لكن صفحات الأخبار بلا صورة معلنة والروابط على نطاق آخر (www.dw.com)؛ يبقى مرشحًا لأن كل خبر يحتاج صورة من مصدره.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
+      "id": "independent-ar",
+      "name": "اندبندنت عربية",
+      "url": "https://www.independentarabia.com/rss.xml",
+      "commands": [
+        "world"
+      ],
+      "kind": "rss",
+      "language": "ar",
+      "status": "candidate",
+      "permission": "unverified",
+      "note": "اعتمده خالد ١١ نوفمبر ٢٠٢٦ لكن روابط الخلاصة تذهب إلى الموقع الإنجليزي (independent.co.uk) بنص غير عربي؛ يبقى مرشحًا.",
+      "evidence": "docs/SOURCES-REVIEW-20261111.md"
+    },
+    {
       "id": "hadath",
       "name": "الحدث",
       "url": "https://www.alhadath.net/.mrss/alhadath.xml",
@@ -214,9 +475,9 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "approved",
-      "permission": "unverified",
-      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الناشر يحجب الجلب الآلي (403) في فحص ١١ نوفمبر ٢٠٢٦ من جهاز خالد؛ لا تجاوز للحجب. يُعاد فقط بإذن من الناشر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
@@ -235,9 +496,9 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "approved",
-      "permission": "unverified",
-      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الناشر يحجب الجلب الآلي (403) في فحص ١١ نوفمبر ٢٠٢٦ من جهاز خالد؛ لا تجاوز للحجب. يُعاد فقط بإذن من الناشر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
@@ -256,9 +517,9 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "approved",
-      "permission": "unverified",
-      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الناشر يحجب الجلب الآلي (403) في فحص ١١ نوفمبر ٢٠٢٦ من جهاز خالد؛ لا تجاوز للحجب. يُعاد فقط بإذن من الناشر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
@@ -277,9 +538,9 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "approved",
-      "permission": "unverified",
-      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الناشر يحجب الجلب الآلي (403) في فحص ١١ نوفمبر ٢٠٢٦ من جهاز خالد؛ لا تجاوز للحجب. يُعاد فقط بإذن من الناشر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
@@ -298,9 +559,9 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "approved",
-      "permission": "unverified",
-      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الناشر يحجب الجلب الآلي (403) في فحص ١١ نوفمبر ٢٠٢٦ من جهاز خالد؛ لا تجاوز للحجب. يُعاد فقط بإذن من الناشر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
@@ -319,9 +580,9 @@
       ],
       "kind": "rss",
       "language": "ar",
-      "status": "approved",
-      "permission": "unverified",
-      "note": "من مصادر البوت القديم؛ لا يثبت وجوده سابقًا صلاحية الجلب أو إذن النشر حاليًا. تطبق فلترة موضوع الأمر بعد الجلب. نتائج الفحص الأحدث في docs/source-probes-20261030.json؛ لا تثبت إذن النشر أو التشغيل على السيرفر.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الناشر يحجب الجلب الآلي (403) في فحص ١١ نوفمبر ٢٠٢٦ من جهاز خالد؛ لا تجاوز للحجب. يُعاد فقط بإذن من الناشر.",
       "evidence": "https://github.com/Khalidshar/status-bot/blob/b445281de3f3767dbbdeb58db409fffb69ce8634/newsroom.py"
     },
     {
@@ -379,7 +640,7 @@
       "language": "ar",
       "status": "approved",
       "permission": "unverified",
-      "note": "أضيف بموافقة خالد ٤ نوفمبر ٢٠٢٦ بعد تعذّر aitnews وtech-wd (403). فُحص من جهاز خالد باسم البوت الحقيقي: الخلاصة تعمل وكل خبر بصورة. لا يثبت إذن النشر؛ يُنسب الخبر لمصدره.",
+      "note": "أضيف بموافقة خالد ٤ نوفمبر ٢٠٢٦ بعد تعذّر aitnews وtech-wd (403). فُحص من جهاز خالد باسم البوت الحقيقي: الخلاصة تعمل وكل خبر بصورة. لا يثبت إذن النشر؛ يُنسب الخبر لمصدره. ١١ نوفمبر: تاريخ الخلاصة بالعربية صار يُقرأ (كان يُهمل كل أخبارها).",
       "evidence": "https://www.youm7.com/rss/SectionRss?SectionID=328"
     },
     {
@@ -573,9 +834,9 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "approved",
-      "permission": "headline_syndication",
-      "note": "إذن RSS موثّق، وتحليل XML نجح في بيئة التطوير يوم ٣٠ أكتوبر؛ الترجمة العربية وشبكة الإنتاج لم تعتمدا.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الخلاصة ترد ٢٠٢ بلا عناصر (حاجز آلي) في فحص ١١ نوفمبر ٢٠٢٦؛ لا تجاوز. إذن RSS السابق لا يغيّر ذلك.",
       "evidence": "https://news.adidas.com/list-of-feeds"
     },
     {
@@ -587,9 +848,9 @@
       ],
       "kind": "rss",
       "language": "en",
-      "status": "approved",
-      "permission": "headline_syndication",
-      "note": "إذن RSS موثّق، وتحليل XML نجح في بيئة التطوير يوم ٣٠ أكتوبر؛ الترجمة العربية وشبكة الإنتاج لم تعتمدا.",
+      "status": "excluded",
+      "permission": "restricted",
+      "note": "الخلاصة ترد ٢٠٢ بلا عناصر (حاجز آلي) في فحص ١١ نوفمبر ٢٠٢٦؛ لا تجاوز. إذن RSS السابق لا يغيّر ذلك.",
       "evidence": "https://news.adidas.com/list-of-feeds"
     },
     {
