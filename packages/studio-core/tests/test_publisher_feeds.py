@@ -1,5 +1,6 @@
 """Official canonical paths, dated stories and source images; no guessed URLs."""
 
+import hashlib
 import time
 from datetime import datetime
 from html import escape
@@ -7,10 +8,12 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from studio_core.network.client import NetworkResponse
 from studio_core.production.parsing import _img, feed_time
 from studio_core.production.prepare import Factory, safe_xml
 from studio_core.sources import for_command
-from studio_core.sources.news import _link
+from studio_core.sources.audit import audit
+from studio_core.sources.news import _link, collect, validate
 from studio_core.sources.publisher_feeds import HOME, arriyadiyah
 
 
@@ -96,3 +99,23 @@ def test_both_apps_use_normalized_links_dates_and_images(app, tmp_path, monkeypa
         for scene in scenes
     )
     assert all(scene["image"].startswith(HOME + "media/") for scene in scenes)
+
+
+def test_collection_and_audit_use_the_same_official_adapter(monkeypatch):
+    raw, home = fixture()
+    source = next(s for s in for_command("football") if s.id == "arriyadiyah")
+    monkeypatch.setattr("studio_core.sources.news.news_sources", lambda *a, **k: (source,))
+    monkeypatch.setattr("studio_core.sources.audit.for_command", lambda *a: (source,))
+
+    class Client:
+        def get(self, url):
+            body = raw if url == source.url else home.encode()
+            assert url in {source.url, HOME}
+            return NetworkResponse(200, "text/xml", body, hashlib.sha256(body).hexdigest())
+
+    now = time.time()
+    content = collect("football", Client(), now)["content"]
+    validate(content, now)
+    assert content["source_id"] == "arriyadiyah" and content["source_url"].startswith(HOME)
+    result = audit("football", Client())
+    assert result[0]["result"] == "XML_VERIFIED" and result[0]["valid_items"] == 3

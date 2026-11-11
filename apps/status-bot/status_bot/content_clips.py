@@ -20,6 +20,8 @@ from studio_core.network.video import VideoPolicy
 from studio_core.observability import role_status
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
 from studio_core.observability.failure_code import failure_code
+from studio_core.observability.render_failure import RenderWorkerFailure, diagnostic, fields
+from studio_core.observability.render_failure import validate as validate_diagnostic
 from studio_core.presentation import command_cards, footage
 from studio_core.presentation.arabic_agent import check_content
 from studio_core.presentation.content_agents import CHECKS, run_check
@@ -118,6 +120,40 @@ def valid(value: Any, news: bool) -> bool:
 
 
 def render_event(tag: str, root: Path = ROOT) -> None:
+    try:
+        _render_event(tag, root)
+    except Exception as error:
+        # A per-command, content-bound record crosses the offline worker boundary.
+        # Never persist exception text, argv, environment, or raw subprocess output.
+        if re.fullmatch("[0-9a-f]{64}", tag):
+            try:
+                directory = safe_path(root / tag)
+                request = json.loads(read_bound(directory, "request.json", 65536))
+                content = request.get("content") if isinstance(request, dict) else None
+                content_hash = content.get("content_hash") if isinstance(content, dict) else None
+                if (
+                    isinstance(request, dict)
+                    and request.get("app") == "status-bot-v2"
+                    and isinstance(content_hash, str)
+                    and re.fullmatch("[0-9a-f]{64}", content_hash)
+                ):
+                    write_once(
+                        directory / "render-failure.json",
+                        json.dumps(
+                            {
+                                "schema": 1,
+                                "content_hash": content_hash,
+                                "diagnostic": diagnostic(error),
+                            }
+                        ).encode(),
+                    )
+            except (OSError, ValueError, KeyError, DeliveryBlocked):
+                pass
+        print("STATUS_RENDER_FAILURE " + fields(error), file=sys.stderr)
+        raise
+
+
+def _render_event(tag: str, root: Path = ROOT) -> None:
     if not re.fullmatch("[0-9a-f]{64}", tag):
         raise ValueError("Invalid content event")
     directory = safe_path(root / tag)
@@ -268,7 +304,10 @@ def build(
                 bind_dependency=bind,
             )
         except Exception as error:
-            print(f"STATUS_CLIP_FAILURE stage={role} code={failure_code(error)}", file=sys.stderr)
+            print(
+                f"STATUS_CLIP_FAILURE stage={role} code={failure_code(error)} {fields(error)}",
+                file=sys.stderr,
+            )
             role_status.record(ledger, "status-bot-v2", role, "FAILED")
             raise
         role_status.record(ledger, "status-bot-v2", role, "SUCCEEDED")
@@ -399,10 +438,25 @@ def build(
 
     def design() -> Any:
         unit = "madar-v3-status-content@" + item["tag"] + ".service"
-        if start is None:
-            subprocess.run(["/usr/bin/systemctl", "start", unit], check=True, timeout=900)  # noqa: S603
-        else:
-            start(unit)
+        try:
+            if start is None:
+                subprocess.run(["/usr/bin/systemctl", "start", unit], check=True, timeout=900)  # noqa: S603
+            else:
+                start(unit)
+        except subprocess.CalledProcessError as error:
+            try:
+                failure = json.loads(read_bound(directory, "render-failure.json", 4096))
+                if (
+                    not isinstance(failure, dict)
+                    or type(failure.get("schema")) is not int
+                    or failure.get("schema") != 1
+                    or failure.get("content_hash") != content["content_hash"]
+                ):
+                    raise ValueError("RENDER_DIAGNOSTIC_SCOPE")
+                detail = validate_diagnostic(failure["diagnostic"])
+            except (OSError, ValueError, KeyError, DeliveryBlocked):
+                raise error from None
+            raise RenderWorkerFailure(detail) from None
         return json.loads(read_bound(directory, "result.json", 65536))
 
     result = stage(
@@ -614,7 +668,10 @@ def send(
                 lease=lease,
             )
         except Exception as error:
-            print(f"STATUS_CLIP_FAILURE stage={phase} code={failure_code(error)}", file=sys.stderr)
+            print(
+                f"STATUS_CLIP_FAILURE stage={phase} code={failure_code(error)} {fields(error)}",
+                file=sys.stderr,
+            )
             close_failure(outbox, item["tag"], error)
             raise
     finally:
