@@ -297,3 +297,11 @@ class ReconciliationTests(unittest.TestCase):
         self.assertTrue(transport_flags and all(transport_flags), "guard:tracked-fake-transport")
         self.assertEqual((first["delivery"], second["delivery"]), ("PUBLISHED", "PUBLISHED"))
         self.assertEqual(fixture.calls, ["getMe", "getChat", "sendVideo", "getMe", "getChat"])
+
+
+def test_rejected_approval_fixture_cannot_authorize_a_different_run():
+    receipt = json.loads(
+        (Path(__file__).parent / "fixtures/rejected-approval-receipt.json").read_text()
+    )
+    assert receipt["state"] == "NOT_SENT_PRE_NETWORK"
+    assert not rec.receipt_allows(receipt, ART, INTENT)
