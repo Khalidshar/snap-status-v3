@@ -151,7 +151,7 @@ class Factory(NewsPreparation, VarietyPreparation):
                 (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
                 key=lambda i: len(i["text"]),
             )
-            spoken, length = self.hadith_voice(item["text"])
+            spoken, length = self.hadith_voice(item["text"], item["id"])
             scenes.append(
                 scene(
                     item["text"],
@@ -161,7 +161,7 @@ class Factory(NewsPreparation, VarietyPreparation):
                     voice_kind="speech",
                     role="hadith",
                     head=HADITH_LEAD,
-                    spoken_lead=len(HADITH_LEAD) + 1,
+                    spoken_lead=0,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
