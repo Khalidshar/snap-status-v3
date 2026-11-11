@@ -267,6 +267,62 @@ def top_brand(key: str, title: str) -> bool:
     return key == "style" and any(brand.casefold() in title.casefold() for brand in TOP_BRANDS)
 
 
+def football_story(title: str, detail: str = "") -> bool:
+    """A political headline needs its own football subject, not a passing body mention."""
+    text = title + " " + detail
+    if OTHER_SPORT.search(text) or not any(word in text for word in WORDS["football"]):
+        return False
+    political = (
+        "رئيس وزراء",
+        "رئيس الوزراء",
+        "رئيس الحكومة",
+        "سياسي",
+        "سياسية",
+        "دبلوماسي",
+        "دبلوماسية",
+        "سفير",
+        "سيادة",
+        "حدود",
+        "انتخابات",
+        "صراع",
+        "نزاع",
+        "أزمة",
+        "ازمة",
+        "عقوبات",
+    )
+    if not any(word in title for word in political):
+        return True
+    # Keep genuine match, player, competition and hosting news even when an official
+    # appears in it. The football evidence must be in the headline itself.
+    sporting_subject = (
+        "كرة القدم",
+        "مباراة",
+        "مباريات",
+        "دوري",
+        "الدوري",
+        "منتخب",
+        "لاعب",
+        "مدرب",
+        "مهاجم",
+        "حارس",
+        "هدف",
+        "يفوز",
+        "فوز",
+        "هزيمة",
+        "خسارة",
+        "تأهل",
+        "تتويج",
+        "قرعة",
+        "استضافة",
+        "تنظيم",
+        "افتتاح",
+        "نهائي",
+    )
+    return any(word in title for word in WORDS["football"]) and any(
+        word in title for word in sporting_subject
+    )
+
+
 def matches(key: str, text: str) -> bool:
     if key not in TITLES:
         raise ValueError("Unsupported live news command")
@@ -274,8 +330,8 @@ def matches(key: str, text: str) -> bool:
         from studio_core.production.parsing import market_story
 
         return market_story(text)
-    if key == "football" and OTHER_SPORT.search(text):
-        return False
+    if key == "football":
+        return football_story(text)
     if key == "urgent":
         security = (
             "صاروخ",
@@ -393,8 +449,11 @@ def collect(
                 or hashlib.sha256(response.body).hexdigest() != response.sha256
             ):
                 raise ValueError("Invalid source response")
+            from studio_core.sources.publisher_feeds import normalize
+
+            raw = normalize(source.id, response.body, client)
             items = parse_feed(
-                response.body,
+                raw,
                 {
                     "name": source.name,
                     "url": source.url,
