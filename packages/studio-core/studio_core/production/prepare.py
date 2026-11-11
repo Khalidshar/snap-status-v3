@@ -406,11 +406,15 @@ class Factory:
         return candidates
 
     @staticmethod
-    def editorial_match(key: str, text: str, language: str) -> bool:
-        from studio_core.sources.news import matches, top_brand
+    def editorial_match(key: str, text: str, language: str, *, detail: str = "") -> bool:
+        from studio_core.sources.news import football_story, matches, top_brand
 
         if language == "ar":
+            if key == "football":
+                return football_story(text, detail)
+            text = text + " " + detail
             return matches(key, text)
+        text = text + " " + detail
         return key == "tech" or (
             key == "style"
             and (
@@ -472,7 +476,7 @@ class Factory:
                         not title
                         or not url
                         or not 0 <= now - published < MAX_AGE[key]
-                        or not self.editorial_match(key, title + " " + detail, source.language)
+                        or not self.editorial_match(key, title, source.language, detail=detail)
                     ):
                         continue
                     if self.used(url, reserve=False) or any(
