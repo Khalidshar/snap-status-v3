@@ -3,7 +3,9 @@ name = "studio-core"
 version = "0.1.0"
 description = "Shared core for Snap Bot V2 and Status Bot V2."
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "hijridate==2.5.0",
+]
 
 [build-system]
 requires = ["hatchling>=1.25"]

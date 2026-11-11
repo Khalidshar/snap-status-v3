@@ -204,10 +204,10 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             raise ValueError("LEGACY_NIGHT_NUMBER_CHANGED")
     for item in scenes:
         if item.get("role") == "hadith":
-            from studio_core.presentation import faith
+            from studio_core.religious.hadith_daily import load as load_daily_hadiths
 
             hadith = next(
-                (i for i in faith.load("hadith") if i["id"] == item.get("hadith_id")), None
+                (i for i in load_daily_hadiths() if i["id"] == item.get("hadith_id")), None
             )
             if (
                 hadith is None

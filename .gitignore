@@ -11,6 +11,8 @@ run/
 data/
 # The reviewed fact catalog is source, not runtime data.
 !apps/snap-bot/snap_bot/data/
+# The empty reviewed daily-hadith schema is source, never runtime data.
+!packages/studio-core/studio_core/religious/data/
 renders/
 voices/
 *.sqlite3

@@ -53,7 +53,7 @@ def audio(tmp_path):
 @pytest.fixture
 def hadith_recordings(tmp_path, audio, monkeypatch):
     from studio_core.presentation import faith
-    from studio_core.religious import hadith_voice
+    from studio_core.religious import hadith_daily, hadith_voice
 
     # Synthetic fixture only: no approved production recording is added by tests.
     encoded = subprocess.run(
@@ -65,7 +65,8 @@ def hadith_recordings(tmp_path, audio, monkeypatch):
     root = tmp_path / "synthetic-hadith-voice"
     root.mkdir()
     recordings = []
-    for item in faith.load("hadith"):
+    calendar = []
+    for n, item in enumerate(faith.load("hadith"), 1):
         (root / (item["id"] + ".mp3")).write_bytes(encoded)
         recordings.append(
             {
@@ -75,8 +76,30 @@ def hadith_recordings(tmp_path, audio, monkeypatch):
                 "audio_sha256": hashlib.sha256(encoded).hexdigest(),
             }
         )
+        calendar.append(
+            {
+                **item,
+                "approved": True,
+                "source_sha256": item["sha256"],
+                "hijri_month": 1,
+                "hijri_day": n,
+                "seasons": ["general"],
+            }
+        )
     (root / "manifest.json").write_text(json.dumps({"schema": 1, "recordings": recordings}))
     monkeypatch.setattr(hadith_voice, "ROOT", root)
+    path = root / "test-calendar.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "approved": True,
+                "calendar": "umm_al_qura",
+                "entries": calendar,
+            }
+        )
+    )
+    monkeypatch.setattr(hadith_daily, "CATALOG", path)
     return root
 
 
