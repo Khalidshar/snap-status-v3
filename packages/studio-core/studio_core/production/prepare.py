@@ -338,6 +338,10 @@ class Factory:
         host = urlsplit(source.url).hostname
         for href in re.findall(r'href=["\']([^"\']+)', home):
             link = urljoin(source.url, html.unescape(href)).split("#")[0]
+            if source.id == "aawsat-fashion":
+                section = unquote(urlsplit(source.url).path).rstrip("/") + "/"
+                if not re.match(re.escape(section) + r"\d+-", unquote(urlsplit(link).path)):
+                    continue
             if (
                 urlsplit(link).hostname != host
                 or link in links
