@@ -65,6 +65,8 @@ def test_missing_recording_stops_factory_before_any_speech_request(app, tmp_path
     f = Factory(
         app, "hadith", "e" * 32, tmp_path / "work", client=NoNetwork(), state=tmp_path / "state"
     )
-    with pytest.raises(ValueError, match="HADITH_VOICE_UNAVAILABLE"):
+    with pytest.raises(ValueError, match="HADITH_DAILY_NOT_APPROVED"):
         f.build()
+    with pytest.raises(ValueError, match="HADITH_VOICE_UNAVAILABLE"):
+        f.hadith_voice(TEXT, "test")
     assert not (f.root / "content.json").exists()

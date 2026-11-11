@@ -207,18 +207,20 @@ class ReligiousPreparation(PreparationBase):
         )
         return path, duration(self.root / path)
 
-    def hadiths(self, items: list[dict[str, Any]], day: date) -> list[dict[str, Any]]:
-        """Authentic hadiths, rotating daily, each read aloud, until the clip is full.
+    def daily_hadith(self, day: date) -> dict[str, Any]:
+        from studio_core.religious.hadith_daily import choose
+        from studio_core.religious.hadith_voice import read
 
-        Owner report 8 Nov 2026: one 27-letter hadith stretched over 53 silent seconds.
-        """
-        pool = sorted((i for i in items if i["grade"] == "صحيح"), key=lambda i: i["id"])
-        if not pool:
-            raise ValueError("LEGACY_HADITH_UNAVAILABLE")
-        start = day.toordinal() % len(pool)
-        target = budget(self.app, self.key)[0] - 3.2 - 5.0
+        def verified(item: dict[str, Any]) -> bool:
+            read(item["id"], item["text"])
+            return True
+
+        return choose(day, self.db, self.app, self.job, validate_recording=verified)
+
+    def hadiths(self, day: date) -> list[dict[str, Any]]:
+        """One approved hadith for the date and season, without repeating the cycle."""
         found: list[dict[str, Any]] = []
-        for item in pool[start:] + pool[:start]:
+        for item in [self.daily_hadith(day)]:
             spoken, length = self.hadith_voice(item["text"], item["id"])
             found.append(
                 scene(
@@ -235,8 +237,6 @@ class ReligiousPreparation(PreparationBase):
                     voice_kind="speech",
                 )
             )
-            if sum(s["seconds"] for s in found) >= target:
-                break
         return found
 
     def remember_reader(self, name: str) -> None:
