@@ -120,3 +120,26 @@ class CommandInboxTests(unittest.TestCase):
         self.assertEqual(payload["to"], credentials.recipient)
         self.assertEqual(payload["text"], {"body": "عنوان عربي", "preview_url": False})
         self.assertEqual(args[1], "messages")
+
+
+def test_empty_urgent_sends_one_notice_and_consumes_command():
+    from studio_core.observability.failure_code import NoFreshContent
+
+    case = CommandInboxTests()
+    case.setUp()
+    try:
+        case.post("عاجل")
+        transport = fixtures.OfflineTransport(case.identity)
+        transport.send_text = Mock(return_value=transport.send_video.return_value)
+        with (
+            patch("status_bot.owner_commands.production_content", return_value=True),
+            patch("status_bot.owner_commands.content_clips.send", side_effect=NoFreshContent()),
+        ):
+            assert process_one(case.outbox, transport, None, None)
+            assert not process_one(case.outbox, transport, None, None)
+        transport.send_text.assert_called_once_with("لا يوجد خبر عاجل الآن")
+        transport.upload_video.assert_not_called()
+        transport.send_video.assert_not_called()
+        assert case.rows()[0]["state"] == "ACK"
+    finally:
+        case.doCleanups()
