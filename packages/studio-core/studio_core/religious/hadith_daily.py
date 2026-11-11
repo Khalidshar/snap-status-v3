@@ -1,14 +1,16 @@
 """Approved daily hadith data, Umm al-Qura dates and an append-only per-bot cycle."""
 
+import copy
 import hashlib
 import json
 import re
 import sqlite3
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
+from studio_core.religious import hadith_catalog
 from studio_core.religious.ummalqura import convert
 
 CATALOG = Path(__file__).with_name("data") / "hadith-calendar.json"
@@ -16,56 +18,12 @@ SEASONS = {"general", "ramadan", "hajj", "ashura", "eid_fitr", "eid_adha"}
 
 
 def load(path: Path | None = None) -> list[dict[str, Any]]:
-    path = CATALOG if path is None else path
-    try:
-        with path.open("rb") as stream:
-            raw = stream.read(2_000_001)
-        if len(raw) > 2_000_000:
-            raise ValueError("HADITH_DAILY_CATALOG_INVALID")
-        data = json.loads(raw)
-    except (OSError, ValueError) as error:
-        raise ValueError("HADITH_DAILY_CATALOG_UNAVAILABLE") from error
-    if not isinstance(data, dict) or data.get("approved") is not True:
-        raise ValueError("HADITH_DAILY_NOT_APPROVED")
-    if (
-        type(data.get("schema")) is not int
-        or data["schema"] != 1
-        or data.get("calendar") != "umm_al_qura"
-        or not isinstance(data.get("entries"), list)
-        or not 1 <= len(data["entries"]) <= 366
-    ):
-        raise ValueError("HADITH_DAILY_CATALOG_INVALID")
-    seen_ids, seen_texts, seen_days = set(), set(), set()
-    rows = []
-    for item in data["entries"]:
-        if not isinstance(item, dict):
-            raise ValueError("HADITH_DAILY_ENTRY_INVALID")
-        text, identifier = item.get("text"), item.get("id")
-        month, day = item.get("hijri_month"), item.get("hijri_day")
-        seasons = item.get("seasons")
-        if not isinstance(item.get("narrator_url"), str):
-            raise ValueError("HADITH_DAILY_ENTRY_INVALID")
-        source = urlsplit(item.get("narrator_url", ""))
+    rows = hadith_catalog.load(CATALOG if path is None else path)
+    seen_days = set()
+    for item in rows:
+        month, day, seasons = item.get("hijri_month"), item.get("hijri_day"), item.get("seasons")
         if (
-            not isinstance(identifier, str)
-            or not re.fullmatch("[a-z0-9_-]{1,100}", identifier)
-            or not isinstance(text, str)
-            or not text.strip()
-            or item.get("approved") is not True
-            or item.get("grade") != "صحيح"
-            or not isinstance(item.get("source"), str)
-            or not item["source"].strip()
-            or not isinstance(item.get("narrator"), str)
-            or not item["narrator"].strip()
-            or item.get("sha256") != hashlib.sha256(text.encode()).hexdigest()
-            or not isinstance(item.get("source_sha256"), str)
-            or not re.fullmatch("[0-9a-f]{64}", item["source_sha256"])
-            or source.scheme != "https"
-            or source.netloc not in {"sunnah.com", "dorar.net"}
-            or not source.path.strip("/")
-            or source.query
-            or source.fragment
-            or type(month) is not int
+            type(month) is not int
             or not 1 <= month <= 12
             or type(day) is not int
             or not 1 <= day <= 30
@@ -74,12 +32,9 @@ def load(path: Path | None = None) -> list[dict[str, Any]]:
             or any(not isinstance(s, str) or s not in SEASONS for s in seasons)
         ):
             raise ValueError("HADITH_DAILY_ENTRY_INVALID")
-        if identifier in seen_ids or item["sha256"] in seen_texts or (month, day) in seen_days:
+        if (month, day) in seen_days:
             raise ValueError("HADITH_DAILY_DUPLICATE")
-        seen_ids.add(identifier)
-        seen_texts.add(item["sha256"])
         seen_days.add((month, day))
-        rows.append(dict(item))
     return rows
 
 
@@ -102,11 +57,21 @@ def seasons(month: int, day: int) -> set[str]:
     return found
 
 
-def choose(day: date, db_path: Path, app: str, job: str) -> dict[str, Any]:
-    from .hadith_voice import read
+def choose(
+    day: date,
+    db_path: Path,
+    app: str,
+    job: str,
+    *,
+    validate_recording: Callable[[dict[str, Any]], bool],
+) -> dict[str, Any]:
+    if not callable(validate_recording):
+        raise ValueError("HADITH_DAILY_RECORDING_VALIDATOR_REQUIRED")
 
     if app not in {"snap-bot-v2", "status-bot-v2"} or not re.fullmatch("[0-9a-f]{32}", job):
         raise ValueError("HADITH_DAILY_SCOPE_INVALID")
+    if any(p.is_symlink() for p in (db_path, *db_path.absolute().parents)):
+        raise ValueError("HADITH_DAILY_STATE_UNSAFE")
     rows = load()
     by_id = {item["id"]: item for item in rows}
     signature = hashlib.sha256(
@@ -134,6 +99,8 @@ def choose(day: date, db_path: Path, app: str, job: str) -> dict[str, Any]:
             ):
                 raise ValueError("HADITH_DAILY_CACHED_SCOPE_CHANGED")
             selected = by_id[existing[0]]
+            if validate_recording(copy.deepcopy(selected)) is not True:
+                raise ValueError("HADITH_DAILY_RECORDING_UNVERIFIED")
         else:
             cycle = db.execute(
                 "SELECT COALESCE(MAX(cycle),1) FROM hadith_daily_choices WHERE app=?", (app,)
@@ -162,7 +129,8 @@ def choose(day: date, db_path: Path, app: str, job: str) -> dict[str, Any]:
                 ),
             )
             # A missing recording never consumes a daily choice or triggers synthesis.
-            read(selected["id"], selected["text"])
+            if validate_recording(copy.deepcopy(selected)) is not True:
+                raise ValueError("HADITH_DAILY_RECORDING_UNVERIFIED")
             db.execute(
                 "INSERT INTO hadith_daily_choices VALUES(?,?,?,?,?,?,?)",
                 (

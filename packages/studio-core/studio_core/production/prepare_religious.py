@@ -198,32 +198,30 @@ class ReligiousPreparation(PreparationBase):
         """
         return budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
 
-    def hadith_voice(self, text: str, identifier: str) -> tuple[str, float]:
-        from studio_core.religious.hadith_voice import read
+    def hadith_voice(self, text: str) -> tuple[str, float]:
+        """Owner 8 Nov 2026: «لابد من ذكر قال رسول الله» — said before the unchanged text."""
+        return self.spoken(HADITH_LEAD + " " + text, "hadith")
 
-        raw = read(identifier, text)
-        path = self.save(
-            raw, ".mp3", "asset://hadith/" + identifier + ".mp3", "صوت حديث مخزن ومعتمد"
-        )
-        return path, duration(self.root / path)
+    def hadiths(self, items: list[dict[str, Any]], day: date) -> list[dict[str, Any]]:
+        """Authentic hadiths, rotating daily, each read aloud, until the clip is full.
 
-    def daily_hadith(self, day: date) -> dict[str, Any]:
-        from studio_core.religious.hadith_daily import choose
-
-        return choose(day, self.db, self.app, self.job)
-
-    def hadiths(self, day: date) -> list[dict[str, Any]]:
-        """One approved hadith for the date and season, without repeating the cycle."""
+        Owner report 8 Nov 2026: one 27-letter hadith stretched over 53 silent seconds.
+        """
+        pool = sorted((i for i in items if i["grade"] == "صحيح"), key=lambda i: i["id"])
+        if not pool:
+            raise ValueError("LEGACY_HADITH_UNAVAILABLE")
+        start = day.toordinal() % len(pool)
+        target = budget(self.app, self.key)[0] - 3.2 - 5.0
         found: list[dict[str, Any]] = []
-        for item in [self.daily_hadith(day)]:
-            spoken, length = self.hadith_voice(item["text"], item["id"])
+        for item in pool[start:] + pool[:start]:
+            spoken, length = self.hadith_voice(item["text"])
             found.append(
                 scene(
                     item["text"],
                     max(length + 1.0, len(item["text"]) / 17 + 1),
                     role="hadith",
                     head=HADITH_LEAD,
-                    spoken_lead=0,
+                    spoken_lead=len(HADITH_LEAD) + 1,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
@@ -232,6 +230,8 @@ class ReligiousPreparation(PreparationBase):
                     voice_kind="speech",
                 )
             )
+            if sum(s["seconds"] for s in found) >= target:
+                break
         return found
 
     def remember_reader(self, name: str) -> None:

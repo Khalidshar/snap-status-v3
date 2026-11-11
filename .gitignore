@@ -11,8 +11,6 @@ run/
 data/
 # The reviewed fact catalog is source, not runtime data.
 !apps/snap-bot/snap_bot/data/
-# The empty reviewed daily-hadith schema is source, never runtime data.
-!packages/studio-core/studio_core/religious/data/
 renders/
 voices/
 *.sqlite3
@@ -24,3 +22,11 @@ reports/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+
+# Reviewed data stays inert; source snapshots require an approved data change.
+!packages/studio-core/studio_core/religious/data/
+packages/studio-core/studio_core/religious/data/*
+!packages/studio-core/studio_core/religious/data/hadith-calendar.json
+!packages/studio-core/studio_core/religious/data/hadith-sources/
+packages/studio-core/studio_core/religious/data/hadith-sources/*
+!packages/studio-core/studio_core/religious/data/hadith-sources/README.md
