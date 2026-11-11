@@ -848,25 +848,15 @@ def test_article_cannot_escape_its_approved_publisher(tmp_path, audio):
         f.article({"source_id": "bbc-ar", "url": "https://archive.org/injected"})
 
 
-@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
-def test_production_caption_keeps_credits_and_article_links(tmp_path, audio, app):
+def test_production_caption_keeps_credits_and_article_links(tmp_path, audio):
     from studio_core.production.caption import caption, platform_caption
 
-    f = factory(tmp_path, "facts", Sources(audio), app)
+    f = factory(tmp_path, "facts", Sources(audio))
     value = f.build()
     description = platform_caption(value)
-    assert "وجهة النشر: " in description
-    assert value["publication_target"] in {"SPOTLIGHT", "PUBLIC_STORY"}
     assert "@rawwag_khalid" in description and "Tech Corporate" in description
     assert "creativecommons.org/licenses/by/4.0/" in description
     assert "Tech Corporate" in caption(value)
-    wrong = copy.deepcopy(value)
-    wrong["publication_target"] = (
-        "PUBLIC_STORY" if value["publication_target"] == "SPOTLIGHT" else "SPOTLIGHT"
-    )
-    wrong["content_hash"] = content_hash(wrong)
-    with pytest.raises(ValueError, match="PUBLICATION_TARGET_CHANGED"):
-        platform_caption(wrong)
     changed = copy.deepcopy(value)
     changed["legacy_production"]["scenes"][0]["source"] = "مصدر طويل " * 200
     with pytest.raises(ValueError, match="CAPTION_TOO_LONG"):

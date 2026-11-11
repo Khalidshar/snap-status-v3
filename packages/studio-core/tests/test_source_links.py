@@ -19,15 +19,7 @@ def test_bbc_section_feed_links_are_accepted(command, source_id):
 
 def test_new_publishers_are_bound_and_unusable_ones_stay_candidates():
     by_id = {s.id: s for key in ("saudi", "world", "markets", "football") for s in for_command(key)}
-    for approved in (
-        "okaz",
-        "asharq",
-        "asharq-business",
-        "cnn-ar",
-        "un-ar",
-        "euronews-ar",
-        "arriyadiyah",
-    ):
+    for approved in ("okaz", "asharq", "asharq-business", "cnn-ar", "un-ar", "euronews-ar"):
         assert by_id[approved].status == "approved"
-    for waiting in ("dw-ar", "independent-ar"):
+    for waiting in ("arriyadiyah", "dw-ar", "independent-ar"):
         assert by_id[waiting].status == "candidate"

@@ -22,7 +22,6 @@ from urllib.parse import quote
 from studio_core.commands import COMMANDS
 from studio_core.jobs import panel_schedule, panel_workspace
 from studio_core.jobs.panel_queue import enqueue
-from studio_core.production.publication import LABELS, target
 from studio_core.sources import load as load_sources
 
 REPO = Path(__file__).resolve().parents[1]
@@ -143,37 +142,16 @@ STEP_STATES = {"RUNNING", "SUCCEEDED", "FAILED", "UNKNOWN"}
 CLIP_ROOTS = {"snap": "snap/previews", "status": "status/content-clips"}
 
 
-def _clip_metadata(folder: Path) -> dict[str, str]:
+def _clip_title(folder: Path) -> str:
     for pattern in (
         "state/renders/*/input/content.json",
         "spool/renders/*/input/content.json",
         "spool/renders/*/attempts/*/input/content.json",
-        "request.json",
     ):
         for path in folder.glob(pattern):
             with suppress(OSError, ValueError, AttributeError):
-                if path.is_symlink():
-                    continue
-                with path.open("rb") as stream:
-                    raw = stream.read(1_000_001)
-                if len(raw) > 1_000_000:
-                    continue
-                value = json.loads(raw)
-                if isinstance(value, dict) and path.name == "request.json":
-                    value = value.get("content")
-                if not isinstance(value, dict):
-                    continue
-                route = target(value)
-                return {
-                    "title": str(value.get("title", ""))[:40],
-                    "publication_target": route,
-                    "publication_label": LABELS[route],
-                }
-    return {"title": "", "publication_target": "UNKNOWN", "publication_label": LABELS["UNKNOWN"]}
-
-
-def _clip_title(folder: Path) -> str:
-    return _clip_metadata(folder)["title"]
+                return str(json.loads(path.read_text(encoding="utf-8")).get("title", ""))[:40]
+    return ""
 
 
 def clip_trail(root: Path = STATE, limit: int = 8) -> list[dict[str, Any]]:
@@ -235,8 +213,7 @@ def _clip_trail(root: Path, limit: int) -> list[dict[str, Any]]:
                             {"role": role, "state": state, "at": None, "ms": None, "code": code}
                         )
             text = str(commands.get(folder.name, ""))
-            metadata = _clip_metadata(folder)
-            title = metadata["title"] or labels.get(text.removeprefix("c:"), text[:30])
+            title = _clip_title(folder) or labels.get(text.removeprefix("c:"), text[:30])
             states = {s["state"] for s in steps}
             overall = (
                 "FAILED"
@@ -252,8 +229,6 @@ def _clip_trail(root: Path, limit: int) -> list[dict[str, Any]]:
                     "app": app,
                     "id": folder.name[:12],
                     "title": title,
-                    "publication_target": metadata["publication_target"],
-                    "publication_label": metadata["publication_label"],
                     "at": folder.stat().st_mtime,
                     "state": overall,
                     "steps": steps[:24],

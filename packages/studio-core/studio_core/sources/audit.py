@@ -14,7 +14,7 @@ class Client(Protocol):
 
 
 def audit(command: str, client: Client) -> list[dict[str, Any]]:
-    """Fetch each feed (and its official homepage adapter where needed), without retries.
+    """One fetch per candidate feed. Failure is recorded, never retried or published.
 
     An audit never promotes a candidate, widens a host allowlist, follows a website
     instead of RSS, rewrites religious text, or implies a reuse/translation licence.
@@ -41,10 +41,8 @@ def audit(command: str, client: Client) -> list[dict[str, Any]]:
                 digest = hashlib.sha256(response.body).hexdigest()
                 if digest != response.sha256:
                     raise ValueError("Response integrity failed")
-                from studio_core.sources.publisher_feeds import normalize
-
                 items = parse_feed(
-                    normalize(source.id, response.body, client),
+                    response.body,
                     {
                         "name": source.name,
                         "url": source.url,

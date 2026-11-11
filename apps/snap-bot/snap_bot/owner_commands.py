@@ -28,7 +28,6 @@ from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.observability.failure_code import NO_FRESH_CONTENT_MESSAGE
 from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
-from studio_core.production.publication import notice
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES
 
@@ -325,7 +324,6 @@ class Studio:
             "preview": preview,
             "kind": content.get("kind", "did_you_know"),
             "translated": machine_translated(content),
-            "publication_notice": notice(content),
             "title": content.get("title", "هل تعلم؟"),
             "body": content.get("body", ""),
             "category": content.get("category", ""),
@@ -339,8 +337,6 @@ class Studio:
             str(clip["title"])
             + "\n"
             + str(clip["body"])
-            + "\n"
-            + str(clip.get("publication_notice", ""))
             + "\n\nالمقطع "
             + str(clip["sha"])[:8]
             + " · صالح "

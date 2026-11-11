@@ -121,10 +121,6 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
         "content_hash"
     ) != content_hash(value):
         raise ValueError("LEGACY_SCOPE_OR_HASH_CHANGED")
-    from .publication import target
-
-    if value.get("publication_target", target(value)) != target(value):
-        raise ValueError("PUBLICATION_TARGET_CHANGED")
     scenes = p.get("scenes")
     if not isinstance(scenes, list) or not 3 <= len(scenes) <= 18:
         raise ValueError("LEGACY_SCENES_INVALID")

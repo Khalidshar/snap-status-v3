@@ -13,7 +13,7 @@ import pytest
 
 from snap_bot import command_cards, news_clips, owner_commands
 from studio_core import command_news
-from studio_core.network.client import NetworkError, NetworkResponse
+from studio_core.network.client import NetworkResponse
 from studio_core.sources import for_command
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, collect
@@ -37,9 +37,7 @@ class Feed:
         self.key = key
 
     def get(self, url):
-        source = next((s for s in for_command(self.key) if s.url == url), None)
-        if source is None:
-            raise NetworkError("Synthetic source has no homepage response")
+        source = next(s for s in for_command(self.key) if s.url == url)
         host = source.url.split("/")[2]
         title = HEADLINES[self.key]
         date = datetime.fromtimestamp(time.time() - 30, UTC).isoformat()
