@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from studio_core.religious import hadith_daily, hadith_voice
+from studio_core.religious import hadith_daily, hadith_text_check, hadith_voice
 
 DAY = date(2024, 3, 11)  # 1 Ramadan 1445 in Umm al-Qura.
 
@@ -18,6 +18,7 @@ def row(n, *, month=9, day=1, seasons=None):
     return {
         "id": f"test_{n}",
         "text": text,
+        "unmarked_positions": [6, 13, 29],
         "sha256": hashlib.sha256(text.encode()).hexdigest(),
         "source_sha256": hashlib.sha256(text.encode()).hexdigest(),
         "source": "مصدر اختباري",
@@ -43,6 +44,11 @@ def install(tmp_path, monkeypatch, entries, approved=True):
             }
         )
     )
+    sources = tmp_path / "source-snapshots"
+    sources.mkdir(exist_ok=True)
+    for item in entries:
+        (sources / (item["id"] + ".txt")).write_bytes(item["text"].encode())
+    monkeypatch.setattr(hadith_text_check, "SOURCES", sources)
     monkeypatch.setattr(hadith_daily, "CATALOG", path)
     monkeypatch.setattr(hadith_voice, "read", lambda *a: b"synthetic binding fixture")
     return tmp_path / "history.sqlite"

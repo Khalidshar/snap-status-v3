@@ -52,8 +52,7 @@ def audio(tmp_path):
 
 @pytest.fixture
 def hadith_recordings(tmp_path, audio, monkeypatch):
-    from studio_core.presentation import faith
-    from studio_core.religious import hadith_daily, hadith_voice
+    from studio_core.religious import hadith_daily, hadith_text_check, hadith_voice
 
     # Synthetic fixture only: no approved production recording is added by tests.
     encoded = subprocess.run(
@@ -66,7 +65,23 @@ def hadith_recordings(tmp_path, audio, monkeypatch):
     root.mkdir()
     recordings = []
     calendar = []
-    for n, item in enumerate(faith.load("hadith"), 1):
+    # These nonreligious fixture words never enter production data.
+    text = "نَصٌّ اخْتِبَارِيٌّ غَيْرُ دِينِيٍّ"
+    fixture = {
+        "id": "synthetic_text",
+        "text": text,
+        "sha256": hashlib.sha256(text.encode()).hexdigest(),
+        "source": "مصدر اختباري",
+        "narrator": "اختبار",
+        "narrator_url": "https://sunnah.com/bukhari:1",
+        "grade": "صحيح",
+        "unmarked_positions": [6, 13, 29],
+    }
+    sources = root / "source-snapshots"
+    sources.mkdir()
+    (sources / (fixture["id"] + ".txt")).write_bytes(text.encode())
+    monkeypatch.setattr(hadith_text_check, "SOURCES", sources)
+    for n, item in enumerate([fixture], 1):
         (root / (item["id"] + ".mp3")).write_bytes(encoded)
         recordings.append(
             {

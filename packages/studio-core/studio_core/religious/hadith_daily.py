@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from studio_core.religious.hadith_text_check import verify
 from studio_core.religious.ummalqura import convert
 
 CATALOG = Path(__file__).with_name("data") / "hadith-calendar.json"
@@ -79,6 +80,7 @@ def load(path: Path | None = None) -> list[dict[str, Any]]:
         seen_ids.add(identifier)
         seen_texts.add(item["sha256"])
         seen_days.add((month, day))
+        verify(item)
         rows.append(dict(item))
     return rows
 
