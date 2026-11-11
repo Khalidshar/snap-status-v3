@@ -93,6 +93,10 @@ class NewsPreparation(PreparationBase):
         host = urlsplit(source.url).hostname
         for href in re.findall(r'href=["\']([^"\']+)', home):
             link = urljoin(source.url, html.unescape(href)).split("#")[0]
+            if source.id == "aawsat-fashion":
+                section = unquote(urlsplit(source.url).path).rstrip("/") + "/"
+                if not re.match(re.escape(section) + r"\d+-", unquote(urlsplit(link).path)):
+                    continue
             if (
                 urlsplit(link).hostname != host
                 or link in links
@@ -161,11 +165,15 @@ class NewsPreparation(PreparationBase):
         return candidates
 
     @staticmethod
-    def editorial_match(key: str, text: str, language: str) -> bool:
-        from studio_core.sources.news import matches, top_brand
+    def editorial_match(key: str, text: str, language: str, *, detail: str = "") -> bool:
+        from studio_core.sources.news import football_story, matches, top_brand
 
         if language == "ar":
+            if key == "football":
+                return football_story(text, detail)
+            text = text + " " + detail
             return matches(key, text)
+        text = text + " " + detail
         return key == "tech" or (
             key == "style"
             and (
@@ -189,6 +197,7 @@ class NewsPreparation(PreparationBase):
         )
 
     def news(self) -> list[dict[str, Any]]:
+        from studio_core.production.news_selection import diverse, publisher
         from studio_core.sources.news import MAX_AGE, _link, news_sources, published_label
 
         key = "news" if self.key == "news_noon" else self.key
@@ -206,6 +215,10 @@ class NewsPreparation(PreparationBase):
                 continue
             try:
                 raw = self.get(source.url).decode("utf-8", "replace")
+                if source.id == "arriyadiyah":
+                    from studio_core.sources.publisher_feeds import HOME, arriyadiyah
+
+                    raw = arriyadiyah(raw.encode(), self.get(HOME).decode()).decode()
                 feed = self.save(raw.encode(), ".xml", source.url, source.name)
                 raw = re.sub(r"&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)", "&amp;", raw)
                 for entry in safe_xml(raw.encode()).iter("item"):
@@ -226,7 +239,7 @@ class NewsPreparation(PreparationBase):
                         not title
                         or not url
                         or not 0 <= now - published < MAX_AGE[key]
-                        or not self.editorial_match(key, title + " " + detail, source.language)
+                        or not self.editorial_match(key, title, source.language, detail=detail)
                     ):
                         continue
                     if self.used(url, reserve=False) or any(
@@ -282,12 +295,17 @@ class NewsPreparation(PreparationBase):
         selected: list[dict[str, Any]] = []
         failures: list[dict[str, str]] = []
         topics: list[str] = []  # one story per event inside a bulletin
+        publishers: dict[str, int] = {}
         # Snap bulletins carry one more story to pass the one-minute Spotlight floor.
         count = 1 if self.key in {"tech", "style"} else (4 if self.app == "snap-bot-v2" else 3)
-        for item in candidates[:25]:
+        attempts = 0
+        for item in diverse(candidates, publishers):
             topic = item["title"] + " " + item["detail"][:120]
             if self.key not in {"tech", "style"} and parsing.same_topic(topic, topics):
                 continue
+            if attempts >= 25:
+                break
+            attempts += 1
             try:
                 text, points = self.article(item)
                 if key == "markets" and parsing.market_excluded(parsing.words_only(text)):
@@ -403,6 +421,8 @@ class NewsPreparation(PreparationBase):
                         selected_scene["source_url"] = item["url"]
                 self.used(item["url"])
                 topics.append(topic)
+                identity = publisher(item["url"])
+                publishers[identity] = publishers.get(identity, 0) + 1
                 if self.key in {"tech", "style"} or len(selected) >= count:
                     break
             except (

@@ -1,6 +1,7 @@
 """Panel shows each clip's agents live (owner decision 7 Nov 2026)."""
 
 import importlib.util
+import json
 import sqlite3
 from pathlib import Path
 
@@ -69,3 +70,23 @@ def test_panel_on_wsl_reads_this_machine_directly(monkeypatch, tmp_path) -> None
     assert value["services"] == {
         "snap": "active", "status": "active", "snap_old": "inactive", "status_old": "inactive"
     }  # fmt: skip
+
+
+def test_each_bot_clip_shows_its_publication_label_without_exposing_body(tmp_path):
+    module = panel()
+    for sub, name in (("snap/previews", "a" * 32), ("status/content-clips", "b" * 64)):
+        clip(tmp_path, sub, name, [("design", "SUCCEEDED", 10, 3, None)])
+        folder = tmp_path / sub / name
+        value = {"title": "خبر", "body": "البرلمان يناقش الانتخابات مع نص خاص لا يخرج"}
+        if sub.startswith("snap"):
+            path = folder / "state/renders" / ("c" * 32) / "input/content.json"
+            path.parent.mkdir(parents=True)
+        else:
+            path = folder / "request.json"
+            value = {"content": value}
+        path.write_text(json.dumps(value))
+    trail = module.clip_trail(tmp_path)
+    assert {item["app"] for item in trail} == {"snap", "status"}
+    assert all(item["publication_target"] == "PUBLIC_STORY" for item in trail)
+    assert all(item["publication_label"] == "القصص العامة" for item in trail)
+    assert "نص خاص" not in json.dumps(trail, ensure_ascii=False)
