@@ -15,9 +15,7 @@ def publisher(url: str) -> str:
     return host
 
 
-def diverse(
-    candidates: list[dict[str, Any]], accepted: dict[str, int]
-) -> Iterator[dict[str, Any]]:
+def diverse(candidates: list[dict[str, Any]], accepted: dict[str, int]) -> Iterator[dict[str, Any]]:
     """Defer a publisher's third story until all alternatives have been tried.
 
     The caller counts only successfully validated stories. Failed images, expired
