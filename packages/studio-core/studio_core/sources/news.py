@@ -273,6 +273,13 @@ def football_story(title: str, detail: str = "") -> bool:
     if OTHER_SPORT.search(text) or not any(word in text for word in WORDS["football"]):
         return False
     political = (
+        "صحافي",
+        "صحفي",
+        "صحافة",
+        "سجن",
+        "اعتقال",
+        "معتقل",
+        "محاكمة",
         "رئيس وزراء",
         "رئيس الوزراء",
         "رئيس الحكومة",
