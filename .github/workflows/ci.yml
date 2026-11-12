@@ -45,6 +45,8 @@ jobs:
           enable-cache: true
       - run: uv sync --all-packages
       - run: scripts/lint.sh
+      - name: Check approved hadith text and source snapshots
+        run: uv run --frozen python scripts/check_hadith_catalog.py
 
   test:
     name: Tests (Python ${{ matrix.python }})
