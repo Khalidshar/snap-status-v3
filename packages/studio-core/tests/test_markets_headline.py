@@ -11,7 +11,7 @@ OFF_TOPIC = [
         "مع ارتفاع أسعار الأغذية",
     ),
     (
-        "بنين.. \"مدارس الأزواج المثاليين\" مبادرة لتعزيز حقوق النساء داخل الأسرة والمجتمع",
+        'بنين.. "مدارس الأزواج المثاليين" مبادرة لتعزيز حقوق النساء داخل الأسرة والمجتمع',
         "يحاول أزواج تغيير العلاقات داخل الأسرة، والقرارات المالية والاقتصادية تمر عبر الزوج",
     ),
 ]
@@ -29,7 +29,9 @@ ECONOMIC = [
 
 @pytest.mark.parametrize(("title", "detail"), OFF_TOPIC)
 def test_general_feed_story_without_economic_headline_is_refused(title, detail):
-    assert not Factory.editorial_match("markets", title, "ar", detail=detail, source_id="skynews-ar")
+    assert not Factory.editorial_match(
+        "markets", title, "ar", detail=detail, source_id="skynews-ar"
+    )
 
 
 @pytest.mark.parametrize(("title", "detail"), ECONOMIC)
