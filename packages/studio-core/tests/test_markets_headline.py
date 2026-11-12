@@ -44,3 +44,10 @@ def test_economy_feeds_keep_the_text_rule():
         "markets", title, "ar", detail=detail, source_id="aawsat-economy"
     )
     assert not Factory.editorial_match("markets", title, "ar", detail=detail, source_id="aawsat")
+
+
+def test_between_is_not_the_yen():
+    from studio_core.production.parsing import market_story
+
+    assert not market_story("العلاقة بين البائع والمشتري")
+    assert market_story("الين الياباني يتراجع أمام الدولار")
