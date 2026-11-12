@@ -4,6 +4,7 @@ import importlib.util
 import json
 import sqlite3
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -386,3 +387,203 @@ def test_promoted_state_preserves_root_traversal_permissions(data, monkeypatch):
     stage.chmod(0o700)  # Transfer staging stays private until every hash is verified.
     host.action("promote", {"id": identifier, "manifest": expected}, data, OPS.parent.parent)
     assert data.stat().st_mode & 0o7777 == 0o751
+
+
+def test_archived_render_databases_do_not_block_idle(data):
+    archives = [
+        "snap/previews/old/state",
+        "render-work/old",
+        "status/content-clips/old/state",
+        "status/runs/old/data",
+    ]
+    for folder in archives:
+        path = data / folder
+        path.mkdir(parents=True)
+        with sqlite3.connect(path / "jobs.sqlite") as db:
+            db.execute("CREATE TABLE jobs(state TEXT)")
+            db.execute("INSERT INTO jobs VALUES('RENDERING')")
+    host.idle(data)
+
+
+def test_inert_autostart_is_not_a_runtime_consumer(monkeypatch):
+    def systemctl(args, **kwargs):
+        if "show" in args:
+            return (
+                "LoadState=loaded\nType=oneshot\nMainPID=0\n"
+                "ActiveState=active\nUnitFileState=enabled"
+            )
+        return (
+            "madar-v3-autostart.service loaded active exited\n"
+            "madar-v3-snap-render@news.service loaded active running"
+        )
+
+    monkeypatch.setattr(host, "run", systemctl)
+    assert "madar-v3-autostart.service" not in host.workers()
+    assert "madar-v3-snap-render@news.service" in host.workers()
+
+
+def test_autostart_fenced_before_destination_and_restored_after_rollback(tmp_path):
+    fake = Fake()
+    original = fake.call
+
+    def call(side, operation, payload):
+        result = original(side, operation, payload)
+        if operation == "inspect" and side == "source":
+            result["autostart"] = {"enabled": "enabled", "state": "active"}
+        return result
+
+    fake.call = call
+    task = control.Switch(fake, tmp_path)
+    task.forward()
+    events = [(s, op) for s, op, _ in fake.events]
+    assert events.index(("source", "autostart-disable")) < events.index(("destination", "start"))
+    assert events[-1] == ("source", "autostart-check")
+    previous = dict(task.record)
+    fake.events.clear()
+    control.Switch(fake, tmp_path).rollback(previous)
+    events = [(s, op) for s, op, _ in fake.events]
+    assert events.index(("destination", "stop")) < events.index(("source", "start"))
+    assert events[-1] == ("source", "autostart-restore")
+    assert fake.events[-1][2] == {"enabled": "enabled"}
+
+
+def test_running_autostart_is_not_whitelisted(monkeypatch):
+    monkeypatch.setattr(
+        host,
+        "run",
+        lambda *a, **k: (
+            "LoadState=loaded\nType=oneshot\nMainPID=42\nActiveState=activating\nUnitFileState=enabled"
+        ),
+    )
+    with pytest.raises(ValueError, match="AUTOSTART_NOT_INERT"):
+        host.autostart()
+
+
+def test_review_stale_rows_both_apps_no_delete_no_replay(data, monkeypatch):
+    utility = load("close_stale_switch_rows")
+    monkeypatch.setattr(utility, "require_quiet", lambda _: None)
+    for bot in ("snap", "status"):
+        with sqlite3.connect(data / bot / "panel-commands.sqlite") as db:
+            db.execute("CREATE TABLE panel_actions(id TEXT PRIMARY KEY,state TEXT,at REAL)")
+            db.executemany(
+                "INSERT INTO panel_actions VALUES(?,?,?)",
+                [
+                    ("intent", "INTENT", 1),
+                    ("unknown", "UNKNOWN", 1),
+                    ("fresh", "INTENT", time.time()),
+                    ("queued", "QUEUED", 1),
+                ],
+            )
+    commands = data / "status/commands"
+    commands.mkdir()
+    with sqlite3.connect(commands / "jobs.sqlite") as db:
+        db.execute("CREATE TABLE command_videos(tag TEXT PRIMARY KEY,state TEXT,at REAL,code TEXT)")
+        db.execute("INSERT INTO command_videos VALUES('possibly-sent','SEND_INTENT',1,'OLD_CODE')")
+    dry = utility.review(data, "both", 100, "OWNER_REVIEWED_STALE")
+    assert len(dry) == 5 and not any(r["applied"] for r in dry)
+    with sqlite3.connect(commands / "jobs.sqlite") as db:
+        assert db.execute("SELECT state FROM command_videos").fetchone()[0] == "SEND_INTENT"
+    closed = utility.review(data, "both", 100, "OWNER_REVIEWED_STALE", apply=True)
+    assert len(closed) == 5
+    with sqlite3.connect(commands / "jobs.sqlite") as db:
+        assert db.execute("SELECT state,code FROM command_videos").fetchone() == (
+            "BLOCKED_OR_UNKNOWN",
+            "OWNER_REVIEWED_STALE",
+        )
+        assert (
+            "OLD_CODE" in db.execute("SELECT before_json FROM switch_stale_closures").fetchone()[0]
+        )
+    for bot in ("snap", "status"):
+        with sqlite3.connect(data / bot / "panel-commands.sqlite") as db:
+            assert db.execute("SELECT count(*) FROM panel_actions").fetchone()[0] == 4
+            assert (
+                db.execute("SELECT state FROM panel_actions WHERE id='queued'").fetchone()[0]
+                == "QUEUED"
+            )
+            assert (
+                db.execute("SELECT state FROM panel_actions WHERE id='fresh'").fetchone()[0]
+                == "INTENT"
+            )
+    assert utility.review(data, "both", 100, "OWNER_REVIEWED_STALE", apply=True) == []
+
+
+def test_stale_closure_refuses_live_writer(data, monkeypatch):
+    utility = load("close_stale_switch_rows")
+    with sqlite3.connect(data / "snap/panel-commands.sqlite") as db:
+        db.execute("CREATE TABLE panel_actions(id TEXT,state TEXT,at REAL)")
+        db.execute("INSERT INTO panel_actions VALUES('old','UNKNOWN',1)")
+
+    def busy(_):
+        raise ValueError("writer active")
+
+    monkeypatch.setattr(utility, "require_quiet", busy)
+    with pytest.raises(ValueError, match="writer active"):
+        utility.review(data, "snap", 100, "OWNER_REVIEWED_STALE", apply=True)
+    with sqlite3.connect(data / "snap/panel-commands.sqlite") as db:
+        assert db.execute("SELECT state FROM panel_actions").fetchone()[0] == "UNKNOWN"
+
+
+def test_failed_boot_fence_never_starts_destination(tmp_path):
+    fake = Fake(("source", "autostart-disable"))
+    original = fake.call
+
+    def call(side, operation, payload):
+        result = original(side, operation, payload)
+        if side == "source" and operation == "inspect":
+            result["autostart"] = {"enabled": "enabled", "state": "active"}
+        return result
+
+    fake.call = call
+    with pytest.raises(ValueError):
+        control.Switch(fake, tmp_path).forward()
+    assert not any(side == "destination" and op == "start" for side, op, _ in fake.events)
+    latest = json.loads(sorted(tmp_path.glob("*.json"))[-1].read_text())
+    assert latest["phase"] == "source_autostart_disable_intent"
+    assert latest["source_autostart"]["enabled"] == "enabled"
+
+
+def test_boot_fence_disable_and_restore_use_verified_systemd_state(monkeypatch):
+    enabled = "enabled"
+    calls = []
+    monkeypatch.setattr(host, "autostart", lambda: {"enabled": enabled, "state": "active"})
+
+    def systemctl(args, **kwargs):
+        nonlocal enabled
+        calls.append(args)
+        enabled = "disabled" if args[1] == "disable" else "enabled"
+        return ""
+
+    monkeypatch.setattr(host, "run", systemctl)
+    assert host.boot_fence()["enabled"] == "disabled"
+    assert host.boot_fence("enabled")["enabled"] == "enabled"
+    assert calls == [
+        ["systemctl", "disable", host.AUTOSTART],
+        ["systemctl", "enable", host.AUTOSTART],
+    ]
+
+
+def test_stale_closure_refuses_a_live_component_even_with_old_intent(data, monkeypatch):
+    utility = load("close_stale_switch_rows")
+    monkeypatch.setattr(utility, "require_quiet", lambda _: None)
+    path = data / "snap/panel-commands.sqlite"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE panel_actions(id TEXT,state TEXT,at REAL)")
+        db.execute("INSERT INTO panel_actions VALUES('old','UNKNOWN',1)")
+        db.execute("CREATE TABLE component_locks(deadline REAL)")
+        db.execute("INSERT INTO component_locks VALUES(?)", (time.time() + 300,))
+    with pytest.raises(ValueError, match="COMPONENT_ACTIVE"):
+        utility.review(data, "snap", 100, "OWNER_REVIEWED_STALE", apply=True)
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT state FROM panel_actions").fetchone()[0] == "UNKNOWN"
+
+
+@pytest.mark.parametrize(
+    "before, reason",
+    [(float("nan"), "VALID_CODE"), (time.time(), "VALID_CODE"), (100, "free form reason")],
+)
+def test_stale_closure_invalid_cutoff_or_reason_never_opens_state(tmp_path, before, reason):
+    utility = load("close_stale_switch_rows")
+    missing = tmp_path / "missing"
+    with pytest.raises(ValueError, match="ARGUMENT_INVALID"):
+        utility.review(missing, "both", before, reason, apply=True)
+    assert not missing.exists()
