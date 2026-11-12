@@ -208,10 +208,10 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             raise ValueError("LEGACY_NIGHT_NUMBER_CHANGED")
     for item in scenes:
         if item.get("role") == "hadith":
-            from studio_core.presentation import faith
+            from studio_core.religious.hadith_daily import load as load_daily_hadiths
 
             hadith = next(
-                (i for i in faith.load("hadith") if i["id"] == item.get("hadith_id")), None
+                (i for i in load_daily_hadiths() if i["id"] == item.get("hadith_id")), None
             )
             if (
                 hadith is None
@@ -221,6 +221,17 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 or item.get("source") != hadith["source"] + " • " + hadith["grade"]
             ):
                 raise ValueError("LEGACY_HADITH_CHANGED")
+            from studio_core.religious.hadith_voice import entry as voice_entry
+
+            recording = asset_map.get(item.get("audio"))
+            proof = voice_entry(hadith["id"], hadith["text"])
+            if (
+                recording is None
+                or recording.get("sha256") != proof["audio_sha256"]
+                or recording.get("source_url") != "asset://hadith/" + hadith["id"] + ".mp3"
+                or item.get("spoken_lead") != 0
+            ):
+                raise ValueError("HADITH_VOICE_PROOF_CHANGED")
     sacred = p["key"] in SACRED
     if value.get("sacred") is not sacred:
         raise ValueError("LEGACY_SACRED_POLICY_CHANGED")

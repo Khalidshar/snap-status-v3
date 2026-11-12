@@ -140,18 +140,11 @@ class Factory(NewsPreparation, VarietyPreparation):
         elif key in {"adhkar_am", "adhkar_pm"}:
             scenes += self.adhkar("am" if key.endswith("am") else "pm")
         elif key == "hadith":
-            from studio_core.presentation import faith
-
-            scenes += self.hadiths(faith.load("hadith"), day)
+            scenes += self.hadiths(day)
         elif key == "night":
-            from studio_core.presentation import faith
-
             scenes += self.quran(94, [5, 6])
-            item = min(
-                (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
-                key=lambda i: len(i["text"]),
-            )
-            spoken, length = self.hadith_voice(item["text"])
+            item = self.daily_hadith(day)
+            spoken, length = self.hadith_voice(item["text"], item["id"])
             scenes.append(
                 scene(
                     item["text"],
@@ -161,7 +154,7 @@ class Factory(NewsPreparation, VarietyPreparation):
                     voice_kind="speech",
                     role="hadith",
                     head=HADITH_LEAD,
-                    spoken_lead=len(HADITH_LEAD) + 1,
+                    spoken_lead=0,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],

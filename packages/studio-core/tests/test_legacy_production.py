@@ -50,6 +50,74 @@ def audio(tmp_path):
     return path.read_bytes()
 
 
+@pytest.fixture
+def hadith_recordings(tmp_path, audio, monkeypatch):
+    from studio_core.religious import hadith_daily, hadith_text_check, hadith_voice
+
+    # Synthetic fixture only: no approved production recording is added by tests.
+    encoded = subprocess.run(
+        ["/usr/bin/ffmpeg", "-v", "error", "-f", "wav", "-i", "pipe:0", "-f", "mp3", "pipe:1"],
+        input=audio,
+        capture_output=True,
+        check=True,
+    ).stdout
+    root = tmp_path / "synthetic-hadith-voice"
+    root.mkdir()
+    recordings = []
+    calendar = []
+    # These nonreligious fixture words never enter production data.
+    text = "نَصٌّ اخْتِبَارِيٌّ غَيْرُ دِينِيٍّ"
+    fixture = {
+        "id": "synthetic_text",
+        "text": text,
+        "sha256": hashlib.sha256(text.encode()).hexdigest(),
+        "source": "مصدر اختباري",
+        "narrator": "اختبار",
+        "narrator_url": "https://sunnah.com/bukhari:1",
+        "grade": "صحيح",
+        "unmarked_positions": [6, 13, 29],
+    }
+    sources = root / "source-snapshots"
+    sources.mkdir()
+    (sources / (fixture["id"] + ".txt")).write_bytes(text.encode())
+    monkeypatch.setattr(hadith_text_check, "SOURCES", sources)
+    for n, item in enumerate([fixture], 1):
+        (root / (item["id"] + ".mp3")).write_bytes(encoded)
+        recordings.append(
+            {
+                "id": item["id"],
+                "approved": True,
+                "text_sha256": hashlib.sha256(item["text"].encode()).hexdigest(),
+                "audio_sha256": hashlib.sha256(encoded).hexdigest(),
+            }
+        )
+        calendar.append(
+            {
+                **item,
+                "approved": True,
+                "source_sha256": item["sha256"],
+                "hijri_month": 1,
+                "hijri_day": n,
+                "seasons": ["general"],
+            }
+        )
+    (root / "manifest.json").write_text(json.dumps({"schema": 1, "recordings": recordings}))
+    monkeypatch.setattr(hadith_voice, "ROOT", root)
+    path = root / "test-calendar.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "approved": True,
+                "calendar": "umm_al_qura",
+                "entries": calendar,
+            }
+        )
+    )
+    monkeypatch.setattr(hadith_daily, "CATALOG", path)
+    return root
+
+
 class Sources:
     def __init__(self, audio):
         self.audio = audio
@@ -686,7 +754,9 @@ def test_isha_production_dispatch_and_all_content_commands_cover_both_bots(monke
 
 
 @pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
-def test_night_number_and_verified_hadith_in_both_bots(tmp_path, monkeypatch, audio, app):
+def test_night_number_and_verified_hadith_in_both_bots(
+    tmp_path, monkeypatch, audio, app, hadith_recordings
+):
     from datetime import date, datetime
     from zoneinfo import ZoneInfo
 
@@ -719,6 +789,16 @@ def test_night_number_and_verified_hadith_in_both_bots(tmp_path, monkeypatch, au
     )
     assert not p["music"] and not p["effects"]
     assert any(s.get("grade") == "صحيح" for s in p["scenes"] if s["role"] == "hadith")
+    spoken = next(s for s in p["scenes"] if s["role"] == "hadith")
+    assert spoken["spoken_lead"] == 0
+    recording = next(a for a in p["assets"] if a["file"] == spoken["audio"])
+    assert recording["source_url"].startswith("asset://hadith/")
+    changed_voice = copy.deepcopy(value)
+    next(a for a in changed_voice["legacy_production"]["assets"] if a["file"] == spoken["audio"])[
+        "source_url"
+    ] = "tts://hadith?text=old-voice"
+    with pytest.raises(ValueError, match="HADITH_VOICE_PROOF_CHANGED"):
+        validate(reseal(changed_voice))
     changed = copy.deepcopy(value)
     changed["legacy_production"]["night_number"] += 1
     with pytest.raises(ValueError, match="NIGHT_NUMBER"):
