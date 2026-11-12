@@ -21,6 +21,19 @@ from typing import Any
 STATE = Path("/var/lib/madar")
 RELEASE = Path("/opt/madar/current")
 MEDIA = {".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp3", ".wav", ".m4a"}
+AUTOSTART = "madar-v3-autostart.service"
+LIVE_DATABASES = tuple(
+    f"{app}/{name}"
+    for app in ("snap", "status")
+    for name in (
+        "jobs.sqlite",
+        "commands/jobs.sqlite",
+        "panel-commands.sqlite",
+        "news/jobs.sqlite",
+        "production/jobs.sqlite",
+    )
+)
+LIVE_LOCKS = ("snap/lock", "status/lock")
 LEGACY = ("snap-bot.service", "status-bot.service")
 ACTIVE = {"active", "activating", "deactivating", "reloading"}
 QUERIES = {
@@ -76,6 +89,9 @@ def workers() -> list[str]:
     names = []
     for line in result.splitlines():
         name = line.split()[0]
+        if name == AUTOSTART:
+            autostart()  # Only an inert oneshot is exempt, never a boot process in flight.
+            continue
         if name.startswith("madar-v3-") and name.endswith((".service", ".timer", ".socket")):
             if not re.fullmatch(r"[a-zA-Z0-9@_.\\:-]+", name):
                 raise ValueError("SWITCH_UNIT_NAME_UNSAFE")
@@ -140,7 +156,9 @@ def idle(root: Path) -> None:
     path_safe(root)
     if not (root / "snap").is_dir() or not (root / "status").is_dir():
         raise ValueError("SWITCH_BOT_STATE_MISSING")
-    for path in root.rglob("*"):
+    for name in (*LIVE_LOCKS, *LIVE_DATABASES):
+        path = root / name
+        path_safe(path)
         if path.is_symlink():
             raise ValueError("SWITCH_STATE_SYMLINK")
         if path.name == "lock" and path.is_file():
@@ -196,6 +214,81 @@ def stopped(names: list[str], root: Path | None = None) -> None:
         raise ValueError("SWITCH_UNSUPERVISED_CONSUMER")
 
 
+def autostart() -> dict[str, str]:
+    command = [
+        "systemctl",
+        "show",
+        AUTOSTART,
+        "--property=LoadState",
+        "--property=Type",
+        "--property=MainPID",
+        "--property=ActiveState",
+        "--property=UnitFileState",
+    ]
+    try:
+        raw = run(command)
+    except subprocess.CalledProcessError as error:
+        if "LoadState=not-found" not in (error.stdout or ""):
+            raise
+        raw = error.stdout
+    props = dict(line.split("=", 1) for line in raw.splitlines() if "=" in line)
+    if props.get("LoadState") == "not-found":
+        return {"enabled": "not-found", "state": "inactive"}
+    if (
+        props.get("LoadState") != "loaded"
+        or props.get("Type") != "oneshot"
+        or props.get("MainPID") != "0"
+        or props.get("ActiveState") not in {"active", "inactive"}
+    ):
+        raise ValueError("SWITCH_AUTOSTART_NOT_INERT")
+    enabled = props.get("UnitFileState", "")
+    if enabled not in {
+        "enabled",
+        "enabled-runtime",
+        "disabled",
+        "static",
+        "indirect",
+        "masked",
+        "masked-runtime",
+    }:
+        raise ValueError("SWITCH_AUTOSTART_STATE_UNKNOWN")
+    return {"enabled": enabled, "state": props["ActiveState"]}
+
+
+def boot_fence(enabled: str | None = None) -> dict[str, str]:
+    before = autostart()
+    if enabled is None:
+        if before["enabled"] in {"enabled", "enabled-runtime"}:
+            args = ["systemctl", "disable"]
+            if before["enabled"] == "enabled-runtime":
+                args.append("--runtime")
+            run([*args, AUTOSTART])
+        after = autostart()
+        if after["enabled"] in {"enabled", "enabled-runtime"}:
+            raise ValueError("SWITCH_AUTOSTART_DISABLE_FAILED")
+    else:
+        if enabled not in {
+            "enabled",
+            "enabled-runtime",
+            "disabled",
+            "static",
+            "indirect",
+            "masked",
+            "masked-runtime",
+            "not-found",
+        }:
+            raise ValueError("SWITCH_AUTOSTART_RESTORE_INVALID")
+        if enabled in {"enabled", "enabled-runtime"}:
+            args = ["systemctl", "enable"]
+            if enabled == "enabled-runtime":
+                args.append("--runtime")
+            run([*args, AUTOSTART])
+        after = autostart()
+        if after["enabled"] != enabled:
+            raise ValueError("SWITCH_AUTOSTART_RESTORE_FAILED")
+    return after
+
+
 def preflight(release: Path) -> dict[str, Any]:
     names, keys, tools = units(release)
     sizes = []
@@ -231,8 +324,20 @@ def action(
         idle(root)
         info = preflight(release)
         info["states"] = unit_states(all_names)
+        info["autostart"] = autostart()
         info["identity"] = hashlib.sha256(Path("/etc/machine-id").read_bytes()).hexdigest()
         return info
+    if operation == "autostart-disable":
+        stopped(all_names, root)
+        return boot_fence()
+    if operation == "autostart-restore":
+        return boot_fence(payload["enabled"])
+    if operation == "autostart-check":
+        stopped(all_names, root)
+        result = autostart()
+        if result["enabled"] in {"enabled", "enabled-runtime"}:
+            raise ValueError("SWITCH_SOURCE_BOOT_UNFENCED")
+        return result
     if operation == "stop":
         idle(root)
         frozen = []
@@ -347,7 +452,19 @@ def action(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "operation", choices=("inspect", "stop", "manifest", "stage", "promote", "start", "preview")
+        "operation",
+        choices=(
+            "inspect",
+            "stop",
+            "manifest",
+            "stage",
+            "promote",
+            "start",
+            "preview",
+            "autostart-disable",
+            "autostart-restore",
+            "autostart-check",
+        ),
     )
     args = parser.parse_args()
     if os.geteuid() != 0:

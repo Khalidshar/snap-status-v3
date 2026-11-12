@@ -174,6 +174,7 @@ class Switch:
         if any(s == "active" and n not in source["units"] for n, s in source["states"].items()):
             raise ValueError("SWITCH_EXTRA_CONSUMER_OR_TIMER")
         self.record.update({k: source[k] for k in ("commit", "key_sizes", "units")})
+        self.record["source_autostart"] = source.get("autostart", {"enabled": "not-found"})
         self.record["source_identity"] = source["identity"]
         self.record["destination_identity"] = destination["identity"]
         self.record["source_active"] = [
@@ -183,9 +184,17 @@ class Switch:
         self.call("source", "stop")
         self.checkpoint("source_stopped")
         self.transfer("source", "destination")
+        if self.record["source_autostart"]["enabled"] != "not-found":
+            # Fence reboots before the first destination consumer, not only after
+            # potentially long previews. Keep the original state for rollback.
+            self.checkpoint("source_autostart_disable_intent")
+            self.record["source_autostart_after"] = self.call("source", "autostart-disable")
+            self.checkpoint("source_autostart_disabled")
         self.checkpoint("destination_start_intent")
         self.call("destination", "start", units=self.record["units"])
         self.call("destination", "preview", id=self.identifier)
+        if self.record["source_autostart"]["enabled"] != "not-found":
+            self.record["source_autostart_verified"] = self.call("source", "autostart-check")
         self.checkpoint("completed_previews_without_sending")
 
     def rollback(self, previous: dict[str, Any]) -> None:
@@ -194,6 +203,9 @@ class Switch:
         self.record.update(
             {k: previous[k] for k in ("commit", "key_sizes", "units", "source_active")}
         )
+        if previous.get("rollback_of"):
+            raise ValueError("SWITCH_ROLLBACK_ALREADY_STARTED")
+        self.record["source_autostart"] = previous.get("source_autostart", {"enabled": "not-found"})
         self.record["rollback_of"] = previous["id"]
         for side in ("source", "destination"):
             info = self.call(side, "inspect")
@@ -213,6 +225,10 @@ class Switch:
             self.media = True
             self.transfer("destination", "source")
         self.call("source", "start", units=self.record["source_active"])
+        if self.record["source_autostart"]["enabled"] != "not-found":
+            self.record["source_autostart_restored"] = self.call(
+                "source", "autostart-restore", enabled=self.record["source_autostart"]["enabled"]
+            )
         self.checkpoint("rollback_completed")
 
 
