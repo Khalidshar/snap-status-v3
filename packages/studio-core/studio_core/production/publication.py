@@ -12,6 +12,10 @@ POLITICAL = re.compile(
     r"قصف|غار[ةه]|غارات|صاروخ|صواريخ|غزو|اشتباك(?:ات)?|معارك|"
     r"وقف اطلاق النار|ترامب|بوتين|نتنياهو|زيلينسكي)(?![ء-ي])"
 )
+PRESS_DETENTION = re.compile(
+    r"(?<![ء-ي])[وفبكل]{0,2}(?:ال)?(?:سجن|اعتقال|حبس|محاكمه|احتجاز|افراج عن) "
+    r"(?:ال)?صح(?:افي|في)(?:ه|ين|ون)?(?![ء-ي])"
+)
 
 
 def target(value: Any) -> str:
@@ -40,7 +44,7 @@ def target(value: Any) -> str:
     text = " ".join(text.split())
     for phrase in ("حرب الاسعار", "حرب النجوم", "ملك الغابه"):
         text = text.replace(phrase, " ")
-    return "PUBLIC_STORY" if POLITICAL.search(text) else "SPOTLIGHT"
+    return "PUBLIC_STORY" if POLITICAL.search(text) or PRESS_DETENTION.search(text) else "SPOTLIGHT"
 
 
 def notice(value: Any) -> str:
