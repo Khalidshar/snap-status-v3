@@ -405,13 +405,23 @@ class Factory:
                 continue
         return candidates
 
+    # Economy section feeds; a markets story from any other feed needs an economic headline
+    # (owner 12 Nov 2026: a nutrition story entered «الأسواق» through «فائدة» in its text).
+    ECONOMY_FEEDS = frozenset(
+        {"aawsat-economy", "bbc-ar-business", "skynews-ar-business", "asharq-business"}
+    )
+
     @staticmethod
-    def editorial_match(key: str, text: str, language: str, *, detail: str = "") -> bool:
+    def editorial_match(
+        key: str, text: str, language: str, *, detail: str = "", source_id: str = ""
+    ) -> bool:
         from studio_core.sources.news import football_story, matches, top_brand
 
         if language == "ar":
             if key == "football":
                 return football_story(text, detail)
+            if key == "markets" and source_id not in Factory.ECONOMY_FEEDS:
+                return parsing.market_story(text) and matches(key, text + " " + detail)
             text = text + " " + detail
             return matches(key, text)
         text = text + " " + detail
@@ -475,7 +485,9 @@ class Factory:
                         not title
                         or not url
                         or not 0 <= now - published < MAX_AGE[key]
-                        or not self.editorial_match(key, title, source.language, detail=detail)
+                        or not self.editorial_match(
+                            key, title, source.language, detail=detail, source_id=source.id
+                        )
                     ):
                         continue
                     if self.used(url, reserve=False) or any(
