@@ -371,3 +371,18 @@ def test_sqlite_wal_preserved_but_host_local_read_marks_not_transferred(data):
         manifest = host.manifest(data, False)
         assert "snap/jobs.sqlite" in manifest and "snap/jobs.sqlite-wal" in manifest
         assert "snap/jobs.sqlite-shm" not in manifest
+
+
+def test_promoted_state_preserves_root_traversal_permissions(data, monkeypatch):
+    import shutil
+
+    monkeypatch.setattr(host, "workers", lambda: [])
+    monkeypatch.setattr(host, "stopped", lambda *a: None)
+    data.chmod(0o751)
+    expected = host.manifest(data, True)
+    identifier = "e" * 32
+    stage = host.stage_path(data, identifier)
+    shutil.copytree(data, stage)
+    stage.chmod(0o700)  # Transfer staging stays private until every hash is verified.
+    host.action("promote", {"id": identifier, "manifest": expected}, data, OPS.parent.parent)
+    assert data.stat().st_mode & 0o7777 == 0o751
