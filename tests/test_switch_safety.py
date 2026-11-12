@@ -358,3 +358,16 @@ def test_rollback_cannot_target_a_different_destination(tmp_path):
     with pytest.raises(ValueError, match="ROLLBACK_HOST"):
         control.Switch(fake, tmp_path).rollback(previous)
     assert not any(op in {"stop", "copy", "promote", "start"} for _, op, _ in fake.events)
+
+
+def test_sqlite_wal_preserved_but_host_local_read_marks_not_transferred(data):
+    file = data / "snap/jobs.sqlite"
+    with sqlite3.connect(file) as db:
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("CREATE TABLE jobs(state TEXT)")
+        db.execute("INSERT INTO jobs VALUES('COMPLETED')")
+        db.commit()
+        host.idle(data)
+        manifest = host.manifest(data, False)
+        assert "snap/jobs.sqlite" in manifest and "snap/jobs.sqlite-wal" in manifest
+        assert "snap/jobs.sqlite-shm" not in manifest

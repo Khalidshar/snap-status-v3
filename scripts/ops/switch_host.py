@@ -107,6 +107,14 @@ def manifest(root: Path, media: bool) -> dict[str, Any]:
     result = {}
     for path in sorted(root.rglob("*")):
         info = path.lstat()
+        # SQLite's shared-memory index is rebuilt from DB+WAL. Read-only checks may
+        # change its read marks; it is not durable state and must not cross hosts.
+        if path.name.endswith("-shm") and path.with_name(path.name[:-4]).suffix in {
+            ".sqlite",
+            ".sqlite3",
+            ".db",
+        }:
+            continue
         if stat.S_ISSOCK(info.st_mode):
             continue  # systemd recreates sockets; never transfer a live socket inode.
         if not stat.S_ISREG(info.st_mode) and not stat.S_ISDIR(info.st_mode):
