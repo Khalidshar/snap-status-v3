@@ -22,3 +22,11 @@ reports/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+
+# Reviewed data stays inert; source snapshots require an approved data change.
+!packages/studio-core/studio_core/religious/data/
+packages/studio-core/studio_core/religious/data/*
+!packages/studio-core/studio_core/religious/data/hadith-calendar.json
+!packages/studio-core/studio_core/religious/data/hadith-sources/
+packages/studio-core/studio_core/religious/data/hadith-sources/*
+!packages/studio-core/studio_core/religious/data/hadith-sources/README.md
