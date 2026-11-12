@@ -431,3 +431,44 @@ def test_design_failure_reaches_parent_only_with_current_content_binding(
     else:
         assert caught.value is original
     assert "SECRET" not in repr(caught.value)
+
+
+@pytest.mark.parametrize("notice_fails", [False, True])
+def test_private_destination_notice_after_ack_is_shared_with_panel(fixture, tmp_path, notice_fails):
+    f = fixture
+    transport = fixtures.OfflineTransport(f.identity)
+    trace = []
+    original_video = transport.send_video.return_value
+
+    def video(*args, **kwargs):
+        trace.append("video")
+        return original_video
+
+    transport.send_video.side_effect = video
+
+    def text(body):
+        trace.append("notice")
+        assert body == "وجهة النشر: القصص العامة"
+        with f.repo.connect() as db:
+            assert db.execute("SELECT state FROM command_videos").fetchone()[0] == "API_ACCEPTED"
+        if notice_fails:
+            raise OSError("offline")
+
+    transport.send_text = Mock(side_effect=text)
+    content = {
+        "legacy_production": {"key": "world", "scenes": [{"body": "البرلمان يناقش الانتخابات"}]}
+    }
+    item = {"tag": "f" * 64}
+    with (
+        patch.object(
+            content_clips, "build", return_value=(content, {"video_sha256": "a" * 64}, b"video")
+        ),
+        patch.object(content_clips, "valid", return_value=True),
+        patch.object(content_clips, "complete"),
+        patch("studio_core.production.caption.platform_caption", return_value="الوصف العام"),
+    ):
+        content_clips.send(f.outbox, transport, item, "world", f.runtime, root=tmp_path)
+        with pytest.raises(DeliveryBlocked):
+            content_clips.send(f.outbox, transport, item, "world", f.runtime, root=tmp_path)
+    assert trace == ["video", "notice"]
+    assert transport.send_video.call_args.kwargs["caption"] == "الوصف العام"

@@ -65,6 +65,43 @@ class DeliveryTests(unittest.TestCase):
             return {"id": 42, "type": "private"}
         return {"message_id": 7, "chat": {"id": 42}}
 
+    def test_private_publication_notice_is_after_video_and_never_replays(self):
+        root = Storage(self.config).workspace(self.job)
+        value = json.loads((root / "input/content.json").read_text())
+        value["legacy_production"] = {
+            "key": "world",
+            "scenes": [{"body": "البرلمان يناقش الانتخابات"}],
+        }
+        value["content_hash"] = content_hash(value)
+        (root / "input/content.json").write_text(json.dumps(value))
+        result = json.loads((root / "output/render-result.json").read_text())
+        result["content_hash"] = value["content_hash"]
+        (root / "output/render-result.json").write_text(json.dumps(result))
+        bodies = []
+
+        def transport(token, method, body=b"", kind="application/json"):
+            bodies.append((method, body))
+            if method == "sendMessage":
+                self.calls.append(method)
+                message = json.loads(body)
+                self.assertEqual(message["chat_id"], "42")
+                self.assertEqual(message["text"], "وجهة النشر: القصص العامة")
+                raise OSError("notice unavailable")
+            return self.transport(token, method, body, kind)
+
+        with patch(
+            "studio_core.production.caption.platform_caption", return_value="وصف النشر مع المصدر"
+        ):
+            self.assertEqual(
+                deliver(self.config, self.job, self.digest, transport)["delivery"], "PUBLISHED"
+            )
+            deliver(self.config, self.job, self.digest, transport)
+        self.assertLess(self.calls.index("sendVideo"), self.calls.index("sendMessage"))
+        self.assertEqual(self.calls.count("sendVideo"), 1)
+        self.assertEqual(self.calls.count("sendMessage"), 1)
+        public = next(body for method, body in bodies if method == "sendVideo")
+        self.assertNotIn("وجهة النشر".encode(), public)
+
     def test_confirmed_delivery_terminal_and_replay_suppressed(self):
         self.assertEqual(
             deliver(self.config, self.job, self.digest, self.transport)["delivery"], "PUBLISHED"

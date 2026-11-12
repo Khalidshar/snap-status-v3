@@ -855,7 +855,8 @@ def test_production_caption_keeps_credits_and_article_links(tmp_path, audio, app
     f = factory(tmp_path, "facts", Sources(audio), app)
     value = f.build()
     description = platform_caption(value)
-    assert "وجهة النشر: " in description
+    assert "وجهة النشر: " not in description
+    assert "وجهة النشر: " not in caption(value)
     assert value["publication_target"] in {"SPOTLIGHT", "PUBLIC_STORY"}
     assert "@rawwag_khalid" in description and "Tech Corporate" in description
     assert "creativecommons.org/licenses/by/4.0/" in description
