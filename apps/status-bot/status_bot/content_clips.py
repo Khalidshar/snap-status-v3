@@ -613,6 +613,15 @@ def deliver_built(
             command_tag=item["tag"],
         )
 
+    if content.get("legacy_production"):
+        from studio_core.production.publication import notice
+
+        try:
+            transport.send_text(notice(content))
+        except Exception:
+            # Also used by panel approval; notice failure cannot replay the video.
+            print("STATUS_PUBLICATION_NOTICE_FAILED", file=sys.stderr)
+
 
 def send(
     outbox: Any,

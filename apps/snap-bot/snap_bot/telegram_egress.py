@@ -11,6 +11,7 @@ import math
 import os
 import re
 import sqlite3
+import sys
 import time
 from typing import Any
 
@@ -409,6 +410,20 @@ def deliver(
                 ("PUBLISHED", sent["message_id"], time.time(), digest),
             )
             db.execute("UPDATE deliveries SET state=? WHERE id=?", ("PUBLISHED", digest))
+        if production_caption is not None:
+            from studio_core.production.publication import notice
+
+            try:
+                transport(
+                    token,
+                    "sendMessage",
+                    json.dumps(
+                        {"chat_id": chat, "text": notice(content)}, ensure_ascii=False
+                    ).encode(),
+                )
+            except Exception:
+                # The video ACK is already durable. Never resend it for a lost hint.
+                print("SNAP_PUBLICATION_NOTICE_FAILED", file=sys.stderr)
         try:
             repo.transition(job_id, lease, "COMPLETED", {"message_id": sent["message_id"]})
         except Exception:
