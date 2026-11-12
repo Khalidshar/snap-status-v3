@@ -447,8 +447,11 @@ def collect(
                 or hashlib.sha256(response.body).hexdigest() != response.sha256
             ):
                 raise ValueError("Invalid source response")
+            from studio_core.sources.publisher_feeds import normalize
+
+            raw = normalize(source.id, response.body, client)
             items = parse_feed(
-                response.body,
+                raw,
                 {
                     "name": source.name,
                     "url": source.url,
