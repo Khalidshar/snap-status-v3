@@ -579,11 +579,13 @@ def test_stale_closure_refuses_a_live_component_even_with_old_intent(data, monke
 
 @pytest.mark.parametrize(
     "before, reason",
-    [(float("nan"), "VALID_CODE"), (time.time(), "VALID_CODE"), (100, "free form reason")],
+    [(float("nan"), "VALID_CODE"), ("recent", "VALID_CODE"), (100, "free form reason")],
 )
 def test_stale_closure_invalid_cutoff_or_reason_never_opens_state(tmp_path, before, reason):
     utility = load("close_stale_switch_rows")
     missing = tmp_path / "missing"
     with pytest.raises(ValueError, match="ARGUMENT_INVALID"):
-        utility.review(missing, "both", before, reason, apply=True)
+        utility.review(
+            missing, "both", time.time() if before == "recent" else before, reason, apply=True
+        )
     assert not missing.exists()
