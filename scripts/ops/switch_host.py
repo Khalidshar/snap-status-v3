@@ -104,7 +104,8 @@ def manifest(root: Path, media: bool) -> dict[str, Any]:
     path_safe(root)
     if not root.is_dir():
         raise ValueError("SWITCH_STATE_MISSING")
-    result = {}
+    root_info = root.stat()
+    result = {".": [root_info.st_mode & 0o7777, root_info.st_uid, root_info.st_gid, 0, None]}
     for path in sorted(root.rglob("*")):
         info = path.lstat()
         # SQLite's shared-memory index is rebuilt from DB+WAL. Read-only checks may
@@ -266,13 +267,30 @@ def action(
     if operation == "promote":
         stopped(all_names, root)
         stage = stage_path(root, payload["id"])
-        if manifest(stage, True) != payload["manifest"]:
+        expected = dict(payload["manifest"])
+        root_metadata = expected.pop(".", None)
+        actual = manifest(stage, True)
+        actual.pop(".")
+        if actual != expected:
             raise ValueError("SWITCH_HASH_MISMATCH")
+        if (
+            not isinstance(root_metadata, list)
+            or len(root_metadata) != 5
+            or any(type(v) is not int for v in root_metadata[:3])
+            or not 0 <= root_metadata[0] <= 0o7777
+            or any(not 0 <= v < 2**32 - 1 for v in root_metadata[1:3])
+            or root_metadata[3:] != [0, None]
+        ):
+            raise ValueError("SWITCH_ROOT_METADATA_INVALID")
         idle(stage)
         backup = root.with_name(root.name + ".before-" + payload["id"])
         path_safe(backup)
         if backup.exists():
             raise ValueError("SWITCH_BACKUP_EXISTS")
+        # The private staging directory must regain the source root's ownership
+        # and traversal mode before workers use it. Child hashes alone miss this.
+        os.chown(stage, root_metadata[1], root_metadata[2])
+        stage.chmod(root_metadata[0])
         root.rename(backup)
         try:
             stage.rename(root)

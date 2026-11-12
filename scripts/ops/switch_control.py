@@ -137,7 +137,7 @@ class Switch:
             ):
                 raise ValueError("SWITCH_MANIFEST_UNSAFE")
         self.call(destination, "stage", id=self.identifier)
-        state = [n for n in data if Path(n).suffix.lower() not in MEDIA]
+        state = [n for n in data if n != "." and Path(n).suffix.lower() not in MEDIA]
         media = [n for n in data if Path(n).suffix.lower() in MEDIA]
         self.transport.copy(source, self.identifier, state)
         if media:
