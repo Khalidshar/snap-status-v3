@@ -400,7 +400,10 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
             "agents": project(
                 scope,
                 {
-                    role: {"state": state, "at": observed.get(role, {}).get("at", last_times.get(role))}
+                    role: {
+                        "state": state,
+                        "at": observed.get(role, {}).get("at", last_times.get(role)),
+                    }
                     for role, state in last.items()
                 },
             ),
