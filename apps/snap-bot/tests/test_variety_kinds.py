@@ -6,8 +6,8 @@ import time
 import unittest
 
 from snap_bot import did_you_know as dyk
-from studio_core.presentation import variety_kinds
 from snap_bot.arabic_agent import inspect_content
+from studio_core.presentation import variety_kinds
 from studio_core.presentation.fact_layout import fact_labels
 
 

@@ -6,10 +6,10 @@ import time
 import unittest
 from pathlib import Path
 
-from studio_core.presentation import fact_layout as layout
 from snap_bot.did_you_know import load_facts, make_content
-from studio_core.presentation.fact_motion import background_filters
 from snap_bot.weather import content_hash
+from studio_core.presentation import fact_layout as layout
+from studio_core.presentation.fact_motion import background_filters
 
 
 def compact(text):

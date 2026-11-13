@@ -12,6 +12,7 @@ import test_did_you_know_render as fixtures
 from test_render_ownership import ISOLATION
 
 from snap_bot.did_you_know import load_facts, make_content
+from snap_bot.render import render, validate
 from studio_core.presentation.fact_layout import card_filters, display_text, fact_labels, label_y, measured_box
 from studio_core.presentation.fact_motion import (
     background_filters,
@@ -21,7 +22,6 @@ from studio_core.presentation.fact_motion import (
     reveal_windows,
 )
 from studio_core.presentation.font_admission import font_paths
-from snap_bot.render import render, validate
 
 
 class FactMotionTests(unittest.TestCase):

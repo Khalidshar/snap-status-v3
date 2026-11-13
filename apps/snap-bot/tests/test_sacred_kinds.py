@@ -11,9 +11,11 @@ from pathlib import Path
 
 from snap_bot import did_you_know as dyk
 from snap_bot import sacred_cards
-from studio_core.presentation import faith, sacred_kinds
 from snap_bot.arabic_agent import check_text, inspect_content
 from snap_bot.content_agents import CHECKS, AgentRejected, proofread, run_check
+from studio_core.config import Config
+from studio_core.jobs import Repository
+from studio_core.presentation import faith, sacred_kinds
 from studio_core.presentation.fact_layout import (
     BODY_GAP,
     CARD_BOTTOM,
@@ -33,8 +35,6 @@ from studio_core.presentation.fact_layout import (
     stack_sacred,
 )
 from studio_core.presentation.font_admission import font_paths
-from studio_core.config import Config
-from studio_core.jobs import Repository
 
 ROOT = Path(__file__).parents[3]
 

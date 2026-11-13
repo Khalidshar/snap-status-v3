@@ -5,10 +5,10 @@ from unittest.mock import patch
 
 import pytest
 
-from studio_core.presentation.video_backgrounds import prefetch, verify
 from studio_core.network.client import NetworkError, NetworkResponse
 from studio_core.network.egress import PolicyDenied
 from studio_core.network.video import VideoPolicy, fetch_video
+from studio_core.presentation.video_backgrounds import prefetch, verify
 
 MP4 = b"\x00\x00\x00\x18ftypisom" + b"0" * 20
 

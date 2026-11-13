@@ -10,9 +10,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from snap_bot.render import ensure_glyphs
 from studio_core.presentation import font_admission as fonts
 from studio_core.presentation.fact_layout import display_text, drawing_text
-from snap_bot.render import ensure_glyphs
 
 ROOT = Path(__file__).parents[3]
 

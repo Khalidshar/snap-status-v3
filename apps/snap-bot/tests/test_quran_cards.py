@@ -11,10 +11,10 @@ from pathlib import Path
 import pytest
 
 from snap_bot import sacred_cards
-from studio_core.presentation import faith, quran_font, sacred_text
 from snap_bot.did_you_know import load_kind, make_content
-from studio_core.presentation.fact_layout import page_display_body, sacred_labels, stack_sacred
 from snap_bot.render import sacred_sequence
+from studio_core.presentation import faith, quran_font, sacred_text
+from studio_core.presentation.fact_layout import page_display_body, sacred_labels, stack_sacred
 
 ROOT = Path(__file__).resolve().parents[3]
 
