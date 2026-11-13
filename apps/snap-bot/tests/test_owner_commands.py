@@ -133,7 +133,8 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertIn("رسالة 946", self.studio.answer("آخر مقطع"))
         self.assertIn("غير مفعّلة", self.studio.answer("الحالة"))
         self.assertIn("إرسال: 1", self.studio.answer("تقرير اليوم"))
-        self.assertIn("أدوات محلية", self.studio.answer("حالة الوكلاء"))
+        self.assertIn("سبع محطات", self.studio.answer("حالة الوكلاء"))
+        self.assertIn("غير مربوط", self.studio.answer("حالة الوكلاء"))
         self.assertIn("لا توجد جدولة", self.studio.answer("مواعيد الجدولة"))
 
     def test_commands_outside_the_clip_cycle_do_nothing_yet(self):
