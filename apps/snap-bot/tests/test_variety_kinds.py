@@ -33,10 +33,16 @@ class VarietyKindTests(unittest.TestCase):
 
     def test_every_module_imports_first_without_a_cycle(self):
         # The renderer starts from content_agents; a cycle there kills the sandbox.
-        for module in ("content_agents", "catalogs", "render", "did_you_know", "fact_layout"):
+        for module in (
+            "snap_bot.content_agents",
+            "studio_core.presentation.catalogs",
+            "snap_bot.render",
+            "snap_bot.did_you_know",
+            "studio_core.presentation.fact_layout",
+        ):
             with self.subTest(module=module):
                 result = subprocess.run(  # fixed interpreter and module names
-                    [sys.executable, "-c", "import snap_bot." + module],
+                    [sys.executable, "-c", "import " + module],
                     capture_output=True,
                     text=True,
                     timeout=60,
