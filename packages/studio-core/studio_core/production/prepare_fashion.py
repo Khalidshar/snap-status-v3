@@ -42,15 +42,23 @@ class FashionPreparation(NewsPreparation):
                 asset = next(a for a in self.assets if a["file"] == image)
                 review = image_review(
                     self.db.parent / "fashion-image-reviews.jsonl",
-                    asset["sha256"], asset["source_url"], item["url"],
+                    asset["sha256"],
+                    asset["source_url"],
+                    item["url"],
                 )
                 if review is None:
-                    failures.append({
-                        "code": "FASHION_IMAGE_REVIEW_REQUIRED", "source": item["source"],
-                        "title": item["title"], "desk": self.key,
-                        "article_url": item["url"], "image_url": asset["source_url"],
-                        "image_file": image, "image_sha256": asset["sha256"],
-                    })
+                    failures.append(
+                        {
+                            "code": "FASHION_IMAGE_REVIEW_REQUIRED",
+                            "source": item["source"],
+                            "title": item["title"],
+                            "desk": self.key,
+                            "article_url": item["url"],
+                            "image_url": asset["source_url"],
+                            "image_file": image,
+                            "image_sha256": asset["sha256"],
+                        }
+                    )
                     continue
                 proof = self.save(canonical(review), ".json", item["url"], "مراجعة احتشام الصورة")
                 item["fashion_original_title"] = item["title"]
@@ -59,11 +67,16 @@ class FashionPreparation(NewsPreparation):
                     item["title"] = self.translate(original)
                     item["translations"] = {"body": self.translations[original]}
                     points = [
-                        {**p, "head": self.translate(p["head"]) if p["head"] else "",
-                         "body": self.translate(p["body"]),
-                         "translations": {
-                             field: self.translations[p[field]] for field in ("head", "body") if p[field]
-                         }}
+                        {
+                            **p,
+                            "head": self.translate(p["head"]) if p["head"] else "",
+                            "body": self.translate(p["body"]),
+                            "translations": {
+                                field: self.translations[p[field]]
+                                for field in ("head", "body")
+                                if p[field]
+                            },
+                        }
                         for p in points
                     ]
                 selected.append({"item": item, "image": image, "review": proof, "points": points})
@@ -80,11 +93,16 @@ class FashionPreparation(NewsPreparation):
         for n, row in enumerate(selected, 1):
             item = row["item"]
             common = {
-                "image": row["image"], "image_credit": item["source"],
-                "source": item["source"], "source_id": item["source_id"],
-                "source_url": item["url"], "published": item["published"],
-                "article": item["article"], "feed": item["feed"],
-                "published_label": item["published_label"], "fashion_review": row["review"],
+                "image": row["image"],
+                "image_credit": item["source"],
+                "source": item["source"],
+                "source_id": item["source_id"],
+                "source_url": item["url"],
+                "published": item["published"],
+                "article": item["article"],
+                "feed": item["feed"],
+                "published_label": item["published_label"],
+                "fashion_review": row["review"],
                 "fashion_original_title": item["fashion_original_title"],
             }
             if len(selected) > 1:
@@ -95,31 +113,50 @@ class FashionPreparation(NewsPreparation):
                     original = detail
                     detail = self.translate(original)
                     translations = {
-                        "head": translations["body"], "body": self.translations[original],
+                        "head": translations["body"],
+                        "body": self.translations[original],
                     }
-                scenes.append(scene(
-                    detail, max(12.0, (len(item["title"]) + len(detail)) / 17 + 0.25),
-                    role="story", head=item["title"], number=f"{n}/{len(selected)}",
-                    translations=translations, **common,
-                ))
+                scenes.append(
+                    scene(
+                        detail,
+                        max(12.0, (len(item["title"]) + len(detail)) / 17 + 0.25),
+                        role="story",
+                        head=item["title"],
+                        number=f"{n}/{len(selected)}",
+                        translations=translations,
+                        **common,
+                    )
+                )
             else:
-                scenes.append(scene(
-                    item["title"], max(5.0, len(item["title"]) / 17 + 0.25),
-                    role="headline", translations=item.get("translations", {}), **common,
-                ))
+                scenes.append(
+                    scene(
+                        item["title"],
+                        max(5.0, len(item["title"]) / 17 + 0.25),
+                        role="headline",
+                        translations=item.get("translations", {}),
+                        **common,
+                    )
+                )
                 chosen = [p for p in row["points"] if p.get("body")][:4]
-                while len(chosen) > 2 and sum(
-                    max(9.0, (len(p["body"]) + len(p["head"])) / 17 + 0.25) for p in chosen
-                ) > 44.7:
+                while (
+                    len(chosen) > 2
+                    and sum(max(9.0, (len(p["body"]) + len(p["head"])) / 17 + 0.25) for p in chosen)
+                    > 44.7
+                ):
                     chosen.pop()
                 if len(chosen) < 2:
                     raise ValueError("FASHION_ARTICLE_TOO_SHORT")
                 for point in chosen:
                     # Reuse only this story's reviewed photo; no unreviewed inline images.
-                    scenes.append(scene(
-                        point["body"], max(9.0, (len(point["body"]) + len(point["head"])) / 17 + 0.25),
-                        role="point", head=point["head"],
-                        translations=point.get("translations", {}), **common,
-                    ))
+                    scenes.append(
+                        scene(
+                            point["body"],
+                            max(9.0, (len(point["body"]) + len(point["head"])) / 17 + 0.25),
+                            role="point",
+                            head=point["head"],
+                            translations=point.get("translations", {}),
+                            **common,
+                        )
+                    )
             self.used(item["url"])
         return scenes

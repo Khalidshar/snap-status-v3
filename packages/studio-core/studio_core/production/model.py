@@ -210,7 +210,10 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             or sum(s.get("role") == "point" for s in body_scenes) < 2
         ):
             raise ValueError("FASHION_ARTICLE_INCOMPLETE")
-        if any(not s.get("image") or not s.get("source") or not s.get("fashion_review") for s in body_scenes):
+        if any(
+            not s.get("image") or not s.get("source") or not s.get("fashion_review")
+            for s in body_scenes
+        ):
             raise ValueError("FASHION_REVIEW_OR_SOURCE_MISSING")
     if p["key"] == "night":
         night_date = date.fromisoformat(p.get("night_date", ""))
@@ -345,7 +348,9 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 if image is None or review is None:
                     raise ValueError("FASHION_REVIEW_OR_IMAGE_MISSING")
                 record = json.loads(resource(assets, review["file"], review["sha256"]).read_bytes())
-                if not review_matches(record, image["sha256"], image["source_url"], item["source_url"]):
+                if not review_matches(
+                    record, image["sha256"], image["source_url"], item["source_url"]
+                ):
                     raise ValueError("FASHION_IMAGE_REVIEW_CHANGED")
             if item.get("role") in {"story", "headline", "point"}:
                 from studio_core.sources.news import MAX_AGE, news_sources
@@ -404,7 +409,8 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                     else:
                         match = re.search(
                             r'(?:property|name)=["\']og:title["\'][^>]+content=["\']([^"\']+)',
-                            page, re.I,
+                            page,
+                            re.I,
                         )
                         fashion_title = parsing.clean(match[1]) if match else ""
                     if (

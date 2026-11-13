@@ -29,8 +29,12 @@ class FashionPolicyTests(unittest.TestCase):
 
     def test_unapproved_local_and_mixed_local_brand_stories_are_rejected(self):
         for title in (
-            "عطر من علامة مجهولة", "مجموعة هدى بيوتي الجديدة", "عطر العربية للعود",
-            "عطر أجمل مع ديور", "شانيل تتعاون مع علامة محلية", "عطر ديورا الجديد",
+            "عطر من علامة مجهولة",
+            "مجموعة هدى بيوتي الجديدة",
+            "عطر العربية للعود",
+            "عطر أجمل مع ديور",
+            "شانيل تتعاون مع علامة محلية",
+            "عطر ديورا الجديد",
         ):
             with self.subTest(title=title):
                 self.assertIsNone(section(title))

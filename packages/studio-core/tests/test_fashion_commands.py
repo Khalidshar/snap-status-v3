@@ -8,8 +8,8 @@ import time
 
 import pytest
 
-from studio_core.network.client import NetworkResponse
 from studio_core import commands
+from studio_core.network.client import NetworkResponse
 from studio_core.production.fashion_policy import KEYS, record_review
 from studio_core.production.model import budget, canonical, sha, validate
 from studio_core.production.prepare import Factory
@@ -26,7 +26,9 @@ TITLES = {
 }
 IMAGE = b"synthetic-reviewed-picture-only"
 HOST = "https://ar.harpersbazaararabia.com"
-PARAGRAPH = "تفاصيل جديدة من نص المصدر الأصلي عن المواد والتصميم والإصدار الجديد ومعلومات موثقة للقارئ. "
+PARAGRAPH = (
+    "تفاصيل جديدة من نص المصدر الأصلي عن المواد والتصميم والإصدار الجديد ومعلومات موثقة للقارئ. "
+)
 
 
 class FashionSources:
@@ -38,18 +40,32 @@ class FashionSources:
     def get(self, url):
         if url == self.source.url:
             stories = "".join(
-                "<item><title>" + TITLES[self.key] + str(n) + "</title><link>"
-                + self.article(n) + "</link><pubDate>" + self.pub + "</pubDate>"
-                + "<description>" + PARAGRAPH + "</description>"
-                + '<enclosure type="image/jpeg" url="' + self.image(n) + '"/></item>'
+                "<item><title>"
+                + TITLES[self.key]
+                + str(n)
+                + "</title><link>"
+                + self.article(n)
+                + "</link><pubDate>"
+                + self.pub
+                + "</pubDate>"
+                + "<description>"
+                + PARAGRAPH
+                + "</description>"
+                + '<enclosure type="image/jpeg" url="'
+                + self.image(n)
+                + '"/></item>'
                 for n in range(self.count)
             )
             raw = ("<rss><channel>" + stories + "</channel></rss>").encode()
         elif url.startswith(HOST + "/fashion/"):
-            raw = ("<article>" + "".join(
-                "<h2>" + head + "</h2><p>" + head + " " + PARAGRAPH * 3 + "</p>"
-                for head in ("التصميم", "تفاصيل الإصدار", "المواد")
-            ) + "</article>").encode()
+            raw = (
+                "<article>"
+                + "".join(
+                    "<h2>" + head + "</h2><p>" + head + " " + PARAGRAPH * 3 + "</p>"
+                    for head in ("التصميم", "تفاصيل الإصدار", "المواد")
+                )
+                + "</article>"
+            ).encode()
         elif url.startswith(HOST + "/images/"):
             raw = IMAGE
         elif "free-stock-music.com/music/" in url:
@@ -78,11 +94,20 @@ def factory(tmp_path, app, key, client, approve=True):
     if approve:
         for n in range(client.count):
             record_review(
-                state / "fashion-image-reviews.jsonl", sample, client.image(n), client.article(n),
-                approve=True, apply=True,
+                state / "fashion-image-reviews.jsonl",
+                sample,
+                client.image(n),
+                client.article(n),
+                approve=True,
+                apply=True,
             )
     return FixtureFactory(
-        app, key, "a" * 32, tmp_path / app / key, client=client, state=state,
+        app,
+        key,
+        "a" * 32,
+        tmp_path / app / key,
+        client=client,
+        state=state,
     )
 
 
@@ -142,7 +167,10 @@ def test_local_brand_in_article_is_rejected_before_picture_admission(tmp_path):
         if url.startswith(HOST + "/fashion/"):
             raw = reply.body.replace(
                 b"</article>",
-                "<p>منتج من هدى بيوتي يظهر في تفاصيل هذه القصة ضمن نص المقال الأصلي.</p></article>".encode(),
+                (
+                    "<p>منتج من هدى بيوتي يظهر في تفاصيل هذه القصة "
+                    "ضمن نص المقال الأصلي.</p></article>"
+                ).encode(),
             )
             return NetworkResponse(200, reply.content_type, raw, sha(raw))
         return reply

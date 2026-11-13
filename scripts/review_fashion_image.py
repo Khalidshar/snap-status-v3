@@ -22,14 +22,20 @@ def main() -> None:
     args = parser.parse_args()
     if args.apply and not args.owner_reviewed:
         parser.error("يلزم أن يراجع خالد الصورة قبل تسجيل القرار")
-    root = args.state_root or Path(os.environ.get(
-        "MADAR_PRODUCTION_STATE_ROOT", str(runtime_state_root() / args.app / "production")
-    ))
+    root = args.state_root or Path(
+        os.environ.get(
+            "MADAR_PRODUCTION_STATE_ROOT", str(runtime_state_root() / args.app / "production")
+        )
+    )
     if not root.is_absolute() or ".." in root.parts:
         parser.error("مسار الحالة يجب أن يكون مطلقًا")
     record = record_review(
-        root / "fashion-image-reviews.jsonl", args.image_file, args.image_url, args.article_url,
-        approve=args.decision == "approve", apply=args.apply,
+        root / "fashion-image-reviews.jsonl",
+        args.image_file,
+        args.image_url,
+        args.article_url,
+        approve=args.decision == "approve",
+        apply=args.apply,
     )
     print(json.dumps({"applied": args.apply, "review": record}, ensure_ascii=False))
 

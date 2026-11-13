@@ -41,9 +41,15 @@ LOCAL = (
 SECTIONS = (
     ("style_kids", r"اطفال|للطفل|للصغار|المدارس|\b(?:kids|children|childrenswear|baby|junior)\b"),
     ("style_couples", r"ازواج|للزوجين|للزوج|للزوجه|زفاف|\b(?:couples|wedding|his and hers)\b"),
-    ("style_perfume", r"عطر|عطور|بخور|دهن العود|\b(?:perfume|perfumes|fragrance|fragrances|oud|cologne)\b"),
+    ("style_perfume", (
+        r"عطر|عطور|بخور|دهن العود|"
+        r"\b(?:perfume|perfumes|fragrance|fragrances|oud|cologne)\b"
+    )),
     ("style_men", r"رجالي|للرجل|الرجل|للرجال|\b(?:menswear|men|mens|homme)\b"),
-    ("style_women", r"نسائي|للمراه|للمرأه|نساء|مكياج|بشره|حقائب|مجوهرات|فساتين|\b(?:women|womenswear|makeup|skincare|handbags|jewelry)\b"),
+    ("style_women", (
+        r"نسائي|للمراه|للمرأه|نساء|مكياج|بشره|حقائب|مجوهرات|فساتين|"
+        r"\b(?:women|womenswear|makeup|skincare|handbags|jewelry)\b"
+    )),
 )  # fmt: skip
 
 
@@ -58,8 +64,12 @@ def approved_brand(text: str) -> bool:
     if any(normalize(word) in value for word in LOCAL):
         return False
     return any(
-        re.search(r"(?<![a-zء-ي])[وفبكل]?(?:لل|ال)?" + re.escape(normalize(alias)) + r"(?![a-zء-ي])", value)
-        for aliases in BRANDS for alias in aliases
+        re.search(
+            r"(?<![a-zء-ي])[وفبكل]?(?:لل|ال)?" + re.escape(normalize(alias)) + r"(?![a-zء-ي])",
+            value,
+        )
+        for aliases in BRANDS
+        for alias in aliases
     )
 
 
@@ -79,8 +89,12 @@ def safe_url(value: str) -> bool:
     try:
         p = urlsplit(value)
         return bool(
-            p.scheme == "https" and p.hostname and not p.username and not p.password
-            and p.port in (None, 443) and not any(c.isspace() for c in value)
+            p.scheme == "https"
+            and p.hostname
+            and not p.username
+            and not p.password
+            and p.port in (None, 443)
+            and not any(c.isspace() for c in value)
         )
     except ValueError:
         return False
@@ -97,11 +111,14 @@ def review_matches(review: Any, image_sha: str, image_url: str, article_url: str
         and review.get("image_sha256") == image_sha
         and review.get("image_url") == image_url
         and review.get("article_url") == article_url
-        and safe_url(image_url) and safe_url(article_url)
+        and safe_url(image_url)
+        and safe_url(article_url)
     )
 
 
-def image_review(ledger: Path, image_sha: str, image_url: str, article_url: str) -> dict[str, Any] | None:
+def image_review(
+    ledger: Path, image_sha: str, image_url: str, article_url: str
+) -> dict[str, Any] | None:
     if not ledger.is_file():
         return None
     if any(p.is_symlink() for p in (ledger, *ledger.absolute().parents)):
@@ -116,7 +133,8 @@ def image_review(ledger: Path, image_sha: str, image_url: str, article_url: str)
         if not isinstance(record, dict):
             raise ValueError("FASHION_REVIEW_INVALID")
         if (
-            record.get("image_sha256") == image_sha and record.get("image_url") == image_url
+            record.get("image_sha256") == image_sha
+            and record.get("image_url") == image_url
             and record.get("article_url") == article_url
         ):
             found = record if review_matches(record, image_sha, image_url, article_url) else None
@@ -124,17 +142,29 @@ def image_review(ledger: Path, image_sha: str, image_url: str, article_url: str)
 
 
 def record_review(
-    ledger: Path, image: Path, image_url: str, article_url: str, *, approve: bool, apply: bool = False
+    ledger: Path,
+    image: Path,
+    image_url: str,
+    article_url: str,
+    *,
+    approve: bool,
+    apply: bool = False,
 ) -> dict[str, Any]:
-    if any(p.is_symlink() for p in (image, *image.absolute().parents, ledger, *ledger.absolute().parents)):
+    if any(
+        p.is_symlink()
+        for p in (image, *image.absolute().parents, ledger, *ledger.absolute().parents)
+    ):
         raise ValueError("FASHION_REVIEW_UNSAFE")
     if not safe_url(image_url) or not safe_url(article_url):
         raise ValueError("FASHION_REVIEW_URL_INVALID")
     record = {
-        "schema": 1, "image_sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
-        "image_url": image_url, "article_url": article_url,
+        "schema": 1,
+        "image_sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+        "image_url": image_url,
+        "article_url": article_url,
         "decision": "APPROVED" if approve else "REJECTED",
-        "family_safe": approve, "owner_reviewed": True,
+        "family_safe": approve,
+        "owner_reviewed": True,
     }
     if apply:
         ledger.parent.mkdir(parents=True, exist_ok=True, mode=0o700)

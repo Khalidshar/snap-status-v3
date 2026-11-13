@@ -28,7 +28,11 @@ TITLES = {
     "tech": "التقنية",
     **FASHION_TITLES,
 }
-MAX_AGE = {key: 86400 for key in TITLES} | {"urgent": 3600, "tech": 259200} | dict.fromkeys(FASHION_KEYS, 604800)
+MAX_AGE = (
+    {key: 86400 for key in TITLES}
+    | {"urgent": 3600, "tech": 259200}
+    | dict.fromkeys(FASHION_KEYS, 604800)
+)
 WORDS = {
     "urgent": (
         "عاجل",

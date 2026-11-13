@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from studio_core.network import NetworkClient as NetworkClient
 from studio_core.weather import content_hash
 
+from .fashion_policy import KEYS as FASHION_KEYS
 from .model import (
     DATA,
     HADITH_LEAD,
@@ -28,7 +29,6 @@ from .model import (
 from .prepare_base import cut_matches as cut_matches
 from .prepare_base import duration as duration
 from .prepare_base import safe_xml as safe_xml
-from .fashion_policy import KEYS as FASHION_KEYS
 from .prepare_fashion import FashionPreparation
 from .prepare_news import desk_order as desk_order
 from .prepare_variety import VarietyPreparation
