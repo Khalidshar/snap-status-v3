@@ -274,7 +274,9 @@ class ClipCycleTests(unittest.TestCase):
         self.on_start["madar-v3-snap-render.service"] = lambda unit: self.runtime.rendered(1)
         self.on_start["madar-v3-snap-send-main"] = ack
         reply = self.studio.answer("هل تعلم")
-        self.assertEqual(reply, "", "guard:the-clip-is-the-whole-answer")
+        # The clip is the answer; only the owner's destination note follows it.
+        self.assertTrue(reply.startswith("وجهة النشر: "), "guard:destination-note-only")
+        self.assertNotIn("\n", reply)
         self.assertEqual(self.runtime.approved, [(sha, "main", True)], "guard:main-only")
         self.assertEqual(self.started, [listener.RENDER_UNIT, listener.SEND_UNIT.format(sha=sha)])
         self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP, "guard:sent-once")
@@ -293,7 +295,10 @@ class ClipCycleTests(unittest.TestCase):
         )
         self.on_start["madar-v3-snap-send-main"] = ack
         reply = self.studio.answer("الأناقة")
-        self.assertEqual(reply, listener.TRANSLATED_NOTE, "guard:translated-clip-is-flagged")
+        self.assertTrue(reply.startswith("وجهة النشر: "))
+        self.assertTrue(
+            reply.endswith(listener.TRANSLATED_NOTE), "guard:translated-clip-is-flagged"
+        )
         self.assertEqual(self.runtime.approved, [(sha, "main", True)])
 
     def test_a_sent_clip_gets_no_text_reply_but_a_failure_does(self):
@@ -383,7 +388,8 @@ class ClipCycleTests(unittest.TestCase):
                 self.on_start["madar-v3-snap-render"] = lambda unit, kind=key, n=number: (
                     self.runtime.rendered(n, kind=kind, title=listener.menu.BY_KEY[kind].label)
                 )
-                self.assertEqual(self.studio.answer(listener.menu.BY_KEY[key].label), "")
+                reply = self.studio.answer(listener.menu.BY_KEY[key].label)
+                self.assertEqual(reply, "وجهة النشر: الأضواء")  # sacred and riddles: Spotlight
                 self.assertEqual(self.started[-2], "madar-v3-snap-render@" + key + ".service")
                 self.assertEqual(self.started[-1], listener.SEND_UNIT.format(sha=f"{number:064x}"))
                 self.assertIn(key, listener.ACTIONS)

@@ -273,6 +273,13 @@ def football_story(title: str, detail: str = "") -> bool:
     if OTHER_SPORT.search(text) or not any(word in text for word in WORDS["football"]):
         return False
     political = (
+        "صحافي",
+        "صحفي",
+        "صحافة",
+        "سجن",
+        "اعتقال",
+        "معتقل",
+        "محاكمة",
         "رئيس وزراء",
         "رئيس الوزراء",
         "رئيس الحكومة",
@@ -323,9 +330,48 @@ def football_story(title: str, detail: str = "") -> bool:
     )
 
 
+_WORLD_AMBIGUOUS_SPORTS = {"دراجات", "سلة", "سباحة", "فروسية"}
+_WORLD_SPORTS = re.compile(
+    r"(?<![ء-ي])[وفبك]?(?:ال|لل)?(?:"
+    + "|".join(
+        re.escape(word.translate(str.maketrans("أإآٱ", "اااا")))
+        for word in SPORTS_EXCLUDED
+        if word not in _WORLD_AMBIGUOUS_SPORTS
+    )
+    + r"|كرة القدم|مباراة|مباريات|منتخب(?:ات)?|مونديال|"
+    r"كاس (?:العالم|امم|اسيا|افريقيا|العرب|الملك|السوبر)|"
+    r"دوري (?:ابطال|الابطال|الانجليزي|الاسباني|الايطالي|الالماني|"
+    r"الفرنسي|الاوروبي|السعودي|المصري|المغربي)|"
+    r"بطولة العالم|العاب (?:ال)?اولمبي[ةه])"
+    r"(?![ء-ي])"
+)
+_WORLD_COMPETITION = re.compile(
+    r"(?<![ء-ي])[وفبك]?(?:ال|لل)?(?:بطولة|بطولات|سباق|سباقات|منافسات|ميدالية|ميداليات|ذهبية|فضية|برونزية)(?![ء-ي])"
+)
+
+
+def world_story(title: str, detail: str = "") -> bool:
+    # Analysis only: original source strings are never rewritten.
+    normalized = re.sub(r"[\u064b-\u065f\u0670\u0640]", "", title).translate(
+        str.maketrans("أإآٱ", "اااا")
+    )
+    normalized = re.sub(r"\b(الرئيس|المجلس|البرلمان|النائب|الحزب) المنتخب\b", r"\1", normalized)
+    if _WORLD_SPORTS.search(normalized) or (
+        _WORLD_COMPETITION.search(normalized)
+        and any(
+            re.search(r"(?<![ء-ي])[وفبك]?(?:ال|لل)?" + re.escape(word) + r"(?![ء-ي])", normalized)
+            for word in _WORLD_AMBIGUOUS_SPORTS
+        )
+    ):
+        return False
+    return any(word in title + " " + detail for word in WORDS["world"])
+
+
 def matches(key: str, text: str) -> bool:
     if key not in TITLES:
         raise ValueError("Unsupported live news command")
+    if key == "world":
+        return world_story(text)
     if key == "markets":
         from studio_core.production.parsing import market_story
 
