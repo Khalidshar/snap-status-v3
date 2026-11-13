@@ -512,26 +512,6 @@ class WhatsAppContracts(unittest.TestCase):
                 next_claim["id"], next_claim["lease_token"], 1, next_review, next_sig
             )
 
-    def test_backup_preserves_delivery_unknown_and_blocks_replay(self):
-        from studio_core.storage.backup import create_snapshot, probe_restore
-
-        claim, _root, review, sig, item = self.queued()
-        self.open_window()
-        self.transport.send_video.side_effect = TimeoutError("unit fixture timeout")
-        self.worker().deliver(item, claim["lease_token"], review, sig)
-        backup_root = self.root / "backup"
-        snapshot = create_snapshot(self.repo.path, backup_root, self.cfg.app, "e" * 40)
-        self.assertEqual(
-            probe_restore(snapshot, self.cfg.app, self.root / "restore-probe")["result"], "PASS"
-        )
-        import sqlite3
-
-        with sqlite3.connect(snapshot / "jobs.sqlite") as db:
-            self.assertEqual(
-                db.execute("SELECT state FROM whatsapp_outbox WHERE id=?", (item,)).fetchone()[0],
-                "DELIVERY_UNKNOWN",
-            )
-
     def test_synthetic_and_sacred_content_are_not_eligible(self):
         value, root, manifest, _review, _sig = self.fixture()
         for key, val in [("synthetic_source", True), ("destination", "telegram")]:

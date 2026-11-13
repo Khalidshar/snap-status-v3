@@ -10,9 +10,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from snap_bot import font_admission as fonts
-from snap_bot.fact_layout import display_text, drawing_text
 from snap_bot.render import ensure_glyphs
+from studio_core.presentation import font_admission as fonts
+from studio_core.presentation.fact_layout import display_text, drawing_text
 
 ROOT = Path(__file__).parents[3]
 
@@ -45,7 +45,7 @@ class LicensedFontTests(unittest.TestCase):
         self.assertEqual(primary.name, "NotoKufiArabic-Bold.ttf", "guard:kufi-bold-default")
         self.assertEqual(p["fact_body_font_size"], 68, "guard:kufi-measured-size")
         from snap_bot.did_you_know import load_facts, make_content
-        from snap_bot.fact_layout import fact_labels
+        from studio_core.presentation.fact_layout import fact_labels
 
         for fact in load_facts():
             try:
@@ -172,7 +172,7 @@ class LicensedFontRealTests(unittest.TestCase):
         from test_did_you_know_render import fact_profile
 
         from snap_bot.did_you_know import load_facts, make_content
-        from snap_bot.fact_layout import fact_labels, label_y, measure_label
+        from studio_core.presentation.fact_layout import fact_labels, label_y, measure_label
 
         p = fact_profile()
         self.assertIsNotNone(p)

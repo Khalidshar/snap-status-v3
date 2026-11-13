@@ -10,7 +10,9 @@ from studio_core.network.client import NetworkError
 
 def test_local_fallback_is_pinned_and_mutation_is_fatal(tmp_path):
     content = {"body": "نص", "kind": "hadith", "content_hash": "a" * 64}
-    with patch("snap_bot.video_backgrounds.prefetch", side_effect=NetworkError("offline")):
+    with patch(
+        "studio_core.presentation.video_backgrounds.prefetch", side_effect=NetworkError("offline")
+    ):
         manifest = footage.prepare(content, tmp_path / "background", tmp_path / "unused.sock")
     selected = footage.pinned(content, manifest)
     assert selected["provider"] == "Mixkit" and selected["pool"] == "calm"
@@ -43,7 +45,7 @@ def test_live_asset_stays_local_and_content_bound(tmp_path):
         )
         return manifest
 
-    with patch("snap_bot.video_backgrounds.prefetch", side_effect=fetched):
+    with patch("studio_core.presentation.video_backgrounds.prefetch", side_effect=fetched):
         manifest = footage.prepare(content, tmp_path / "background", tmp_path / "unused.sock")
     assert footage.pinned(content, manifest)["provider"] == "pexels"
     with pytest.raises(ValueError, match="content mismatch"):

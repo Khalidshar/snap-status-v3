@@ -55,11 +55,6 @@ PASS_THROUGH = CONTENT_CHECKS + RENDER_CHECKS
 OBSERVED = (*BOUND, "final")
 # Roles outside the per-job chain: local tools the owner or maintenance runs.
 LOCAL_TOOLS = {
-    "manager": "oversight_agents.plan",
-    "analyst": "oversight_agents.analyse",
-    "writer": "editorial_agents.write",
-    "reviewer": "editorial_agents.review",
-    "fixer": "editorial_agents.fix",
     "content_repair": "maintenance.apply",
 }
 DEPENDENCIES = {

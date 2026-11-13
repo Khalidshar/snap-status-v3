@@ -6,10 +6,10 @@ import time
 import unittest
 from pathlib import Path
 
-from snap_bot import fact_layout as layout
 from snap_bot.did_you_know import load_facts, make_content
-from snap_bot.fact_motion import background_filters
 from snap_bot.weather import content_hash
+from studio_core.presentation import fact_layout as layout
+from studio_core.presentation.fact_motion import background_filters
 
 
 def compact(text):
@@ -146,7 +146,7 @@ class BrandPixelTests(unittest.TestCase):
     def test_tag_pixels_match_unshaped_ltr_reference(self):
         from test_did_you_know_render import fact_profile
 
-        from snap_bot.font_admission import font_paths
+        from studio_core.presentation.font_admission import font_paths
 
         p = fact_profile()
         self.assertIsNotNone(p)

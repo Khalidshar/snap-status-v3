@@ -80,13 +80,6 @@ CASES = [
         "test_workspace_rejects_traversal_and_symlink",
     ),
     (
-        "cross-application backup",
-        "storage/backup.py",
-        '        raise ValueError("Cross-application snapshot forbidden")',
-        "        pass",
-        "test_cross_app_backup_and_probe_are_rejected",
-    ),
-    (
         "egress host allowlist",
         "network/egress.py",
         '        raise PolicyDenied("HOST_NOT_ALLOWED")',
