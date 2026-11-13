@@ -19,9 +19,13 @@ def strings(value: Any, location: str = "content") -> list[tuple[str, str]]:
     if isinstance(value, str):
         return [(location, value)]
     if isinstance(value, dict):
-        return [item for key, child in value.items() for item in strings(child, f"{location}.{key}")]
+        return [
+            item for key, child in value.items() for item in strings(child, f"{location}.{key}")
+        ]
     if isinstance(value, list):
-        return [item for i, child in enumerate(value) for item in strings(child, f"{location}[{i}]")]
+        return [
+            item for i, child in enumerate(value) for item in strings(child, f"{location}[{i}]")
+        ]
     return []
 
 
@@ -50,13 +54,13 @@ def png_size(path: Path) -> tuple[int, int]:
     while offset < len(data):
         if offset + 12 > len(data):
             raise ValueError("truncated PNG chunk")
-        length = struct.unpack(">I", data[offset:offset + 4])[0]
-        kind = data[offset + 4:offset + 8]
+        length = struct.unpack(">I", data[offset : offset + 4])[0]
+        kind = data[offset + 4 : offset + 8]
         end = offset + 8 + length
         if end + 4 > len(data):
             raise ValueError("truncated PNG payload")
-        payload = data[offset + 8:end]
-        crc = struct.unpack(">I", data[end:end + 4])[0]
+        payload = data[offset + 8 : end]
+        crc = struct.unpack(">I", data[end : end + 4])[0]
         if zlib.crc32(kind + payload) & 0xFFFFFFFF != crc:
             raise ValueError("PNG CRC mismatch")
         if size is None:
@@ -93,14 +97,20 @@ def audit(root: Path = ROOT) -> tuple[list[str], dict[str, int], str]:
         actual = {p.name for p in (pack / "truefalse").glob(f"{prefix}*.png")}
         expected = {f"{prefix}{i:02}.png" for i in range(1, len(items) + 1)}
         if actual != expected:
-            errors.append(f"SEQUENCE: {prefix}: missing={sorted(expected - actual)}, "
-                          f"extra={sorted(actual - expected)}")
+            errors.append(
+                f"SEQUENCE: {prefix}: missing={sorted(expected - actual)}, "
+                f"extra={sorted(actual - expected)}"
+            )
     titles = {p.name for p in (pack / "meter").glob("title*.png")}
     expected_titles = {f"title{i:02}.png" for i in range(1, len(content["meter"]) + 1)}
     if not content["meter"] or titles != expected_titles:
         errors.append("TITLES: missing, empty or unexpected meter titles")
-    for relative in ("brand/icon.png", "meter/spinner.png", "truefalse/hint-left.png",
-                     "truefalse/hint-right.png"):
+    for relative in (
+        "brand/icon.png",
+        "meter/spinner.png",
+        "truefalse/hint-left.png",
+        "truefalse/hint-right.png",
+    ):
         if not (pack / relative).is_file():
             errors.append(f"MISSING: {relative}")
     for path in sorted(pack.rglob("*.png")):
@@ -114,8 +124,9 @@ def audit(root: Path = ROOT) -> tuple[list[str], dict[str, int], str]:
             errors.append(f"PNG: {path.relative_to(root)}: {exc}")
     for lens, script in (("truefalse", "TiltQuiz.js"), ("meter", "RandomSpinner.js")):
         # Shared brand is counted in both import sets; source JSON is counted conservatively.
-        files = [p for folder in (pack / lens, pack / "brand") for p in folder.rglob("*")
-                 if p.is_file()]
+        files = [
+            p for folder in (pack / lens, pack / "brand") for p in folder.rglob("*") if p.is_file()
+        ]
         files += [root / "scripts" / script, root / "content.json"]
         try:
             totals[lens] = sum(p.stat().st_size for p in files)
@@ -142,4 +153,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
