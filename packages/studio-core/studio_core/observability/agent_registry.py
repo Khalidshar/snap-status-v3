@@ -31,9 +31,7 @@ _REGISTRY = load_registry()
 ROLE_IDS = tuple(a["id"] for a in _REGISTRY["agents"])
 STATIONS = tuple(_REGISTRY["stations"])
 CHAIN = tuple(
-    a["id"]
-    for a in sorted(_REGISTRY["agents"], key=lambda a: a["step"] or 99)
-    if a["chain"]
+    a["id"] for a in sorted(_REGISTRY["agents"], key=lambda a: a["step"] or 99) if a["chain"]
 )
 TOOL_IDS = tuple(
     a["id"]
