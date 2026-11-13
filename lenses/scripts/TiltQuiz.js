@@ -12,13 +12,15 @@
 // @input float tiltAngleThreshold = 15.0
 // @input float neutralAngleThreshold = 5.0
 // @input float resultDuration = 1.5
+// @input SceneObject[] hideOnDone // عناصر تُخفى عند ظهور النتيجة (إشارتا صح/خطأ)
 
 var currentState = "START";
 var indices = [];
 var currentStep = 0;
 var score = 0;
-var thresholdRad = script.tiltAngleThreshold * (Math.PI / 180);
-var neutralRad = script.neutralAngleThreshold * (Math.PI / 180);
+// العتبات كجيب زاوية: نقارن بها المركّبة X لمتجه «فوق» الرأس
+var tiltSin = Math.sin(script.tiltAngleThreshold * (Math.PI / 180));
+var neutralSin = Math.sin(script.neutralAngleThreshold * (Math.PI / 180));
 
 var delayEvent = script.createEvent("DelayedCallbackEvent");
 delayEvent.bind(function () { nextQuestion(); });
@@ -58,6 +60,11 @@ function nextQuestion() {
         currentState = "WAITING_FOR_NEUTRAL";
     } else {
         script.displayImage.enabled = false;
+        if (script.hideOnDone) {
+            for (var h = 0; h < script.hideOnDone.length; h++) {
+                if (script.hideOnDone[h]) { script.hideOnDone[h].enabled = false; }
+            }
+        }
         if (script.scoreText) {
             script.scoreText.enabled = true;
             script.scoreText.text = "نتيجتك: " + score + " من " + indices.length;
@@ -66,17 +73,44 @@ function nextQuestion() {
     }
 }
 
+var baseX = 0;
+var calibTime = 0;
+var calibSum = 0;
+var calibN = 0;
+var neutralWait = 0;
 var updateEvent = script.createEvent("UpdateEvent");
 updateEvent.bind(function () {
     if (!script.headTracker) { return; }
-    var rollZ = script.headTracker.getTransform().getWorldRotation().toEulerAngles().z;
+    // الميل من متجه «فوق» الرأس في إحداثيات العالم، لا من زوايا أويلر
+    // (تفكيك أويلر غير ثابت على الجهاز حين يكون انعطاف الرأس قرابة 180°).
+    // up.x موجب = أعلى الرأس مال نحو يمين الشاشة كما يراه المستخدم (جهة «صح») — مُختبر في المعاينة.
+    var up = script.headTracker.getTransform().getWorldRotation().multiplyVec3(vec3.up());
+    var rawX = up.x;
+    // معايرة: وضع الرأس الطبيعي ليس صفرًا دائمًا (طريقة مسك الجوال وتتبّع الوجه)،
+    // فنأخذ متوسط أول ثانية كنقطة الوسط، ثم نتابع انزياحها ببطء ما دام الرأس قريبًا منها.
+    if (calibTime < 1.0) {
+        if (rawX === 0) { return; } // الوجه لم يُكتشف بعد
+        calibTime += getDeltaTime(); calibSum += rawX; calibN++;
+        baseX = calibSum / calibN;
+        return;
+    }
+    var tiltX = rawX - baseX;
+    if (Math.abs(tiltX) <= neutralSin) { baseX += (rawX - baseX) * 0.02; }
     if (currentState === "WAITING_FOR_NEUTRAL") {
-        if (Math.abs(rollZ) <= neutralRad) { currentState = "WAITING_FOR_TILT"; }
+        neutralWait += getDeltaTime();
+        // إن بقي الرأس ثابتًا خارج الوسط ثانيتين، نعتبر وضعه الحالي هو الوسط
+        // (فقط إن لم يكن مائلًا ميلة إجابة كاملة، حتى لا يُحسب رجوعه للوسط إجابة عكسية)
+        var settled = neutralWait > 2.0 && Math.abs(tiltX) < tiltSin;
+        if (Math.abs(tiltX) <= neutralSin || settled) {
+            if (settled) { baseX = rawX; }
+            neutralWait = 0;
+            currentState = "WAITING_FOR_TILT";
+        }
         return;
     }
     if (currentState === "WAITING_FOR_TILT") {
-        var right = rollZ < -thresholdRad;
-        var left = rollZ > thresholdRad;
+        var right = tiltX > tiltSin;
+        var left = tiltX < -tiltSin;
         if (script.invertTilt) { var t = right; right = left; left = t; }
         var userAnswer = right ? true : (left ? false : null);
         if (userAnswer !== null) {
