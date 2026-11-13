@@ -174,11 +174,13 @@ class NewsPreparation(PreparationBase):
     def editorial_match(
         key: str, text: str, language: str, *, detail: str = "", source_id: str = ""
     ) -> bool:
-        from studio_core.sources.news import football_story, matches, top_brand
+        from studio_core.sources.news import football_story, matches, top_brand, world_story
 
         if language == "ar":
             if key == "football":
                 return football_story(text, detail)
+            if key == "world":
+                return world_story(text, detail)
             if key == "markets" and source_id not in NewsPreparation.ECONOMY_FEEDS:
                 return parsing.market_story(text) and matches(key, text + " " + detail)
             text = text + " " + detail
