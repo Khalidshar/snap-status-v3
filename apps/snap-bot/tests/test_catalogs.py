@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from snap_bot import catalogs
+from studio_core.presentation import catalogs
 
 BANNED = ("قال الله", "رسول الله", "آية", "حديث", "انتخابات", "حزب سياسي", "طائفية", "حرب")
 

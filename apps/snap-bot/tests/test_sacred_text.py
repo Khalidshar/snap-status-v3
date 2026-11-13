@@ -10,7 +10,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
-from snap_bot import faith, sacred_text
+from studio_core.presentation import faith, sacred_text
 
 REPO = Path(__file__).resolve().parents[3]
 FONT = REPO / "assets/fonts/notonaskharabic/NotoNaskhArabic-Regular.ttf"

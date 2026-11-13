@@ -10,7 +10,8 @@ from pathlib import Path
 import pytest
 from test_sacred_render import _alpha_pixels
 
-from snap_bot import faith, quran_font, sacred_cards
+from snap_bot import sacred_cards
+from studio_core.presentation import faith, quran_font
 from snap_bot.did_you_know import load_kind, make_content
 
 ROOT = Path(__file__).resolve().parents[3]

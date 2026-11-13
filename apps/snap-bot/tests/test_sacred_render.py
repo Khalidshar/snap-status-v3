@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from snap_bot import faith, sacred_text
+from studio_core.presentation import faith, sacred_text
 
 FONT = (
     Path(__file__).resolve().parents[3] / "assets/fonts/notonaskharabic/NotoNaskhArabic-Regular.ttf"

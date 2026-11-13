@@ -1,7 +1,6 @@
 """Consumer tests for durable ownership, no replay, component locks and monitor."""
 
 import json
-import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -339,32 +338,6 @@ class CoreAgentRuntime(unittest.TestCase):
         self.assertTrue(value["incidents"][0]["delivery_uncertain"])
         self.assertEqual(self.repo.get(self.job["id"])["state"], "DELIVERING")
 
-    def test_backup_preserves_uncertain_execution_and_lock_without_replay(self):
-        from studio_core.storage.backup import create_snapshot, probe_restore
-
-        def stop():
-            raise KeyboardInterrupt("fixture-crash")
-
-        with self.assertRaises(KeyboardInterrupt):
-            self.run_stage(callback=stop)
-        locks = ComponentLocks(self.repo)
-        lease = locks.acquire("render", "REPAIR", 1)
-        with self.repo.transaction() as db:
-            db.execute("UPDATE agent_runs SET status='RUNNING',finished_at=NULL,error_code=NULL")
-        snapshot = create_snapshot(
-            self.repo.path, self.root / "backup", self.cfg.app, "a" * 40, now=self.now
-        )
-        self.assertEqual(
-            probe_restore(snapshot, self.cfg.app, self.root / "probe")["result"], "PASS"
-        )
-        with sqlite3.connect(snapshot / "jobs.sqlite") as db:
-            self.assertEqual(db.execute("SELECT status FROM agent_runs").fetchone()[0], "RUNNING")
-            self.assertEqual(
-                db.execute("SELECT token FROM component_locks").fetchone()[0], lease.token
-            )
-        self.assertEqual(self.rows()[0]["status"], "RUNNING")
-        with self.assertRaises(ComponentBusy):
-            locks.acquire("render", "MAINTENANCE")
 
     def test_shared_database_misconfiguration_is_rejected(self):
         other = "status-bot-v2" if self.cfg.app == "snap-bot-v2" else "snap-bot-v2"

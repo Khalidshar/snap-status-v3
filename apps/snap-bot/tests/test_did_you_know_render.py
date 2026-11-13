@@ -12,7 +12,7 @@ from unittest.mock import patch
 import test_render_ownership as ownership
 
 from snap_bot.did_you_know import load_facts, make_content
-from snap_bot.fact_layout import display_text, drawing_text, fact_labels, measured_box
+from studio_core.presentation.fact_layout import display_text, drawing_text, fact_labels, measured_box
 from snap_bot.render import ensure_glyphs, render, run, video_filename
 from snap_bot.render_commit import stage_input
 from snap_bot.weather import content_hash

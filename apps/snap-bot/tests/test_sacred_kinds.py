@@ -10,10 +10,11 @@ from dataclasses import replace
 from pathlib import Path
 
 from snap_bot import did_you_know as dyk
-from snap_bot import faith, sacred_cards, sacred_kinds
+from snap_bot import sacred_cards
+from studio_core.presentation import faith, sacred_kinds
 from snap_bot.arabic_agent import check_text, inspect_content
 from snap_bot.content_agents import CHECKS, AgentRejected, proofread, run_check
-from snap_bot.fact_layout import (
+from studio_core.presentation.fact_layout import (
     BODY_GAP,
     CARD_BOTTOM,
     CARD_TOP,
@@ -31,7 +32,7 @@ from snap_bot.fact_layout import (
     sacred_labels,
     stack_sacred,
 )
-from snap_bot.font_admission import font_paths
+from studio_core.presentation.font_admission import font_paths
 from studio_core.config import Config
 from studio_core.jobs import Repository
 

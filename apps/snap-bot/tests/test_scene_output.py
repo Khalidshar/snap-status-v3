@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from snap_bot.scene_output import plan, render, segments
+from studio_core.presentation.scene_output import plan, render, segments
 
 
 def test_exact_text_and_reading_speed():
@@ -15,8 +15,8 @@ def test_exact_text_and_reading_speed():
 
 def test_at_most_one_repair_and_no_failed_evidence_removed(tmp_path):
     with (
-        patch("snap_bot.scene_output.proof", return_value={}),
-        patch("snap_bot.scene_output.run", side_effect=RuntimeError("fixture")) as runner,
+        patch("studio_core.presentation.scene_output.proof", return_value={}),
+        patch("studio_core.presentation.scene_output.run", side_effect=RuntimeError("fixture")) as runner,
     ):
         with pytest.raises(ValueError, match="ONE_REPAIR"):
             render({"body": "نص ثابت"}, tmp_path / "render")

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from snap_bot import faith, quran_font
+from studio_core.presentation import faith, quran_font
 
 
 def test_bundled_font() -> None:

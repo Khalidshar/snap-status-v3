@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from snap_bot import faith
+from studio_core.presentation import faith
 
 
 def digest(value: str) -> str:

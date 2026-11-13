@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from snap_bot import catalogs, riddle_card
+from studio_core.presentation import catalogs, riddle_card
 from snap_bot.arabic_agent import inspect_content
 from snap_bot.content_agents import CHECKS, run_check
 from snap_bot.did_you_know import (
@@ -26,8 +26,8 @@ from snap_bot.did_you_know import (
     seed_history,
     validate_content,
 )
-from snap_bot.fact_layout import display_text, label_y, measure_label
-from snap_bot.font_admission import font_paths
+from studio_core.presentation.fact_layout import display_text, label_y, measure_label
+from studio_core.presentation.font_admission import font_paths
 from studio_core.config import Config
 from studio_core.jobs import Repository
 

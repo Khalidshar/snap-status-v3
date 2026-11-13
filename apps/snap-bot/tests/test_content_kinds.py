@@ -10,7 +10,7 @@ from pathlib import Path
 
 from snap_bot import did_you_know as dyk
 from snap_bot.content_agents import check_memory, check_rotation
-from snap_bot.fact_layout import fact_labels
+from studio_core.presentation.fact_layout import fact_labels
 from studio_core.config import Config
 from studio_core.jobs import Repository
 

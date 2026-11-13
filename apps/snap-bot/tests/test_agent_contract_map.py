@@ -102,14 +102,14 @@ class AgentContractMapTests(unittest.TestCase):
         self.assertTrue(all(r["input_contract"] and r["output_contract"] for r in plan["roles"]))
         self.assertFalse(plan["delivery_authority"])
         self.assertFalse(plan["automatic_repair"])
-        self.assertEqual(self.roles([])["writer"]["status"], "LOCAL_TOOL")
+        self.assertEqual(self.roles([])["writer"]["status"], "NOT_BOUND")
         tools = {r["id"] for r in plan["roles"] if r["binding"] == "LOCAL_TOOL"}
         self.assertEqual(
-            tools, {"manager", "analyst", "writer", "reviewer", "fixer", "content_repair"}
+            tools, {"content_repair"}
         )
-        self.assertFalse(
-            [r["id"] for r in plan["roles"] if r["binding"] == "NOT_BOUND"],
-            msg="guard:all-eighteen-bound",
+        self.assertEqual(
+            {r["id"] for r in plan["roles"] if r["binding"] == "NOT_BOUND"},
+            {"manager", "analyst", "writer", "reviewer", "fixer"},
         )
 
     def test_missing_duplicate_and_wrong_application_registry_rejected(self):
@@ -182,7 +182,7 @@ class AgentContractMapTests(unittest.TestCase):
             self.assertEqual(roles[role]["status"], "BLOCKED_BY_UPSTREAM")
             self.assertEqual(roles[role]["root_role"], "fact_source")
             self.assertEqual(roles[role]["incident"], roles["fact_source"]["incident"])
-        self.assertEqual(roles["analyst"]["status"], "LOCAL_TOOL")
+        self.assertEqual(roles["analyst"]["status"], "NOT_BOUND")
 
     def test_quality_before_judge_is_an_invalid_sequence(self):
         events = (

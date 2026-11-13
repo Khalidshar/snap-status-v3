@@ -173,7 +173,7 @@ def test_real_complete_brief_is_one_video_under_a_minute(tmp_path):
 def test_calendar_table_is_pinned_and_rejects_corruption(tmp_path):
     from datetime import date
 
-    from snap_bot import civil_calendar
+    from studio_core.presentation import civil_calendar
 
     assert civil_calendar.hijri(date(2023, 7, 19)) == (1445, 1, 1)
     assert civil_calendar.hijri(date(1924, 8, 1)) == (1343, 1, 1)

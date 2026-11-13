@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from snap_bot.video_backgrounds import prefetch, verify
+from studio_core.presentation.video_backgrounds import prefetch, verify
 from studio_core.network.client import NetworkError, NetworkResponse
 from studio_core.network.egress import PolicyDenied
 from studio_core.network.video import VideoPolicy, fetch_video
@@ -41,7 +41,7 @@ def test_fallback_hash_and_no_signed_url(tmp_path):
             )
         return response(MP4, "video/mp4")
 
-    with patch("snap_bot.video_backgrounds.NetworkClient.get", get):
+    with patch("studio_core.presentation.video_backgrounds.NetworkClient.get", get):
         manifest = prefetch("nature", tmp_path, Path("/unused"))
         assert verify(manifest).read_bytes() == MP4
         assert "hidden" not in manifest.read_text()

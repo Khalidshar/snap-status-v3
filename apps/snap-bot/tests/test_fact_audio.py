@@ -12,7 +12,7 @@ from unittest.mock import patch
 import test_did_you_know_render as facts
 import test_render_ownership as weather
 
-from snap_bot.fact_audio import ambient_source, measure_audio
+from studio_core.presentation.fact_audio import ambient_source, measure_audio
 from snap_bot.render import render, run, validate
 
 
