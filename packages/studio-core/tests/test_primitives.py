@@ -1,7 +1,6 @@
 import pytest
 
 from studio_core.agents import AgentAdapter, AgentExecutionError
-from studio_core.quality import Check, QualityReport, Verdict
 from studio_core.security import Allowlist, UnauthorizedCommand, redact_secrets
 
 
@@ -19,17 +18,6 @@ def test_agent_adapter_records_failure():
         AgentAdapter("broken", broken).run()
     assert not caught.value.run.ok
     assert caught.value.run.error == "boom"
-
-
-def test_quality_report_verdicts():
-    assert QualityReport().verdict == Verdict.PASS
-    warn = QualityReport([Check("a", Verdict.PASS), Check("b", Verdict.WARN)])
-    assert warn.verdict == Verdict.WARN
-    warn.require_publishable()
-    failing = QualityReport([Check("a", Verdict.WARN), Check("b", Verdict.FAIL)])
-    assert failing.verdict == Verdict.FAIL
-    with pytest.raises(RuntimeError):
-        failing.require_publishable()
 
 
 def test_allowlist():

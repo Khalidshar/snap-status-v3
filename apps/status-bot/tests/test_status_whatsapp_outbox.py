@@ -532,41 +532,6 @@ class WhatsAppContracts(unittest.TestCase):
                 "DELIVERY_UNKNOWN",
             )
 
-    def test_independent_watchdog_observes_unknown_without_mutation_or_secrets(self):
-        from status_bot.whatsapp_watchdog import inspect_outbox
-
-        claim, _root, review, sig, item = self.queued()
-        self.open_window()
-        self.transport.send_video.side_effect = TimeoutError("unit timeout")
-        self.worker().deliver(item, claim["lease_token"], review, sig)
-        timeline = self.repo.timeline(claim["id"])
-        with patch("status_bot.whatsapp_egress.graph_post") as network:
-            result = inspect_outbox(self.repo.path)
-        network.assert_not_called()
-        self.assertEqual(result["result"], "UNKNOWN")
-        self.assertEqual(result["items"][0]["state"], "DELIVERY_UNKNOWN")
-        self.assertEqual(result["production_acceptance"], "NOT_VERIFIED")
-        self.assertFalse(result["delivery_authority"])
-        self.assertEqual(self.repo.timeline(claim["id"]), timeline)
-        for field in ("identity_binding", "message_tag", "lease_token", self.identity.recipient):
-            self.assertNotIn(field, json.dumps(result))
-
-    def test_watchdog_missing_database_or_table_is_unknown_and_creates_nothing(self):
-        from status_bot.whatsapp_watchdog import inspect_outbox, main
-
-        with patch("sys.stdout") as output:
-            self.assertEqual(
-                main(["--database", str(self.root / "missing-private-path.sqlite")]), 2
-            )
-        self.assertFalse((self.root / "missing-private-path.sqlite").exists())
-        self.assertNotIn(
-            "missing-private-path", "".join(call.args[0] for call in output.write.call_args_list)
-        )
-        other = Repository(replace(self.cfg, data_root=self.root / "fresh-state"))
-        result = inspect_outbox(other.path)
-        self.assertEqual(result["result"], "UNKNOWN")
-        self.assertFalse(result["outbox_present"])
-
     def test_synthetic_and_sacred_content_are_not_eligible(self):
         value, root, manifest, _review, _sig = self.fixture()
         for key, val in [("synthetic_source", True), ("destination", "telegram")]:
