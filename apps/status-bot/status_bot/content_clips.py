@@ -683,8 +683,7 @@ def send(
     if notes:
         # The clip is already delivered; a lost notice is logged, never a reason to resend.
         try:
-            transport.send_text("
-".join(notes))
+            transport.send_text("\n".join(notes))
         except Exception as error:
             print(f"STATUS_TRANSLATED_NOTE_FAILED code={failure_code(error)}", file=sys.stderr)
 

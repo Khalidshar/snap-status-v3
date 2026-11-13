@@ -373,8 +373,7 @@ class Studio:
             notes = [str(clip.get("publication_notice", ""))]
             if clip.get("translated"):
                 notes.append(TRANSLATED_NOTE)
-            return "
-".join(n for n in notes if n)
+            return "\n".join(n for n in notes if n)
         return outcome
 
     def facts(self) -> str:

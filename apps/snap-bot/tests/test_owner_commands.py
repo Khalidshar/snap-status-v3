@@ -276,8 +276,7 @@ class ClipCycleTests(unittest.TestCase):
         reply = self.studio.answer("هل تعلم")
         # The clip is the answer; only the owner's destination note follows it.
         self.assertTrue(reply.startswith("وجهة النشر: "), "guard:destination-note-only")
-        self.assertNotIn("
-", reply)
+        self.assertNotIn("\n", reply)
         self.assertEqual(self.runtime.approved, [(sha, "main", True)], "guard:main-only")
         self.assertEqual(self.started, [listener.RENDER_UNIT, listener.SEND_UNIT.format(sha=sha)])
         self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP, "guard:sent-once")
