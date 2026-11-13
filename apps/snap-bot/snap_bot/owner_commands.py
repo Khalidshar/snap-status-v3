@@ -370,7 +370,11 @@ class Studio:
         outcome = self.deliver(clip["sha"])
         # The clip itself is the reply: a sent clip needs no text; any failure is reported.
         if outcome.startswith(SENT):
-            return TRANSLATED_NOTE if clip.get("translated") else ""
+            notes = [str(clip.get("publication_notice", ""))]
+            if clip.get("translated"):
+                notes.append(TRANSLATED_NOTE)
+            return "
+".join(n for n in notes if n)
         return outcome
 
     def facts(self) -> str:

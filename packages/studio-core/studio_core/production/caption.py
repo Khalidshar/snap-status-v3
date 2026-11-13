@@ -3,7 +3,6 @@
 from typing import Any
 
 from .model import validate
-from .publication import notice
 
 # Owner 11 Nov 2026 («أعتمد كل مقطع»): a clip with machine-translated text reaches him with
 # this notice, apart from the caption he copies, so nothing translated is posted unread.
@@ -23,7 +22,9 @@ def machine_translated(value: Any) -> bool:
 
 def caption(value: dict[str, Any]) -> str:
     p = validate(value)
-    rows = [value["title"], "@rawwag_khalid", notice(value)]
+    # The publication destination is for the owner only, never in the caption he posts
+    # (review 13 Nov 2026); both bots send it to him as its own message.
+    rows = [value["title"], "@rawwag_khalid"]
     for scene in p["scenes"]:
         if scene.get("source"):
             rows.append(scene["source"])
@@ -49,7 +50,9 @@ def caption(value: dict[str, Any]) -> str:
 def platform_caption(value: dict[str, Any]) -> str:
     """Keep original article links and required credits within the platform's limit."""
     p = validate(value)
-    rows = [value["title"], "@rawwag_khalid", notice(value)]
+    # The publication destination is for the owner only, never in the caption he posts
+    # (review 13 Nov 2026); both bots send it to him as its own message.
+    rows = [value["title"], "@rawwag_khalid"]
     for scene in p["scenes"]:
         if scene.get("source"):
             rows.append(scene["source"])
