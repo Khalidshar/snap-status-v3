@@ -20,13 +20,14 @@ from typing import Any
 from urllib.parse import quote
 
 from studio_core.commands import COMMANDS
+from studio_core.config import runtime_state_root
 from studio_core.jobs import panel_schedule, panel_workspace
 from studio_core.jobs.panel_queue import enqueue
 from studio_core.production.publication import LABELS, target
 from studio_core.sources import load as load_sources
 
 REPO = Path(__file__).resolve().parents[1]
-STATE = Path("/var/lib/madar")
+STATE = runtime_state_root()
 UNITS = {"snap": "madar-v3-snap-commands.service", "status": "madar-v3-status-commands.service"}
 
 
@@ -176,9 +177,9 @@ def _clip_title(folder: Path) -> str:
     return _clip_metadata(folder)["title"]
 
 
-def clip_trail(root: Path = STATE, limit: int = 8) -> list[dict[str, Any]]:
+def clip_trail(root: Path | None = None, limit: int = 8) -> list[dict[str, Any]]:
     try:
-        return _clip_trail(root, limit)
+        return _clip_trail(STATE if root is None else root, limit)
     except (OSError, sqlite3.Error, ValueError):
         return []  # unreadable state never breaks the panel
 

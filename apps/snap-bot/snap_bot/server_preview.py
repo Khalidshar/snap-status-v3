@@ -19,6 +19,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from studio_core.config import runtime_state_root
 from studio_core.observability.failure_code import NoFreshContent, failure_code
 
 from .actions_preview import OWNER, ROOT, digest_guard
@@ -28,9 +29,9 @@ from .send_evidence import VideoSendTimeout, failure_receipt, network_started
 from .send_reconciliation import receipt_allows
 from .telegram_egress import CHANNELS, EXPECTED_BOT, DeliveryConfirmed, deliver, main_bot
 
-STATE = Path("/var/lib/madar/snap")
+STATE = runtime_state_root() / "snap"
 
-RENDER_WORK = Path("/var/lib/madar/render-work")
+RENDER_WORK = runtime_state_root() / "render-work"
 
 
 def render_bundle(output: Path, provenance: Any) -> Any:

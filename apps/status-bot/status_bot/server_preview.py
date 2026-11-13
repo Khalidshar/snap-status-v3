@@ -33,7 +33,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-from studio_core.config import Config
+from studio_core.config import Config, runtime_state_root
 from studio_core.jobs import Repository
 from studio_core.network import NetworkClient
 from studio_core.storage import Storage
@@ -45,7 +45,7 @@ from .whatsapp_egress import DeliveryWorker, GraphCredentials, GraphTransport
 from .whatsapp_outbox import WhatsAppOutbox
 
 ROOT = Path(__file__).resolve().parents[3]
-STATE = Path("/var/lib/madar/status")
+STATE = runtime_state_root() / "status"
 CONFIG = "config/status/weather.toml"
 OUTPUTS = ("weather.mp4", "preview.png", "render-result.json")
 RUNNER = """import json,sys

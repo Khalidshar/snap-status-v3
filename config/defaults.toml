@@ -1,4 +1,5 @@
 [runtime]
+state_root = "/var/lib/madar"
 render_concurrency = 1
 
 [network]
