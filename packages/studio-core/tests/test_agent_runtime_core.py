@@ -338,7 +338,6 @@ class CoreAgentRuntime(unittest.TestCase):
         self.assertTrue(value["incidents"][0]["delivery_uncertain"])
         self.assertEqual(self.repo.get(self.job["id"])["state"], "DELIVERING")
 
-
     def test_shared_database_misconfiguration_is_rejected(self):
         other = "status-bot-v2" if self.cfg.app == "snap-bot-v2" else "snap-bot-v2"
         wrong = Repository(replace(self.cfg, app=other), clock=lambda: self.now)

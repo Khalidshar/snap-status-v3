@@ -512,7 +512,6 @@ class WhatsAppContracts(unittest.TestCase):
                 next_claim["id"], next_claim["lease_token"], 1, next_review, next_sig
             )
 
-
     def test_synthetic_and_sacred_content_are_not_eligible(self):
         value, root, manifest, _review, _sig = self.fixture()
         for key, val in [("synthetic_source", True), ("destination", "telegram")]:

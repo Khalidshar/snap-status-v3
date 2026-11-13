@@ -104,9 +104,7 @@ class AgentContractMapTests(unittest.TestCase):
         self.assertFalse(plan["automatic_repair"])
         self.assertEqual(self.roles([])["writer"]["status"], "NOT_BOUND")
         tools = {r["id"] for r in plan["roles"] if r["binding"] == "LOCAL_TOOL"}
-        self.assertEqual(
-            tools, {"content_repair"}
-        )
+        self.assertEqual(tools, {"content_repair"})
         self.assertEqual(
             {r["id"] for r in plan["roles"] if r["binding"] == "NOT_BOUND"},
             {"manager", "analyst", "writer", "reviewer", "fixer"},

@@ -10,7 +10,9 @@ from studio_core.network.client import NetworkError
 
 def test_local_fallback_is_pinned_and_mutation_is_fatal(tmp_path):
     content = {"body": "نص", "kind": "hadith", "content_hash": "a" * 64}
-    with patch("studio_core.presentation.video_backgrounds.prefetch", side_effect=NetworkError("offline")):
+    with patch(
+        "studio_core.presentation.video_backgrounds.prefetch", side_effect=NetworkError("offline")
+    ):
         manifest = footage.prepare(content, tmp_path / "background", tmp_path / "unused.sock")
     selected = footage.pinned(content, manifest)
     assert selected["provider"] == "Mixkit" and selected["pool"] == "calm"
