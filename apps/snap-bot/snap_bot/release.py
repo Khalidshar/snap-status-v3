@@ -40,8 +40,10 @@ def configured_state_root() -> Path:
     # This installer also runs before studio-core is importable or a venv exists.
     default = Path(__file__).resolve().parents[3] / "config/defaults.toml"
     path = Path(os.environ.get("STUDIO_CONFIG", str(default)))
-    value = tomllib.loads(path.read_text(encoding="utf-8")).get("runtime", {}).get(
-        "state_root", "/var/lib/madar"
+    value = (
+        tomllib.loads(path.read_text(encoding="utf-8"))
+        .get("runtime", {})
+        .get("state_root", "/var/lib/madar")
     )
     if not isinstance(value, str) or not value or not Path(value).is_absolute():
         raise ValueError("runtime.state_root must be an absolute path")

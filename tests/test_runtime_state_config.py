@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parents[1]
 def test_configured_state_is_used_before_any_runtime_is_created(tmp_path):
     root = tmp_path / "isolated-state"
     policy = tmp_path / "policy.toml"
-    policy.write_text('[runtime]\nstate_root = ' + json.dumps(str(root)) + "\n")
+    policy.write_text("[runtime]\nstate_root = " + json.dumps(str(root)) + "\n")
     code = """
 import runpy
 from snap_bot import server_preview as snap
