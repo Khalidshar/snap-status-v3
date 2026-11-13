@@ -197,7 +197,7 @@ User=root
 UMask=0077
 WorkingDirectory=/opt/madar/current
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=TMPDIR={DATA}/tmp
+Environment=TMPDIR={DATA / "tmp"}
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes
@@ -246,7 +246,7 @@ User=root
 UMask=0077
 WorkingDirectory=/opt/madar/current
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=TMPDIR={STATUS_DATA}/tmp
+Environment=TMPDIR={STATUS_DATA / "tmp"}
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes

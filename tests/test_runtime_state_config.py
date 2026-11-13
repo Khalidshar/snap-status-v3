@@ -57,13 +57,10 @@ assert not root.exists()
     assert not root.exists()
 
 
-@pytest.mark.parametrize("value", ["", "relative", "/tmp/../state", 17, True, []])
+@pytest.mark.parametrize("value", ["", "relative", "/var/lib/../state", 17, True, []])
 def test_invalid_state_config_is_rejected_before_io(tmp_path, value):
     policy = tmp_path / "policy.toml"
-    if isinstance(value, list):
-        literal = "[]"
-    else:
-        literal = json.dumps(value)
+    literal = json.dumps(value)
     policy.write_text("[runtime]\nstate_root = " + literal + "\n")
     with pytest.raises(ConfigError):
         runtime_state_root(policy)
