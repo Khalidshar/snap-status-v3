@@ -135,7 +135,9 @@ def test_translated_clip_is_followed_by_the_review_notice(
     # A lost notice never fails or repeats the delivered clip.
     content_clips.send(f.outbox, transport, {"tag": "d" * 64}, "style", f.runtime, root=tmp_path)
     delivered.assert_called_once()
-    transport.send_text.assert_called_once_with(TRANSLATED_NOTE)
+    transport.send_text.assert_called_once()
+    note = transport.send_text.call_args.args[0]
+    assert note.startswith("وجهة النشر: ") and note.endswith(TRANSLATED_NOTE)
 
     plain = Mock()
     transport.send_text = plain
