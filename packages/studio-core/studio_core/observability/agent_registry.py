@@ -67,7 +67,12 @@ def project(application: str, observed: dict[str, dict[str, Any]]) -> list[dict[
         if state not in {"PASS", "FAIL", "RUNNING", "STARTED", "SUCCEEDED", "FAILED"}:
             state = "UNKNOWN"
         at = event.get("at")
-        if type(at) not in (int, float) or not math.isfinite(at) or at < 0:
+        if (
+            isinstance(at, bool)
+            or not isinstance(at, (int, float))
+            or not math.isfinite(at)
+            or at < 0
+        ):
             at = None
         result.append(
             {
