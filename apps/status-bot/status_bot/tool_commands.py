@@ -32,7 +32,6 @@ def status(outbox: Any) -> str:
     return status_text("status-bot-v2", {r["id"]: r for r in rows})
 
 
-
 def latest(outbox: Any) -> dict[str, Any]:
     with outbox.repo.connect() as db:
         try:

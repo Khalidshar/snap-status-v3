@@ -397,10 +397,13 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
             "jobs": aggregate(counts),
             "outbox": aggregate(outbox),
             "halted": (STATE / app / "HALT").exists(),
-            "agents": project(scope, {
-                role: {"state": state, "at": observed.get(role, {}).get("at", last_times.get(role))}
-                for role, state in last.items()
-            }),
+            "agents": project(
+                scope,
+                {
+                    role: {"state": state, "at": observed.get(role, {}).get("at", last_times.get(role))}
+                    for role, state in last.items()
+                },
+            ),
         }
         if app == "status":
             window = (

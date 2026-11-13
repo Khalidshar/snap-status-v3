@@ -13,7 +13,7 @@ import struct
 import time
 from typing import Any
 
-from studio_core.observability.agent_registry import CHAIN
+from studio_core.observability.agent_registry import CHAIN as CHAIN
 from studio_core.observability.agent_runs import AgentContract, AgentRejected, digest
 
 from .weather import content_hash

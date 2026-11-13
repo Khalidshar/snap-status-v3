@@ -9,8 +9,8 @@ import json
 import re
 from typing import Any
 
-from .agent_registry import APPLICATIONS, ROLE_IDS
-
+from .agent_registry import APPLICATIONS as APPLICATIONS
+from .agent_registry import ROLE_IDS as ROLE_IDS
 
 
 def inventory(registry: Any, application: str, revision: str, bindings: Any) -> dict[str, Any]:

@@ -18,7 +18,7 @@ from studio_core.jobs.component_lock import ComponentLocks
 from studio_core.network.client import NetworkClient
 from studio_core.network.video import VideoPolicy
 from studio_core.observability import role_status
-from studio_core.observability.agent_registry import CHAIN
+from studio_core.observability.agent_registry import CHAIN as CHAIN
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
 from studio_core.observability.failure_code import failure_code
 from studio_core.observability.render_failure import RenderWorkerFailure, diagnostic, fields
