@@ -5,6 +5,7 @@ source "$(dirname "$0")/lib.sh"
 require uv
 cd "$REPO_ROOT" || exit 1
 
+uv run --frozen ruff format --diff . || true  # temporary formatting diagnostics
 log "ruff check";        uv run --frozen ruff check .
 log "ruff format check"; uv run --frozen ruff format --check .
 log "mypy (strict)";     uv run --frozen mypy

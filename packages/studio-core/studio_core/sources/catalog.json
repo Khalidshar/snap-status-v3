@@ -126,7 +126,12 @@
       "name": "الشرق الأوسط",
       "url": "https://aawsat.com/%D9%8A%D9%88%D9%85%D9%8A%D8%A7%D8%AA-%D8%A7%D9%84%D8%B4%D8%B1%D9%82/%D9%84%D9%85%D8%B3%D8%A7%D8%AA-%D8%A7%D9%84%D9%85%D9%88%D8%B6%D8%A9",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "website",
       "language": "ar",
@@ -662,7 +667,12 @@
       "name": "سيدتي",
       "url": "https://www.sayidaty.net/rss.xml",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "ar",
@@ -676,7 +686,12 @@
       "name": "إيل العربية",
       "url": "https://ellearabia.com/",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "website",
       "language": "ar",
@@ -690,7 +705,12 @@
       "name": "بازار العربية",
       "url": "https://ar.harpersbazaararabia.com/feed",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "ar",
@@ -704,7 +724,12 @@
       "name": "بازار أريبيا",
       "url": "https://www.harpersbazaararabia.com/feed",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -718,7 +743,12 @@
       "name": "فوغ العربية",
       "url": "https://www.voguearabia.com/feed/rss",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "und",
@@ -732,7 +762,12 @@
       "name": "لها",
       "url": "https://www.lahamag.com/",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "website",
       "language": "ar",
@@ -746,7 +781,12 @@
       "name": "فوغ",
       "url": "https://www.vogue.com/feed/rss",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -760,7 +800,12 @@
       "name": "دبليو دبليو دي",
       "url": "https://wwd.com/feed/",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -774,7 +819,12 @@
       "name": "ألور",
       "url": "https://www.allure.com/feed/rss",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -788,7 +838,12 @@
       "name": "فراغرانتيكا",
       "url": "https://www.fragrantica.com/",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "website",
       "language": "en",
@@ -802,7 +857,12 @@
       "name": "إستي لودر",
       "url": "https://www.elcompanies.com/tools/urlproxy/urlproxy.aspx?settingname=newsroom-rss",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -816,7 +876,12 @@
       "name": "فاشن يونايتد",
       "url": "https://fashionunited.com/rss-news",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -830,7 +895,12 @@
       "name": "أديداس أوريجينالز",
       "url": "https://news.adidas.com/RSS/brands/originals",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -844,7 +914,12 @@
       "name": "أديداس سبورتسوير",
       "url": "https://news.adidas.com/RSS/brands/sportswear",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -858,7 +933,12 @@
       "name": "هاربرز بازار",
       "url": "https://www.harpersbazaar.com/rss/all.xml/",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -872,7 +952,12 @@
       "name": "إيل",
       "url": "https://www.elle.com/rss/all.xml/",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "rss",
       "language": "en",
@@ -915,7 +1000,12 @@
       "name": "كتالوج الأناقة",
       "url": "https://github.com/Khalidshar/snap-status-v3/blob/main/apps/snap-bot/snap_bot/data/style.ar.json",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "catalog",
       "language": "ar",
@@ -1769,7 +1859,12 @@
       "name": "جامعة بوردو",
       "url": "https://extension.purdue.edu/county/tippecanoe/_docs/4h_documents/consumerclothingmanuals1.pdf",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "reference",
       "language": "en",
@@ -1783,7 +1878,12 @@
       "name": "جامعة كارولاينا الشمالية في شارلوت",
       "url": "https://career.charlotte.edu/students/professional-attire",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "reference",
       "language": "en",
@@ -1797,7 +1897,12 @@
       "name": "جامعة بريناو",
       "url": "https://www.brenau.edu/student-life/career-development/dressing-for-the-interview/",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "reference",
       "language": "en",
@@ -1811,7 +1916,12 @@
       "name": "الأكاديمية الأمريكية للأمراض الجلدية",
       "url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "reference",
       "language": "en",
@@ -1825,7 +1935,12 @@
       "name": "الأكاديمية الأمريكية للأمراض الجلدية",
       "url": "https://www.aad.org/public/everyday-care/hair-scalp-care/hair/healthy-hair-tips",
       "commands": [
-        "style"
+        "style",
+        "style_women",
+        "style_men",
+        "style_perfume",
+        "style_couples",
+        "style_kids"
       ],
       "kind": "reference",
       "language": "en",

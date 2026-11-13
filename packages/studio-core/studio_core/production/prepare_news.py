@@ -208,14 +208,13 @@ class NewsPreparation(PreparationBase):
             )
         )
 
-    def news(self) -> list[dict[str, Any]]:
-        from studio_core.production.news_selection import diverse, publisher
+    def news_candidates(self, key: str | None = None) -> list[dict[str, Any]]:
         from studio_core.sources.news import MAX_AGE, _link, news_sources, published_label
 
-        key = "news" if self.key == "news_noon" else self.key
+        key = key or ("news" if self.key == "news_noon" else self.key)
         from studio_core.sources.panel import approved as panel_sources
 
-        sources = news_sources(self.key, production=True) + panel_sources(self.app, key)
+        sources = news_sources(key, production=True) + panel_sources(self.app, key)
         now = time.time()
         candidates: list[dict[str, Any]] = []
         for source in sources:
@@ -276,6 +275,13 @@ class NewsPreparation(PreparationBase):
                     )
             except (OSError, ValueError, KeyError, ET.ParseError, TypeError, RuntimeError):
                 continue
+        return candidates
+
+    def news(self) -> list[dict[str, Any]]:
+        from studio_core.production.news_selection import diverse, publisher
+
+        key = "news" if self.key == "news_noon" else self.key
+        candidates = self.news_candidates()
         candidates.sort(key=lambda i: i["published"], reverse=True)
         if self.key == "style":
             from studio_core.sources.news import top_brand

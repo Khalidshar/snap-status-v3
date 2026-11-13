@@ -18,6 +18,7 @@ from studio_core.network import NetworkClient
 from studio_core.network.production import ProductionPolicy
 from studio_core.renderer import run
 
+from .fashion_policy import KEYS as FASHION_KEYS
 from .model import (
     NEWS,
     TITLES,
@@ -147,7 +148,7 @@ class PreparationBase:
         return self.save(path.read_bytes(), path.suffix, source, credit)
 
     def used(self, fingerprint: str, *, reserve: bool = True) -> bool:
-        window = 4 * 86400 if self.key in NEWS | {"tech", "style"} else 30 * 86400
+        window = 4 * 86400 if self.key in NEWS | {"tech"} | FASHION_KEYS else 30 * 86400
         with sqlite3.connect(self.db) as db:
             db.execute("BEGIN IMMEDIATE")
             old = db.execute(
@@ -200,7 +201,7 @@ class PreparationBase:
 
         if not text:
             return text
-        if self.key not in {"tech", "style"}:
+        if self.key not in {"tech"} | FASHION_KEYS:
             raise ValueError("TRANSLATION_SACRED_OR_NEWS_FORBIDDEN")
         url = request_url(text)
         raw = self.get(url)

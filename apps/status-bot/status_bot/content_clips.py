@@ -34,6 +34,7 @@ from studio_core.presentation.did_you_know import (
 )
 from studio_core.presentation.media_checks import check_media, check_voice
 from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
+from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
 from studio_core.production.publication import notice
 from studio_core.religious.quran_pipeline import render as shared_render
 from studio_core.religious.quran_pipeline import stage as stage_quran
@@ -52,7 +53,7 @@ CLIPS_GRACE = 1200
 KINDS = {
     "facts": "did_you_know",
     "tech": "tech",
-    "style": "style",
+    **{key: key for key in FASHION_KEYS},
     "funny": "funny",
     "night": "night",
     "hadith": "hadith",
