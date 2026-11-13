@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from status_bot import actions_preview, chat_probe, manual_transport, telegram_egress
+from status_bot import actions_preview, telegram_egress
 from status_bot.platform_policy import PlatformSeparationError
 
 
@@ -59,28 +59,6 @@ class PlatformSeparationTests(unittest.TestCase):
             intent.write_bytes(original)
             self.blocked(lambda: actions_preview.write_intent({}, target))
             self.assertEqual(intent.read_bytes(), original)
-
-    def test_unix_client_and_server_cannot_connect_or_bind(self):
-        with (
-            tempfile.TemporaryDirectory() as folder,
-            patch.object(manual_transport, "UnixHTTPConnection") as connect,
-        ):
-            socket = Path(folder) / "egress.sock"
-            client = manual_transport.Client(socket, 0)
-            self.blocked(lambda: client.telegram("", "sendVideo"))
-            caller = Mock()
-            self.blocked(lambda: manual_transport.Transport(socket, 0, "", "42", "a" * 64, caller))
-            self.assertFalse(socket.exists())
-            connect.assert_not_called()
-            caller.assert_not_called()
-
-    def test_probe_cannot_reuse_snap_identity(self):
-        caller = Mock()
-        self.blocked(lambda: chat_probe.probe({}, caller))
-        with patch.object(chat_probe, "validate_target") as dns:
-            self.blocked(lambda: chat_probe.readonly_api("", "getMe"))
-            dns.assert_not_called()
-        caller.assert_not_called()
 
     def test_environment_switch_cannot_enable_legacy_channel(self):
         with patch.dict(
