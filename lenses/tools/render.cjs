@@ -1,0 +1,25 @@
+// Renders transparent PNG cards for the two Snap lenses in the «روّق مع خالد» look.
+const fs=require('fs'),path=require('path');const {chromium}=require('playwright');
+const [contentFile,fontFile,out]=process.argv.slice(2);
+const c=JSON.parse(fs.readFileSync(contentFile,'utf8'));
+const font=fs.readFileSync(fontFile).toString('base64');
+const css=`@font-face{font-family:R;src:url(data:font/woff;base64,${font})}*{margin:0;box-sizing:border-box}html,body{background:transparent}
+.card{font-family:R;direction:rtl;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+background:linear-gradient(160deg,#0B3D2Ef2,#062A20f2);border:6px solid #C9A227;border-radius:36px;box-shadow:0 8px 24px #0006}
+.tag{font-size:26px;font-weight:600;color:#062A20;background:#C9A227;border-radius:999px;padding:4px 22px;margin-bottom:14px}
+.q{font-size:52px;font-weight:700;line-height:1.35}.sub{font-size:28px;color:#E9D9A6;margin-top:12px;font-weight:400}
+.big{font-size:120px;font-weight:700;line-height:1}.src{font-size:22px;color:#cfe3d8;margin-top:10px}`;
+const pages=[];
+c.truefalse.forEach((x,i)=>{const n=String(i+1).padStart(2,'0');
+ pages.push([`truefalse/q${n}.png`,900,380,`<div class="card" style="width:900px;height:380px;padding:30px 50px"><div class="tag">صح أم خطأ؟ ← ميّل راسك</div><div class="q">${x.q}</div></div>`]);
+ pages.push([`truefalse/a${n}.png`,900,380,`<div class="card" style="width:900px;height:380px;padding:30px 50px;border-color:${x.a==='صح'?'#C9A227':'#C0392B'}"><div class="big" style="color:${x.a==='صح'?'#C9A227':'#E74C3C'}">${x.a==='صح'?'✔ صح':'✘ خطأ'}</div><div class="sub">${x.fact}</div><div class="src">المصدر: ${x.src}</div></div>`]);});
+pages.push(['truefalse/hint-right.png',300,300,`<div class="card" style="width:300px;height:300px"><div class="big" style="font-size:90px;color:#C9A227">صح</div><div class="sub">ميّل يمين</div></div>`]);
+pages.push(['truefalse/hint-left.png',300,300,`<div class="card" style="width:300px;height:300px;border-color:#C0392B"><div class="big" style="font-size:90px;color:#E74C3C">خطأ</div><div class="sub">ميّل يسار</div></div>`]);
+c.meter.forEach((t,i)=>{const n=String(i+1).padStart(2,'0');
+ pages.push([`meter/title${n}.png`,600,600,`<div class="card" style="width:600px;height:600px;padding:40px"><div class="tag">عداد الثقافة السعودية</div><div class="q" style="font-size:66px">${t}</div></div>`]);});
+pages.push(['meter/spinner.png',600,600,`<div class="card" style="width:600px;height:600px"><div class="tag">عداد الثقافة السعودية</div><div class="big" style="font-size:150px;color:#C9A227">؟</div><div class="sub">اضغط على الشاشة</div></div>`]);
+pages.push(['brand/icon.png',512,512,`<div class="card" style="width:512px;height:512px;border-radius:120px"><div class="q" style="font-size:96px;color:#C9A227">روّق</div><div class="sub" style="font-size:40px">مع خالد</div></div>`]);
+(async()=>{const b=await chromium.launch({executablePath:process.env.MADAR_CHROMIUM});const p=await b.newPage({deviceScaleFactor:1});
+for(const [f,w,h,html] of pages){await p.setViewportSize({width:w,height:h});await p.setContent(`<style>${css}</style>${html}`);await p.evaluate(()=>document.fonts.ready);
+ fs.mkdirSync(path.join(out,path.dirname(f)),{recursive:true});await p.screenshot({path:path.join(out,f),omitBackground:true,clip:{x:0,y:0,width:w,height:h}});}
+await b.close();console.log('rendered',pages.length);})().catch(e=>{console.error(e);process.exit(1)});
