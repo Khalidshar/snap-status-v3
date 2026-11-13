@@ -26,6 +26,7 @@ from typing import Any
 
 from studio_core import command_news
 from studio_core import commands as menu
+from studio_core.observability.agent_registry import TOOL_IDS, status_text
 from studio_core.observability.failure_code import NO_FRESH_CONTENT_MESSAGE
 from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
 from studio_core.production.publication import notice
@@ -34,7 +35,6 @@ from studio_core.sources.news import TITLES
 
 from . import brief, news_clips
 from .actions_preview import ROOT
-from .agent_contract_map import BOUND, LOCAL_TOOLS
 from .server_preview import STATE, Runtime, channel_bot, safe_path, source_info
 from .telegram_egress import api
 
@@ -227,14 +227,8 @@ class Studio:
         return "📥 آخر مقطع\n" + (describe_event(events[-1]) if events else "لا يوجد بعد")
 
     def agents(self) -> str:
-        return (
-            "🤖 الوكلاء في v3\n"
-            + str(len(BOUND) + 1)
-            + " في سلسلة كل مقطع (حتى البوابة النهائية)\n"
-            + str(len(LOCAL_TOOLS))
-            + " أدوات محلية: "
-            + "، ".join(sorted(LOCAL_TOOLS))
-        )
+        # No execution claim from registration; the panel shows per-job evidence.
+        return status_text("snap-bot-v2", {})
 
     def schedule(self) -> str:
         return "🗓 مواعيد الجدولة\nلا توجد جدولة مفعّلة في v3. كل مقطع يُصنع ويُرسل بطلبك."
@@ -506,6 +500,8 @@ class Studio:
             command = parsed["command"]
             if command.key in READ_ONLY or command.key in ACTIONS:
                 return getattr(self, command.key)()
+            if command.key in TOOL_IDS:
+                return command.label + ": أداة الأوامر غير مربوطـة في سناب؛ لا يُنفّذ شيء."
             return NOT_YET.format(label=command.label)
         if kind == "add_fact":
             return NOT_YET.format(label=menu.BY_KEY["add_fact"].label)

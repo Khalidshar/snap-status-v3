@@ -12,6 +12,8 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
+from studio_core.observability.agent_registry import TOOL_IDS, load_registry
+
 CONFIRM_SECONDS = 120
 YES = "نعم"
 
@@ -83,13 +85,9 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("menu", "📋 القائمة", ("مساعدة", "الأوامر", "اوامر"), False),
         ("add_fact", "➕ أضف معلومة", (), False),  # noqa: RUF001  # the menu's emoji
     )),
-    ("agent_tools", "🤖 أدوات الوكلاء", (
-        ("manager", "مدير المحتوى", (), False),
-        ("analyst", "محلل الأداء", (), False),
-        ("writer", "كاتب المحتوى", (), False),
-        ("reviewer", "مراجع المحتوى", (), False),
-        ("fixer", "مصلح المسودة", (), False),
-        ("content_repair", "إصلاح المحتوى", (), False),
+    ("agent_tools", "🤖 أدوات الوكلاء", tuple(
+        (key, next(a["tool_label"] for a in load_registry()["agents"] if a["id"] == key), (), False)
+        for key in TOOL_IDS
     )),
 )  # fmt: skip
 

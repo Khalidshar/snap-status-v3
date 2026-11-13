@@ -13,25 +13,12 @@ import struct
 import time
 from typing import Any
 
+from studio_core.observability.agent_registry import CHAIN
 from studio_core.observability.agent_runs import AgentContract, AgentRejected, digest
 
 from .weather import content_hash
 
 # Same chain and order as Snap; the twelfth, final, is the gate after quality.
-CHAIN = (
-    "fact_source",
-    "arabic",
-    "memory",
-    "rotation",
-    "proofreading",
-    "translation",
-    "design",
-    "voice",
-    "media_verification",
-    "judge",
-    "quality",
-    "final",
-)
 CONTENT_CHECKS = ("memory", "rotation", "proofreading", "translation")
 RENDER_CHECKS = ("voice", "media_verification", "judge")
 LOCAL_TOOLS = {

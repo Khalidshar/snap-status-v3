@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from studio_core.jobs import Repository
+from studio_core.observability.agent_registry import TOOL_IDS
 from studio_core.observability.agent_runs import AgentContract, digest, run_agent
 
 from .model import validate
 
-ROLES = ("manager", "analyst", "writer", "reviewer", "fixer", "content_repair")
+ROLES = TOOL_IDS
 PLAN = digest({"version": 1, "roles": ROLES, "source_rewriting": False, "max_rebuilds": 1})
 
 

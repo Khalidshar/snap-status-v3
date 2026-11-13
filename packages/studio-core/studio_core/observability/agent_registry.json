@@ -1,0 +1,633 @@
+{
+  "application_instances": 36,
+  "schema_version": 1,
+  "agents_per_application": 18,
+  "shared_role_definitions": 18,
+  "note": "١٨ دورًا لكل بوت، سبع محطات للعرض؛ الربط لا يثبت التشغيل أو اعتماد الوظيفة.",
+  "stations": [
+    {
+      "id": "source",
+      "name": "المصدر"
+    },
+    {
+      "id": "memory",
+      "name": "الذاكرة"
+    },
+    {
+      "id": "text",
+      "name": "النص"
+    },
+    {
+      "id": "design",
+      "name": "التصميم"
+    },
+    {
+      "id": "output",
+      "name": "الصوت والإخراج"
+    },
+    {
+      "id": "quality",
+      "name": "الفحص"
+    },
+    {
+      "id": "delivery",
+      "name": "التسليم"
+    }
+  ],
+  "agents": [
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "manager",
+      "name": "مدير المحتوى",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "مدير المحتوى",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "CMD",
+      "chain": false,
+      "step": null,
+      "after": null,
+      "io": "owner_command → content_plan",
+      "station": "source",
+      "tool_order": 1,
+      "tool_label": "مدير المحتوى",
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": "status_bot.tool_commands.execute"
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "memory",
+      "name": "مراجع التكرار",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "مراجع التكرار",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "MEM",
+      "chain": true,
+      "step": 3,
+      "after": "arabic",
+      "io": "candidate_ids, memory_window → eligible_ids",
+      "station": "memory",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "writer",
+      "name": "كاتب المحتوى",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "كاتب المحتوى",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "TXT",
+      "chain": false,
+      "step": null,
+      "after": null,
+      "io": "approved_source → draft",
+      "station": "text",
+      "tool_order": 3,
+      "tool_label": "كاتب المحتوى",
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": "status_bot.tool_commands.execute"
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "reviewer",
+      "name": "المراجع",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "المراجع",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "REV",
+      "chain": false,
+      "step": null,
+      "after": null,
+      "io": "draft, source → review_decision",
+      "station": "quality",
+      "tool_order": 4,
+      "tool_label": "مراجع المحتوى",
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": "status_bot.tool_commands.execute"
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "fixer",
+      "name": "مصلح المسودة",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "مصلح المسودة",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "FIX",
+      "chain": false,
+      "step": null,
+      "after": null,
+      "io": "draft, rejection → corrected_draft",
+      "station": "quality",
+      "tool_order": 5,
+      "tool_label": "مصلح المسودة",
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": "status_bot.tool_commands.execute"
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "quality",
+      "name": "ضبط الجودة",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "ضبط الجودة",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "QA",
+      "chain": true,
+      "step": 11,
+      "after": "judge",
+      "io": "attempt_render_result → owned_stage_receipt",
+      "station": "quality",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "judge",
+      "name": "المقيّم",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "المقيّم",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "VAL",
+      "chain": true,
+      "step": 10,
+      "after": "media_verification",
+      "io": "quality_evidence → assessment",
+      "station": "quality",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "analyst",
+      "name": "محلل الأداء",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "محلل الأداء",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "STAT",
+      "chain": false,
+      "step": null,
+      "after": null,
+      "io": "owner_statistics → analysis",
+      "station": "memory",
+      "tool_order": 2,
+      "tool_label": "محلل الأداء",
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": "status_bot.tool_commands.execute"
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "translation",
+      "name": "الترجمة",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "الترجمة",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "LANG",
+      "chain": true,
+      "step": 6,
+      "after": "proofreading",
+      "io": "draft, language → translation_requirement",
+      "station": "text",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "arabic",
+      "name": "العربية",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "العربية",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "AR",
+      "chain": true,
+      "step": 2,
+      "after": "fact_source",
+      "io": "approved_content → unchanged_checked_content",
+      "station": "text",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "proofreading",
+      "name": "التدقيق",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "التدقيق",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "EDIT",
+      "chain": true,
+      "step": 5,
+      "after": "rotation",
+      "io": "draft → proofreading_result",
+      "station": "text",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "design",
+      "name": "الإخراج",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "الإخراج",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "DSGN",
+      "chain": true,
+      "step": 7,
+      "after": "translation",
+      "io": "approved_content → attempt_render_result",
+      "station": "design",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "rotation",
+      "name": "التناوب",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "التناوب",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "ROT",
+      "chain": true,
+      "step": 4,
+      "after": "memory",
+      "io": "eligible_categories → selected_category",
+      "station": "memory",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "fact_source",
+      "name": "المصادر",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "المصادر",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "SRC",
+      "chain": true,
+      "step": 1,
+      "after": null,
+      "io": "did_you_know_command → approved_content",
+      "station": "source",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "media_verification",
+      "name": "الوسائط",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "الوسائط",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "MEDIA",
+      "chain": true,
+      "step": 9,
+      "after": "voice",
+      "io": "media, provenance → media_check",
+      "station": "quality",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "voice",
+      "name": "الصوت",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "الصوت",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "AUD",
+      "chain": true,
+      "step": 8,
+      "after": "design",
+      "io": "audio_requirement, audio → audio_check",
+      "station": "output",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "final",
+      "name": "البوابة النهائية",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "البوابة النهائية",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "GATE",
+      "chain": true,
+      "step": 12,
+      "after": "quality",
+      "io": "quality_evidence, human_approval → delivery_decision",
+      "station": "delivery",
+      "tool_order": null,
+      "tool_label": null,
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "snap_bot.agent_contract_map.validate_payload",
+          "scope": "did_you_know_and_production",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "status_bot.agents.contract",
+          "scope": "weather_and_content",
+          "command": null
+        }
+      }
+    },
+    {
+      "adapter_status": "NOT_IMPLEMENTED",
+      "state_isolated_per_application": true,
+      "execution_policy": "WHEN_APPLICABLE",
+      "id": "content_repair",
+      "name": "الإصلاح",
+      "applications": [
+        "snap-bot-v2",
+        "status-bot-v2"
+      ],
+      "role": "الإصلاح",
+      "acceptance_status": "NOT_VERIFIED",
+      "code": "RPR",
+      "chain": false,
+      "step": null,
+      "after": null,
+      "io": "incident, repair_budget → repair_evidence",
+      "station": "quality",
+      "tool_order": 6,
+      "tool_label": "إصلاح المحتوى",
+      "bindings": {
+        "snap-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": null
+        },
+        "status-bot-v2": {
+          "pipeline": "studio_core.production.oversight.inspect",
+          "scope": "production_source_checks",
+          "command": "status_bot.tool_commands.execute"
+        }
+      }
+    }
+  ]
+}
