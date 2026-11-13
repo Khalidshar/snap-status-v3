@@ -34,7 +34,26 @@ from typing import Any
 
 BASE = Path("/opt/madar")
 RELEASES = BASE / "releases"
-STATE = Path("/var/lib/madar")
+
+
+def configured_state_root() -> Path:
+    # This installer also runs before studio-core is importable or a venv exists.
+    default = Path(__file__).resolve().parents[3] / "config/defaults.toml"
+    path = Path(os.environ.get("STUDIO_CONFIG", str(default)))
+    value = (
+        tomllib.loads(path.read_text(encoding="utf-8"))
+        .get("runtime", {})
+        .get("state_root", "/var/lib/madar")
+    )
+    if not isinstance(value, str) or not value or not Path(value).is_absolute():
+        raise ValueError("runtime.state_root must be an absolute path")
+    root = Path(value)
+    if ".." in root.parts:
+        raise ValueError("runtime.state_root must not contain parent traversal")
+    return root
+
+
+STATE = configured_state_root()
 DATA = STATE / "snap"
 STATUS_DATA = STATE / "status"
 UNIT_DIR = Path("/etc/systemd/system")
@@ -172,7 +191,7 @@ def commands_unit_text(telegram_env: str) -> str:
 
 
 def unit_text(send: bool = False, telegram_env: str = "") -> str:
-    common = """[Unit]
+    common = f"""[Unit]
 Description=Madar v3 manual Snap operation
 [Service]
 Type=oneshot
@@ -180,7 +199,7 @@ User=root
 UMask=0077
 WorkingDirectory=/opt/madar/current
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=TMPDIR=/var/lib/madar/snap/tmp
+Environment=TMPDIR={DATA / "tmp"}
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes
@@ -193,7 +212,7 @@ RestrictNamespaces=yes
 RestrictSUIDSGID=yes
 LockPersonality=yes
 CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_SETUID CAP_SETGID
-ReadWritePaths=/var/lib/madar
+ReadWritePaths={STATE}
 TimeoutStartSec=300
 MemoryMax=1G
 CPUQuota=50%
@@ -221,7 +240,7 @@ UnsetEnvironment=GITHUB_TOKEN GITHUB_REPOSITORY GITHUB_ACTOR GITHUB_EVENT_NAME P
 
 def status_unit_text() -> str:
     # Controller only: the egress and renderer run as separate transient units.
-    return """[Unit]
+    return f"""[Unit]
 Description=Madar v3 manual Status weather preview (no delivery)
 [Service]
 Type=oneshot
@@ -229,7 +248,7 @@ User=root
 UMask=0077
 WorkingDirectory=/opt/madar/current
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=TMPDIR=/var/lib/madar/status/tmp
+Environment=TMPDIR={STATUS_DATA / "tmp"}
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes
@@ -244,7 +263,7 @@ RestrictNamespaces=yes
 RestrictSUIDSGID=yes
 LockPersonality=yes
 CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE
-ReadWritePaths=/var/lib/madar/status
+ReadWritePaths={STATUS_DATA}
 TimeoutStartSec=600
 MemoryMax=1G
 CPUQuota=50%

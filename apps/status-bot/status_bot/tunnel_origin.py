@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 
+from studio_core.config import runtime_state_root
 from studio_core.network.client import UnixHTTPConnection
 
 LIMIT = 262144
@@ -79,7 +80,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="madar-v3-whatsapp.internal")
     parser.add_argument(
-        "--socket", type=Path, default=Path("/var/lib/madar/status/command-webhook/incoming.sock")
+        "--socket", type=Path, default=runtime_state_root() / "status/command-webhook/incoming.sock"
     )
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()

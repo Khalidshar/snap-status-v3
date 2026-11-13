@@ -40,6 +40,19 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
         raise ConfigError(f"Invalid TOML in {resolved}: {exc}") from exc
 
 
+def runtime_state_root(path: str | Path | None = None) -> Path:
+    """Read runtime storage policy without creating or opening a state directory."""
+    if path is None and not os.environ.get(CONFIG_ENV_VAR):
+        path = Path(__file__).resolve().parents[3] / DEFAULT_RELATIVE_PATH
+    value = load_config(path).get("runtime", {}).get("state_root", "/var/lib/madar")
+    if not isinstance(value, str) or not value or not Path(value).is_absolute():
+        raise ConfigError("runtime.state_root must be an absolute path")
+    root = Path(value)
+    if ".." in root.parts:
+        raise ConfigError("runtime.state_root must not contain parent traversal")
+    return root
+
+
 def feature_enabled(config: dict[str, Any], name: str) -> bool:
     value = config.get("features", {}).get(name)
     if not isinstance(value, bool):
