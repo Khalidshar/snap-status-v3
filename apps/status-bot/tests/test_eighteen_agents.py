@@ -1,4 +1,3 @@
-import json
 import sqlite3
 from pathlib import Path
 from unittest.mock import patch
@@ -10,16 +9,14 @@ from status_bot import agents, content_clips, tool_commands
 from studio_core import commands
 from studio_core.observability import role_status
 from studio_core.observability.agent_inventory import ROLE_IDS
+from studio_core.observability.agent_registry import load_registry
 
 ROOT = Path(__file__).parents[3]
 
 
 def test_exactly_eighteen_identities_in_each_independent_registry(tmp_path):
-    for app, file in [
-        ("snap-bot-v2", "apps/snap-bot/snap_bot/madar/registry.json"),
-        ("status-bot-v2", "config/status/agent-registry.json"),
-    ]:
-        identities = [r["id"] for r in json.loads((ROOT / file).read_text())["agents"]]
+    for app in ("snap-bot-v2", "status-bot-v2"):
+        identities = [r["id"] for r in load_registry()["agents"]]
         assert len(identities) == len(set(identities)) == 18
         assert set(identities) == set(ROLE_IDS)
         path = tmp_path / app / "agents.sqlite"

@@ -18,11 +18,11 @@ from snap_bot.agent_contract_map import (
 from snap_bot.did_you_know import load_facts, make_content
 from studio_core.config import Config
 from studio_core.jobs import LeaseLost, Repository
+from studio_core.observability.agent_registry import load_registry
 
 ROOT = Path(__file__).parents[3]
-REGISTRY = json.loads(
-    (ROOT / "apps/snap-bot/snap_bot/madar/registry.json").read_text(encoding="utf-8")
-)
+REGISTRY = load_registry()
+
 JOB = "a" * 32
 
 

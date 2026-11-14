@@ -1,6 +1,4 @@
 import fs from 'node:fs/promises';
-import path from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {AgentRuntime,ReplayRejected} from './agent-runtime.mjs';
 
 const chunks=[];
@@ -18,7 +16,7 @@ const allowed=new Set(['agent','job','run','status','duration_ms','error_code'])
 if(Object.keys(event).some(key=>!allowed.has(key)))throw Error('Unexpected event field');
 if(event.duration_ms!==undefined&&(!Number.isSafeInteger(event.duration_ms)||event.duration_ms<0))throw Error('Invalid duration');
 if(event.error_code!==undefined&&event.error_code!=='STAGE_FAILED')throw Error('Invalid error code');
-const registry=JSON.parse(await fs.readFile(path.join(path.dirname(fileURLToPath(import.meta.url)),'registry.json'),'utf8'));
+const registry=JSON.parse(await fs.readFile(new URL('../../../../packages/studio-core/studio_core/observability/agent_registry.json',import.meta.url),'utf8'));
 if(!registry.agents.some(role=>role.id===event.agent))throw Error('Invalid role');
 const runtime=new AgentRuntime({root:process.argv[2],application:process.argv[3],registry});
 const detail={};

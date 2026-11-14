@@ -64,7 +64,7 @@ function renderSchedules(){
  $('schedule-rows').innerHTML=(actual.join('')||'<tr><td colspan="4">لا توجد قراءة حديثة لجدول التشغيل.</td></tr>')+'<tr><th colspan="4">طلبات تغيير المواعيد</th></tr>'+requested.join('');
 }
 let D={agents:[]},AG={},CHAIN=[],TOOLS=[],abot='snap',sel='fact_source',playing=false;
-const AST={passed:['اجتاز','ok'],failed:['فشل','bad'],running:['يعمل','info'],unknown:['غير معروف','dim']};
+const AST={passed:['اجتاز','ok'],failed:['فشل','bad'],running:['يعمل','info'],unknown:['غير معروف','dim'],unbound:['غير مربوط','dim']};
 const tx=esc,chip=(text,tone)=>'<span class="chip '+tone+'"><span>'+esc(text)+'</span></span>';
 const CX=320,CY=320,R1=238,R2=112;
 function pos(i,n,r){const a=-Math.PI/2+i*2*Math.PI/n;return[CX+r*Math.cos(a),CY+r*Math.sin(a)]}
@@ -79,8 +79,8 @@ function renderTrail(){
 }
 function renderAgents(){
  const roles=current.agent_roles||[];
- const classify=s=>['PASS','SUCCEEDED'].includes(s)?'passed':['FAIL','FAILED'].includes(s)?'failed':['RUNNING','STARTED'].includes(s)?'running':'unknown';
- D={agents:roles.map(a=>{const result={...a};for(const app of Object.keys(names)){const live=current.apps[app].agents.find(r=>r.id===a.id);result[app]={state:classify(live?.state),does:live?.role||'لا يوجد وصف موثق',last:'آخر نشاط: '+date(live?.at)};}return result;})};
+ const classify=s=>s==='NOT_BOUND'?'unbound':['PASS','SUCCEEDED'].includes(s)?'passed':['FAIL','FAILED'].includes(s)?'failed':['RUNNING','STARTED'].includes(s)?'running':'unknown';
+ D={agents:roles.map(a=>{const result={...a};for(const app of Object.keys(names)){const live=current.apps[app].agents.find(r=>r.id===a.id);result[app]={state:classify(live?.state),does:live?.role||'لا يوجد وصف موثق',last:'آخر نشاط: '+date(live?.at),command:live?.command_label||'غير مربوط'};}return result;})};
  AG=Object.fromEntries(D.agents.map(a=>[a.id,a]));CHAIN=D.agents.filter(a=>a.chain);TOOLS=D.agents.filter(a=>!a.chain);
  $('ag-bot').innerHTML=Object.keys(names).map(app=>'<button type="button" data-b="'+app+'" aria-pressed="'+(app===abot)+'">'+names[app]+'</button>').join('');
  if(!AG[sel])sel=CHAIN[0]?.id;if(!sel)return;drawOrbit();drawDetail();drawMatrix();
@@ -88,40 +88,30 @@ function renderAgents(){
 $('ag-bot').addEventListener('click',e=>{const b=e.target.closest('[data-b]');if(!b)return;abot=b.dataset.b;renderAgents();});
 
 function drawOrbit(lit){
-  let g='<defs><radialGradient id="core" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#123049"/><stop offset="1" stop-color="#081220"/></radialGradient>'
-   +'<marker id="arw" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#3b5878"/></marker></defs>';
-  g+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R1+'" fill="none" stroke="#21354e" stroke-width="1.5"/>';
-  g+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R2+'" fill="none" stroke="#21354e" stroke-dasharray="3 5"/>';
-  g+='<circle cx="'+CX+'" cy="'+CY+'" r="64" fill="url(#core)" stroke="#21354e"/>';
-  // chain arcs, in order
-  CHAIN.forEach((a,i)=>{if(i===CHAIN.length-1)return;const a1=-Math.PI/2+(i+.18)*2*Math.PI/12,a2=-Math.PI/2+(i+.82)*2*Math.PI/12;
-    const p1=[CX+R1*Math.cos(a1),CY+R1*Math.sin(a1)],p2=[CX+R1*Math.cos(a2),CY+R1*Math.sin(a2)];
-    const on=lit!=null&&i<lit;
-    g+='<path d="M'+p1[0].toFixed(1)+' '+p1[1].toFixed(1)+' A'+R1+' '+R1+' 0 0 1 '+p2[0].toFixed(1)+' '+p2[1].toFixed(1)+'" fill="none" stroke="'+(on?'#6fe3c6':'#3b5878')+'" stroke-width="'+(on?3:2)+'" marker-end="url(#arw)"/>'});
-  CHAIN.forEach((a,i)=>{const [x,y]=pos(i,12,R1),st=a[abot].state,c=col(st),isSel=a.id===sel,isLit=lit!=null&&i===lit;
-    const ang=-Math.PI/2+i*2*Math.PI/12,cs=Math.cos(ang),anc=cs>0.35?'start':cs<-0.35?'end':'middle',off=anc==='middle'?40:32;
-    const lx=x+off*cs,ly=y+off*Math.sin(ang)+(anc==='middle'?(Math.sin(ang)<0?-2:6):0);
-    g+='<g class="node" tabindex="0" role="button" data-id="'+a.id+'" aria-label="'+esc(a.name)+'">'
-     +(isSel||isLit?'<circle cx="'+x+'" cy="'+y+'" r="27" fill="none" stroke="'+(isLit?'#ffcd70':c)+'" stroke-opacity=".55" stroke-width="2"/>':'')
-     +'<circle class="core" cx="'+x+'" cy="'+y+'" r="20" fill="#0b1626" stroke="'+(isLit?'#ffcd70':c)+'" stroke-width="2.2"/>'
-     +'<text x="'+x+'" y="'+(y+4.5)+'" text-anchor="middle" font-size="13" font-weight="600" fill="'+(isLit?'#ffcd70':c)+'" font-family="Readex Pro,sans-serif">'+a.step.toLocaleString('ar-SA')+'</text>'
-     +'<text class="lbl" x="'+lx+'" y="'+(ly+4)+'" text-anchor="'+anc+'">'+esc(a.name)+'</text>'
-     +'<rect x="'+(x-22)+'" y="'+(y-22)+'" width="44" height="44" fill="transparent"/></g>'});
-  TOOLS.forEach((a,i)=>{const [x,y]=pos(i,6,R2),isSel=a.id===sel;
-    g+='<g class="node" tabindex="0" role="button" data-id="'+a.id+'" aria-label="'+esc(a.name)+'">'
-     +(isSel?'<circle cx="'+x+'" cy="'+y+'" r="22" fill="none" stroke="#b9a6ff" stroke-opacity=".55" stroke-width="2"/>':'')
-     +'<rect x="'+(x-15)+'" y="'+(y-15)+'" width="30" height="30" rx="8" fill="#0b1626" stroke="#b9a6ff" stroke-width="1.8"/>'
-     +'<text class="code" x="'+x+'" y="'+(y+3.5)+'" text-anchor="middle" data-layout="ref-5">'+esc(a.code)+'</text>'
-     +'<text x="'+x+'" y="'+(y+(y<CY?-22:30))+'" text-anchor="middle" font-size="11" fill="#93a9c3">'+esc(a.name)+'</text></g>'});
-  const done=CHAIN.filter(a=>a[abot].state==='passed').length;
-  g+='<text x="'+CX+'" y="'+(CY-8)+'" text-anchor="middle" font-family="Readex Pro,sans-serif" font-size="30" font-weight="600" fill="#e8f2fd">12 + 6</text>'
-   +'<text x="'+CX+'" y="'+(CY+18)+'" text-anchor="middle" font-size="12" fill="#93a9c3">'+(CHAIN.some(a=>a[abot].state!=='unknown')?done+' اجتاز آخر رصد':'لم يُسجّل نشاط')+'</text>';
-  $('orbit').innerHTML=g}
+ const stations=current.agent_stations||[];
+ let g='<circle cx="'+CX+'" cy="'+CY+'" r="'+R1+'" fill="none" stroke="#21354e"/>';
+ stations.forEach((station,i)=>{
+  const roles=D.agents.filter(a=>a.station===station.id),states=roles.map(a=>a[abot].state);
+  const st=states.includes('failed')?'failed':states.includes('running')?'running':states.length&&states.every(s=>s==='passed')?'passed':'unknown';
+  const [x,y]=pos(i,stations.length,R1),c=col(st),selected=roles.some(a=>a.id===sel),id=roles[0]?.id;
+  if(!id)return;
+  const active=lit!=null&&roles.some(a=>a.id===CHAIN[lit]?.id);
+  g+='<g class="node" tabindex="0" role="button" data-id="'+esc(id)+'" aria-label="'+esc(station.name)+'">'
+    +'<circle cx="'+x+'" cy="'+y+'" r="32" fill="#0b1626" stroke="'+(active?'#ffcd70':c)+'" stroke-width="'+(selected?4:2)+'"/>'
+    +'<text x="'+x+'" y="'+(y+5)+'" text-anchor="middle" fill="'+c+'">'+(i+1).toLocaleString('ar-SA')+'</text>'
+    +'<text x="'+x+'" y="'+(y+53)+'" text-anchor="middle" fill="#e8f2fd">'+esc(station.name)+'</text>'
+    +'<text x="'+x+'" y="'+(y+73)+'" text-anchor="middle" fill="#93a9c3">'+roles.length.toLocaleString('ar-SA')+' أدوار</text></g>';
+ });
+ g+='<text x="'+CX+'" y="'+(CY-8)+'" text-anchor="middle" font-size="26" fill="#e8f2fd">سبع محطات</text>'
+   +'<text x="'+CX+'" y="'+(CY+24)+'" text-anchor="middle" fill="#93a9c3">١٨ دورًا · الرصد لكل بوت مستقل</text>';
+ $('orbit').innerHTML=g;
+}
 $('orbit').addEventListener('click',e=>{const n=e.target.closest('.node');if(n){sel=n.dataset.id;drawOrbit();drawDetail();drawMatrix()}});
 $('orbit').addEventListener('keydown',e=>{const n=e.target.closest('.node');if(n&&(e.key==='Enter'||e.key===' ')){e.preventDefault();sel=n.dataset.id;drawOrbit();drawDetail();drawMatrix();const f=$('orbit').querySelector('[data-id="'+sel+'"]');f&&f.focus()}});
 function drawDetail(){const a=AG[sel],other=abot==='snap'?'status':'snap';
-  const pos=a.chain?'الخطوة '+a.step+' من 12'+(a.after?' · بعد «'+AG[a.after].name+'»':' · أول السلسلة'):'أداة محلية خارج سلسلة المهمة';
-  const box=(k,label)=>{const st=AST[a[k].state];return '<div><small>'+label+'</small>'+chip(st[0],st[1])+'<p>'+tx(a[k].does)+'</p><small>'+tx(a[k].last)+'</small></div>'};
+  const station=(current.agent_stations||[]).find(s=>s.id===a.station);
+  const pos=(station?station.name+' · ':'')+(a.chain?'الخطوة '+a.step+' من 12'+(a.after?' · بعد «'+AG[a.after].name+'»':' · أول السلسلة'):'دور إشراف بفحوص محلية');
+  const box=(k,label)=>{const st=AST[a[k].state];return '<div><small>'+label+'</small>'+chip(st[0],st[1])+'<p>'+tx(a[k].does)+'</p>'+(!a.chain?'<p>أداة الأوامر: '+esc(a[k].command)+'</p>':'')+'<small>'+tx(a[k].last)+'</small></div>'};
   $('detail').innerHTML='<span class="code">'+esc(a.code)+'</span><h2>'+esc(a.name)+'</h2><p class="muted">'+esc(pos)+'</p>'
    +'<dl class="dl"><dt>المعرّف</dt><dd class="mono">'+esc(a.id)+'</dd><dt>المدخل ← المخرج</dt><dd class="mono">'+esc(a.io)+'</dd>'
    +(a.chain?'<dt>العقد</dt><dd>يعتمد على مخرج الخطوة السابقة فقط، وبصمة العقد نفسها في كل الخطوات</dd>':'')+'</dl>'

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from studio_core.observability import role_status
+from studio_core.observability.agent_registry import status_text
 from studio_core.repair.maintenance import diagnose
 
 from . import oversight
@@ -27,12 +28,8 @@ def ledger(outbox: Any) -> Path:
 
 
 def status(outbox: Any) -> str:
-    registry = Path(__file__).resolve().parents[3] / "config/status/agent-registry.json"
-    names = {r["id"]: r["name"] for r in json.loads(registry.read_text())["agents"]}
     rows = role_status.snapshot(ledger(outbox), "status-bot-v2")
-    return "حالة الوكلاء — ١٨ هوية\n" + "\n".join(
-        names[r["id"]] + ": " + STATES[r["state"]] for r in rows
-    )
+    return status_text("status-bot-v2", {r["id"]: r for r in rows})
 
 
 def latest(outbox: Any) -> dict[str, Any]:

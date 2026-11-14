@@ -9,27 +9,8 @@ import json
 import re
 from typing import Any
 
-APPLICATIONS = ("snap-bot-v2", "status-bot-v2")
-ROLE_IDS = (
-    "manager",
-    "memory",
-    "writer",
-    "reviewer",
-    "fixer",
-    "quality",
-    "judge",
-    "analyst",
-    "translation",
-    "arabic",
-    "proofreading",
-    "design",
-    "rotation",
-    "fact_source",
-    "media_verification",
-    "voice",
-    "final",
-    "content_repair",
-)
+from .agent_registry import APPLICATIONS as APPLICATIONS
+from .agent_registry import ROLE_IDS as ROLE_IDS
 
 
 def inventory(registry: Any, application: str, revision: str, bindings: Any) -> dict[str, Any]:

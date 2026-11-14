@@ -23,6 +23,7 @@ from studio_core.commands import COMMANDS
 from studio_core.config import runtime_state_root
 from studio_core.jobs import panel_schedule, panel_workspace
 from studio_core.jobs.panel_queue import enqueue
+from studio_core.observability.agent_registry import STATIONS, panel_roles, project
 from studio_core.production.publication import LABELS, target
 from studio_core.sources import load as load_sources
 
@@ -276,6 +277,8 @@ def with_trail(state: dict[str, Any], trail: list[dict[str, Any]]) -> None:
                 if step["role"] not in latest or at > latest[step["role"]][1]:
                     latest[step["role"]] = (step["state"], at)
         for agent in item.get("agents", []):
+            if agent.get("binding") == "NOT_BOUND":
+                continue
             found = latest.get(agent["id"])
             if found and (agent.get("at") is None or found[1] > agent["at"]):
                 agent["state"], agent["at"] = found
@@ -311,7 +314,8 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
     result: dict[str, Any] = {
         "at": time.time(),
         "apps": {},
-        "agent_roles": json.loads((REPO / "config/status/panel-agent-roles.json").read_text()),
+        "agent_roles": panel_roles(),
+        "agent_stations": list(STATIONS),
         "commands": [
             {
                 "number": c.number,
@@ -379,7 +383,6 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
                 totals[key] = totals.get(key, 0) + count
             return totals
 
-        inventory = json.loads((REPO / "config/status/agent-registry.json").read_text())["agents"]
         last = {r[0]: r[1] for r in agents or []}
         last_times = {r[0]: r[2] for r in agents or []}
         ledger = db.parent / "agent-status.sqlite"
@@ -394,19 +397,16 @@ def snapshot(databases: dict[str, Path], binding: str) -> dict[str, Any]:
             "jobs": aggregate(counts),
             "outbox": aggregate(outbox),
             "halted": (STATE / app / "HALT").exists(),
-            "agents": [
+            "agents": project(
+                scope,
                 {
-                    "id": a["id"],
-                    "name": a["name"],
-                    "role": a["role"],
-                    "at": observed.get(a["id"], {}).get("at", last_times.get(a["id"])),
-                    "state": last.get(a["id"], "UNKNOWN")
-                    if last.get(a["id"])
-                    in {"PASS", "FAIL", "RUNNING", "STARTED", "SUCCEEDED", "FAILED"}
-                    else "UNKNOWN",
-                }
-                for a in inventory
-            ],
+                    role: {
+                        "state": state,
+                        "at": observed.get(role, {}).get("at", last_times.get(role)),
+                    }
+                    for role, state in last.items()
+                },
+            ),
         }
         if app == "status":
             window = (

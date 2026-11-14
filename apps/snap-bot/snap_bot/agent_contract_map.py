@@ -14,39 +14,9 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
-ROLE_IDS = (
-    "manager",
-    "memory",
-    "writer",
-    "reviewer",
-    "fixer",
-    "quality",
-    "judge",
-    "analyst",
-    "translation",
-    "arabic",
-    "proofreading",
-    "design",
-    "rotation",
-    "fact_source",
-    "media_verification",
-    "voice",
-    "final",
-    "content_repair",
-)
-BOUND = (
-    "fact_source",
-    "arabic",
-    "memory",
-    "rotation",
-    "proofreading",
-    "translation",
-    "design",
-    "voice",
-    "media_verification",
-    "judge",
-    "quality",
-)
+from studio_core.observability.agent_registry import CHAIN, ROLE_IDS, load_registry
+
+BOUND = CHAIN[:-1]
 # Check agents verify their input and pass it through byte-identical: content
 # checks before the render, render checks between the render and adoption.
 CONTENT_CHECKS = ("arabic", "memory", "rotation", "proofreading", "translation")
@@ -97,9 +67,7 @@ INTERFACES = {
 
 def contract_plan(registry: Any = None) -> dict[str, Any]:
     if registry is None:
-        registry = json.loads(
-            (Path(__file__).parent / "madar/registry.json").read_text(encoding="utf-8")
-        )
+        registry = load_registry()
     agents = registry.get("agents", [])
     ids = [agent.get("id") for agent in agents]
     if len(ids) != 18 or set(ids) != set(ROLE_IDS):
