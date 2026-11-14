@@ -34,9 +34,8 @@ def fixture():
 
 @pytest.mark.parametrize("key", content_clips.KINDS)
 def test_every_telegram_kind_is_available_in_whatsapp(key):
-    from studio_core.production.model import TITLES
-
     from studio_core.production.fashion_policy import KEYS
+    from studio_core.production.model import TITLES
 
     # History and the fashion desks use the production pipeline, not the card catalogs.
     assert content_clips.KINDS[key] in SHARED_KINDS or (
