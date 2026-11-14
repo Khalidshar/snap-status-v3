@@ -37,8 +37,66 @@ def desk_order(key: str, candidates: list[dict[str, Any]], hot: list[str]) -> li
     local = sorted((i for i in candidates if saudi(i)), key=lambda i: not trending(i))
     rest = sorted((i for i in candidates if not saudi(i)), key=lambda i: not trending(i))
     if key == "world":
-        return rest
+        return country_cap(rest)
     return local[:2] + rest[:2] + local[2:] + rest[2:]
+
+
+# «العالم» تتنوّع: لا أكثر من خبرين من نفس الدولة في أول النشرة (owner 14 Nov 2026: أربعة
+# أخبار كلها عن العراق). The country is the first one named in the headline, else the lead.
+COUNTRIES: dict[str, tuple[str, ...]] = {
+    "iraq": ("العراق", "عراقي", "بغداد", "كركوك", "البصرة", "أربيل"),
+    "iran": ("إيران", "ايران", "إيراني", "طهران"),
+    "usa": ("أمريكا", "أميركا", "الأمريكي", "الأميركي", "واشنطن", "ترامب", "الولايات المتحدة"),
+    "russia": ("روسيا", "روسي", "موسكو", "الكرملين", "بوتين"),
+    "ukraine": ("أوكرانيا", "أوكراني", "كييف", "زيلينسكي"),
+    "israel": ("إسرائيل", "إسرائيلي", "تل أبيب", "نتنياهو"),
+    "palestine": ("فلسطين", "فلسطيني", "غزة", "الضفة", "رام الله"),
+    "lebanon": ("لبنان", "لبناني", "بيروت"),
+    "syria": ("سوريا", "سوري", "دمشق"),
+    "yemen": ("اليمن", "يمني", "صنعاء", "عدن", "الحوثي"),
+    "egypt": ("مصر", "مصري", "القاهرة"),
+    "sudan": ("السودان", "سوداني", "الخرطوم"),
+    "turkey": ("تركيا", "تركي", "أنقرة", "إسطنبول", "أردوغان"),
+    "china": ("الصين", "صيني", "بكين"),
+    "uk": ("بريطانيا", "بريطاني", "لندن"),
+    "france": ("فرنسا", "فرنسي", "باريس"),
+    "germany": ("ألمانيا", "ألماني", "برلين"),
+    "india": ("الهند", "هندي", "نيودلهي"),
+    "pakistan": ("باكستان", "باكستاني", "إسلام آباد"),
+    "uae": ("الإمارات", "إماراتي", "دبي", "أبوظبي"),
+    "qatar": ("قطر", "قطري", "الدوحة"),
+    "kuwait": ("الكويت", "كويتي"),
+    "jordan": ("الأردن", "أردني", "عمّان"),
+    "japan": ("اليابان", "ياباني", "طوكيو"),
+}
+
+
+def story_country(item: dict[str, Any]) -> str:
+    for text in (item.get("title", ""), item.get("detail", "")[:200]):
+        hits = [
+            (min(text.find(w) for w in words if w in text), country)
+            for country, words in COUNTRIES.items()
+            if any(w in text for w in words)
+        ]
+        if hits:
+            return min(hits)[1]
+    return ""
+
+
+def country_cap(items: list[dict[str, Any]], limit: int = 2) -> list[dict[str, Any]]:
+    """Keep order, but stories beyond ``limit`` from one country wait at the end."""
+    seen: dict[str, int] = {}
+    first: list[dict[str, Any]] = []
+    later: list[dict[str, Any]] = []
+    for item in items:
+        country = story_country(item)
+        if country:
+            seen[country] = seen.get(country, 0) + 1
+            if seen[country] > limit:
+                later.append(item)
+                continue
+        first.append(item)
+    return first + later
 
 
 class NewsPreparation(PreparationBase):
