@@ -7,6 +7,7 @@ import math
 import os
 import re
 import sqlite3
+import subprocess
 import time
 from contextlib import closing
 from pathlib import Path
@@ -15,6 +16,60 @@ from typing import Any
 import switch_host as host
 
 MIN_AGE = 3600
+
+
+class ReviewRefused(ValueError):
+    def __init__(self, reason: str) -> None:
+        super().__init__("STALE_REVIEW_ARGUMENT_INVALID")
+        self.reason = reason
+
+
+REFUSAL_REASONS = {
+    "APP_INVALID": "التطبيق غير صالح",
+    "CUTOFF_INVALID": "الحد الزمني غير صالح",
+    "CUTOFF_TOO_RECENT": "الحد أحدث من ساعة",
+    "REASON_INVALID": "رمز سبب الإغلاق غير صالح",
+    "SWITCH_CONSUMER_STILL_RUNNING": "خدمة ما زالت تعمل",
+    "SWITCH_UNSUPERVISED_CONSUMER": "كاتب خارج إدارة الخدمات ما زال يعمل",
+    "SWITCH_STATE_HANDLE_OPEN": "كاتب يحتفظ بملف حالة مفتوح",
+    "STALE_REVIEW_COMPONENT_ACTIVE": "قفل مكوّن حي",
+    "STALE_REVIEW_ROW_CHANGED": "تغير الصف أثناء المراجعة",
+    "SWITCH_PATH_UNSAFE": "مسار غير آمن",
+    "SWITCH_INVENTORY_CHANGED": "تغير جرد الخدمات",
+    "SWITCH_UNIT_STATE_UNKNOWN": "تعذر التحقق من حالة خدمة",
+    "SWITCH_UNIT_NAME_UNSAFE": "اسم خدمة غير آمن",
+    "SWITCH_AUTOSTART_NOT_INERT": "خدمة بدء التشغيل ما زالت تعمل",
+    "SWITCH_AUTOSTART_STATE_UNKNOWN": "تعذر التحقق من خدمة بدء التشغيل",
+    "LOCK_BUSY": "قفل مشغول",
+    "DATABASE_LOCKED": "قاعدة البيانات مقفلة",
+    "DATABASE_ERROR": "تعذرت قراءة قاعدة البيانات أو تحديثها",
+    "PERMISSION_DENIED": "صلاحية الملف أو القفل غير كافية",
+    "FILE_MISSING": "ملف مطلوب غير موجود",
+    "SYSTEM_CHECK_FAILED": "تعذر فحص الخدمات أو الكتّاب",
+    "OS_ERROR": "تعذر الوصول إلى ملف أو قفل",
+    "VALIDATION_FAILED": "فشل تحقق غير مصنف",
+}
+
+
+def refusal_reason(error: Exception) -> str:
+    # Exact, fixed vocabulary only: never echo paths, process output or SQL values.
+    if isinstance(error, ReviewRefused) and error.reason in REFUSAL_REASONS:
+        return error.reason
+    if isinstance(error, ValueError) and str(error) in REFUSAL_REASONS:
+        return str(error)
+    if isinstance(error, BlockingIOError):
+        return "LOCK_BUSY"
+    if isinstance(error, sqlite3.Error):
+        if getattr(error, "sqlite_errorcode", None) in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}:
+            return "DATABASE_LOCKED"
+        return "DATABASE_ERROR"
+    if isinstance(error, PermissionError):
+        return "PERMISSION_DENIED"
+    if isinstance(error, FileNotFoundError):
+        return "FILE_MISSING"
+    if isinstance(error, subprocess.SubprocessError):
+        return "SYSTEM_CHECK_FAILED"
+    return "OS_ERROR" if isinstance(error, OSError) else "VALIDATION_FAILED"
 
 
 def require_quiet(root: Path) -> None:
@@ -32,13 +87,14 @@ def review(
     root: Path, app: str, before: float, reason: str, *, apply: bool = False
 ) -> list[dict[str, Any]]:
     now = time.time()
-    if (
-        app not in {"snap", "status", "both"}
-        or not math.isfinite(before)
-        or not 0 <= before <= now - MIN_AGE
-        or not re.fullmatch("[A-Z][A-Z0-9_]{2,63}", reason)
-    ):
-        raise ValueError("STALE_REVIEW_ARGUMENT_INVALID")
+    if app not in {"snap", "status", "both"}:
+        raise ReviewRefused("APP_INVALID")
+    if not math.isfinite(before) or before < 0:
+        raise ReviewRefused("CUTOFF_INVALID")
+    if before > now - MIN_AGE:
+        raise ReviewRefused("CUTOFF_TOO_RECENT")
+    if not re.fullmatch("[A-Z][A-Z0-9_]{2,63}", reason):
+        raise ReviewRefused("REASON_INVALID")
     host.path_safe(root)
     results = []
     for bot in ("snap", "status") if app == "both" else (app,):
@@ -163,8 +219,9 @@ def main() -> None:
                 rows = review(args.state, args.app, args.before_unix, args.reason, apply=True)
         else:
             rows = review(args.state, args.app, args.before_unix, args.reason)
-    except (OSError, ValueError, sqlite3.Error):
-        parser.exit(1, "STALE_REVIEW_REFUSED; لم تتجاوز الأداة الخمول أو صلاحية الإدخال\n")
+    except (OSError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
+        reason = refusal_reason(error)
+        parser.exit(1, f"STALE_REVIEW_REFUSED reason={reason}; {REFUSAL_REASONS[reason]}\n")
     print(
         json.dumps(
             {"applied": args.apply, "cutoff_unix": args.before_unix, "rows": rows},
