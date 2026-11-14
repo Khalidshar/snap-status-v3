@@ -131,9 +131,9 @@ def audit(root: Path = ROOT) -> tuple[list[str], dict[str, int], str]:
                 errors.append(f"CARD: expected 720x380, got {dimensions}: {path.name}")
             if max(dimensions) > 2048:
                 errors.append(f"DIMENSIONS: {path.relative_to(root)}: {dimensions}")
-            if (
-                path in (pack / "brand/icon.png", pack / "brand/icon-320.png")
-                and dimensions != (320, 320)
+            if path in (pack / "brand/icon.png", pack / "brand/icon-320.png") and dimensions != (
+                320,
+                320,
             ):
                 errors.append(f"ICON: expected 320x320, got {dimensions}; {ICON_DOC}")
         except (OSError, ValueError) as exc:
