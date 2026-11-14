@@ -66,8 +66,17 @@ def body_text(page: str) -> str:
         " ",
         page,
     )
-    m = re.search("(?is)<article[^>]*>(.*?)</article>", page)
+    # Article first, then <main> (BBC Arabic has no <article>; its promo boxes sit after </main>).
+    m = re.search("(?is)<article[^>]*>(.*?)</article>", page) or re.search(
+        "(?is)<main[^>]*>(.*?)</main>", page
+    )
     body = m.group(1) if m else page
+    # In-page recommendation and podcast rails are skippable sections, not article text.
+    body = re.sub(
+        "(?is)<section[^>]*>(?:(?!</section>).)*?#end-of-[a-z-]+(?:(?!</section>).)*</section>",
+        " ",
+        body,
+    )
     lines: list[str] = []
     for tag, t, img in re.findall("(?is)<(h2|h3|h4|p|li)[^>]*>(.*?)</\\1>|(<img[^>]+>)", body):
         if img:

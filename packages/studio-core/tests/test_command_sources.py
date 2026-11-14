@@ -21,17 +21,17 @@ def test_all_existing_commands_are_inspectable_and_controls_have_no_sources():
         assert bool(result["sources"]) == (command.key in CONTENT_KEYS)
         assert result["publication_enabled"] is False
         assert result["live_feeds_enabled"] is False
-    assert len(CONTENT_KEYS) == 24
+    assert len(CONTENT_KEYS) == 29
 
 
-@pytest.mark.parametrize("name", ["style", "الأناقة", "١٤", "14", "👗 الأناقة والجمال"])
+@pytest.mark.parametrize("name", ["style", "جديد البراندات", "١٤", "14", "👗 الأناقة والجمال"])
 def test_sources_follow_the_bots_existing_exact_command_matching(name):
     assert for_command(name) == for_command("style")
     assert for_command(name) != for_command("tech")
 
 
 @pytest.mark.parametrize(
-    "name", ["أحتاج الأناقة", "أخبار", "لا توقف شي", str(len(COMMANDS) + 1), ""]
+    "name", ["أحتاج الأناقة", "الأناقة", "أخبار", "لا توقف شي", str(len(COMMANDS) + 1), ""]
 )
 def test_unknown_sentences_and_section_titles_are_never_guessed(name):
     with pytest.raises(ValueError):
@@ -133,7 +133,7 @@ def test_both_app_clis_resolve_identical_sources_without_network(package, capsys
 
     main = import_module(package + ".cli").main
     with patch("socket.socket", side_effect=AssertionError("Inventory must be offline")):
-        assert main(["sources", "--command", "الأناقة"]) == 0
+        assert main(["sources", "--command", "جديد البراندات"]) == 0
     output = json.loads(capsys.readouterr().out)
     assert output["plans"] == [plan("style")]
     assert output["external_delivery"] is False

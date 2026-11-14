@@ -74,8 +74,8 @@ class MenuTests(unittest.TestCase):
         text = menu.menu_text()
         for _, title, _ in menu.SECTIONS:
             self.assertIn(title, text)
-        self.assertIn("(24)", text)
-        self.assertIn("31. ✅ أرسل (يحتاج نعم)", menu.section_text("control"))
+        self.assertIn("(29)", text)
+        self.assertIn("36. ✅ أرسل (يحتاج نعم)", menu.section_text("control"))
 
 
 if __name__ == "__main__":
