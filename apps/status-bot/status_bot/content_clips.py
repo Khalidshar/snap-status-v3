@@ -53,7 +53,7 @@ CLIPS_GRACE = 1200
 KINDS = {
     "facts": "did_you_know",
     "tech": "tech",
-    **{key: key for key in FASHION_KEYS},
+    **{key: key for key in sorted(FASHION_KEYS)},
     "funny": "funny",
     "night": "night",
     "hadith": "hadith",
