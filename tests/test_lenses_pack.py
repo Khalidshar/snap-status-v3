@@ -39,10 +39,9 @@ class LensesPackTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / "lenses"
         shutil.copytree(ROOT, self.root)
-        # A synthetic valid fixture changes no tracked source content.
+        # Tests mutate only an isolated copy of the supplied reviewed package.
         content_path = self.root / "content.json"
         self.content = json.loads(content_path.read_text(encoding="utf-8"))
-        self.content["truefalse"][16]["q"] = "سؤال تجريبي"
         content_path.write_text(json.dumps(self.content), encoding="utf-8")
         (self.root / "pack/brand/icon.png").write_bytes(png(320, 320))
 
@@ -57,6 +56,28 @@ class LensesPackTests(unittest.TestCase):
     def test_repository_pack_is_ready(self) -> None:
         errors, _, _ = CHECK.audit(ROOT)
         self.assertEqual(errors, [], "\n".join(errors))
+
+    def test_supplied_ostrich_question_replaces_qr(self) -> None:
+        item = self.content["truefalse"][16]
+        self.assertEqual(item["id"], "ostrich-myth")
+        self.assertIn("النعامة", item["q"])
+        self.assertNotIn("qr", json.dumps(self.content).casefold())
+
+    def test_card_dimensions_are_exact(self) -> None:
+        for prefix in ("q", "a"):
+            path = self.root / f"pack/truefalse/{prefix}01.png"
+            original = path.read_bytes()
+            path.write_bytes(png(900, 380))
+            self.assertTrue(any(e.startswith("CARD:") for e in CHECK.audit(self.root)[0]))
+            path.write_bytes(original)
+        self.assertEqual(CHECK.audit(self.root)[0], [])
+
+    def test_emoji_and_date_assets_are_complete(self) -> None:
+        (self.root / "pack/truefalse/emoji/correct1.png").unlink()
+        (self.root / "pack/camera/datestamp/d0.png").unlink()
+        errors = CHECK.audit(self.root)[0]
+        self.assertTrue(any(e.startswith("EMOJI:") for e in errors))
+        self.assertTrue(any(e.startswith("DATESTAMP:") for e in errors))
 
     def test_missing_and_extra_question_and_answer(self) -> None:
         (self.root / "pack/truefalse/q01.png").rename(self.root / "pack/truefalse/q21.png")

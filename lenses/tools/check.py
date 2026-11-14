@@ -113,12 +113,28 @@ def audit(root: Path = ROOT) -> tuple[list[str], dict[str, int], str]:
     ):
         if not (pack / relative).is_file():
             errors.append(f"MISSING: {relative}")
+    emoji = {p.name for p in (pack / "truefalse/emoji").glob("*.png")}
+    expected_emoji = {f"{prefix}{i}.png" for prefix in ("correct", "wrong") for i in range(1, 7)}
+    if emoji != expected_emoji:
+        errors.append("EMOJI: expected six correct and six wrong images")
+    dates = {p.name for p in (pack / "camera/datestamp").glob("*.png")}
+    if dates != {*(f"d{i}.png" for i in range(10)), "dot.png", "apos.png", "sample.png"}:
+        errors.append("DATESTAMP: missing or unexpected date images")
     for path in sorted(pack.rglob("*.png")):
         try:
             dimensions = png_size(path)
+            if (
+                path.parent == pack / "truefalse"
+                and path.stem in {f"{prefix}{i:02}" for prefix in ("q", "a") for i in range(1, 21)}
+                and dimensions != (720, 380)
+            ):
+                errors.append(f"CARD: expected 720x380, got {dimensions}: {path.name}")
             if max(dimensions) > 2048:
                 errors.append(f"DIMENSIONS: {path.relative_to(root)}: {dimensions}")
-            if path == pack / "brand/icon.png" and dimensions != (320, 320):
+            if (
+                path in (pack / "brand/icon.png", pack / "brand/icon-320.png")
+                and dimensions != (320, 320)
+            ):
                 errors.append(f"ICON: expected 320x320, got {dimensions}; {ICON_DOC}")
         except (OSError, ValueError) as exc:
             errors.append(f"PNG: {path.relative_to(root)}: {exc}")
