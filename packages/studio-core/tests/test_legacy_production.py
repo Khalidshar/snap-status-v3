@@ -629,6 +629,28 @@ def test_english_article_translation_is_bound_to_full_source(tmp_path, audio, pi
         client=English(audio),
         state=tmp_path / "state",
     )
+    from studio_core.production.fashion_policy import record_review
+
+    # An unreviewed image must block before translation or story consumption.
+    with pytest.raises(ValueError, match="FASHION_NO_APPROVED_STORY_IMAGE"):
+        f.build()
+    candidate = json.loads((f.root / "fashion-image-candidates.json").read_bytes())[0]
+    record_review(
+        f.db.parent / "fashion-image-reviews.jsonl",
+        f.root / candidate["image_file"],
+        candidate["image_url"],
+        candidate["article_url"],
+        approve=True,
+        apply=True,
+    )
+    f = Factory(
+        app,
+        "style",
+        uuid.uuid4().hex,
+        tmp_path / "approved",
+        client=English(audio),
+        state=tmp_path / "state",
+    )
     value = f.build()
     p = validate(value, assets=f.root)
     assert p["scenes"][0]["at"] == 0
