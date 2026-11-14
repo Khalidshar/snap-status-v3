@@ -9,6 +9,7 @@ var isSpinning = false;
 var timer = 0;
 var nextChangeTime = 0;
 var lastShownIndex = -1;
+var lastFinalIndex = -1; // آخر لقب ثبتت عليه العجلة، حتى لا يتكرر في النقرة التالية
 
 if (script.coverTexture) { script.displayImage.mainPass.baseTex = script.coverTexture; }
 
@@ -33,10 +34,13 @@ updateEvent.bind(function (eventData) {
     }
     if (timer <= 0) {
         isSpinning = false;
-        var finalIndex = Math.floor(Math.random() * script.titleTextures.length);
-        if (finalIndex === lastShownIndex && script.titleTextures.length > 1) {
-            finalIndex = (finalIndex + 1) % script.titleTextures.length;
+        var count = script.titleTextures.length;
+        var finalIndex = Math.floor(Math.random() * count);
+        if (finalIndex === lastFinalIndex && count > 1) {
+            // اختيار عشوائي من الألقاب الباقية بدل الانتقال للتالي دائمًا
+            finalIndex = (finalIndex + 1 + Math.floor(Math.random() * (count - 1))) % count;
         }
+        lastFinalIndex = finalIndex;
         script.displayImage.mainPass.baseTex = script.titleTextures[finalIndex];
     }
 });
