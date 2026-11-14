@@ -292,10 +292,10 @@ class ClipCycleTests(unittest.TestCase):
             )  # fmt: skip
 
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            1, "خبر مترجم", kind="style", title="الأناقة", translated=True
+            1, "خبر مترجم", kind="style", title="جديد البراندات", translated=True
         )
         self.on_start["madar-v3-snap-send-main"] = ack
-        reply = self.studio.answer("الأناقة")
+        reply = self.studio.answer("جديد البراندات")
         self.assertTrue(reply.startswith("وجهة النشر: "))
         self.assertTrue(
             reply.endswith(listener.TRANSLATED_NOTE), "guard:translated-clip-is-flagged"

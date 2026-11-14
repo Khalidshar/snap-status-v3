@@ -48,7 +48,12 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
     )),
     # Owner 11 Nov 2026: fashion is its own section; its six commands join it when built.
     ("fashion", "👗 الأناقة", (
-        ("style", "👗 الأناقة والجمال", ("الأناقة",), False),
+        ("style", "✨ جديد البراندات", ("الأناقة والجمال", "جديد البراندات"), False),
+        ("style_women", "👗 أناقة المرأة", ("أناقة النساء",), False),
+        ("style_men", "👔 أناقة الرجل", ("أناقة الرجال",), False),
+        ("style_perfume", "🌸 عالم العطور", ("العطور",), False),
+        ("style_couples", "💑 للأزواج", ("اناقة الأزواج",), False),
+        ("style_kids", "🧸 أناقة الأطفال", ("أزياء الأطفال",), False),
     )),
     ("faith", "🕌 أذكار ودين", (
         ("adhkar_am", "🌅 أذكار الصباح", ("اذكار الصباح",), False),

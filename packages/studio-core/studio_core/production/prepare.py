@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from studio_core.network import NetworkClient as NetworkClient
 from studio_core.weather import content_hash
 
+from .fashion_policy import KEYS as FASHION_KEYS
 from .model import (
     DATA,
     HADITH_LEAD,
@@ -28,7 +29,7 @@ from .model import (
 from .prepare_base import cut_matches as cut_matches
 from .prepare_base import duration as duration
 from .prepare_base import safe_xml as safe_xml
-from .prepare_news import NewsPreparation
+from .prepare_fashion import FashionPreparation
 from .prepare_news import desk_order as desk_order
 from .prepare_variety import VarietyPreparation
 
@@ -79,12 +80,12 @@ THEME_OF = {
     **dict.fromkeys(("tech", "facts", "did_you_know"), "tech"),
     "funny": "funny",
     "riddle": "riddle",
-    "style": "style",
+    **dict.fromkeys(FASHION_KEYS, "style"),
     "history": "history",
 }
 
 
-class Factory(NewsPreparation, VarietyPreparation):
+class Factory(FashionPreparation, VarietyPreparation):
     def build(self) -> dict[str, Any]:
         key = self.key
         day = datetime.now(ZoneInfo("Asia/Riyadh")).date()
@@ -95,7 +96,9 @@ class Factory(NewsPreparation, VarietyPreparation):
             else TITLES[key]
         )
         scenes = [scene(title, 3.2, role="hook")]
-        if key in NEWS | {"tech", "style"}:
+        if key in FASHION_KEYS:
+            scenes += self.fashion()
+        elif key in NEWS | {"tech"}:
             scenes += self.news()
         elif key in {"facts", "did_you_know", "riddle", "funny"}:
             scenes += self.variety()
@@ -173,7 +176,7 @@ class Factory(NewsPreparation, VarietyPreparation):
             scenes += self.adhkar("night", minimum=8, maximum=min(24, remaining))
         elif key == "brief":
             scenes += self.brief()
-        if key in NEWS | {"tech", "style"}:
+        if key in NEWS | {"tech"} | FASHION_KEYS:
             # Open with the actual first story and its image, without a title-only delay.
             scenes.pop(0)
             scenes[0]["bulletin_title"] = TITLES[key]

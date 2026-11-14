@@ -12,6 +12,8 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 from studio_core.network.client import NetworkError
+from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
+from studio_core.production.fashion_policy import TITLES as FASHION_TITLES
 from studio_core.sources import Source, command_key, for_command
 from studio_core.sources.audit import Client
 from studio_core.sources.feeds import _plain, parse_feed
@@ -24,9 +26,13 @@ TITLES = {
     "football": "كرة القدم",
     "markets": "الأسواق والاقتصاد",
     "tech": "التقنية",
-    "style": "الأناقة والجمال",
+    **FASHION_TITLES,
 }
-MAX_AGE = {key: 86400 for key in TITLES} | {"urgent": 3600, "tech": 259200, "style": 604800}
+MAX_AGE = (
+    {key: 86400 for key in TITLES}
+    | {"urgent": 3600, "tech": 259200}
+    | dict.fromkeys(FASHION_KEYS, 604800)
+)
 WORDS = {
     "urgent": (
         "عاجل",
@@ -370,6 +376,10 @@ def world_story(title: str, detail: str = "") -> bool:
 def matches(key: str, text: str) -> bool:
     if key not in TITLES:
         raise ValueError("Unsupported live news command")
+    if key in FASHION_KEYS - {"style"}:
+        from studio_core.production.fashion_policy import section
+
+        return section(text) == key
     if key == "world":
         return world_story(text)
     if key == "markets":
@@ -405,6 +415,7 @@ def matches(key: str, text: str) -> bool:
 def news_sources(command: str, *, production: bool = False) -> tuple[Source, ...]:
     """Select direct publisher sources for one command before any network request."""
     key = command_key(command)
+    key = "style" if key in FASHION_KEYS else key
     return tuple(
         source
         for source in for_command(key)

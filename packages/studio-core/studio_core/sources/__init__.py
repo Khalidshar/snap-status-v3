@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from studio_core.commands import BY_KEY, COMMANDS, INDEX, normalize
+from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
 
 CATALOG = Path(__file__).with_name("catalog.json")
 CONTENT_KEYS = frozenset(
@@ -123,6 +124,7 @@ def command_key(value: str) -> str:
 
 def for_command(value: str, *, catalog: tuple[Source, ...] | None = None) -> tuple[Source, ...]:
     key = command_key(value)
+    key = "style" if key in FASHION_KEYS else key
     inventory = load() if catalog is None else catalog
     return tuple(source for source in inventory if key in source.commands)
 

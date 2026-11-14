@@ -13,6 +13,9 @@ from urllib.parse import urlsplit
 
 from studio_core.weather import content_hash
 
+from .fashion_policy import KEYS as FASHION_KEYS
+from .fashion_policy import TITLES as FASHION_TITLES
+
 ROOT = Path(__file__).resolve().parents[4]
 DATA = Path(__file__).with_name("data")
 
@@ -47,7 +50,7 @@ TITLES = {
     "news": "وش صار اليوم؟",
     "news_noon": "أخبار الظهر",
     "tech": "التقنية",
-    "style": "الأناقة والجمال",
+    **FASHION_TITLES,
     "verse": "آية اليوم",
     "dua": "دعاء اليوم",
     "friday": "رسالة الجمعة",
@@ -197,6 +200,21 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             for s in stories
         ):
             raise ValueError("LEGACY_BULLETIN_SOURCE_MISSING")
+    if p["key"] in FASHION_KEYS:
+        body_scenes = [s for s in scenes if s.get("role") in {"story", "headline", "point"}]
+        stories = [s for s in body_scenes if s.get("role") == "story"]
+        if not body_scenes or (stories and not 2 <= len(stories) <= 4):
+            raise ValueError("FASHION_DESK_INCOMPLETE")
+        if not stories and (
+            sum(s.get("role") == "headline" for s in body_scenes) != 1
+            or sum(s.get("role") == "point" for s in body_scenes) < 2
+        ):
+            raise ValueError("FASHION_ARTICLE_INCOMPLETE")
+        if any(
+            not s.get("image") or not s.get("source") or not s.get("fashion_review")
+            for s in body_scenes
+        ):
+            raise ValueError("FASHION_REVIEW_OR_SOURCE_MISSING")
     if p["key"] == "night":
         night_date = date.fromisoformat(p.get("night_date", ""))
         number = max(1, (night_date - date(2026, 9, 26)).days + 1)
@@ -322,6 +340,18 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                     "tafsir_sha256"
                 ) != sha(item["body"].encode()):
                     raise ValueError("LEGACY_SAADI_SOURCE_CHANGED")
+            if p["key"] in FASHION_KEYS and item.get("image"):
+                from .fashion_policy import review_matches
+
+                image = asset_map.get(item.get("image"))
+                review = asset_map.get(item.get("fashion_review"))
+                if image is None or review is None:
+                    raise ValueError("FASHION_REVIEW_OR_IMAGE_MISSING")
+                record = json.loads(resource(assets, review["file"], review["sha256"]).read_bytes())
+                if not review_matches(
+                    record, image["sha256"], image["source_url"], item["source_url"]
+                ):
+                    raise ValueError("FASHION_IMAGE_REVIEW_CHANGED")
             if item.get("role") in {"story", "headline", "point"}:
                 from studio_core.sources.news import MAX_AGE, news_sources
 
@@ -371,6 +401,24 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                         raise ValueError("LEGACY_HEADLINE_CHANGED")
                 else:
                     detail = text
+                if p["key"] in FASHION_KEYS:
+                    from .fashion_policy import approved_brand, section
+
+                    if source.kind == "rss":
+                        fashion_title = title
+                    else:
+                        match = re.search(
+                            r'(?:property|name)=["\']og:title["\'][^>]+content=["\']([^"\']+)',
+                            page,
+                            re.I,
+                        )
+                        fashion_title = parsing.clean(match[1]) if match else ""
+                    if (
+                        item.get("fashion_original_title") != fashion_title
+                        or section(fashion_title, detail) != p["key"]
+                        or not approved_brand(fashion_title + " " + text)
+                    ):
+                        raise ValueError("FASHION_BRAND_OR_DESK_CHANGED")
                 if item["role"] == "story" and item["body"].rstrip(
                     "…"
                 ) not in detail + " " + parsing.clean(text):
