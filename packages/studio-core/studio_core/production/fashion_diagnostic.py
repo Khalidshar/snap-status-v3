@@ -7,6 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 from studio_core.production.fashion_policy import TITLES, approved_brand, matches_desk
+from studio_core.sources import for_command
 from studio_core.sources.news import MAX_AGE, _link, news_sources
 
 from . import parsing
@@ -64,7 +65,7 @@ def funnel(
             ("age", lambda item: item["age_ok"]),
             ("language", lambda item: item["language_ok"]),
             ("brand", lambda item: approved_brand(item["title"] + " " + item["detail"])),
-            ("desk", lambda item: matches_desk(key, item["title"], item["detail"])),
+            ("desk", lambda item, desk=key: matches_desk(desk, item["title"], item["detail"])),
             ("image", image_available),
         )
         for stage, predicate in filters:
@@ -95,13 +96,18 @@ def diagnose(
     now = time.time() if now is None else now
     candidates: list[dict[str, Any]] = []
     sources = []
-    for source in news_sources("style", production=True):
+    production_ids = {source.id for source in news_sources("style", production=True)}
+    for source in for_command("style"):
+        if source.status != "approved" or source.kind not in {"rss", "website"}:
+            continue
         row: dict[str, Any] = {"source": source.id, "kind": source.kind}
         try:
             response = client.get(source.url)
             row["status"] = response.status
             if response.status != 200:
                 row["result"] = "UNAVAILABLE"
+            elif source.id not in production_ids:
+                row["result"] = "FETCHED_NOT_IN_PRODUCTION_CANDIDATE_PATH"
             elif source.kind == "rss":
                 items = feed_candidates(source, response.body, now)
                 candidates.extend(items)

@@ -3,7 +3,6 @@
 
 import argparse
 import base64
-import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -59,13 +58,19 @@ def main():
     )
     report = diagnose(client, website_reader=probe.website_candidates)
     (args.output / "report.json").write_bytes(canonical(report))
-    rows = ["| الأمر | خام | العمر | اللغة/الموضوع | البراند | القسم | الصورة | بلا تكرار | البديل |",
-            "|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    rows = [
+        "| الأمر | خام | العمر | اللغة/الموضوع | البراند | القسم | الصورة | بلا تكرار | البديل |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
     any_source = any("raw" in source for source in report["sources"])
     for row in report["rows"]:
         values = [str(row[stage]) if any_source else "—" for stage in (*STAGES, "fallback_pool")]
         rows.append("| " + row["title"] + " | " + " | ".join(values) + " |")
-    completeness = "نتائج جزئية للمصادر المتاحة" if not report["complete"] else "اكتمل جلب المصادر المعتمدة"
+    completeness = (
+        "نتائج جزئية للمصادر المتاحة"
+        if not report["complete"]
+        else "اكتمل جلب المصادر المعتمدة"
+    )
     rows.extend(["", completeness,
                  "السجل التشغيلي لم يُقرأ؛ منع التكرار هنا بين مواضيع المرشحين فقط.",
                  "الصورة تعني توفر صورة عامة؛ اعتماد خالد والمدة والرسم ليست مثبتة بهذا الفحص.",
