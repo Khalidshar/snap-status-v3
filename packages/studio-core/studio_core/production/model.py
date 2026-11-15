@@ -424,9 +424,10 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                         or not approved_brand(fashion_title + " " + text)
                     ):
                         raise ValueError("FASHION_BRAND_OR_DESK_CHANGED")
-                if item["role"] == "story" and item["body"].rstrip(
-                    "…"
-                ) not in detail + " " + parsing.clean(text):
+                # A translated story shows Arabic; bind its retained English original instead.
+                if item["role"] == "story" and original_field(
+                    item, "body", assets, asset_map
+                ).rstrip("…") not in detail + " " + parsing.clean(text):
                     raise ValueError("LEGACY_DETAIL_NOT_IN_SOURCE")
                 if item["role"] == "point":
                     pairs = parsing.plain_points(parsing.body_text(page), detail)

@@ -52,16 +52,7 @@ class FashionPreparation(NewsPreparation):
                 "fashion_original_title": item["fashion_original_title"],
             }
             if len(selected) > 1:
-                detail = parsing.clean(item["detail"], max(100, 230 - len(item["title"])))
-                translations = item.get("translations", {})
-                if item.get("language") == "en":
-                    # Translate the exact detail separately and retain its proof.
-                    original = detail
-                    detail = self.translate(original)
-                    translations = {
-                        "head": translations["body"],
-                        "body": self.translations[original],
-                    }
+                detail, translations = row["story"]
                 scenes.append(
                     scene(
                         detail,
@@ -123,6 +114,9 @@ class FashionPreparation(NewsPreparation):
             if len(selected) >= (4 if self.app == "snap-bot-v2" else 3):
                 break
             if not matches_desk(desk, item["title"], item["detail"]):
+                continue
+            # A story scene shows the feed summary; a story without one cannot be bound to source.
+            if not parsing.clean(item["detail"], 230):
                 continue
             if (
                 desk == "style"
@@ -189,7 +183,26 @@ class FashionPreparation(NewsPreparation):
                         }
                         for p in points
                     ]
-                selected.append({"item": item, "image": image, "review": proof, "points": points})
+                # Prepare the story-scene summary here, so a summary whose translation fails its
+                # fact check skips this story instead of failing the whole clip.
+                detail = parsing.clean(item["detail"], max(100, 230 - len(item["title"])))
+                story_translations = item.get("translations", {})
+                if item.get("language") == "en":
+                    source_detail = detail
+                    detail = self.translate(source_detail)
+                    story_translations = {
+                        "head": story_translations["body"],
+                        "body": self.translations[source_detail],
+                    }
+                selected.append(
+                    {
+                        "item": item,
+                        "image": image,
+                        "review": proof,
+                        "points": points,
+                        "story": (detail, story_translations),
+                    }
+                )
                 topics.append(topic)
                 pub = publisher(item["url"])
                 publishers[pub] = publishers.get(pub, 0) + 1
