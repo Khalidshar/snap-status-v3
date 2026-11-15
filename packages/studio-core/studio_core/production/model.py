@@ -200,10 +200,12 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             for s in stories
         ):
             raise ValueError("LEGACY_BULLETIN_SOURCE_MISSING")
+    fashion_desk: str = p["key"]
     if p["key"] in FASHION_KEYS:
-        fashion_desk = p.get("fashion_desk", p["key"])
-        if not isinstance(fashion_desk, str) or fashion_desk not in {p["key"], "style"}:
+        candidate_desk = p.get("fashion_desk", p["key"])
+        if not isinstance(candidate_desk, str) or candidate_desk not in {p["key"], "style"}:
             raise ValueError("FASHION_FALLBACK_SCOPE")
+        fashion_desk = candidate_desk
         body_scenes = [s for s in scenes if s.get("role") in {"story", "headline", "point"}]
         stories = [s for s in body_scenes if s.get("role") == "story"]
         if not body_scenes or (stories and not 2 <= len(stories) <= 4):
