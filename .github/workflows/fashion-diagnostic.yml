@@ -1,0 +1,31 @@
+name: Fashion public diagnostic
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/studio-core/studio_core/production/fashion*'
+      - 'packages/studio-core/studio_core/production/prepare_fashion.py'
+      - 'scripts/diagnose_fashion.py'
+      - '.github/workflows/fashion-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  public-sources:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: '3.12'
+      - run: uv sync --all-packages
+      - name: Count public candidates without operational state
+        run: uv run --frozen python scripts/diagnose_fashion.py --app snap --direct --output reports/fashion-diagnostic
+      - name: Show the funnel table
+        run: cat reports/fashion-diagnostic/report.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: fashion-public-diagnostic
+          path: reports/fashion-diagnostic/
+          retention-days: 14

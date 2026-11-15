@@ -2,6 +2,8 @@
 
 import subprocess
 
+from studio_core.production.fashion_policy import FashionUnavailable
+
 NO_FRESH_CONTENT_MESSAGE = "لا يوجد خبر عاجل الآن"
 
 
@@ -14,6 +16,8 @@ class NoFreshContent(ValueError):
 
 def failure_code(error: Exception) -> str:
     """Classify failures without emitting exception messages or command arguments."""
+    if isinstance(error, FashionUnavailable):
+        return "FASHION_CONTENT_UNAVAILABLE"
     if isinstance(error, NoFreshContent):
         return "NO_FRESH_CONTENT"
     if isinstance(error, subprocess.CalledProcessError):

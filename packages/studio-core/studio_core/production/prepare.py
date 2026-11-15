@@ -179,7 +179,7 @@ class Factory(FashionPreparation, VarietyPreparation):
         if key in NEWS | {"tech"} | FASHION_KEYS:
             # Open with the actual first story and its image, without a title-only delay.
             scenes.pop(0)
-            scenes[0]["bulletin_title"] = TITLES[key]
+            scenes[0]["bulletin_title"] = TITLES[getattr(self, "fashion_desk", key)]
         credits = " • ".join(dict.fromkeys(s.get("source", "") for s in scenes if s.get("source")))
         scenes.append(
             scene(
@@ -242,6 +242,7 @@ class Factory(FashionPreparation, VarietyPreparation):
             duration(self.root / music)
         p = {
             "schema": 1,
+            **({"fashion_desk": self.fashion_desk} if key in FASHION_KEYS else {}),
             "app": self.app,
             "key": key,
             "scenes": scenes,
@@ -262,7 +263,7 @@ class Factory(FashionPreparation, VarietyPreparation):
             "kind": key,
             "sacred": key in SACRED,
             "language": "ar",
-            "title": TITLES[key],
+            "title": TITLES[getattr(self, "fashion_desk", key)],
             "body": "\n".join(s["body"] for s in scenes),
             "fact_id": "legacy-" + sha(canonical(p))[:32],
             "category": key,
