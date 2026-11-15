@@ -327,7 +327,9 @@ def test_style_puts_the_ten_strongest_houses_first_and_keeps_to_approved_houses(
     assert news.top_brand("style", "حقيبة Prada Buckle بحجم أصغر")
     assert not news.top_brand("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")
     assert not news.top_brand("news", "شانيل")
-    assert not news.matches("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")  # not an approved house
+    assert not news.matches(
+        "style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات"
+    )  # not an approved house
     assert not news.matches("style", "إي اف چي هيرميس ترتب تمويلًا لشركة عقارية")
     assert not news.matches("style", "تجار المجوهرات يؤجلون شراء الذهب")
 
