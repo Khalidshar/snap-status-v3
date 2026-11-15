@@ -6,8 +6,10 @@ from typing import Any
 from studio_core.production.fashion_policy import (
     FashionUnavailable,
     approved_brand,
+    auto_review,
     image_review,
     matches_desk,
+    owner_rejected,
 )
 
 from . import parsing
@@ -142,12 +144,17 @@ class FashionPreparation(NewsPreparation):
                     continue
                 image = self.news_picture(item)
                 asset = next(a for a in self.assets if a["file"] == image)
-                review = image_review(
-                    self.db.parent / "fashion-image-reviews.jsonl",
-                    asset["sha256"],
-                    asset["source_url"],
-                    item["url"],
-                )
+                ledger = self.db.parent / "fashion-image-reviews.jsonl"
+                review = image_review(ledger, asset["sha256"], asset["source_url"], item["url"])
+                if review is None and not owner_rejected(
+                    ledger, asset["sha256"], asset["source_url"], item["url"]
+                ):
+                    review = auto_review(
+                        asset["sha256"],
+                        asset["source_url"],
+                        item["url"],
+                        item["title"] + " " + item["detail"],
+                    )
                 if review is None:
                     failures.append(
                         {

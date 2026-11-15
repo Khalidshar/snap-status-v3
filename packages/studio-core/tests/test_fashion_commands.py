@@ -91,14 +91,15 @@ def factory(tmp_path, app, key, client, approve=True):
     state = tmp_path / app / "state"
     sample = tmp_path / (app + "-image.jpg")
     sample.write_bytes(IMAGE)
-    if approve:
+    # approve=True/False records Khalid's decision; None leaves the ledger empty (auto rule).
+    if approve is not None:
         for n in range(client.count):
             record_review(
                 state / "fashion-image-reviews.jsonl",
                 sample,
                 client.image(n),
                 client.article(n),
-                approve=True,
+                approve=approve,
                 apply=True,
             )
     return FixtureFactory(
@@ -138,7 +139,7 @@ def test_three_stories_make_a_bulletin_in_both_bots(tmp_path, monkeypatch, app):
     assert len([s for s in plan["scenes"] if s["role"] == "story"]) == 3
 
 
-def test_unreviewed_images_leave_evidence_without_consuming_a_story(tmp_path):
+def test_owner_rejected_images_leave_evidence_without_consuming_a_story(tmp_path):
     f = factory(tmp_path, "snap-bot-v2", "style", FashionSources("style"), approve=False)
     with pytest.raises(ValueError, match="FASHION_NO_APPROVED"):
         f.fashion()
@@ -243,3 +244,37 @@ def test_fallback_respects_the_general_desks_previous_history(tmp_path):
     f.job = "b" * 32
     with pytest.raises(FashionUnavailable):
         f.fashion()
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+def test_images_without_owner_review_are_auto_approved_15_nov(tmp_path, monkeypatch, app):
+    """15 Nov decision: no per-image owner review; the plan carries an auto receipt."""
+    monkeypatch.setattr("studio_core.production.prepare.duration", lambda path: 2.0)
+    f = factory(tmp_path, app, "style_women", FashionSources("style_women"), approve=None)
+    value = f.build()
+    plan = validate(value, assets=f.root)
+    assert plan
+
+
+def test_auto_rule_rejects_swimwear_and_underwear_stories():
+    from studio_core.production.fashion_policy import AUTO_BASIS, auto_review, review_matches
+
+    sha_value = "a" * 64
+    image, article = "https://img.example/a.jpg", "https://pub.example/story"
+    ok = auto_review(sha_value, image, article, "ديور تكشف مجموعة الشتاء")
+    assert ok and ok["basis"] == AUTO_BASIS and review_matches(ok, sha_value, image, article)
+    for title in ("أجمل بكيني لصيف ٢٠٢٧", "Dior Swimwear Collection", "Lingerie by Chanel"):
+        assert auto_review(sha_value, image, article, title) is None
+
+
+def test_owner_rejection_beats_the_auto_rule(tmp_path):
+    from studio_core.production.fashion_policy import owner_rejected
+
+    sample = tmp_path / "i.jpg"
+    sample.write_bytes(IMAGE)
+    ledger = tmp_path / "state" / "fashion-image-reviews.jsonl"
+    image, article = "https://img.example/a.jpg", "https://pub.example/story"
+    image_sha = hashlib.sha256(IMAGE).hexdigest()
+    assert not owner_rejected(ledger, image_sha, image, article)
+    record_review(ledger, sample, image, article, approve=False, apply=True)
+    assert owner_rejected(ledger, image_sha, image, article)
