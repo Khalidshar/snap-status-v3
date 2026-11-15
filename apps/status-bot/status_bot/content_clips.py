@@ -642,11 +642,13 @@ def send(
         try:
             content, result, video = build(outbox, item, key, source=source, root=root, start=start)
             if key in FASHION_KEYS and machine_translated(content):
+                from studio_core.jobs import panel_workspace
+
                 from . import panel_actions
 
                 path = safe_path(STATE / "panel-commands.sqlite")
                 preview = hashlib.sha256(item["tag"].encode()).hexdigest()[:32]
-                panel_actions.workspace.record_preview(
+                panel_workspace.record_preview(
                     path, preview, key, video, ["مراجعة ترجمة الأناقة مطلوبة قبل الإرسال"]
                 )
                 side = panel_actions.media(path, preview, ".json")

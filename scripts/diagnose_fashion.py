@@ -75,6 +75,9 @@ def main():
             row.update(
                 result="CURRENT_REVIEW",
                 source=content["source_id"],
+                headline=content["headline"],
+                source_url=content["source_url"],
+                published_at=content["published_at"],
                 language=content["language"],
                 desk=content.get("fashion_desk", key),
                 requires_owner_review=content.get("requires_owner_review", False),
