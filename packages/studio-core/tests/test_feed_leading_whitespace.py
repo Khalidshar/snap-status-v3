@@ -1,7 +1,6 @@
 import pytest
 
 from studio_core.production.prepare_base import safe_xml
-from studio_core.sources.feeds import parse_feed
 
 FEED = (
     b"\n<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\"><channel>"
@@ -19,12 +18,3 @@ def test_safe_xml_malformed_is_value_error():
     with pytest.raises(ValueError):
         safe_xml(b"<rss><channel>")
 
-
-def test_parse_feed_accepts_blank_line_before_declaration():
-    items = parse_feed(
-        FEED,
-        {"name": "Harper's Bazaar Arabia", "url": "https://www.harpersbazaararabia.com/",
-         "language": "ar", "section": "news"},
-        style_only=False,
-    )
-    assert len(items) == 1

@@ -36,7 +36,7 @@ HEADLINES = {
     "football": "الأهلي يفوز في مباراة الدوري المصري",
     "markets": "ارتفاع أسعار النفط في الأسواق العالمية",
     "tech": "إطلاق معالج جديد لأجهزة الحاسوب",
-    "style": "إطلاق عطر جديد ضمن مجموعة العطور",
+    "style": "شانيل تطلق عطرًا جديدًا ضمن مجموعة العطور",
 }
 
 
@@ -313,19 +313,21 @@ def test_real_news_review_is_arabic_branded_9_by_16_and_cannot_be_sent(package, 
 def test_style_rejects_sports_and_food_headlines():
     from studio_core.sources.news import matches
 
-    assert matches("style", "اتجاهات جديدة للمكياج هذا الموسم")
+    assert matches("style", "ديور تكشف اتجاهات جديدة للمكياج هذا الموسم")
+    # 10 Nov decision: named approved houses only; an unnamed trend story is not fashion news.
+    assert not matches("style", "اتجاهات جديدة للمكياج هذا الموسم")
     assert not matches("style", "موضة رونالدو في الدوري")
     assert not matches("style", "اللحوم الحمراء موضة غذائية جديدة")
 
 
-def test_style_puts_the_ten_strongest_houses_first_without_limiting_others():
+def test_style_puts_the_ten_strongest_houses_first_and_keeps_to_approved_houses():
     from studio_core.sources import news
 
     assert news.top_brand("style", "شانيل تكشف عن مجموعة جديدة")
     assert news.top_brand("style", "حقيبة Prada Buckle بحجم أصغر")
     assert not news.top_brand("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")
     assert not news.top_brand("news", "شانيل")
-    assert news.matches("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")
+    assert not news.matches("style", "بوشرون تستوحي من أوراق اللبلاب مجوهرات")  # not an approved house
     assert not news.matches("style", "إي اف چي هيرميس ترتب تمويلًا لشركة عقارية")
     assert not news.matches("style", "تجار المجوهرات يؤجلون شراء الذهب")
 
