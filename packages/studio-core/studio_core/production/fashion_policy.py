@@ -113,13 +113,49 @@ def safe_url(value: str) -> bool:
         return False
 
 
+# 15 November (DECISIONS): Khalid dropped the per-image visual review. Images are approved
+# automatically unless the story names swimwear, underwear or nudity; an owner REJECTED record
+# in the ledger still wins.
+AUTO_BASIS = "AUTO_TITLE_RULE_20261115"
+REVEALING = (
+    "بكيني", "مايوه", "ملابس السباحة", "ملابس سباحة", "لباس البحر", "ملابس داخلية",
+    "الملابس الداخلية", "لانجري", "عاري", "عارية", "عراة", "مثير", "مثيرة",
+    "bikini", "swimwear", "swimsuit", "swim suit", "bathing suit", "lingerie", "underwear",
+    "bra ", "nude", "naked", "topless", "see-through", "sheer", "sexy", "risqué", "risque",
+)  # fmt: skip
+
+
+def revealing(text: str) -> bool:
+    folded = f" {text.casefold()} "
+    return any(word.casefold() in folded for word in REVEALING)
+
+
+def auto_review(
+    image_sha: str, image_url: str, article_url: str, text: str
+) -> dict[str, Any] | None:
+    if revealing(text) or not re.fullmatch("[a-f0-9]{64}", image_sha):
+        return None
+    if not safe_url(image_url) or not safe_url(article_url):
+        return None
+    return {
+        "schema": 1,
+        "image_sha256": image_sha,
+        "image_url": image_url,
+        "article_url": article_url,
+        "decision": "APPROVED",
+        "family_safe": True,
+        "owner_reviewed": False,
+        "basis": AUTO_BASIS,
+    }
+
+
 def review_matches(review: Any, image_sha: str, image_url: str, article_url: str) -> bool:
     return bool(
         isinstance(review, dict)
         and review.get("schema") == 1
         and review.get("decision") == "APPROVED"
         and review.get("family_safe") is True
-        and review.get("owner_reviewed") is True
+        and (review.get("owner_reviewed") is True or review.get("basis") == AUTO_BASIS)
         and re.fullmatch("[a-f0-9]{64}", image_sha)
         and review.get("image_sha256") == image_sha
         and review.get("image_url") == image_url
@@ -152,6 +188,29 @@ def image_review(
         ):
             found = record if review_matches(record, image_sha, image_url, article_url) else None
     return found
+
+
+def owner_rejected(ledger: Path, image_sha: str, image_url: str, article_url: str) -> bool:
+    """True when Khalid's latest recorded decision for this exact image is a rejection."""
+    if not ledger.is_file():
+        return False
+    if any(p.is_symlink() for p in (ledger, *ledger.absolute().parents)):
+        raise ValueError("FASHION_REVIEW_UNSAFE")
+    with ledger.open("rb") as stream:
+        raw = stream.read(2_000_001)
+    if len(raw) > 2_000_000:
+        raise ValueError("FASHION_REVIEW_TOO_LARGE")
+    latest = None
+    for line in raw.splitlines():
+        record = json.loads(line)
+        if (
+            isinstance(record, dict)
+            and record.get("image_sha256") == image_sha
+            and record.get("image_url") == image_url
+            and record.get("article_url") == article_url
+        ):
+            latest = record
+    return bool(latest and latest.get("decision") == "REJECTED")
 
 
 def record_review(
