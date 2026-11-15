@@ -62,11 +62,15 @@ def funnel(
     for key, title in TITLES.items():
         pool = candidates
         counts = {"raw": len(pool)}
+
+        def in_desk(item: dict[str, Any], desk: str = key) -> bool:
+            return matches_desk(desk, item["title"], item["detail"])
+
         filters: tuple[tuple[str, Callable[[dict[str, Any]], bool]], ...] = (
             ("age", lambda item: item["age_ok"]),
             ("language", lambda item: item["language_ok"]),
             ("brand", lambda item: approved_brand(item["title"] + " " + item["detail"])),
-            ("desk", lambda item, desk=key: matches_desk(desk, item["title"], item["detail"])),
+            ("desk", in_desk),
             ("image", image_available),
         )
         for stage, predicate in filters:
