@@ -85,41 +85,41 @@ def main():
     report["command_news_collectors"] = collectors
     (args.output / "report.json").write_bytes(canonical(report))
     rows = [
-        "| ��� | ��� | ���� | ����/������� | �頩�� | ���� | ����� | �� �詟� | �頧�� |",
+        "| الأمر | خام | العمر | اللغة/الموضوع | البراند | القسم | الصورة | بلا تكرار | البديل |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     any_source = any("raw" in source for source in report["sources"])
     for row in report["rows"]:
-        values = [str(row[stage]) if any_source else "?" for stage in (*STAGES, "fallback_pool")]
+        values = [str(row[stage]) if any_source else "—" for stage in (*STAGES, "fallback_pool")]
         rows.append("| " + row["title"] + " | " + " | ".join(values) + " |")
     completeness = (
-        "뢟�� ���� ��ꭟ�� ��ꢟ��" if not report["complete"] else "���� �� ��ꭟ�� ����ꧡ"
+        "نتائج جزئية للمصادر المتاحة" if not report["complete"] else "اكتمل جلب المصادر المعتمدة"
     )
     rows.extend(
         [
             "",
             completeness,
-            "�髤� �颬���� �� ��穚? ��� ��詟� �� ��� ����� ��ꩬ��� ���.",
-            "����� ���� ��� ���� ��? ��꟧ ��� ��ꧡ �驫� �﫢 ꣠�� �쨟 ��奭.",
-            "������ ��� �﫢 RSS �� ���� ��뢟�? 㧧 ��� �� �� ꩬ��� �����.",
+            "السجل التشغيلي لم يُقرأ؛ منع التكرار هنا بين مواضيع المرشحين فقط.",
+            "الصورة تعني توفر صورة عامة؛ اعتماد خالد والمدة والرسم ليست مثبتة بهذا الفحص.",
+            "المواقع التي ليست RSS تمر بمحول الإنتاج؛ عدد خام لها بعد مرشحات المحول.",
             "",
-            "| ��ꭧ� | ���嵐 | ���럭� |",
+            "| المصدر | النتيجة | العناصر |",
             "|---|---|---:|",
         ]
     )
     for row in report["sources"]:
-        rows.append(f"| {row['source']} | {row['result']} | {row.get('raw', '?')} |")
+        rows.append(f"| {row['source']} | {row['result']} | {row.get('raw', '—')} |")
     rows += [
         "",
-        "## ꫟� command_news.collect ������ (� �����)",
-        "| ��� | ��ꭧ� | ���� | ���袠 ������ | ���嵐 |",
+        "## مسار command_news.collect الفعلي (لا إرسال)",
+        "| الأمر | المصدر | اللغة | المكتب الفعلي | النتيجة |",
         "|---|---|---|---|---|",
     ]
     for row in collectors:
         rows.append(
             "| "
             + " | ".join(
-                str(row.get(k, "?")) for k in ("command", "source", "language", "desk", "result")
+                str(row.get(k, "—")) for k in ("command", "source", "language", "desk", "result")
             )
             + " |"
         )
@@ -128,8 +128,8 @@ def main():
             "",
             "### " + row["command"],
             (
-                "| ��ꭧ� | ��� | ��� | ���� | �� | ���� | �� | �� | �詟� |"
-                " ��� ����� | ���� | �髠� |"
+                "| المصدر | خام | محلل | عنوان | لغة | براند | قسم | عمر | تكرار |"
+                " شرط إضافي | بديل | السبب |"
             ),
             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
         ]
@@ -156,7 +156,7 @@ def main():
                 + " | "
                 + str(source["fallback_accepted"])
                 + " | "
-                + source.get("reason", "?")
+                + source.get("reason", "—")
                 + ":"
                 + source.get("error_type", "")
                 + " |"

@@ -163,7 +163,7 @@ class FashionPreparation(NewsPreparation):
                         }
                     )
                     continue
-                proof = self.save(canonical(review), ".json", item["url"], "꩟�� ������ �����")
+                proof = self.save(canonical(review), ".json", item["url"], "مراجعة احتشام الصورة")
                 item["fashion_original_title"] = item["title"]
                 if item.get("language") == "en":
                     original = item["title"]

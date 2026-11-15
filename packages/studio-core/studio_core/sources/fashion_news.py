@@ -192,7 +192,7 @@ def collect_fashion(
     effective = key if desired else "style"
     pool = desired or candidates
     if not pool:
-        raise NewsUnavailable("� ���� ��� ��� ��� �� ���� ���.", diagnostics=diagnostics)
+        raise NewsUnavailable("لا يوجد خبر أناقة حديث من براند معتمد.", diagnostics=diagnostics)
     selected = max(
         pool,
         key=lambda item: (

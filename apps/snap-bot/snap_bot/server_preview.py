@@ -499,7 +499,7 @@ class Runtime:
 
     def approve(self, video_sha: str, channel: str = "test", *, owner_chat: bool = False) -> Any:
         """The owner's approval: from a sudo session, or (main channel only) from the
-        owner's private chat on the pinned main bot after an explicit ����."""
+        owner's private chat on the pinned main bot after an explicit «نعم»."""
         _, uid = source_info()
         if owner_chat:
             if os.geteuid() != 0 or channel != "main":

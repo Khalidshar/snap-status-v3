@@ -30,7 +30,7 @@ def labels(content: dict[str, Any]) -> list[tuple[str, int, int]]:
     return [
         (content["title"], 52, 430),
         *[(line, 46, 600 + i * 75) for i, line in enumerate(parts)],
-        ("��ꭧ�: " + content["source"], 34, 1340),
+        ("المصدر: " + content["source"], 34, 1340),
         (content["published_label"], 26, 1430),
     ]
 
@@ -105,7 +105,7 @@ def deliver(
     body, kind = multipart(
         owner,
         video,
-        "��ꭧ�: "
+        "المصدر: "
         + content["source"]
         + "\n"
         + content["published_label"]

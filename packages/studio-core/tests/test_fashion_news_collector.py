@@ -95,7 +95,7 @@ def test_render_worker_uses_the_production_factory_for_every_fashion_key(monkeyp
 def test_arabic_website_and_latin_house_name_work_without_loosening_world():
     source = next(s for s in for_command("style") if s.id == "laha")
     article = source.url + "fashion/" + "a" * 45
-    title = "�� Michael Kors ��李 ��꩚�"
+    title = "حقيبة Michael Kors جديدة للمرأة"
 
     class Website:
         def get(self, url):

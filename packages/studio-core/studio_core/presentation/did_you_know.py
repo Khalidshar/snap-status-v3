@@ -16,7 +16,7 @@ from studio_core.weather import content_hash
 
 CATALOG = Path(__file__).with_name("data") / "did_you_know.ar.json"
 WINDOW_SECONDS = 30 * 86400
-FOOTER = "������ ���� ??"
+FOOTER = "تابعني للمزيد 👻"
 CATEGORIES = ("animals", "body", "geography", "technology", "space")
 HOSTS = {
     "science.nasa.gov",
@@ -164,9 +164,9 @@ def make_content(fact: dict[str, Any], now: float, kind: str = DEFAULT_KIND) -> 
         "source_display": fact["source"],
         "source_url": fact["source_url"],
         "verified_at": fact["verified_at"],
-        "attribution": "��ꭧ�: " + fact["source"]
+        "attribution": "المصدر: " + fact["source"]
         if fact["source"] != "original"
-        else "��� �� ���",
+        else "روّق مع خالد",
         "footer": FOOTER,
         "fetched_at": datetime.fromtimestamp(now, UTC).isoformat(),
         "expires_at": now + 3600,
@@ -408,6 +408,6 @@ def choose_fact(
         raise FactsExhausted("No fact available inside the 30-day exclusion window")
 
 
-register_kind(DEFAULT_KIND, "�� ����?", lambda today: load_facts(CATALOG, today))
+register_kind(DEFAULT_KIND, "هل تعلم؟", lambda today: load_facts(CATALOG, today))
 # The variety kinds register themselves; imported last, after everything above exists.
 from . import sacred_kinds, variety_kinds  # noqa: E402,F401

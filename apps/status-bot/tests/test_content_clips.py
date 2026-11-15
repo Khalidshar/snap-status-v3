@@ -46,7 +46,7 @@ def test_every_telegram_kind_is_available_in_whatsapp(key):
 def test_video_send_is_once_pinned_and_no_text_reply(fixture, tmp_path):
     f = fixture
     transport = fixtures.OfflineTransport(f.identity)
-    content = {"type": "did_you_know", "body": "� 㩠�", "kind": "verse"}
+    content = {"type": "did_you_know", "body": "نص عربي", "kind": "verse"}
     result = {"video_sha256": hashlib.sha256(b"video").hexdigest()}
     item = {"tag": "a" * 64}
     with (
@@ -140,7 +140,7 @@ def test_translated_clip_is_followed_by_the_review_notice(
     delivered.assert_called_once()
     transport.send_text.assert_called_once()
     note = transport.send_text.call_args.args[0]
-    assert note.startswith("��� ��묩: ") and note.endswith(TRANSLATED_NOTE)
+    assert note.startswith("وجهة النشر: ") and note.endswith(TRANSLATED_NOTE)
 
     plain = Mock()
     transport.send_text = plain

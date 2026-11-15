@@ -46,7 +46,7 @@ def reply(
         except NewsUnavailable:
             content = None
         if content and content.get("requires_owner_review"):
-            send_text("��� ���� ꢟ�? �異�� ꩟�� �颩�� 㠩 ꫟� �뢟� ����.")
+            send_text("خبر الأناقة متاح، ويحتاج مراجعة الترجمة عبر مسار إنتاج الأناقة.")
             with service.connect() as db:
                 db.execute("UPDATE replies SET state='ACK' WHERE event=?", (event,))
             return True
@@ -67,7 +67,7 @@ def reply(
         if content:
             send_clip(content)
         else:
-            send_text("� ���� ��� 㩠� ��� �럫� ���? �� ������� �ꥢ�� ���.")
+            send_text("لا يوجد خبر عربي حديث مناسب الآن؛ لم يُستبدل بمحتوى قديم.")
         with service.connect() as db:
             db.execute("UPDATE replies SET state='ACK' WHERE event=?", (event,))
         return True
