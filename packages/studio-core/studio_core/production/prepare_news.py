@@ -232,7 +232,21 @@ class NewsPreparation(PreparationBase):
     def editorial_match(
         key: str, text: str, language: str, *, detail: str = "", source_id: str = ""
     ) -> bool:
-        from studio_core.sources.news import football_story, matches, top_brand, world_story
+        from studio_core.sources.news import (
+            STYLE_EXCLUDED,
+            football_story,
+            matches,
+            top_brand,
+            world_story,
+        )
+
+        from .fashion_policy import approved_brand
+
+        combined = text + " " + detail
+        if key == "style" and approved_brand(combined):
+            return not any(word in combined for word in STYLE_EXCLUDED) and not re.search(
+                r"\b(?:bank|brokerage|efg)\b", combined, re.IGNORECASE
+            )
 
         if language == "ar":
             if key == "football":

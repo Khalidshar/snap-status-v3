@@ -27,6 +27,24 @@ def test_arabic_and_english_desk_words(title, desk):
     assert section(title) == desk
 
 
+@pytest.mark.parametrize(
+    ("title", "language"),
+    [
+        ("Michael Kors bag for her", "en"),
+        ("Ralph Lauren man collection", "en"),
+        ("Coach wedding gifts", "en"),
+        ("حقيبة مايكل كورس للمرأة", "ar"),
+        ("ملابس رالف لورين للأطفال", "ar"),
+    ],
+)
+def test_the_upstream_filter_also_accepts_approved_houses_and_desk_words(title, language):
+    from studio_core.production.prepare_news import NewsPreparation
+
+    assert NewsPreparation.editorial_match("style", title, language)
+    assert not NewsPreparation.editorial_match("style", "هيرميس تعلن تمويل العقارية", "ar")
+    assert not NewsPreparation.editorial_match("style", "EFG Hermes bank finances property", "en")
+
+
 def test_diagnostic_counts_each_filter_and_keeps_unknown_fetches_explicit():
     from studio_core.production.fashion_diagnostic import diagnose, funnel
 
