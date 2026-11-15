@@ -227,7 +227,8 @@ def verify_quality(directory: Path, data: Any, expected_sha: str) -> Any:
     """Reuse the existing content, digest and owned quality contracts."""
     import tomllib
 
-    from studio_core.config import Config
+    from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
+from studio_core.config import Config
     from studio_core.jobs import Repository
 
     from .did_you_know import validate_content
@@ -413,7 +414,7 @@ class Runtime:
         from studio_core.production import enabled as production_enabled
         from studio_core.production.model import TITLES as PRODUCTION_KINDS
 
-        if kind not in (PRODUCTION_KINDS if production_enabled() else KINDS):
+        if kind not in (PRODUCTION_KINDS if production_enabled(kind) else KINDS):
             raise ValueError("Unknown content kind")
         commit, _ = source_info()
         with self.locked():
@@ -625,7 +626,7 @@ def main() -> None:
 
     parser.add_argument(
         "--kind",
-        choices=sorted(PRODUCTION_KINDS if production_enabled() else KINDS),
+        choices=sorted(PRODUCTION_KINDS if production_enabled() else set(KINDS) | FASHION_KEYS),
         default=DEFAULT_KIND,
     )
     args = parser.parse_args()

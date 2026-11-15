@@ -34,8 +34,9 @@ def fixture():
 
 @pytest.mark.parametrize("key", content_clips.KINDS)
 def test_every_telegram_kind_is_available_in_whatsapp(key):
-    from studio_core.production.fashion_policy import KEYS
     from studio_core.production.model import TITLES
+
+    from studio_core.production.fashion_policy import KEYS
 
     # History and the fashion desks use the production pipeline, not the card catalogs.
     assert content_clips.KINDS[key] in SHARED_KINDS or (
@@ -136,7 +137,7 @@ def test_translated_clip_is_followed_by_the_review_notice(
     )
     monkeypatch.setattr(content_clips, "deliver_built", delivered)
     # A lost notice never fails or repeats the delivered clip.
-    content_clips.send(f.outbox, transport, {"tag": "d" * 64}, "style", f.runtime, root=tmp_path)
+    content_clips.send(f.outbox, transport, {"tag": "d" * 64}, "tech", f.runtime, root=tmp_path)
     delivered.assert_called_once()
     transport.send_text.assert_called_once()
     note = transport.send_text.call_args.args[0]
@@ -147,7 +148,7 @@ def test_translated_clip_is_followed_by_the_review_notice(
     monkeypatch.setattr(
         content_clips, "build", lambda *a, **k: ({}, {"video_sha256": "b" * 64}, b"v")
     )
-    content_clips.send(f.outbox, transport, {"tag": "e" * 64}, "style", f.runtime, root=tmp_path)
+    content_clips.send(f.outbox, transport, {"tag": "e" * 64}, "tech", f.runtime, root=tmp_path)
     plain.assert_not_called()
 
 
@@ -436,3 +437,58 @@ def test_design_failure_reaches_parent_only_with_current_content_binding(
     else:
         assert caught.value is original
     assert "SECRET" not in repr(caught.value)
+
+@pytest.mark.parametrize("key", sorted(k for k in content_clips.KINDS if k.startswith("style")))
+def test_fashion_commands_use_production_instead_of_the_headline_reply(fixture, monkeypatch, key):
+    import hmac
+    import time
+
+    from status_bot.owner_commands import process_one
+    from studio_core.commands import BY_KEY
+
+    monkeypatch.delenv("MADAR_LEGACY_PRODUCTION", raising=False)
+    f = fixture
+    raw, _ = f.webhook(inbound=True)
+    value = json.loads(raw)
+    message = value["entry"][0]["changes"][0]["value"]["messages"][0]
+    message.update(id="wamid.fashion" + key, timestamp=str(int(time.time())))
+    message["text"]["body"] = BY_KEY[key].label
+    raw = json.dumps(value, ensure_ascii=False).encode()
+    signature = "sha256=" + hmac.new(f.identity.webhook_key, raw, hashlib.sha256).hexdigest()
+    f.outbox.webhook(raw, signature)
+    transport = fixtures.OfflineTransport(f.identity)
+    with patch("status_bot.owner_commands.content_clips.send") as deliver, patch(
+        "status_bot.owner_commands.command_news.reply"
+    ) as headline:
+        assert process_one(f.outbox, transport, Mock(), f.runtime)
+    deliver.assert_called_once()
+    assert deliver.call_args.args[3] == key
+    headline.assert_not_called()
+
+
+def test_translated_fashion_waits_in_the_panel_without_uploading(fixture, tmp_path, monkeypatch):
+    f = fixture
+    transport = fixtures.OfflineTransport(f.identity)
+    transport.send_text = Mock()
+    monkeypatch.setattr(content_clips, "STATE", tmp_path)
+    content = {"legacy_production": {"scenes": [{"translations": {"body": "source"}}]}}
+    video = b"synthetic-translated-fashion"
+    result = {"video_sha256": hashlib.sha256(video).hexdigest()}
+    monkeypatch.setattr(content_clips, "build", Mock(return_value=(content, result, video)))
+    delivered = Mock()
+    monkeypatch.setattr(content_clips, "deliver_built", delivered)
+    tag = "7" * 64
+    content_clips.send(f.outbox, transport, {"tag": tag}, "style_women", f.runtime, root=tmp_path)
+    delivered.assert_not_called()
+    transport.upload_video.assert_not_called()
+    transport.send_video.assert_not_called()
+    with f.repo.connect() as db:
+        row = db.execute("SELECT state,code FROM command_videos WHERE tag=?", (tag,)).fetchone()
+    assert tuple(row) == ("BLOCKED", "TRANSLATION_REVIEW_REQUIRED")
+    preview = hashlib.sha256(tag.encode()).hexdigest()[:32]
+    path = tmp_path / "panel-commands.sqlite"
+    assert panel_actions.media(path, preview, ".mp4").read_bytes() == video
+    saved = json.loads(panel_actions.media(path, preview, ".json").read_text())
+    assert saved["tag"] == tag and saved["command"] == "style_women"
+    transport.send_text.assert_called_once()
+

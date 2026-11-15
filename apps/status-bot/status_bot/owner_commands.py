@@ -213,7 +213,7 @@ def production_content(key: Any) -> bool:
     from studio_core.production import enabled
     from studio_core.production.model import TITLES
 
-    return enabled() and key in TITLES
+    return isinstance(key, str) and enabled(key) and key in TITLES
 
 
 if __name__ == "__main__":

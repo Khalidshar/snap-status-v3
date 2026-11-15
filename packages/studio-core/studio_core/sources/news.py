@@ -207,7 +207,9 @@ MEDIA_POLICY = "SOURCE_VIDEO_ELSE_SOURCE_TEXT"
 
 
 class NewsUnavailable(ValueError):
-    pass
+    def __init__(self, message: str = "No current news", *, diagnostics: list[dict[str, Any]] | None = None):
+        super().__init__(message)
+        self.diagnostics = diagnostics or []
 
 
 def arabic(text: str) -> bool:
@@ -376,10 +378,10 @@ def world_story(title: str, detail: str = "") -> bool:
 def matches(key: str, text: str) -> bool:
     if key not in TITLES:
         raise ValueError("Unsupported live news command")
-    if key in FASHION_KEYS - {"style"}:
-        from studio_core.production.fashion_policy import section
+    if key in FASHION_KEYS:
+        from studio_core.production.fashion_policy import matches_desk
 
-        return section(text) == key
+        return matches_desk(key, text) and not any(word in text for word in STYLE_EXCLUDED) and not re.search(r"\b(?:bank|brokerage|efg)\b", text, re.IGNORECASE)
     if key == "world":
         return world_story(text)
     if key == "markets":
@@ -488,10 +490,16 @@ def collect(
     seen: frozenset[str] = frozenset(),
     source_ids: frozenset[str] | None = None,
     predicate: Callable[[str], bool] | None = None,
+    diagnostics: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     key = command_key(command)
     if key not in TITLES or type(now) not in (int, float) or not math.isfinite(now):
         raise ValueError("Unsupported news request")
+    if key in FASHION_KEYS:
+        from .fashion_news import collect_fashion
+
+        return collect_fashion(key, client, now, seen=seen, source_ids=source_ids,
+                               predicate=predicate, diagnostics=diagnostics if diagnostics is not None else [])
     candidates: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
     for source in news_sources(key):
@@ -586,7 +594,7 @@ def validate(content: dict[str, Any], now: float) -> None:
         content.get("schema") != 1
         or content.get("type") != "news_review"
         or content.get("command") not in TITLES
-        or content.get("language") != "ar"
+        or content.get("language") not in ({"ar", "en"} if content.get("command") in FASHION_KEYS else {"ar"})
         or content.get("sacred") is not False
         or content.get("publication_enabled") is not False
         or content.get("audio_review") != AUDIO_POLICY
@@ -595,10 +603,22 @@ def validate(content: dict[str, Any], now: float) -> None:
     ):
         raise ValueError("Invalid news review")
     key = content["command"]
-    source = next((s for s in news_sources(key) if s.id == content.get("source_id")), None)
+    source = next((s for s in news_sources(key, production=key in FASHION_KEYS) if s.id == content.get("source_id")), None)
     if source is None:
         raise ValueError("Unapproved review source")
+    desk: str = key
+    if key in FASHION_KEYS:
+        candidate_desk = content.get("fashion_desk", key)
+        if not isinstance(candidate_desk, str) or candidate_desk not in {key, "style"} or content.get("requires_owner_review", False) is not (content["language"] == "en"):
+            raise ValueError("Changed fashion review scope")
+        desk = candidate_desk
     title = _plain(content["headline"])
+    if key in FASHION_KEYS:
+        from .fashion_news import language_of
+
+        language_ok = language_of(title, source.language) == content["language"]
+    else:
+        language_ok = arabic(title)
     at, fetched, expiry = (content[k] for k in ("published_at", "fetched_at", "expires_at"))
     if (
         any(type(t) not in (int, float) or not math.isfinite(t) for t in (now, at, fetched, expiry))
@@ -606,12 +626,19 @@ def validate(content: dict[str, Any], now: float) -> None:
         or not at <= fetched <= now < expiry
         or expiry != min(fetched + 1800, at + MAX_AGE[key])
         or not 1 <= len(title) <= 180
-        or not arabic(title)
-        or not matches(key, title)
+        or not language_ok
+        or not matches(desk, title)
         or content.get("fingerprint") != fingerprint(title)
-        or content.get("title") != TITLES[key]
+        or content.get("title") != TITLES[desk]
         or content.get("source") != source.name
         or content.get("published_label") != published_label(at)
         or _link(content["source_url"], source) != content["source_url"]
     ):
         raise ValueError("Changed, expired or misclassified news review")
+
+
+def validate_delivery(content: dict[str, Any], now: float) -> None:
+    """English fashion metadata is review-only; delivery uses the production approval path."""
+    validate(content, now)
+    if content.get("requires_owner_review"):
+        raise ValueError("NEWS_TRANSLATION_REVIEW_REQUIRED")

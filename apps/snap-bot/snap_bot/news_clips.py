@@ -15,7 +15,7 @@ from studio_core.network.client import NetworkClient
 from studio_core.network.video import VideoPolicy
 from studio_core.renderer import write_once
 from studio_core.sources import event_video
-from studio_core.sources.news import validate
+from studio_core.sources.news import validate_delivery as validate
 
 from . import command_cards, footage
 from .server_preview import STATE, safe_path

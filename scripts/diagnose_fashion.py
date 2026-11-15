@@ -11,6 +11,8 @@ from studio_core.network.production import ProductionPolicy, fetch
 from studio_core.production.fashion_diagnostic import STAGES, diagnose
 from studio_core.production.model import canonical, sha
 from studio_core.production.prepare import Factory
+from studio_core.sources.news import NewsUnavailable, collect
+from studio_core.production.fashion_policy import TITLES
 
 
 class Cache:
@@ -64,6 +66,19 @@ def main():
         state=args.output / "probe-state",
     )
     report = diagnose(client, website_reader=probe.website_candidates)
+    collectors = []
+    for key in TITLES:
+        trace = []
+        row = {"command": key, "sources": trace}
+        try:
+            content = collect(key, client, report["checked_at"], diagnostics=trace)["content"]
+            row.update(result="CURRENT_REVIEW", source=content["source_id"],
+                       language=content["language"], desk=content.get("fashion_desk", key),
+                       requires_owner_review=content.get("requires_owner_review", False))
+        except NewsUnavailable:
+            row["result"] = "NO_CURRENT_REVIEW"
+        collectors.append(row)
+    report["command_news_collectors"] = collectors
     (args.output / "report.json").write_bytes(canonical(report))
     rows = [
         "| الأمر | خام | العمر | اللغة/الموضوع | البراند | القسم | الصورة | بلا تكرار | البديل |",
@@ -90,6 +105,23 @@ def main():
     )
     for row in report["sources"]:
         rows.append(f"| {row['source']} | {row['result']} | {row.get('raw', '—')} |")
+    rows += ["", "## مسار command_news.collect الفعلي (لا إرسال)",
+             "| الأمر | المصدر | اللغة | المكتب الفعلي | النتيجة |",
+             "|---|---|---|---|---|"]
+    for row in collectors:
+        rows.append("| " + " | ".join(str(row.get(k, "—")) for k in
+                    ("command", "source", "language", "desk", "result")) + " |")
+    for row in collectors:
+        rows += ["", "### " + row["command"],
+                 ("| المصدر | خام | محلل | عنوان | لغة | براند | قسم | عمر | تكرار |"
+                  " شرط إضافي | بديل | السبب |"),
+                 "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+        for source in row["sources"]:
+            values = [str(source["counts"][stage]) for stage in
+                      ("raw", "parsed", "title", "language", "brand", "section", "age", "seen", "predicate")]
+            rows.append("| " + source["source_id"] + " | " + " | ".join(values)
+                        + " | " + str(source["fallback_accepted"]) + " | "
+                        + source.get("reason", "—") + ":" + source.get("error_type", "") + " |")
     markdown = "\n".join(rows) + "\n"
     (args.output / "report.md").write_text(markdown, encoding="utf-8")
     print(markdown)

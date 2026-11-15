@@ -18,7 +18,7 @@ from .prepare_news import NewsPreparation
 class FashionPreparation(NewsPreparation):
     def fashion(self) -> list[dict[str, Any]]:
         candidates = self.news_candidates("style")
-        candidates.sort(key=lambda i: i["published"], reverse=True)
+        candidates.sort(key=lambda i: (i.get("language", "ar") == "ar", i["published"]), reverse=True)
         failures: list[dict[str, Any]] = []
         self.fashion_desk = self.key
         selected = self._fashion_select(candidates, self.key, failures)

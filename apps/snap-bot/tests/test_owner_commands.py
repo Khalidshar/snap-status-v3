@@ -296,10 +296,12 @@ class ClipCycleTests(unittest.TestCase):
         )
         self.on_start["madar-v3-snap-send-main"] = ack
         reply = self.studio.answer("جديد البراندات")
-        self.assertTrue(reply.startswith("وجهة النشر: "))
-        self.assertTrue(
-            reply.endswith(listener.TRANSLATED_NOTE), "guard:translated-clip-is-flagged"
-        )
+        self.assertIn("راجع الترجمة", reply)
+        self.assertEqual(self.runtime.approved, [])
+        self.studio.send()
+        self.assertEqual(self.runtime.approved, [])
+        reply = self.studio.yes()
+        self.assertTrue(reply.startswith("✅ أُرسل "))
         self.assertEqual(self.runtime.approved, [(sha, "main", True)])
 
     def test_a_sent_clip_gets_no_text_reply_but_a_failure_does(self):
