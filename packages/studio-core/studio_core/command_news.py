@@ -45,6 +45,11 @@ def reply(
             validate(content, time.time())
         except NewsUnavailable:
             content = None
+        if content and content.get("requires_owner_review"):
+            send_text("خبر الأناقة متاح، ويحتاج مراجعة الترجمة عبر مسار إنتاج الأناقة.")
+            with service.connect() as db:
+                db.execute("UPDATE replies SET state='ACK' WHERE event=?", (event,))
+            return True
         mark = content["fingerprint"] if content else None
         with service.connect() as db:
             db.execute("BEGIN IMMEDIATE")

@@ -40,7 +40,7 @@ from studio_core.religious.quran_pipeline import render as shared_render
 from studio_core.religious.quran_pipeline import stage as stage_quran
 from studio_core.renderer import write_once
 from studio_core.sources import event_video
-from studio_core.sources.news import validate as validate_news
+from studio_core.sources.news import validate_delivery as validate_news
 
 from .server_preview import STATE, safe_path
 from .whatsapp_contract import DeliveryBlocked, identifier, require, response_id
@@ -213,7 +213,7 @@ def build(
     from studio_core.production import enabled as production_enabled
     from studio_core.production.model import TITLES as PRODUCTION_KINDS
 
-    production = production_enabled()
+    production = production_enabled(key)
     brief = key == "brief" and not production
     news = source is not None and not brief and not production
     require(
@@ -641,6 +641,32 @@ def send(
         phase = "build"
         try:
             content, result, video = build(outbox, item, key, source=source, root=root, start=start)
+            if key in FASHION_KEYS and machine_translated(content):
+                from studio_core.jobs import panel_workspace
+
+                from . import panel_actions
+
+                path = safe_path(STATE / "panel-commands.sqlite")
+                preview = hashlib.sha256(item["tag"].encode()).hexdigest()[:32]
+                panel_workspace.record_preview(
+                    path, preview, key, video, ["مراجعة ترجمة الأناقة مطلوبة قبل الإرسال"]
+                )
+                side = panel_actions.media(path, preview, ".json")
+                with side.open("x", encoding="utf-8") as stream:
+                    json.dump(
+                        {"tag": item["tag"], "command": key, "content": content, "result": result},
+                        stream,
+                    )
+                side.chmod(0o600)
+                with outbox.repo.transaction() as db:
+                    changed = db.execute(
+                        "UPDATE command_videos SET state='BLOCKED',code='TRANSLATION_REVIEW_REQUIRED'"
+                        " WHERE tag=? AND binding=? AND state='WORKING'",
+                        (item["tag"], outbox.identity.binding),
+                    ).rowcount
+                    require(changed == 1, "WA_COMMAND_ALREADY_CONSUMED")
+                transport.send_text("مقطع الأناقة المترجم جاهز في اللوحة؛ راجعه ثم وافق لإرساله.")
+                return
             phase = "delivery"
             deliver_built(
                 outbox,

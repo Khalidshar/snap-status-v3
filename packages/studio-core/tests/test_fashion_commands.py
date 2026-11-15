@@ -196,3 +196,50 @@ def test_changed_image_is_rejected_even_if_outer_content_is_resealed(tmp_path, m
     bad["content_hash"] = content_hash(bad)
     with pytest.raises(ValueError, match="FASHION_IMAGE_REVIEW_CHANGED"):
         validate(bad, assets=f.root)
+
+
+@pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
+@pytest.mark.parametrize("key", sorted(KEYS))
+def test_every_desk_builds_or_uses_new_brands_without_changing_request(
+    tmp_path, monkeypatch, app, key
+):
+    monkeypatch.setattr("studio_core.production.prepare.duration", lambda path: 2.0)
+    f = factory(tmp_path, app, key, FashionSources("style"))
+    value = f.build()
+    plan = validate(value, assets=f.root)
+    assert value["kind"] == plan["key"] == key
+    assert plan["fashion_desk"] == "style"
+    assert value["title"] == plan["scenes"][0]["bulletin_title"] == "جديد البراندات"
+    assert all(s["fashion_review"] for s in plan["scenes"] if s.get("image"))
+    bad = copy.deepcopy(value)
+    bad["legacy_production"]["fashion_desk"] = "news"
+    bad["fact_id"] = "legacy-" + sha(canonical(bad["legacy_production"]))[:32]
+    bad["content_hash"] = content_hash(bad)
+    with pytest.raises(ValueError, match="FASHION_FALLBACK_SCOPE"):
+        validate(bad, assets=f.root)
+
+
+def test_fallback_does_not_weaken_local_brand_or_image_review_rules(tmp_path):
+    from studio_core.observability.failure_code import failure_code
+    from studio_core.production.fashion_policy import FashionUnavailable
+
+    client = FashionSources("style")
+    f = factory(tmp_path, "snap-bot-v2", "style_women", client, approve=False)
+    with pytest.raises(FashionUnavailable) as caught:
+        f.fashion()
+    assert failure_code(caught.value) == "FASHION_CONTENT_UNAVAILABLE"
+    assert not f.used(client.article(0), reserve=False)
+    assert not f.used(client.article(0), reserve=False, kind="style")
+    assert not (f.root / "content.json").exists()
+
+
+def test_fallback_respects_the_general_desks_previous_history(tmp_path):
+    from studio_core.production.fashion_policy import FashionUnavailable
+
+    client = FashionSources("style")
+    f = factory(tmp_path, "snap-bot-v2", "style_women", client)
+    f.used(client.article(0), kind="style")
+    # A different job sees the existing general-desk reservation.
+    f.job = "b" * 32
+    with pytest.raises(FashionUnavailable):
+        f.fashion()

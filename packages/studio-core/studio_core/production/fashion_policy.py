@@ -39,16 +39,16 @@ LOCAL = (
     "ماركة محلية", "علامة محلية", "علامة سعودية", "علامة خليجية", "local brand",
 )  # fmt: skip
 SECTIONS = (
-    ("style_kids", r"اطفال|للطفل|للصغار|المدارس|\b(?:kids|children|childrenswear|baby|junior)\b"),
-    ("style_couples", r"ازواج|للزوجين|للزوج|للزوجه|زفاف|\b(?:couples|wedding|his and hers)\b"),
+    ("style_kids", r"اطفال|للطفل|للصغار|المدارس|\b(?:kids?|children|childrenswear|baby|junior)\b"),
+    ("style_couples", r"ازواج|للزوجين|للزوج|للزوجه|زفاف|\b(?:couples?|weddings?|his and hers)\b"),
     ("style_perfume", (
         r"عطر|عطور|بخور|دهن العود|"
         r"\b(?:perfume|perfumes|fragrance|fragrances|oud|cologne)\b"
     )),
-    ("style_men", r"رجالي|للرجل|الرجل|للرجال|\b(?:menswear|men|mens|homme)\b"),
+    ("style_men", r"رجالي|للرجل|الرجل|للرجال|\b(?:menswear|men|man|mens|homme)\b"),
     ("style_women", (
-        r"نسائي|للمراه|للمرأه|نساء|مكياج|بشره|حقائب|مجوهرات|فساتين|"
-        r"\b(?:women|womenswear|makeup|skincare|handbags|jewelry)\b"
+        r"نسائي|للمراه|للمرأه|نساء|سيدات|مكياج|بشره|حقائب|حقيبه|مجوهرات|فساتين|فستان|"
+        r"\b(?:women|woman|womenswear|her|dress(?:es)?|bags?|makeup|skincare|handbags?|jewelry)\b"
     )),
 )  # fmt: skip
 
@@ -83,6 +83,19 @@ def section(title: str, detail: str = "") -> str | None:
             if re.search(pattern, part):
                 return key
     return "style"
+
+
+def matches_desk(key: str, title: str, detail: str = "") -> bool:
+    """The general desk covers every approved house, including specialised stories."""
+    desk = section(title, detail)
+    return desk is not None and (key == "style" or desk == key)
+
+
+class FashionUnavailable(ValueError):
+    """Neither the requested desk nor its approved fallback can supply a safe story."""
+
+    def __init__(self) -> None:
+        super().__init__("FASHION_NO_APPROVED_STORY_IMAGE")
 
 
 def safe_url(value: str) -> bool:

@@ -200,7 +200,12 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             for s in stories
         ):
             raise ValueError("LEGACY_BULLETIN_SOURCE_MISSING")
+    fashion_desk: str = p["key"]
     if p["key"] in FASHION_KEYS:
+        candidate_desk = p.get("fashion_desk", p["key"])
+        if not isinstance(candidate_desk, str) or candidate_desk not in {p["key"], "style"}:
+            raise ValueError("FASHION_FALLBACK_SCOPE")
+        fashion_desk = candidate_desk
         body_scenes = [s for s in scenes if s.get("role") in {"story", "headline", "point"}]
         stories = [s for s in body_scenes if s.get("role") == "story"]
         if not body_scenes or (stories and not 2 <= len(stories) <= 4):
@@ -402,7 +407,7 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                 else:
                     detail = text
                 if p["key"] in FASHION_KEYS:
-                    from .fashion_policy import approved_brand, section
+                    from .fashion_policy import approved_brand, matches_desk
 
                     if source.kind == "rss":
                         fashion_title = title
@@ -415,7 +420,7 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                         fashion_title = parsing.clean(match[1]) if match else ""
                     if (
                         item.get("fashion_original_title") != fashion_title
-                        or section(fashion_title, detail) != p["key"]
+                        or not matches_desk(fashion_desk, fashion_title, detail)
                         or not approved_brand(fashion_title + " " + text)
                     ):
                         raise ValueError("FASHION_BRAND_OR_DESK_CHANGED")

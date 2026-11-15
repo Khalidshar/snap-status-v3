@@ -361,6 +361,10 @@ class Studio:
                 return "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
         if safe_path(HALT).exists():
             return self.describe(clip) + "\n\n" + SEND_HALTED
+        from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
+
+        if kind in FASHION_KEYS and clip.get("translated"):
+            return self.describe(clip) + "\n\nراجع الترجمة في المعاينة ثم اكتب «أرسل» للموافقة."
         outcome = self.deliver(clip["sha"])
         # The clip itself is the reply: a sent clip needs no text; any failure is reported.
         if outcome.startswith(SENT):
@@ -558,8 +562,8 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
         from studio_core.production.model import TITLES as PRODUCTION_KINDS
 
         if (
-            production_enabled()
-            and parsed["kind"] == "command"
+            parsed["kind"] == "command"
+            and production_enabled(parsed["command"].key)
             and parsed["command"].key in PRODUCTION_KINDS
         ):
             reply = studio.make(

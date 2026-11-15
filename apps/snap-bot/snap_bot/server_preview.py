@@ -21,6 +21,7 @@ from typing import Any
 
 from studio_core.config import runtime_state_root
 from studio_core.observability.failure_code import NoFreshContent, failure_code
+from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
 
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
@@ -413,7 +414,7 @@ class Runtime:
         from studio_core.production import enabled as production_enabled
         from studio_core.production.model import TITLES as PRODUCTION_KINDS
 
-        if kind not in (PRODUCTION_KINDS if production_enabled() else KINDS):
+        if kind not in (PRODUCTION_KINDS if production_enabled(kind) else KINDS):
             raise ValueError("Unknown content kind")
         commit, _ = source_info()
         with self.locked():
@@ -625,7 +626,7 @@ def main() -> None:
 
     parser.add_argument(
         "--kind",
-        choices=sorted(PRODUCTION_KINDS if production_enabled() else KINDS),
+        choices=sorted(PRODUCTION_KINDS if production_enabled() else set(KINDS) | FASHION_KEYS),
         default=DEFAULT_KIND,
     )
     args = parser.parse_args()

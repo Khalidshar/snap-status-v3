@@ -215,10 +215,10 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         from studio_core.production import enabled as production_enabled
         from studio_core.production.model import TITLES as PRODUCTION_KINDS
 
-        if kind not in (PRODUCTION_KINDS if production_enabled() else KINDS):
+        if kind not in (PRODUCTION_KINDS if production_enabled(kind) else KINDS):
             raise ValueError("Unknown content kind")
         settings["kind"] = kind
-        if production_enabled():
+        if production_enabled(kind):
             settings["profile"]["timeout_seconds"] = 3600
         repo = Repository(config)
         history = provenance.get("fact_history", []) if isinstance(provenance, dict) else []

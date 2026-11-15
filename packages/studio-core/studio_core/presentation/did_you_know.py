@@ -359,7 +359,7 @@ def choose_fact(
 ) -> tuple[dict[str, Any], list[Any]]:
     from studio_core.production import enabled
 
-    if enabled():
+    if enabled(kind):
         from studio_core.production.pipeline import choose
 
         return choose(repo, job, token, attempt, kind), []

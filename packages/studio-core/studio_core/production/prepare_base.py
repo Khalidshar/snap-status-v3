@@ -65,7 +65,11 @@ def duration(path: Path) -> float:
 def safe_xml(raw: bytes) -> ET.Element:
     if len(raw) > 4_000_000 or b"<!DOCTYPE" in raw.upper() or b"<!ENTITY" in raw.upper():
         raise ValueError("LEGACY_XML_UNSAFE")
-    return ET.fromstring(raw)  # noqa: S314 — entities/DOCTYPE rejected above
+    try:
+        # Some publishers (Harper's Bazaar Arabia) send a blank line before <?xml.
+        return ET.fromstring(raw.lstrip())  # noqa: S314 — entities/DOCTYPE rejected above
+    except ET.ParseError as error:
+        raise ValueError("LEGACY_XML_MALFORMED") from error
 
 
 def network_client(config: Config) -> NetworkClient:
@@ -147,19 +151,22 @@ class PreparationBase:
     def local(self, path: Path, source: str, credit: str) -> str:
         return self.save(path.read_bytes(), path.suffix, source, credit)
 
-    def used(self, fingerprint: str, *, reserve: bool = True) -> bool:
+    def used(self, fingerprint: str, *, reserve: bool = True, kind: str | None = None) -> bool:
+        kind = kind or self.key
+        if kind != self.key and not {kind, self.key} <= FASHION_KEYS:
+            raise ValueError("LEGACY_HISTORY_KIND_CHANGED")
         window = 4 * 86400 if self.key in NEWS | {"tech"} | FASHION_KEYS else 30 * 86400
         with sqlite3.connect(self.db) as db:
             db.execute("BEGIN IMMEDIATE")
             old = db.execute(
-                "SELECT job,at FROM used WHERE kind=? AND fingerprint=?", (self.key, fingerprint)
+                "SELECT job,at FROM used WHERE kind=? AND fingerprint=?", (kind, fingerprint)
             ).fetchone()
             if old and old[0] != self.job and old[1] > time.time() - window:
                 return True
             if reserve:
                 db.execute(
                     "INSERT OR REPLACE INTO used VALUES(?,?,?,?)",
-                    (self.key, fingerprint, self.job, time.time()),
+                    (kind, fingerprint, self.job, time.time()),
                 )
         return False
 
