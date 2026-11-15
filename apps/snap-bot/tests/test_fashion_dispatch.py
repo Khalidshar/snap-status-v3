@@ -16,8 +16,15 @@ def test_telegram_fashion_uses_production_with_the_global_switch_off(tmp_path, m
     monkeypatch.setenv("MADAR_LIVE_NEWS", "1")
     monkeypatch.setattr(listener, "HALT", tmp_path / "HALT")
     studio = SimpleNamespace(make=Mock(return_value=""), runtime=Mock())
-    update = {"update_id": 17, "message": {"date": int(time.time()), "text": BY_KEY[key].label,
-              "chat": {"id": 77, "type": "private"}, "from": {"id": 77}}}
+    update = {
+        "update_id": 17,
+        "message": {
+            "date": int(time.time()),
+            "text": BY_KEY[key].label,
+            "chat": {"id": 77, "type": "private"},
+            "from": {"id": 77},
+        },
+    }
     calls = []
 
     def transport(token, method, body=b"", kind=None):

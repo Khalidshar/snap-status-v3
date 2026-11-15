@@ -21,6 +21,7 @@ from typing import Any
 
 from studio_core.config import runtime_state_root
 from studio_core.observability.failure_code import NoFreshContent, failure_code
+from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
 
 from .actions_preview import OWNER, ROOT, digest_guard
 from .actions_preview import render_bundle as shared_render_bundle
@@ -227,8 +228,7 @@ def verify_quality(directory: Path, data: Any, expected_sha: str) -> Any:
     """Reuse the existing content, digest and owned quality contracts."""
     import tomllib
 
-    from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
-from studio_core.config import Config
+    from studio_core.config import Config
     from studio_core.jobs import Repository
 
     from .did_you_know import validate_content
@@ -499,7 +499,7 @@ class Runtime:
 
     def approve(self, video_sha: str, channel: str = "test", *, owner_chat: bool = False) -> Any:
         """The owner's approval: from a sudo session, or (main channel only) from the
-        owner's private chat on the pinned main bot after an explicit «نعم»."""
+        owner's private chat on the pinned main bot after an explicit ����."""
         _, uid = source_info()
         if owner_chat:
             if os.geteuid() != 0 or channel != "main":

@@ -41,22 +41,22 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
         return menu.menu_text()
     key = parsed["command"].key
     if key == "schedule":
-        return "الجدولة غير مفعلة؛ كل طلب يصلك بناءً على أمرك."
+        return "�餧�� �� ����? �� �� ��� �럘� ��� ���."
     if key in {"status", "report", "last"}:
         events = runtime.events()
         accepted = sum(e.get("kind") == "ACK" for e in events)
         return (
-            "بوت الحالات يعمل على واتساب.\nالمقاطع التي قبلتها المنصة: "
+            "��� �饟韢 ���� ��� ퟢ���.\n������ ��� ��� ���뭡: "
             + str(accepted)
-            + "\nالنشر كحالة يتم يدويًا."
+            + "\n��묩 襟� �� ����."
             + "\n"
             + status_text()
             + ("\n" + window_text(outbox) if outbox is not None else "")
         )
     return (
-        "«"
+        "�"
         + str(parsed["command"].label)
-        + "» لا يملك مسار أوامر مكتملًا في الحالات بعد؛ لم يُنفّذ شيء."
+        + "� � ���� ꫟� ��� ����� �� �饟韢 ��? �� ���周 ��."
     )
 
 
@@ -71,9 +71,9 @@ def menu_list(text: str) -> tuple[str, dict[str, Any]] | None:
     elif parsed["kind"] != "menu":
         return None
     if section is None:
-        return "🤖 اضغط «القائمة» واختر القسم.", menu.whatsapp_list()
+        return "?? ���� ���矞ꡯ ퟦ�� ����.", menu.whatsapp_list()
     title = next(t for s, t, _ in menu.SECTIONS if s == section)
-    return title + "\nاضغط «القائمة» واختر الأمر.", menu.whatsapp_list(section)
+    return title + "\n���� ���矞ꡯ ퟦ�� ���.", menu.whatsapp_list(section)
 
 
 def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
@@ -134,7 +134,7 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
                 if not sent:
                     raise ValueError("Command already consumed")
             except NewsUnavailable:
-                send("لا يوجد خبر عربي حديث مناسب الآن؛ لم يُستبدل بمحتوى قديم.")
+                send("� ���� ��� 㩠� ��� �럫� ���? �� ������� �ꥢ�� ���.")
         elif key in content_clips.KINDS:
             content_clips.send(outbox, transport, item, key, runtime)
         else:

@@ -175,7 +175,7 @@ def _render_event(tag: str, root: Path = ROOT) -> None:
                 [
                     (content["title"], 52, 430),
                     *[(s, 46, 600 + i * 75) for i, s in enumerate(parts)],
-                    ("المصدر: " + content["source"], 34, 1340),
+                    ("��ꭧ�: " + content["source"], 34, 1340),
                     (content["published_label"], 26, 1430),
                 ],
                 directory / "news",
@@ -647,11 +647,14 @@ def send(
                 path = safe_path(STATE / "panel-commands.sqlite")
                 preview = hashlib.sha256(item["tag"].encode()).hexdigest()[:32]
                 panel_actions.workspace.record_preview(
-                    path, preview, key, video, ["مراجعة ترجمة الأناقة مطلوبة قبل الإرسال"]
+                    path, preview, key, video, ["꩟�� ���� ���� ������ �� �革���"]
                 )
                 side = panel_actions.media(path, preview, ".json")
                 with side.open("x", encoding="utf-8") as stream:
-                    json.dump({"tag": item["tag"], "command": key, "content": content, "result": result}, stream)
+                    json.dump(
+                        {"tag": item["tag"], "command": key, "content": content, "result": result},
+                        stream,
+                    )
                 side.chmod(0o600)
                 with outbox.repo.transaction() as db:
                     changed = db.execute(
@@ -660,7 +663,7 @@ def send(
                         (item["tag"], outbox.identity.binding),
                     ).rowcount
                     require(changed == 1, "WA_COMMAND_ALREADY_CONSUMED")
-                transport.send_text("مقطع الأناقة المترجم جاهز في اللوحة؛ راجعه ثم وافق لإرساله.")
+                transport.send_text("���� ���� ��ꢩ�� ��� �� ������? ����� �� ��� 革����.")
                 return
             phase = "delivery"
             deliver_built(

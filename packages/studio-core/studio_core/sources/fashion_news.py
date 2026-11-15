@@ -31,7 +31,9 @@ def language_of(title: str, declared: str) -> str | None:
     return "en" if declared == "en" and re.search("[A-Za-z]", title) else None
 
 
-def website_items(source: Any, body: bytes, client: Any, row: dict[str, Any]) -> list[dict[str, Any]]:
+def website_items(
+    source: Any, body: bytes, client: Any, row: dict[str, Any]
+) -> list[dict[str, Any]]:
     """Use public same-publisher article metadata; never an invented RSS endpoint."""
     links = []
     for href in re.findall(r'href=["\']([^"\']+)', body.decode("utf-8", "replace")):
@@ -48,10 +50,15 @@ def website_items(source: Any, body: bytes, client: Any, row: dict[str, Any]) ->
     for url in links[:18]:
         try:
             response = client.get(url)
-            if response.status != 200 or hashlib.sha256(response.body).hexdigest() != response.sha256:
+            if (
+                response.status != 200
+                or hashlib.sha256(response.body).hexdigest() != response.sha256
+            ):
                 raise ValueError("ARTICLE_RESPONSE_INVALID")
             page = response.body.decode("utf-8", "replace")
-            title = re.search(r'(?:property|name)=["\']og:title["\'][^>]+content=["\']([^"\']+)', page, re.I)
+            title = re.search(
+                r'(?:property|name)=["\']og:title["\'][^>]+content=["\']([^"\']+)', page, re.I
+            )
             date = re.search(r'"datePublished"\s*:\s*"([^"<>]+)"', page) or re.search(
                 r'property=["\']article:published_time["\'][^>]+content=["\']([^"\']+)', page
             )
@@ -65,20 +72,39 @@ def website_items(source: Any, body: bytes, client: Any, row: dict[str, Any]) ->
 
 
 def collect_fashion(
-    key: str, client: Any, now: float, *, seen: frozenset[str],
-    source_ids: frozenset[str] | None, predicate: Callable[[str], bool] | None,
+    key: str,
+    client: Any,
+    now: float,
+    *,
+    seen: frozenset[str],
+    source_ids: frozenset[str] | None,
+    predicate: Callable[[str], bool] | None,
     diagnostics: list[dict[str, Any]],
 ) -> dict[str, Any]:
     from .news import (
-        AUDIO_POLICY, MAX_AGE, MEDIA_POLICY, TITLES, NewsUnavailable, _link,
-        digest, fingerprint, matches, news_sources, published_label, top_brand,
+        AUDIO_POLICY,
+        MAX_AGE,
+        MEDIA_POLICY,
+        TITLES,
+        NewsUnavailable,
+        _link,
+        digest,
+        fingerprint,
+        matches,
+        news_sources,
+        published_label,
+        top_brand,
     )
 
     candidates = []
     failures = []
     for source in news_sources(key, production=True):
-        row: dict[str, Any] = {"source_id": source.id, "kind": source.kind,
-                               "counts": dict.fromkeys(STAGES, 0), "fallback_accepted": 0}
+        row: dict[str, Any] = {
+            "source_id": source.id,
+            "kind": source.kind,
+            "counts": dict.fromkeys(STAGES, 0),
+            "fallback_accepted": 0,
+        }
         diagnostics.append(row)
         if source_ids is not None and source.id not in source_ids:
             row["reason"] = "SOURCE_ID_FILTER"
@@ -99,8 +125,16 @@ def collect_fashion(
                 raw = normalize(source.id, response.body, client)
                 document = safe_xml(raw)
                 row["counts"]["raw"] = len(list(document.iter("item")))
-                items = parse_feed(raw, {"name": source.name, "url": source.url,
-                                        "language": source.language, "section": "news"}, style_only=False)
+                items = parse_feed(
+                    raw,
+                    {
+                        "name": source.name,
+                        "url": source.url,
+                        "language": source.language,
+                        "section": "news",
+                    },
+                    style_only=False,
+                )
             row["counts"]["parsed"] = len(items)
             row["reason"] = "PARSED"
             for item in items:
@@ -138,10 +172,18 @@ def collect_fashion(
                 if wanted:
                     counts["predicate"] += 1
                 row["fallback_accepted"] += 1
-                candidates.append({"headline": title, "source_id": source.id, "source": source.name,
-                                   "source_url": url, "published_at": at,
-                                   "published_label": published_label(at), "fingerprint": mark,
-                                   "language": language})
+                candidates.append(
+                    {
+                        "headline": title,
+                        "source_id": source.id,
+                        "source": source.name,
+                        "source_url": url,
+                        "published_at": at,
+                        "published_label": published_label(at),
+                        "fingerprint": mark,
+                        "language": language,
+                    }
+                )
         except (NetworkError, OSError, ValueError) as error:
             row["reason"] = "FETCH_OR_PARSE_FAILED"
             row["error_type"] = type(error).__name__
@@ -150,13 +192,34 @@ def collect_fashion(
     effective = key if desired else "style"
     pool = desired or candidates
     if not pool:
-        raise NewsUnavailable("لا يوجد خبر أناقة حديث من براند معتمد.", diagnostics=diagnostics)
-    selected = max(pool, key=lambda item: (item["language"] == "ar", top_brand("style", item["headline"]), item["published_at"]))
-    content = {"schema": 1, "type": "news_review", "command": key,
-               "fashion_desk": effective, "title": TITLES[effective], "sacred": False,
-               "publication_enabled": False, "audio_review": AUDIO_POLICY, "media_policy": MEDIA_POLICY,
-               **selected, "requires_owner_review": selected["language"] == "en",
-               "fetched_at": now, "expires_at": min(now + 1800, selected["published_at"] + MAX_AGE[key])}
+        raise NewsUnavailable("� ���� ��� ��� ��� �� ���� ���.", diagnostics=diagnostics)
+    selected = max(
+        pool,
+        key=lambda item: (
+            item["language"] == "ar",
+            top_brand("style", item["headline"]),
+            item["published_at"],
+        ),
+    )
+    content = {
+        "schema": 1,
+        "type": "news_review",
+        "command": key,
+        "fashion_desk": effective,
+        "title": TITLES[effective],
+        "sacred": False,
+        "publication_enabled": False,
+        "audio_review": AUDIO_POLICY,
+        "media_policy": MEDIA_POLICY,
+        **selected,
+        "requires_owner_review": selected["language"] == "en",
+        "fetched_at": now,
+        "expires_at": min(now + 1800, selected["published_at"] + MAX_AGE[key]),
+    }
     content["content_hash"] = digest(content)
-    return {"content": content, "failures": failures, "diagnostics": diagnostics,
-            "external_delivery": False}
+    return {
+        "content": content,
+        "failures": failures,
+        "diagnostics": diagnostics,
+        "external_delivery": False,
+    }

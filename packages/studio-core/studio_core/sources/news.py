@@ -19,13 +19,13 @@ from studio_core.sources.audit import Client
 from studio_core.sources.feeds import _plain, parse_feed
 
 TITLES = {
-    "urgent": "خبر عاجل",
-    "saudi": "أخبار السعودية",
-    "world": "أخبار العالم",
-    "news": "موجز الأخبار",
-    "football": "كرة القدم",
-    "markets": "الأسواق والاقتصاد",
-    "tech": "التقنية",
+    "urgent": "��� 㟤�",
+    "saudi": "����� ������",
+    "world": "����� �����",
+    "news": "���� �隦���",
+    "football": "詡 ����",
+    "markets": "�隫�� ��碭��",
+    "tech": "�����",
     **FASHION_TITLES,
 }
 MAX_AGE = (
@@ -35,171 +35,171 @@ MAX_AGE = (
 )
 WORDS = {
     "urgent": (
-        "عاجل",
-        "هجوم",
-        "قصف",
-        "غارة",
-        "غارات",
-        "صاروخ",
-        "صواريخ",
-        "انفجار",
-        "إطلاق نار",
-        "اعتراض",
-        "مسيرة",
-        "مسيّرة",
-        "اشتباك",
-        "إنذار",
+        "㟤�",
+        "���",
+        "��",
+        "䟩�",
+        "䟩��",
+        "�����",
+        "�ퟩ�",
+        "��够�",
+        "���� 럩",
+        "�㢩��",
+        "�視",
+        "��",
+        "������",
+        "�먟�",
     ),
     "saudi": (
-        "السعود",
-        "الرياض",
-        "جدة",
-        "مكة",
-        "المدينة المنورة",
-        "ولي العهد السعودي",
-        "دوري روشن",
-        "نيوم",
-        "أرامكو",
+        "�����",
+        "����",
+        "���",
+        "��",
+        "����� �������",
+        "��� ���� ������",
+        "���� ����",
+        "����",
+        "������",
     ),
     "world": (
-        "أوكران",
-        "روسيا",
-        "إيران",
-        "اليمن",
-        "فلسطين",
-        "غزة",
-        "إسرائيل",
-        "لبنان",
-        "سوريا",
-        "العراق",
-        "إثيوبيا",
-        "السودان",
-        "أمريكا",
-        "الأمريك",
-        "أوروبا",
-        "الصين",
-        "فرنسا",
-        "بريطانيا",
-        "مصر",
-        "تركيا",
-        "باكستان",
-        "الهند",
-        "ألمانيا",
-        "إيطاليا",
+        "��詟�",
+        "����",
+        "�著�",
+        "�����",
+        "�����",
+        "䪡",
+        "�������",
+        "���",
+        "����",
+        "��㩟�",
+        "������",
+        "������",
+        "����",
+        "�����",
+        "������",
+        "����",
+        "�뫟",
+        "������",
+        "ꭩ",
+        "����",
+        "��諢��",
+        "����",
+        "�����",
+        "�����",
     ),
     "football": (
-        "كرة القدم",
-        "دوري روشن",
-        "الدوري السعودي",
-        "الدوري المصري",
-        "الدوري المغربي",
-        "البطولة المغربية",
-        "البطولة الاحترافية المغربية",
-        "الرجاء المغربي",
-        "الوداد المغربي",
-        "الجيش الملكي",
-        "نهضة بركان",
-        "دوري أبطال",
-        "الدوري الأوروبي",
-        "الدوري الإنجليزي",
-        "الدوري الإسباني",
-        "الدوري الإيطالي",
-        "الدوري الألماني",
-        "الدوري الفرنسي",
-        "كأس العالم",
-        "كأس أمم",
-        "مباراة",
-        "مانشستر",
-        "ريال مدريد",
-        "برشلونة",
-        "ليفربول",
-        "الأهلي",
-        "الزمالك",
-        "الهلال",
-        "النصر",
-        "الاتحاد",
+        "詡 ����",
+        "���� ����",
+        "����� ������",
+        "����� ��ꭩ�",
+        "����� ���䩠�",
+        "����� ���䩠�",
+        "����� �韥����� ���䩠�",
+        "�驤�� ���䩠�",
+        "������ ���䩠�",
+        "��� ������",
+        "��� ����",
+        "���� ����",
+        "����� �������",
+        "����� ������",
+        "����� �靫����",
+        "����� ������",
+        "����� ������",
+        "����� �����",
+        "蚫 �����",
+        "蚫 ���",
+        "ꠟ���",
+        "�묫��",
+        "��� ꧩ�",
+        "������",
+        "��婠��",
+        "�����",
+        "�����",
+        "�����",
+        "��뭩",
+        "�韢���",
     ),
     "style": (
-        "موضة",
-        "أزياء",
-        "ازياء",
-        "مكياج",
-        "تجميل",
-        "عطور",
-        "عطر",
-        "ملابس",
-        "أحذية",
-        "حقائب",
-        "ماركات",
-        "مجوهرات",
+        "���",
+        "��",
+        "��",
+        "��",
+        "�����",
+        "����",
+        "��",
+        "�韠�",
+        "����",
+        "�矞�",
+        "꟩蟢",
+        "��쩟�",
         # Brands, shows, models and celebrity looks (owner request 2026-11-01).
-        "شانيل",
-        "ديور",
-        "غوتشي",
-        "لويس فويتون",
-        "برادا",
-        "هيرميس",
-        "فيرساتشي",
-        "بربري",
-        "فالنتينو",
-        "إيلي صعب",
-        "زهير مراد",
-        "كارتييه",
-        "بولغري",
-        "لانكوم",
-        "إستي لودر",
-        "عطر جديد",
-        "مجموعة جديدة",
-        "أسبوع الموضة",
-        "عرض أزياء",
-        "عروض الأزياء",
-        "عارضة",
-        "السجادة الحمراء",
-        "إطلالة",
+        "�����",
+        "����",
+        "�����",
+        "��� �����",
+        "�����",
+        "����",
+        "�恵����",
+        "�����",
+        "������",
+        "���� ��",
+        "��� ꩟�",
+        "蟩����",
+        "�����",
+        "�����",
+        "���� ����",
+        "�� ���",
+        "���� ��李",
+        "����� �����",
+        "�� ��",
+        "��� �險",
+        "㟩�",
+        "�髤��� ��꩟�",
+        "����",
     ),
 }
-# Other sports, without the article: «التنس», «للتنس» and «بالتنس» are all tennis, while
-# «تنسيق» is not (owner repair 11 Nov 2026: the tennis federation entered the football clip).
+# Other sports, without the article: ���뫯, ���뫯 and ����뫯 are all tennis, while
+# ����� is not (owner repair 11 Nov 2026: the tennis federation entered the football clip).
 SPORTS_EXCLUDED = (
-    "كرة السلة",
-    "كرة اليد",
-    "كرة الطائرة",
-    "كرة المضرب",
-    "تنس",
-    "فورمولا",
-    "جولف",
-    "غولف",
-    "ملاكمة",
-    "مصارعة",
-    "ألعاب القوى",
-    "سباحة",
-    "دراجات",
-    "فروسية",
-    "بادل",
-    "اسكواش",
-    "كريكت",
-    "رغبي",
-    "سلة",
+    "詡 ���",
+    "詡 ���",
+    "詡 ��៞��",
+    "詡 ���੠",
+    "��",
+    "������",
+    "����",
+    "����",
+    "����",
+    "ꭟ��",
+    "��㟠 �����",
+    "�����",
+    "������",
+    "����",
+    "����",
+    "���ퟬ",
+    "���",
+    "���",
+    "��",
 )
 OTHER_SPORT = re.compile(
-    "(?<![ء-ي])[وفبك]?(?:ال|لل)?(?:" + "|".join(SPORTS_EXCLUDED) + ")(?![ء-ي])"
+    "(?<![�-�])[���]?(?:��|��)?(?:" + "|".join(SPORTS_EXCLUDED) + ")(?![�-�])"
 )
-DAYS = ("الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد")
+DAYS = ("�韣���", "��韣��", "�隩�㟘", "����", "����", "�髠�", "�隥�")
 MONTHS = (
-    "يناير",
-    "فبراير",
-    "مارس",
-    "أبريل",
-    "مايو",
-    "يونيو",
-    "يوليو",
-    "أغسطس",
-    "سبتمبر",
-    "أكتوبر",
-    "نوفمبر",
-    "ديسمبر",
+    "���",
+    "堩��",
+    "꟩�",
+    "�����",
+    "���",
+    "�����",
+    "�����",
+    "���",
+    "���꠩",
+    "�����",
+    "���꠩",
+    "��꠩",
 )
-DIGITS = str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")
+DIGITS = str.maketrans("0123456789", "??????????")
 
 
 AUDIO_POLICY = "ORIGINAL_SOURCE_AUDIO_OR_SILENT"
@@ -207,7 +207,9 @@ MEDIA_POLICY = "SOURCE_VIDEO_ELSE_SOURCE_TEXT"
 
 
 class NewsUnavailable(ValueError):
-    def __init__(self, message: str = "No current news", *, diagnostics: list[dict[str, Any]] | None = None):
+    def __init__(
+        self, message: str = "No current news", *, diagnostics: list[dict[str, Any]] | None = None
+    ):
         super().__init__(message)
         self.diagnostics = diagnostics or []
 
@@ -225,42 +227,42 @@ def fingerprint(text: str) -> str:
 
 
 STYLE_EXCLUDED = (
-    "رونالدو",
-    "ميسي",
-    "الدوري",
-    "مباراة",
-    "اللحوم",
-    "غذائية",
-    "سيارة",
-    "سيارات",
+    "�����",
+    "���",
+    "�����",
+    "ꠟ���",
+    "�����",
+    "䨟��",
+    "��",
+    "���",
     # Same names, other businesses: the EFG Hermes bank, brokerage and property finance.
-    "إي اف چي",
-    "إي إف چي",
-    "إي إف جي",
-    "اي اف جي",
-    "السمسرة",
-    "تمويل",
-    "العقارية",
-    "البورصة",
-    "أسهم",
-    "أسعار الذهب",
-    "شراء الذهب",
+    "�� �� ?�",
+    "�� �� ?�",
+    "�� �� ��",
+    "�� �� ��",
+    "��ꫩ�",
+    "�����",
+    "���矩�",
+    "������",
+    "����",
+    "��㟩 ���",
+    "���� ���",
 )
 # Owner request 2026-11-01: the ten strongest houses come first, never as a limit.
 TOP_BRANDS = (
-    "لويس فويتون",
-    "شانيل",
-    "هيرميس",
-    "غوتشي",
-    "ديور",
-    "كارتييه",
-    "رولكس",
-    "برادا",
-    "تيفاني",
-    "سان لوران",
+    "��� �����",
+    "�����",
+    "����",
+    "�����",
+    "����",
+    "蟩����",
+    "����",
+    "�����",
+    "�����",
+    "��� �����",
     "Louis Vuitton",
     "Chanel",
-    "Hermès",
+    "Herm�s",
     "Gucci",
     "Dior",
     "Cartier",
@@ -281,93 +283,93 @@ def football_story(title: str, detail: str = "") -> bool:
     if OTHER_SPORT.search(text) or not any(word in text for word in WORDS["football"]):
         return False
     political = (
-        "صحافي",
-        "صحفي",
-        "صحافة",
-        "سجن",
-        "اعتقال",
-        "معتقل",
-        "محاكمة",
-        "رئيس وزراء",
-        "رئيس الوزراء",
-        "رئيس الحكومة",
-        "سياسي",
-        "سياسية",
-        "دبلوماسي",
-        "دبلوماسية",
-        "سفير",
-        "سيادة",
-        "حدود",
-        "انتخابات",
-        "صراع",
-        "نزاع",
-        "أزمة",
-        "ازمة",
-        "عقوبات",
+        "�����",
+        "����",
+        "����",
+        "���",
+        "����",
+        "����",
+        "꥟��",
+        "��� �����",
+        "��� �������",
+        "��� �����",
+        "��",
+        "��",
+        "����꟫�",
+        "����꟫�",
+        "���",
+        "��",
+        "����",
+        "�뢦����",
+        "����",
+        "몟�",
+        "���",
+        "���",
+        "������",
     )
     if not any(word in title for word in political):
         return True
     # Keep genuine match, player, competition and hosting news even when an official
     # appears in it. The football evidence must be in the headline itself.
     sporting_subject = (
-        "كرة القدم",
-        "مباراة",
-        "مباريات",
-        "دوري",
-        "الدوري",
-        "منتخب",
-        "لاعب",
-        "مدرب",
-        "مهاجم",
-        "حارس",
-        "هدف",
-        "يفوز",
-        "فوز",
-        "هزيمة",
-        "خسارة",
-        "تأهل",
-        "تتويج",
-        "قرعة",
-        "استضافة",
-        "تنظيم",
-        "افتتاح",
-        "نهائي",
+        "詡 ����",
+        "ꠟ���",
+        "ꠟ�",
+        "����",
+        "�����",
+        "�뢦�",
+        "��",
+        "ꧩ�",
+        "�쟤�",
+        "����",
+        "��",
+        "����",
+        "���",
+        "���",
+        "�����",
+        "����",
+        "����",
+        "��",
+        "������",
+        "�����",
+        "�墢��",
+        "�쟞�",
     )
     return any(word in title for word in WORDS["football"]) and any(
         word in title for word in sporting_subject
     )
 
 
-_WORLD_AMBIGUOUS_SPORTS = {"دراجات", "سلة", "سباحة", "فروسية"}
+_WORLD_AMBIGUOUS_SPORTS = {"������", "��", "�����", "����"}
 _WORLD_SPORTS = re.compile(
-    r"(?<![ء-ي])[وفبك]?(?:ال|لل)?(?:"
+    r"(?<![�-�])[���]?(?:��|��)?(?:"
     + "|".join(
-        re.escape(word.translate(str.maketrans("أإآٱ", "اااا")))
+        re.escape(word.translate(str.maketrans("���?", "����")))
         for word in SPORTS_EXCLUDED
         if word not in _WORLD_AMBIGUOUS_SPORTS
     )
-    + r"|كرة القدم|مباراة|مباريات|منتخب(?:ات)?|مونديال|"
-    r"كاس (?:العالم|امم|اسيا|افريقيا|العرب|الملك|السوبر)|"
-    r"دوري (?:ابطال|الابطال|الانجليزي|الاسباني|الايطالي|الالماني|"
-    r"الفرنسي|الاوروبي|السعودي|المصري|المغربي)|"
-    r"بطولة العالم|العاب (?:ال)?اولمبي[ةه])"
-    r"(?![ء-ي])"
+    + r"|詡 ����|ꠟ���|ꠟ�|�뢦�(?:��)?|�����|"
+    r"蟫 (?:�����|���|���|�����|��㩠|�����|�����)|"
+    r"���� (?:����|�韠��|������|�韫����|������|������|"
+    r"�����|�������|������|��ꭩ�|���䩠�)|"
+    r"���� �����|��㟠 (?:��)?�����[��])"
+    r"(?![�-�])"
 )
 _WORLD_COMPETITION = re.compile(
-    r"(?<![ء-ي])[وفبك]?(?:ال|لل)?(?:بطولة|بطولات|سباق|سباقات|منافسات|ميدالية|ميداليات|ذهبية|فضية|برونزية)(?![ء-ي])"
+    r"(?<![�-�])[���]?(?:��|��)?(?:����|���韢|����|���矢|��嫟�|�履��|�履�|���|���|�����)(?![�-�])"
 )
 
 
 def world_story(title: str, detail: str = "") -> bool:
     # Analysis only: original source strings are never rewritten.
     normalized = re.sub(r"[\u064b-\u065f\u0670\u0640]", "", title).translate(
-        str.maketrans("أإآٱ", "اااا")
+        str.maketrans("���?", "����")
     )
-    normalized = re.sub(r"\b(الرئيس|المجلس|البرلمان|النائب|الحزب) المنتخب\b", r"\1", normalized)
+    normalized = re.sub(r"\b(�驞�|����|�頩���|��럞�|�饪�) ���뢦�\b", r"\1", normalized)
     if _WORLD_SPORTS.search(normalized) or (
         _WORLD_COMPETITION.search(normalized)
         and any(
-            re.search(r"(?<![ء-ي])[وفبك]?(?:ال|لل)?" + re.escape(word) + r"(?![ء-ي])", normalized)
+            re.search(r"(?<![�-�])[���]?(?:��|��)?" + re.escape(word) + r"(?![�-�])", normalized)
             for word in _WORLD_AMBIGUOUS_SPORTS
         )
     ):
@@ -381,7 +383,11 @@ def matches(key: str, text: str) -> bool:
     if key in FASHION_KEYS:
         from studio_core.production.fashion_policy import matches_desk
 
-        return matches_desk(key, text) and not any(word in text for word in STYLE_EXCLUDED) and not re.search(r"\b(?:bank|brokerage|efg)\b", text, re.IGNORECASE)
+        return (
+            matches_desk(key, text)
+            and not any(word in text for word in STYLE_EXCLUDED)
+            and not re.search(r"\b(?:bank|brokerage|efg)\b", text, re.IGNORECASE)
+        )
     if key == "world":
         return world_story(text)
     if key == "markets":
@@ -392,21 +398,21 @@ def matches(key: str, text: str) -> bool:
         return football_story(text)
     if key == "urgent":
         security = (
-            "صاروخ",
-            "غارة",
-            "غارات",
-            "قصف",
-            "انفجار",
-            "مسيّرة",
-            "اعتراض",
-            "الجيش",
-            "عسكري",
-            "مسلح",
-            "إطلاق نار",
-            "عدوان",
-            "قوات",
+            "�����",
+            "䟩�",
+            "䟩��",
+            "��",
+            "��够�",
+            "��",
+            "�㢩��",
+            "���",
+            "���",
+            "��",
+            "���� 럩",
+            "���",
+            "�ퟢ",
         )
-        return "عاجل" in text or (
+        return "㟤�" in text or (
             any(word in text for word in WORDS[key]) and any(word in text for word in security)
         )
     if key == "style" and any(word in text for word in STYLE_EXCLUDED):
@@ -498,8 +504,15 @@ def collect(
     if key in FASHION_KEYS:
         from .fashion_news import collect_fashion
 
-        return collect_fashion(key, client, now, seen=seen, source_ids=source_ids,
-                               predicate=predicate, diagnostics=diagnostics if diagnostics is not None else [])
+        return collect_fashion(
+            key,
+            client,
+            now,
+            seen=seen,
+            source_ids=source_ids,
+            predicate=predicate,
+            diagnostics=diagnostics if diagnostics is not None else [],
+        )
     candidates: list[dict[str, Any]] = []
     failures: list[dict[str, str]] = []
     for source in news_sources(key):
@@ -560,7 +573,7 @@ def collect(
         except (NetworkError, ValueError) as error:
             failures.append({"source_id": source.id, "error_type": type(error).__name__})
     if not candidates:
-        raise NewsUnavailable("لا يوجد خبر عربي حديث مناسب للأمر؛ لم يُستخدم محتوى ثابت بديل.")
+        raise NewsUnavailable("� ���� ��� 㩠� ��� �럫� ���? �� ������� ꥢ�� ���� ����.")
     # No mutation of seen and no write to delivery history: review is not publication.
     selected = max(
         candidates,
@@ -594,7 +607,8 @@ def validate(content: dict[str, Any], now: float) -> None:
         content.get("schema") != 1
         or content.get("type") != "news_review"
         or content.get("command") not in TITLES
-        or content.get("language") not in ({"ar", "en"} if content.get("command") in FASHION_KEYS else {"ar"})
+        or content.get("language")
+        not in ({"ar", "en"} if content.get("command") in FASHION_KEYS else {"ar"})
         or content.get("sacred") is not False
         or content.get("publication_enabled") is not False
         or content.get("audio_review") != AUDIO_POLICY
@@ -603,13 +617,24 @@ def validate(content: dict[str, Any], now: float) -> None:
     ):
         raise ValueError("Invalid news review")
     key = content["command"]
-    source = next((s for s in news_sources(key, production=key in FASHION_KEYS) if s.id == content.get("source_id")), None)
+    source = next(
+        (
+            s
+            for s in news_sources(key, production=key in FASHION_KEYS)
+            if s.id == content.get("source_id")
+        ),
+        None,
+    )
     if source is None:
         raise ValueError("Unapproved review source")
     desk: str = key
     if key in FASHION_KEYS:
         candidate_desk = content.get("fashion_desk", key)
-        if not isinstance(candidate_desk, str) or candidate_desk not in {key, "style"} or content.get("requires_owner_review", False) is not (content["language"] == "en"):
+        if (
+            not isinstance(candidate_desk, str)
+            or candidate_desk not in {key, "style"}
+            or content.get("requires_owner_review", False) is not (content["language"] == "en")
+        ):
             raise ValueError("Changed fashion review scope")
         desk = candidate_desk
     title = _plain(content["headline"])

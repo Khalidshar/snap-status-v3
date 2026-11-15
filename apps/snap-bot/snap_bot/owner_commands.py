@@ -4,11 +4,11 @@ Long-polls Telegram for the pinned main bot and answers only the owner's private
 (TG_CHAT), from the same person, on fresh messages. It shows the menu, the sections, the
 studio state and the last video, and runs the Snap clip cycle the owner runs on the
 server, through the same units:
-  «هل تعلم»  renders one clip (madar-v3-snap-render) and shows its fact;
-  «معاينة»   sends the pending clip's still to this chat;
-  «أرسل»     asks for «نعم»; «نعم» within two minutes approves that exact SHA for the
+  ��� ����  renders one clip (madar-v3-snap-render) and shows its fact;
+  ����롯   sends the pending clip's still to this chat;
+  �����     asks for ����; ���� within two minutes approves that exact SHA for the
              main channel and starts madar-v3-snap-send-main@<sha> once;
-  «ألغِ»      drops the pending clip; it is never sent.
+  ������      drops the pending clip; it is never sent.
 Every other command with an effect still answers that it is not in v3 yet.
 Run by madar-v3-snap-commands.service: python -m snap_bot.owner_commands
 """
@@ -41,9 +41,9 @@ from .telegram_egress import api
 OFFSET = STATE / "commands" / "offset.json"
 PENDING = STATE / "commands" / "pending.json"
 HALT = STATE / "HALT"
-SEND_HALTED = "الإرسال موقوف، اكتب «شغّل» لإعادته"
+SEND_HALTED = "�革��� �����? �袠 ���� �㟧��"
 FRESH_SECONDS = 900
-NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم."
+NOT_YET = "? �{label}� �� �� ��� v3 ��? ��� ������� ��. ����� �� ����� 矧�."
 COMMAND_ACTIONS = {"brief"}
 READ_ONLY = {"status", "last", "agents", "schedule", "report", "dash"}
 ACTIONS = {
@@ -76,10 +76,10 @@ RENDER_KINDS = {"facts": "did_you_know", "tech": "tech", "style": "style", "funn
                 "verse": "verse", "adhkar_am": "adhkar_am", "adhkar_pm": "adhkar_pm",
                 "friday": "friday", "kahf": "kahf", "riddle": "riddle", "isha": "verse"}  # fmt: skip
 SEND_UNIT = "madar-v3-snap-send-main@{sha}.service"
-SENT = "✅ أُرسل "
-TELEGRAM_MENU_TEXT = "🤖 اضغط القسم من الأزرار تحت."
-TELEGRAM_SECTION_TEXT = "اختر الأمر من الأزرار."
-NO_CLIP = "لا يوجد مقطع ينتظر. اكتب «هل تعلم» لصنع مقطع جديد."
+SENT = "? ����� "
+TELEGRAM_MENU_TEXT = "?? ���� ���� �� �險��� ���."
+TELEGRAM_SECTION_TEXT = "���� ��� �� �險���."
+NO_CLIP = "� ���� ���� ���. �袠 ��� ���� ��� ���� ���."
 
 
 # Layout contains command keys only; the shared registry owns every button label.
@@ -179,18 +179,18 @@ def describe_event(event: dict[str, Any]) -> str:
         return (
             SENT
             + sha
-            + " إلى "
+            + " ��� "
             + str(event.get("bot"))
-            + " · رسالة "
+            + " � ���� "
             + str(event.get("message_id"))
-            + " · "
+            + " � "
             + at
         )
     if kind == "HUMAN_FRAME":
-        return "👍 موافقتك على " + sha + " · " + at
+        return "?? ����� ��� " + sha + " � " + at
     if kind == "RENDERED":
-        return "🎬 رندر " + sha + " ينتظر موافقتك · " + at
-    return str(kind) + " " + sha + " · " + at
+        return "?? �맩 " + sha + " ��� ����� � " + at
+    return str(kind) + " " + sha + " � " + at
 
 
 class Studio:
@@ -213,25 +213,25 @@ class Studio:
         acks = [e for e in events if e.get("kind") == "ACK"]
         return "\n".join(
             [
-                "📡 الحالة",
-                "الإصدار: " + commit[:7],
-                "البوت الأساسي: " + channel_bot("main"),
-                "الجدولة: غير مفعّلة (كل مقطع بطلبك)",
-                "المقاطع المرسلة: " + str(len(acks)),
-                "آخر حدث: " + (describe_event(events[-1]) if events else "لا يوجد"),
+                "?? �饟�",
+                "�靭���: " + commit[:7],
+                "���� �隫���: " + channel_bot("main"),
+                "�餧��: �� ���� (�� ���� ����)",
+                "������ ��ꩫ�: " + str(len(acks)),
+                "��� ���: " + (describe_event(events[-1]) if events else "� ����"),
             ]
         )
 
     def last(self) -> str:
         events = [e for e in self.runtime.events() if e.get("video_sha")]
-        return "📥 آخر مقطع\n" + (describe_event(events[-1]) if events else "لا يوجد بعد")
+        return "?? ��� ����\n" + (describe_event(events[-1]) if events else "� ���� ��")
 
     def agents(self) -> str:
         # No execution claim from registration; the panel shows per-job evidence.
         return status_text("snap-bot-v2", {})
 
     def schedule(self) -> str:
-        return "🗓 مواعيد الجدولة\nلا توجد جدولة مفعّلة في v3. كل مقطع يُصنع ويُرسل بطلبك."
+        return "?? ���� �餧��\n� ���� ���� ���� �� v3. �� ���� ����� ������ ����."
 
     def report(self) -> str:
         events = self.runtime.events()
@@ -242,16 +242,16 @@ class Studio:
             for k in ("RENDERED", "HUMAN_FRAME", "ACK")
         }
         return (
-            "📊 تقرير اليوم\nرندر: "
+            "?? ��� �����\n�맩: "
             + str(counts["RENDERED"])
-            + " · موافقات: "
+            + " � ���矢: "
             + str(counts["HUMAN_FRAME"])
-            + " · إرسال: "
+            + " � �����: "
             + str(counts["ACK"])
         )
 
     def dash(self) -> str:
-        return "🖥️ لوحة التحكم: «غرفة قيادة مدار» في Claude (خاصة بك)."
+        return "??? ���� �颥��: ��� �� ꧟�� �� Claude (���� ��)."
 
     # The clip cycle ------------------------------------------------------------
 
@@ -320,7 +320,7 @@ class Studio:
             "kind": content.get("kind", "did_you_know"),
             "translated": machine_translated(content),
             "publication_notice": notice(content),
-            "title": content.get("title", "هل تعلم؟"),
+            "title": content.get("title", "�� ����?"),
             "body": content.get("body", ""),
             "category": content.get("category", ""),
             "expires_at": float(data["expires_at"]),
@@ -335,18 +335,18 @@ class Studio:
             + str(clip["body"])
             + "\n"
             + str(clip.get("publication_notice", ""))
-            + "\n\nالمقطع "
+            + "\n\n������ "
             + str(clip["sha"])[:8]
-            + " · صالح "
+            + " � ��� "
             + str(minutes)
-            + " دقيقة.\nاكتب «معاينة» لترى صورته، أو «أرسل» لإرساله، أو «ألغِ»."
+            + " ����.\n�袠 ����롯 颩� �����? �� ����� 革����? �� ������."
         )
 
     def make(self, kind: str) -> str:
         """The owner's command is the decision: render one clip of this kind and send it.
 
-        A pending clip of the same kind is sent instead of rendering another. «أوقف» keeps
-        the clip waiting; «معاينة», «أرسل» and «ألغِ» still work on a waiting clip.
+        A pending clip of the same kind is sent instead of rendering another. ����� keeps
+        the clip waiting; ����롯, ����� and ������ still work on a waiting clip.
         """
         clip = self.pending()
         if not clip or clip["kind"] != kind:
@@ -355,16 +355,16 @@ class Studio:
             if kind == "urgent" and status == 3:
                 return NO_FRESH_CONTENT_MESSAGE
             if status != 0:
-                return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص " + unit + " على السيرفر."
+                return "?? �㨑� ��� ������? ��� ����� ��. �奭 " + unit + " ��� ����."
             clip = self.pending()
             if not clip or clip["kind"] != kind:
-                return "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
+                return "?? ���� ��맩 �� ���� ���? ��� ����� ��."
         if safe_path(HALT).exists():
             return self.describe(clip) + "\n\n" + SEND_HALTED
         from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
 
         if kind in FASHION_KEYS and clip.get("translated"):
-            return self.describe(clip) + "\n\nراجع الترجمة في المعاينة ثم اكتب «أرسل» للموافقة."
+            return self.describe(clip) + "\n\n���� �颩�� �� ������ �� �袠 ����� ������."
         outcome = self.deliver(clip["sha"])
         # The clip itself is the reply: a sent clip needs no text; any failure is reported.
         if outcome.startswith(SENT):
@@ -414,7 +414,7 @@ class Studio:
         return self.make("kahf")
 
     def isha(self) -> str:
-        return self.make("isha")  # «ليلة طيبة» has its own clip, not «آية اليوم»
+        return self.make("isha")  # ���� �� has its own clip, not ��� �����
 
     def riddle(self) -> str:
         return self.make("riddle")
@@ -440,7 +440,7 @@ class Studio:
         state["confirm"] = None
         self.save(state)
         safe_path(HALT).unlink(missing_ok=True)
-        return "تم تشغيل الإرسال. اكتب «أرسل» ثم «نعم» لإرسال المقطع."
+        return "�� ����� �革���. �袠 ����� �� ���� 革��� ������."
 
     def send(self) -> str:
         if safe_path(HALT).exists():
@@ -451,7 +451,7 @@ class Studio:
         state = self.state()
         state["confirm"] = {"sha": clip["sha"], "at": time.time()}
         self.save(state)
-        return menu.confirm_text(menu.BY_KEY["send"]) + "\nالمقطع " + str(clip["sha"])[:8]
+        return menu.confirm_text(menu.BY_KEY["send"]) + "\n������ " + str(clip["sha"])[:8]
 
     def cancel(self) -> str:
         clip = self.pending()
@@ -462,7 +462,7 @@ class Studio:
             return NO_CLIP
         state["cancelled"] = (state["cancelled"] + [clip["sha"]])[-200:]
         self.save(state)
-        return "❌ أُلغي المقطع " + str(clip["sha"])[:8] + ". لن يُرسل."
+        return "? ����� ������ " + str(clip["sha"])[:8] + ". �� �����."
 
     def yes(self) -> str:
         state = self.state()
@@ -474,10 +474,10 @@ class Studio:
         if not isinstance(confirm, dict) or not 0 <= time.time() - confirm.get("at", 0) < (
             menu.CONFIRM_SECONDS
         ):
-            return "لا يوجد أمر ينتظر التأكيد."
+            return "� ���� �� ��� �颚��."
         clip = self.pending()
         if not clip or clip["sha"] != confirm.get("sha"):
-            return "تغيّر المقطع المنتظر، فلم يُرسل شيء. اكتب «أرسل» من جديد."
+            return "�� ������ �����? ��� ����� ��. �袠 ����� �� ���."
         return self.deliver(clip["sha"])
 
     def deliver(self, sha: str) -> str:
@@ -485,14 +485,14 @@ class Studio:
         try:
             self.runtime.approve(sha, "main", owner_chat=True)
         except Exception as error:
-            return "⚠️ لم تُسجَّل الموافقة (" + type(error).__name__ + ")، فلم يُرسل شيء."
+            return "?? �� ������� ������ (" + type(error).__name__ + ")? ��� ����� ��."
         self.start(SEND_UNIT.format(sha=sha))
         outcome = [e for e in self.runtime.events() if e.get("video_sha") == sha]
         last = outcome[-1] if outcome else {}
         if last.get("kind") == "ACK":
             return describe_event(last)
         return (
-            "⚠️ لم يتأكد الإرسال (" + str(last.get("kind", "?")) + "). المقطع مقفل ولن يُعاد إرساله."
+            "?? �� � �革��� (" + str(last.get("kind", "?")) + "). ������ ���� ��� ��㟧 ������."
         )
 
     def answer(self, text: str) -> Any:
@@ -505,7 +505,7 @@ class Studio:
             if command.key in READ_ONLY or command.key in ACTIONS:
                 return getattr(self, command.key)()
             if command.key in TOOL_IDS:
-                return command.label + ": أداة الأوامر غير مربوطـة في سناب؛ لا يُنفّذ شيء."
+                return command.label + ": ���� ���� �� ꩠ�ᕡ �� �럠? � ���周 ��."
             return NOT_YET.format(label=command.label)
         if kind == "add_fact":
             return NOT_YET.format(label=menu.BY_KEY["add_fact"].label)

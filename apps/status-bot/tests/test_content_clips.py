@@ -34,9 +34,8 @@ def fixture():
 
 @pytest.mark.parametrize("key", content_clips.KINDS)
 def test_every_telegram_kind_is_available_in_whatsapp(key):
-    from studio_core.production.model import TITLES
-
     from studio_core.production.fashion_policy import KEYS
+    from studio_core.production.model import TITLES
 
     # History and the fashion desks use the production pipeline, not the card catalogs.
     assert content_clips.KINDS[key] in SHARED_KINDS or (
@@ -47,7 +46,7 @@ def test_every_telegram_kind_is_available_in_whatsapp(key):
 def test_video_send_is_once_pinned_and_no_text_reply(fixture, tmp_path):
     f = fixture
     transport = fixtures.OfflineTransport(f.identity)
-    content = {"type": "did_you_know", "body": "نص عربي", "kind": "verse"}
+    content = {"type": "did_you_know", "body": "� 㩠�", "kind": "verse"}
     result = {"video_sha256": hashlib.sha256(b"video").hexdigest()}
     item = {"tag": "a" * 64}
     with (
@@ -141,7 +140,7 @@ def test_translated_clip_is_followed_by_the_review_notice(
     delivered.assert_called_once()
     transport.send_text.assert_called_once()
     note = transport.send_text.call_args.args[0]
-    assert note.startswith("وجهة النشر: ") and note.endswith(TRANSLATED_NOTE)
+    assert note.startswith("��� ��묩: ") and note.endswith(TRANSLATED_NOTE)
 
     plain = Mock()
     transport.send_text = plain
@@ -438,6 +437,7 @@ def test_design_failure_reaches_parent_only_with_current_content_binding(
         assert caught.value is original
     assert "SECRET" not in repr(caught.value)
 
+
 @pytest.mark.parametrize("key", sorted(k for k in content_clips.KINDS if k.startswith("style")))
 def test_fashion_commands_use_production_instead_of_the_headline_reply(fixture, monkeypatch, key):
     import hmac
@@ -457,9 +457,10 @@ def test_fashion_commands_use_production_instead_of_the_headline_reply(fixture, 
     signature = "sha256=" + hmac.new(f.identity.webhook_key, raw, hashlib.sha256).hexdigest()
     f.outbox.webhook(raw, signature)
     transport = fixtures.OfflineTransport(f.identity)
-    with patch("status_bot.owner_commands.content_clips.send") as deliver, patch(
-        "status_bot.owner_commands.command_news.reply"
-    ) as headline:
+    with (
+        patch("status_bot.owner_commands.content_clips.send") as deliver,
+        patch("status_bot.owner_commands.command_news.reply") as headline,
+    ):
         assert process_one(f.outbox, transport, Mock(), f.runtime)
     deliver.assert_called_once()
     assert deliver.call_args.args[3] == key
@@ -491,4 +492,3 @@ def test_translated_fashion_waits_in_the_panel_without_uploading(fixture, tmp_pa
     saved = json.loads(panel_actions.media(path, preview, ".json").read_text())
     assert saved["tag"] == tag and saved["command"] == "style_women"
     transport.send_text.assert_called_once()
-

@@ -9,10 +9,10 @@ from types import SimpleNamespace
 from studio_core.network.client import NetworkClient, NetworkResponse
 from studio_core.network.production import ProductionPolicy, fetch
 from studio_core.production.fashion_diagnostic import STAGES, diagnose
+from studio_core.production.fashion_policy import TITLES
 from studio_core.production.model import canonical, sha
 from studio_core.production.prepare import Factory
 from studio_core.sources.news import NewsUnavailable, collect
-from studio_core.production.fashion_policy import TITLES
 
 
 class Cache:
@@ -72,56 +72,95 @@ def main():
         row = {"command": key, "sources": trace}
         try:
             content = collect(key, client, report["checked_at"], diagnostics=trace)["content"]
-            row.update(result="CURRENT_REVIEW", source=content["source_id"],
-                       language=content["language"], desk=content.get("fashion_desk", key),
-                       requires_owner_review=content.get("requires_owner_review", False))
+            row.update(
+                result="CURRENT_REVIEW",
+                source=content["source_id"],
+                language=content["language"],
+                desk=content.get("fashion_desk", key),
+                requires_owner_review=content.get("requires_owner_review", False),
+            )
         except NewsUnavailable:
             row["result"] = "NO_CURRENT_REVIEW"
         collectors.append(row)
     report["command_news_collectors"] = collectors
     (args.output / "report.json").write_bytes(canonical(report))
     rows = [
-        "| الأمر | خام | العمر | اللغة/الموضوع | البراند | القسم | الصورة | بلا تكرار | البديل |",
+        "| ��� | ��� | ���� | ����/������� | �頩�� | ���� | ����� | �� �詟� | �頧�� |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     any_source = any("raw" in source for source in report["sources"])
     for row in report["rows"]:
-        values = [str(row[stage]) if any_source else "—" for stage in (*STAGES, "fallback_pool")]
+        values = [str(row[stage]) if any_source else "?" for stage in (*STAGES, "fallback_pool")]
         rows.append("| " + row["title"] + " | " + " | ".join(values) + " |")
     completeness = (
-        "نتائج جزئية للمصادر المتاحة" if not report["complete"] else "اكتمل جلب المصادر المعتمدة"
+        "뢟�� ���� ��ꭟ�� ��ꢟ��" if not report["complete"] else "���� �� ��ꭟ�� ����ꧡ"
     )
     rows.extend(
         [
             "",
             completeness,
-            "السجل التشغيلي لم يُقرأ؛ منع التكرار هنا بين مواضيع المرشحين فقط.",
-            "الصورة تعني توفر صورة عامة؛ اعتماد خالد والمدة والرسم ليست مثبتة بهذا الفحص.",
-            "المواقع التي ليست RSS تمر بمحول الإنتاج؛ عدد خام لها بعد مرشحات المحول.",
+            "�髤� �颬���� �� ��穚? ��� ��詟� �� ��� ����� ��ꩬ��� ���.",
+            "����� ���� ��� ���� ��? ��꟧ ��� ��ꧡ �驫� �﫢 ꣠�� �쨟 ��奭.",
+            "������ ��� �﫢 RSS �� ���� ��뢟�? 㧧 ��� �� �� ꩬ��� �����.",
             "",
-            "| المصدر | النتيجة | العناصر |",
+            "| ��ꭧ� | ���嵐 | ���럭� |",
             "|---|---|---:|",
         ]
     )
     for row in report["sources"]:
-        rows.append(f"| {row['source']} | {row['result']} | {row.get('raw', '—')} |")
-    rows += ["", "## مسار command_news.collect الفعلي (لا إرسال)",
-             "| الأمر | المصدر | اللغة | المكتب الفعلي | النتيجة |",
-             "|---|---|---|---|---|"]
+        rows.append(f"| {row['source']} | {row['result']} | {row.get('raw', '?')} |")
+    rows += [
+        "",
+        "## ꫟� command_news.collect ������ (� �����)",
+        "| ��� | ��ꭧ� | ���� | ���袠 ������ | ���嵐 |",
+        "|---|---|---|---|---|",
+    ]
     for row in collectors:
-        rows.append("| " + " | ".join(str(row.get(k, "—")) for k in
-                    ("command", "source", "language", "desk", "result")) + " |")
+        rows.append(
+            "| "
+            + " | ".join(
+                str(row.get(k, "?")) for k in ("command", "source", "language", "desk", "result")
+            )
+            + " |"
+        )
     for row in collectors:
-        rows += ["", "### " + row["command"],
-                 ("| المصدر | خام | محلل | عنوان | لغة | براند | قسم | عمر | تكرار |"
-                  " شرط إضافي | بديل | السبب |"),
-                 "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+        rows += [
+            "",
+            "### " + row["command"],
+            (
+                "| ��ꭧ� | ��� | ��� | ���� | �� | ���� | �� | �� | �詟� |"
+                " ��� ����� | ���� | �髠� |"
+            ),
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        ]
         for source in row["sources"]:
-            values = [str(source["counts"][stage]) for stage in
-                      ("raw", "parsed", "title", "language", "brand", "section", "age", "seen", "predicate")]
-            rows.append("| " + source["source_id"] + " | " + " | ".join(values)
-                        + " | " + str(source["fallback_accepted"]) + " | "
-                        + source.get("reason", "—") + ":" + source.get("error_type", "") + " |")
+            values = [
+                str(source["counts"][stage])
+                for stage in (
+                    "raw",
+                    "parsed",
+                    "title",
+                    "language",
+                    "brand",
+                    "section",
+                    "age",
+                    "seen",
+                    "predicate",
+                )
+            ]
+            rows.append(
+                "| "
+                + source["source_id"]
+                + " | "
+                + " | ".join(values)
+                + " | "
+                + str(source["fallback_accepted"])
+                + " | "
+                + source.get("reason", "?")
+                + ":"
+                + source.get("error_type", "")
+                + " |"
+            )
     markdown = "\n".join(rows) + "\n"
     (args.output / "report.md").write_text(markdown, encoding="utf-8")
     print(markdown)

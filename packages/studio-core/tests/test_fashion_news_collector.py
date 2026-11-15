@@ -7,11 +7,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from studio_core.production.fashion_policy import KEYS
-from studio_core.production import enabled
 from studio_core.network.client import NetworkResponse
+from studio_core.production import enabled
+from studio_core.production.fashion_policy import KEYS
 from studio_core.sources import for_command
-from studio_core.sources.news import collect, digest, validate, validate_delivery, NewsUnavailable
+from studio_core.sources.news import NewsUnavailable, collect, digest, validate, validate_delivery
 
 
 class Feed:
@@ -23,9 +23,11 @@ class Feed:
         if url != self.source.url:
             raise OSError("not a fixture source")
         date = email.utils.formatdate(time.time() - 60, usegmt=True)
-        raw = (f"<rss><channel><item><title>{self.title}</title>"
-               "<link>https://www.vogue.com/article/real-test-story</link>"
-               f"<pubDate>{date}</pubDate></item></channel></rss>").encode()
+        raw = (
+            f"<rss><channel><item><title>{self.title}</title>"
+            "<link>https://www.vogue.com/article/real-test-story</link>"
+            f"<pubDate>{date}</pubDate></item></channel></rss>"
+        ).encode()
         return NetworkResponse(200, "application/rss+xml", raw, hashlib.sha256(raw).hexdigest())
 
 
@@ -56,14 +58,26 @@ def test_seen_and_predicate_are_not_bypassed_by_fallback():
     for kwargs in ({"seen": frozenset({first["fingerprint"]})}, {"predicate": lambda title: False}):
         trace = []
         with pytest.raises(NewsUnavailable):
-            collect("style_kids", client, time.time(), source_ids=frozenset({"vogue"}), diagnostics=trace, **kwargs)
+            collect(
+                "style_kids",
+                client,
+                time.time(),
+                source_ids=frozenset({"vogue"}),
+                diagnostics=trace,
+                **kwargs,
+            )
         row = next(r for r in trace if r["source_id"] == "vogue")
         assert row["fallback_accepted"] == 0
 
 
 def test_local_brand_does_not_enter_either_collector_pass():
     with pytest.raises(NewsUnavailable):
-        collect("style_kids", Feed("Dior with Huda Beauty dress"), time.time(), source_ids=frozenset({"vogue"}))
+        collect(
+            "style_kids",
+            Feed("Dior with Huda Beauty dress"),
+            time.time(),
+            source_ids=frozenset({"vogue"}),
+        )
 
 
 @pytest.mark.parametrize("key", sorted(KEYS))
@@ -81,7 +95,7 @@ def test_render_worker_uses_the_production_factory_for_every_fashion_key(monkeyp
 def test_arabic_website_and_latin_house_name_work_without_loosening_world():
     source = next(s for s in for_command("style") if s.id == "laha")
     article = source.url + "fashion/" + "a" * 45
-    title = "حقيبة Michael Kors جديدة للمرأة"
+    title = "�� Michael Kors ��李 ��꩚�"
 
     class Website:
         def get(self, url):
@@ -89,13 +103,17 @@ def test_arabic_website_and_latin_house_name_work_without_loosening_world():
                 raw = f'<a href="{article}">article</a>'.encode()
             elif url == article:
                 published = datetime.fromtimestamp(time.time() - 60, UTC).isoformat()
-                raw = (f'<meta property="og:title" content="{title}">'
-                       f'<script>{{"datePublished":"{published}"}}</script>').encode()
+                raw = (
+                    f'<meta property="og:title" content="{title}">'
+                    f'<script>{{"datePublished":"{published}"}}</script>'
+                ).encode()
             else:
                 raise OSError("not a fixture source")
             return NetworkResponse(200, "text/html", raw, hashlib.sha256(raw).hexdigest())
 
-    content = collect("style_men", Website(), time.time(), source_ids=frozenset({"laha"}))["content"]
+    content = collect("style_men", Website(), time.time(), source_ids=frozenset({"laha"}))[
+        "content"
+    ]
     validate_delivery(content, time.time())
     assert content["headline"] == title and content["language"] == "ar"
     assert content["fashion_desk"] == "style" and content["command"] == "style_men"

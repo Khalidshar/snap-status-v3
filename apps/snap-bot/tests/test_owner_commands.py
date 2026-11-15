@@ -44,10 +44,10 @@ class FakeRuntime:
     def rendered(
         self,
         n,
-        body="نص المعلومة",
+        body="� �������",
         expires=600,
         kind=None,
-        title="هل تعلم؟",
+        title="�� ����?",
         commit=None,
         translated=False,
     ):
@@ -128,23 +128,23 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertEqual(cursor, 8)
 
     def test_read_only_answers(self):
-        self.assertIn("khalid_s2ss_bot", self.studio.answer("الحالة"))
-        self.assertIn("2d0191a", self.studio.answer("الحالة"))
-        self.assertIn("رسالة 946", self.studio.answer("آخر مقطع"))
-        self.assertIn("غير مفعّلة", self.studio.answer("الحالة"))
-        self.assertIn("إرسال: 1", self.studio.answer("تقرير اليوم"))
-        self.assertIn("سبع محطات", self.studio.answer("حالة الوكلاء"))
-        self.assertIn("غير مربوط", self.studio.answer("حالة الوكلاء"))
-        self.assertIn("لا توجد جدولة", self.studio.answer("مواعيد الجدولة"))
+        self.assertIn("khalid_s2ss_bot", self.studio.answer("�饟�"))
+        self.assertIn("2d0191a", self.studio.answer("�饟�"))
+        self.assertIn("���� 946", self.studio.answer("��� ����"))
+        self.assertIn("�� ����", self.studio.answer("�饟�"))
+        self.assertIn("�����: 1", self.studio.answer("��� �����"))
+        self.assertIn("��� �២", self.studio.answer("��� ����韘"))
+        self.assertIn("�� ꩠ��", self.studio.answer("��� ����韘"))
+        self.assertIn("� ���� ����", self.studio.answer("���� �餧��"))
 
     def test_commands_outside_the_clip_cycle_do_nothing_yet(self):
-        for text in ("أضف هل تعلم: نص", "خبر عاجل", "⏸ إيقاف الجدولة"):
-            self.assertIn("لم يصل إلى v3", self.studio.answer(text), text)
+        for text in ("��� �� ����: �", "��� 㟤�", "? ���� �餧��"):
+            self.assertIn("�� �� ��� v3", self.studio.answer(text), text)
         self.assertEqual(self.runtime.appended, [], "guard:read-only")
 
     def test_unknown_text_shows_the_menu(self):
-        self.assertIn("القائمة", self.studio.answer("لا توقف شي"))
-        self.assertIn("⏯ التحكم", self.studio.answer("لا توقف شي"))
+        self.assertIn("��矞�", self.studio.answer("� ���� ��"))
+        self.assertIn("? �颥��", self.studio.answer("� ���� ��"))
 
     def test_poll_replies_only_to_the_owner_and_advances(self):
         calls = []
@@ -152,7 +152,7 @@ class OwnerCommandTests(unittest.TestCase):
         def transport(token, method, body=b""):
             calls.append((method, json.loads(body or b"{}")))
             if method == "getUpdates":
-                return [update(10, "الحالة"), update(11, "1", chat="99", sender="99")]
+                return [update(10, "�饟�"), update(11, "1", chat="99", sender="99")]
             return {"message_id": 1, "chat": {"id": 77}}
 
         offset = listener.poll_once("t", OWNER, self.studio, 3, transport)
@@ -165,7 +165,7 @@ class OwnerCommandTests(unittest.TestCase):
 
     def test_menu_and_start_send_the_whatsapp_sections_offline(self):
         # Owner 8 Nov 2026: Telegram shows the same sections as the WhatsApp list.
-        for text in ("القائمة", "/start"):
+        for text in ("��矞�", "/start"):
             calls = []
 
             def transport(token, method, body=b""):
@@ -231,35 +231,35 @@ class ClipCycleTests(unittest.TestCase):
         self.studio = listener.Studio(self.runtime, start, self.root / "commands/pending.json")
 
     def test_halt_blocks_send_but_allows_render_and_preview(self):
-        self.assertEqual(self.studio.answer("أوقف"), listener.SEND_HALTED)
+        self.assertEqual(self.studio.answer("����"), listener.SEND_HALTED)
         self.assertTrue(listener.HALT.is_file())
-        self.assertEqual(self.studio.answer("أرسل"), listener.SEND_HALTED)
+        self.assertEqual(self.studio.answer("����"), listener.SEND_HALTED)
         self.on_start["madar-v3-snap-render.service"] = lambda unit: self.runtime.rendered(21)
-        self.assertIn("نص المعلومة", self.studio.answer("هل تعلم"))
-        self.assertIn("photo", self.studio.answer("معاينة"))
-        self.assertEqual(self.studio.answer("أرسل"), listener.SEND_HALTED)
+        self.assertIn("� �������", self.studio.answer("�� ����"))
+        self.assertIn("photo", self.studio.answer("����"))
+        self.assertEqual(self.studio.answer("����"), listener.SEND_HALTED)
         self.assertEqual(self.runtime.approved, [])
         self.assertEqual(self.started, [listener.RENDER_UNIT])
 
     def test_halt_revokes_confirmation_and_unhalt_never_sends(self):
         self.runtime.rendered(22)
-        self.assertIn("نعم", self.studio.answer("أرسل"))
-        self.studio.answer("أوقف")
-        self.studio.answer("أوقف")  # idempotent
-        self.assertEqual(self.studio.answer("نعم"), listener.SEND_HALTED)
-        self.assertIn("تم تشغيل", self.studio.answer("شغّل"))
+        self.assertIn("���", self.studio.answer("����"))
+        self.studio.answer("����")
+        self.studio.answer("����")  # idempotent
+        self.assertEqual(self.studio.answer("���"), listener.SEND_HALTED)
+        self.assertIn("�� �����", self.studio.answer("���"))
         self.assertFalse(listener.HALT.exists())
-        self.studio.answer("شغّل")  # idempotent
-        self.assertEqual(self.studio.answer("نعم"), "لا يوجد أمر ينتظر التأكيد.")
+        self.studio.answer("���")  # idempotent
+        self.assertEqual(self.studio.answer("���"), "� ���� �� ��� �颚��.")
         self.assertEqual(self.runtime.approved, [])
         self.assertEqual(self.started, [])
-        self.assertIn("نعم", self.studio.answer("أرسل"))
+        self.assertIn("���", self.studio.answer("����"))
 
     def test_external_halt_blocks_an_already_pending_yes(self):
         self.runtime.rendered(23)
-        self.studio.answer("أرسل")
+        self.studio.answer("����")
         listener.HALT.touch()
-        self.assertEqual(self.studio.answer("نعم"), listener.SEND_HALTED)
+        self.assertEqual(self.studio.answer("���"), listener.SEND_HALTED)
         self.assertEqual(self.runtime.approved, [])
         self.assertEqual(self.started, [])
 
@@ -274,13 +274,13 @@ class ClipCycleTests(unittest.TestCase):
 
         self.on_start["madar-v3-snap-render.service"] = lambda unit: self.runtime.rendered(1)
         self.on_start["madar-v3-snap-send-main"] = ack
-        reply = self.studio.answer("هل تعلم")
+        reply = self.studio.answer("�� ����")
         # The clip is the answer; only the owner's destination note follows it.
-        self.assertTrue(reply.startswith("وجهة النشر: "), "guard:destination-note-only")
+        self.assertTrue(reply.startswith("��� ��묩: "), "guard:destination-note-only")
         self.assertNotIn("\n", reply)
         self.assertEqual(self.runtime.approved, [(sha, "main", True)], "guard:main-only")
         self.assertEqual(self.started, [listener.RENDER_UNIT, listener.SEND_UNIT.format(sha=sha)])
-        self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP, "guard:sent-once")
+        self.assertEqual(self.studio.answer("����"), listener.NO_CLIP, "guard:sent-once")
 
     def test_a_translated_clip_is_sent_with_the_review_notice(self):
         sha = f"{1:064x}"
@@ -292,16 +292,16 @@ class ClipCycleTests(unittest.TestCase):
             )  # fmt: skip
 
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            1, "خبر مترجم", kind="style", title="جديد البراندات", translated=True
+            1, "��� ꢩ��", kind="style", title="��� �頩�맟�", translated=True
         )
         self.on_start["madar-v3-snap-send-main"] = ack
-        reply = self.studio.answer("جديد البراندات")
-        self.assertIn("راجع الترجمة", reply)
+        reply = self.studio.answer("��� �頩�맟�")
+        self.assertIn("���� �颩��", reply)
         self.assertEqual(self.runtime.approved, [])
         self.studio.send()
         self.assertEqual(self.runtime.approved, [])
         reply = self.studio.yes()
-        self.assertTrue(reply.startswith("✅ أُرسل "))
+        self.assertTrue(reply.startswith("? ����� "))
         self.assertEqual(self.runtime.approved, [(sha, "main", True)])
 
     def test_a_sent_clip_gets_no_text_reply_but_a_failure_does(self):
@@ -309,25 +309,25 @@ class ClipCycleTests(unittest.TestCase):
 
         def transport(token, method, body=None, kind=None):
             calls.append(method)
-            return [update(16, "هل تعلم")] if method == "getUpdates" else {}
+            return [update(16, "�� ����")] if method == "getUpdates" else {}
 
         with patch.object(self.studio, "answer", return_value=""):
             listener.poll_once("t", OWNER, self.studio, 0, transport)
         self.assertEqual(calls, ["getUpdates"], "guard:no-text-after-a-sent-clip")
         calls.clear()
-        with patch.object(self.studio, "answer", return_value="⚠️ تعذّر"):
+        with patch.object(self.studio, "answer", return_value="?? �㨑�"):
             listener.poll_once("t", OWNER, self.studio, 0, transport)
         self.assertEqual(calls, ["getUpdates", "sendMessage"], "guard:failures-are-reported")
 
     def test_a_clip_from_an_earlier_release_is_skipped_and_rendered_afresh(self):
         # The server refuses to approve it ("Evidence or release changed"); offering it
-        # again made «صيام» fail on every try until it expired.
-        self.runtime.rendered(25, kind="fast", title="تذكير الصيام", commit="f" * 40)
+        # again made ���� fail on every try until it expired.
+        self.runtime.rendered(25, kind="fast", title="���� ����", commit="f" * 40)
         self.assertIsNone(self.studio.pending(), "guard:stale-release-skipped")
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            26, "نص الصيام", kind="fast", title="تذكير الصيام"
+            26, "� ����", kind="fast", title="���� ����"
         )
-        self.studio.answer("صيام")
+        self.studio.answer("���")
         self.assertEqual(self.started[0], "madar-v3-snap-render@fast.service")
         self.assertEqual(self.runtime.approved, [(f"{26:064x}", "main", True)])
 
@@ -341,40 +341,40 @@ class ClipCycleTests(unittest.TestCase):
 
     def test_variety_commands_render_their_own_kind(self):
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            11, "نصيحة تقنية", kind="tech", title="تقنية"
+            11, "�率 ����", kind="tech", title="����"
         )
         self.studio.answer("9")
         self.assertEqual(self.started[0], "madar-v3-snap-render@tech.service", "guard:kind-unit")
         self.assertEqual(self.started[-1], listener.SEND_UNIT.format(sha=f"{11:064x}"))
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            12, "سطر هادئ", kind="night", title="قبل النوم"
+            12, "�� 쟧�", kind="night", title="�� �����"
         )
-        self.studio.answer("قبل النوم")
+        self.studio.answer("�� �����")
         self.assertEqual(self.started[-2], "madar-v3-snap-render@night.service")
 
     def test_faith_commands_render_their_sacred_kind(self):
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            13, "نص الحديث", kind="hadith", title="حديث شريف"
+            13, "� �饧�", kind="hadith", title="��� ����"
         )
-        self.studio.answer("حديث")
+        self.studio.answer("���")
         self.assertEqual(self.started[0], "madar-v3-snap-render@hadith.service", "guard:kind-unit")
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            14, "نص الدعاء", kind="dua", title="دعاء"
+            14, "� ��㟘", kind="dua", title="�㟘"
         )
-        self.studio.answer("دعاء")
+        self.studio.answer("�㟘")
         self.assertEqual(self.started[-2], "madar-v3-snap-render@dua.service")
         self.on_start["madar-v3-snap-render"] = lambda unit: self.runtime.rendered(
-            15, "نص الصيام", kind="fast", title="تذكير الصيام"
+            15, "� ����", kind="fast", title="���� ����"
         )
-        self.studio.answer("صيام")
+        self.studio.answer("���")
         self.assertEqual(self.started[-2], "madar-v3-snap-render@fast.service")
 
     def test_preview_is_the_pending_still(self):
-        self.assertEqual(self.studio.answer("معاينة"), listener.NO_CLIP)
+        self.assertEqual(self.studio.answer("����"), listener.NO_CLIP)
         self.runtime.rendered(2)
-        reply = self.studio.answer("👁 معاينة")
+        reply = self.studio.answer("?? ����")
         self.assertEqual(Path(reply["photo"]).read_bytes(), b"png-bytes")
-        self.assertIn("نص المعلومة", reply["caption"])
+        self.assertIn("� �������", reply["caption"])
 
     def test_quran_and_adhkar_commands_render_and_send_their_own_kind(self):
         def ack(unit):
@@ -392,7 +392,7 @@ class ClipCycleTests(unittest.TestCase):
                     self.runtime.rendered(n, kind=kind, title=listener.menu.BY_KEY[kind].label)
                 )
                 reply = self.studio.answer(listener.menu.BY_KEY[key].label)
-                self.assertEqual(reply, "وجهة النشر: الأضواء")  # sacred and riddles: Spotlight
+                self.assertEqual(reply, "��� ��묩: ���ퟘ")  # sacred and riddles: Spotlight
                 self.assertEqual(self.started[-2], "madar-v3-snap-render@" + key + ".service")
                 self.assertEqual(self.started[-1], listener.SEND_UNIT.format(sha=f"{number:064x}"))
                 self.assertIn(key, listener.ACTIONS)
@@ -400,8 +400,8 @@ class ClipCycleTests(unittest.TestCase):
 
     def test_send_needs_yes_then_sends_that_clip_once(self):
         sha = self.runtime.rendered(3)
-        self.assertEqual(self.studio.answer("نعم"), "لا يوجد أمر ينتظر التأكيد.")
-        self.assertIn("نعم", self.studio.answer(listener.menu.BY_KEY["send"].label))
+        self.assertEqual(self.studio.answer("���"), "� ���� �� ��� �颚��.")
+        self.assertIn("���", self.studio.answer(listener.menu.BY_KEY["send"].label))
         self.assertEqual(self.started, [], "guard:keyboard-send-needs-yes")
         self.assertEqual(self.runtime.approved, [], "guard:send-needs-yes")
 
@@ -412,44 +412,44 @@ class ClipCycleTests(unittest.TestCase):
             )  # fmt: skip
 
         self.on_start["madar-v3-snap-send-main"] = ack
-        reply = self.studio.answer("نعم")
-        self.assertIn("رسالة 948", reply)
+        reply = self.studio.answer("���")
+        self.assertIn("���� 948", reply)
         self.assertEqual(self.runtime.approved, [(sha, "main", True)], "guard:main-only")
         self.assertEqual(self.started, [listener.SEND_UNIT.format(sha=sha)])
-        self.assertEqual(self.studio.answer("نعم"), "لا يوجد أمر ينتظر التأكيد.", "guard:once")
-        self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP)
+        self.assertEqual(self.studio.answer("���"), "� ���� �� ��� �颚��.", "guard:once")
+        self.assertEqual(self.studio.answer("����"), listener.NO_CLIP)
 
     def test_late_yes_and_changed_clip_send_nothing(self):
         self.runtime.rendered(4)
-        self.studio.answer("أرسل")
+        self.studio.answer("����")
         later = time.time() + listener.menu.CONFIRM_SECONDS + 1
         with patch.object(listener.time, "time", return_value=later):
-            self.assertEqual(self.studio.answer("نعم"), "لا يوجد أمر ينتظر التأكيد.")
-        self.studio.answer("أرسل")
+            self.assertEqual(self.studio.answer("���"), "� ���� �� ��� �颚��.")
+        self.studio.answer("����")
         self.runtime.rendered(5)
-        self.assertIn("تغيّر المقطع", self.studio.answer("نعم"), "guard:exact-sha")
+        self.assertIn("�� ������", self.studio.answer("���"), "guard:exact-sha")
         self.assertEqual(self.runtime.approved, [])
         self.assertEqual(self.started, [])
 
     def test_cancel_drops_the_clip_for_good(self):
         self.runtime.rendered(6)
-        self.studio.answer("أرسل")
-        self.assertIn("أُلغي", self.studio.answer("ألغِ"))
-        self.assertEqual(self.studio.answer("نعم"), "لا يوجد أمر ينتظر التأكيد.")
-        self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP, "guard:cancel-final")
+        self.studio.answer("����")
+        self.assertIn("�����", self.studio.answer("����"))
+        self.assertEqual(self.studio.answer("���"), "� ���� �� ��� �颚��.")
+        self.assertEqual(self.studio.answer("����"), listener.NO_CLIP, "guard:cancel-final")
 
     def test_expired_clip_is_not_offered(self):
         self.runtime.rendered(7, expires=-1)
-        self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP)
+        self.assertEqual(self.studio.answer("����"), listener.NO_CLIP)
 
     def test_failed_send_is_reported_and_locked(self):
         sha = self.runtime.rendered(8)
-        self.studio.answer("أرسل")
+        self.studio.answer("����")
         self.on_start["madar-v3-snap-send-main"] = lambda unit: self.runtime.list.append(
             {"kind": "UNKNOWN", "video_sha": sha, "time": time.time()}
         )
-        self.assertIn("لن يُعاد", self.studio.answer("نعم"))
-        self.assertEqual(self.studio.answer("أرسل"), listener.NO_CLIP)
+        self.assertIn("�� ��㟧", self.studio.answer("���"))
+        self.assertEqual(self.studio.answer("����"), listener.NO_CLIP)
 
     def test_poll_sends_the_preview_as_a_photo(self):
         self.runtime.rendered(9)
@@ -458,7 +458,7 @@ class ClipCycleTests(unittest.TestCase):
         def transport(token, method, body=b"", kind="application/json"):
             calls.append((method, kind))
             if method == "getUpdates":
-                return [update(20, "معاينة")]
+                return [update(20, "����")]
             return {"message_id": 2}
 
         listener.poll_once("t", OWNER, self.studio, 0, transport)
@@ -470,17 +470,17 @@ class ClipCycleTests(unittest.TestCase):
 class LiveNewsPollingTests(unittest.TestCase):
     def test_news_keeps_update_identity_owner_filter_and_command_order(self):
         order = []
-        studio = type("StudioStub", (), {"answer": lambda _, text: order.append(text) or "تم"})()
+        studio = type("StudioStub", (), {"answer": lambda _, text: order.append(text) or "��"})()
         news = type(
             "NewsStub",
             (),
-            {"reply": lambda _, key, event, send: order.append((key, event)) or send("خبر عربي")},
+            {"reply": lambda _, key, event, send: order.append((key, event)) or send("��� 㩠�")},
         )()
         updates = [
-            update(10, "الحالة"),
-            update(11, "أخبار السعودية"),
-            update(12, "أخبار العالم", sender="88"),
-            update(13, "آخر مقطع"),
+            update(10, "�饟�"),
+            update(11, "����� ������"),
+            update(12, "����� �����", sender="88"),
+            update(13, "��� ����"),
         ]
         sent = []
 
@@ -499,8 +499,8 @@ class LiveNewsPollingTests(unittest.TestCase):
             ),
         ):
             self.assertEqual(listener.poll_once("t", OWNER, studio, 10, transport), 14)
-        self.assertEqual(order, ["الحالة", ("saudi", "11"), "آخر مقطع"])
-        self.assertEqual(sent, ["تم", "خبر عربي", "تم"])
+        self.assertEqual(order, ["�饟�", ("saudi", "11"), "��� ����"])
+        self.assertEqual(sent, ["��", "��� 㩠�", "��"])
 
 
 if __name__ == "__main__":
@@ -516,10 +516,10 @@ def test_urgent_empty_response_and_other_failures_stay_distinct(tmp_path):
         patch.object(studio, "pending", return_value=None),
         patch.object(studio, "deliver") as send,
     ):
-        assert studio.make("urgent") == "لا يوجد خبر عاجل الآن"
-        assert "تعذّر" in studio.make("world")
+        assert studio.make("urgent") == "� ���� ��� 㟤� ���"
+        assert "�㨑�" in studio.make("world")
         studio.start.return_value = 1
-        assert "تعذّر" in studio.make("urgent")
+        assert "�㨑�" in studio.make("urgent")
         send.assert_not_called()
 
 
