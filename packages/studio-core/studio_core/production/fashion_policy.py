@@ -85,7 +85,6 @@ def section(title: str, detail: str = "") -> str | None:
     return "style"
 
 
-
 def matches_desk(key: str, title: str, detail: str = "") -> bool:
     """The general desk covers every approved house, including specialised stories."""
     desk = section(title, detail)
@@ -97,6 +96,7 @@ class FashionUnavailable(ValueError):
 
     def __init__(self) -> None:
         super().__init__("FASHION_NO_APPROVED_STORY_IMAGE")
+
 
 def safe_url(value: str) -> bool:
     try:

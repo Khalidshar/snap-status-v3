@@ -147,9 +147,7 @@ class PreparationBase:
     def local(self, path: Path, source: str, credit: str) -> str:
         return self.save(path.read_bytes(), path.suffix, source, credit)
 
-    def used(
-        self, fingerprint: str, *, reserve: bool = True, kind: str | None = None
-    ) -> bool:
+    def used(self, fingerprint: str, *, reserve: bool = True, kind: str | None = None) -> bool:
         kind = kind or self.key
         if kind != self.key and not {kind, self.key} <= FASHION_KEYS:
             raise ValueError("LEGACY_HISTORY_KIND_CHANGED")

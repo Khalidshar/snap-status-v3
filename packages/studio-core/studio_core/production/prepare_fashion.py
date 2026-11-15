@@ -105,7 +105,6 @@ class FashionPreparation(NewsPreparation):
                 self.used(item["url"], kind="style")
         return scenes
 
-
     def _fashion_select(
         self, candidates: list[dict[str, Any]], desk: str, failures: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
@@ -121,8 +120,10 @@ class FashionPreparation(NewsPreparation):
                 break
             if not matches_desk(desk, item["title"], item["detail"]):
                 continue
-            if desk == "style" and self.key != "style" and self.used(
-                item["url"], reserve=False, kind="style"
+            if (
+                desk == "style"
+                and self.key != "style"
+                and self.used(item["url"], reserve=False, kind="style")
             ):
                 continue
             topic = item["title"] + " " + item["detail"][:120]

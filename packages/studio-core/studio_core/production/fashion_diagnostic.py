@@ -44,7 +44,8 @@ def feed_candidates(source: Any, raw: bytes, now: float) -> list[dict[str, Any]]
                 "source_id": source.id,
                 "language": source.language,
                 "age_ok": published is not None and 0 <= now - published < MAX_AGE["style"],
-                "language_ok": bool(title) and NewsPreparation.editorial_match(
+                "language_ok": bool(title)
+                and NewsPreparation.editorial_match(
                     "style", title, source.language, detail=detail, source_id=source.id
                 ),
             }

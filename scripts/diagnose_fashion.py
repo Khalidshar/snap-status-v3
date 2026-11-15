@@ -34,7 +34,8 @@ def main():
     parser.add_argument("--app", choices=("snap", "status"), required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument(
-        "--direct", action="store_true",
+        "--direct",
+        action="store_true",
         help="Use the existing pinned public-source policy, outside workers",
     )
     args = parser.parse_args()
@@ -47,14 +48,20 @@ def main():
     def direct(url):
         value = fetch(url, policy)
         return NetworkResponse(
-            value["status"], value["content_type"],
-            base64.b64decode(value["body"]), value["sha256"],
+            value["status"],
+            value["content_type"],
+            base64.b64decode(value["body"]),
+            value["sha256"],
         )
 
     client = Cache(SimpleNamespace(get=direct) if args.direct else NetworkClient(policy), evidence)
     probe = Factory(
-        args.app + "-bot-v2", "style", "d" * 32, args.output / "probe",
-        client=client, state=args.output / "probe-state",
+        args.app + "-bot-v2",
+        "style",
+        "d" * 32,
+        args.output / "probe",
+        client=client,
+        state=args.output / "probe-state",
     )
     report = diagnose(client, website_reader=probe.website_candidates)
     (args.output / "report.json").write_bytes(canonical(report))
@@ -67,15 +74,20 @@ def main():
         values = [str(row[stage]) if any_source else "—" for stage in (*STAGES, "fallback_pool")]
         rows.append("| " + row["title"] + " | " + " | ".join(values) + " |")
     completeness = (
-        "نتائج جزئية للمصادر المتاحة"
-        if not report["complete"]
-        else "اكتمل جلب المصادر المعتمدة"
+        "نتائج جزئية للمصادر المتاحة" if not report["complete"] else "اكتمل جلب المصادر المعتمدة"
     )
-    rows.extend(["", completeness,
-                 "السجل التشغيلي لم يُقرأ؛ منع التكرار هنا بين مواضيع المرشحين فقط.",
-                 "الصورة تعني توفر صورة عامة؛ اعتماد خالد والمدة والرسم ليست مثبتة بهذا الفحص.",
-                 "المواقع التي ليست RSS تمر بمحول الإنتاج؛ عدد خام لها بعد مرشحات المحول.", "",
-                 "| المصدر | النتيجة | العناصر |", "|---|---|---:|"])
+    rows.extend(
+        [
+            "",
+            completeness,
+            "السجل التشغيلي لم يُقرأ؛ منع التكرار هنا بين مواضيع المرشحين فقط.",
+            "الصورة تعني توفر صورة عامة؛ اعتماد خالد والمدة والرسم ليست مثبتة بهذا الفحص.",
+            "المواقع التي ليست RSS تمر بمحول الإنتاج؛ عدد خام لها بعد مرشحات المحول.",
+            "",
+            "| المصدر | النتيجة | العناصر |",
+            "|---|---|---:|",
+        ]
+    )
     for row in report["sources"]:
         rows.append(f"| {row['source']} | {row['result']} | {row.get('raw', '—')} |")
     markdown = "\n".join(rows) + "\n"

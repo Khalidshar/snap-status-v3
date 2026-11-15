@@ -28,4 +28,3 @@ jobs:
         with:
           name: fashion-public-diagnostic
           path: reports/fashion-diagnostic/
-          retention-days: 14

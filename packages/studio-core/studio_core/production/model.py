@@ -417,9 +417,7 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                         fashion_title = parsing.clean(match[1]) if match else ""
                     if (
                         item.get("fashion_original_title") != fashion_title
-                        or not matches_desk(
-                            p.get("fashion_desk", p["key"]), fashion_title, detail
-                        )
+                        or not matches_desk(p.get("fashion_desk", p["key"]), fashion_title, detail)
                         or not approved_brand(fashion_title + " " + text)
                     ):
                         raise ValueError("FASHION_BRAND_OR_DESK_CHANGED")
