@@ -243,4 +243,3 @@ def test_fallback_respects_the_general_desks_previous_history(tmp_path):
     f.job = "b" * 32
     with pytest.raises(FashionUnavailable):
         f.fashion()
-
