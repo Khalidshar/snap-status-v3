@@ -65,7 +65,11 @@ def duration(path: Path) -> float:
 def safe_xml(raw: bytes) -> ET.Element:
     if len(raw) > 4_000_000 or b"<!DOCTYPE" in raw.upper() or b"<!ENTITY" in raw.upper():
         raise ValueError("LEGACY_XML_UNSAFE")
-    return ET.fromstring(raw)  # noqa: S314 — entities/DOCTYPE rejected above
+    try:
+        # Some publishers (Harper's Bazaar Arabia) send a blank line before <?xml.
+        return ET.fromstring(raw.lstrip())  # noqa: S314 — entities/DOCTYPE rejected above
+    except ET.ParseError as error:
+        raise ValueError("LEGACY_XML_MALFORMED") from error
 
 
 def network_client(config: Config) -> NetworkClient:

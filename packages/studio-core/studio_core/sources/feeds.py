@@ -112,7 +112,7 @@ def parse_feed(
     if not isinstance(xml_bytes, bytes) or len(xml_bytes) > MAX_BYTES:
         raise ValueError("Invalid feed size/type")
     try:
-        document = xml_bytes.decode("utf-8-sig")
+        document = xml_bytes.decode("utf-8-sig").lstrip()
         if re.search(r"<!\s*(?:DOCTYPE|ENTITY)", document, re.IGNORECASE):
             raise ValueError("Feed DTD/entities forbidden")
         root = ET.fromstring(document)  # noqa: S314  # DTD forbidden, size bounded above
