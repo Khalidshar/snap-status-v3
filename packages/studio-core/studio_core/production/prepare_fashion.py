@@ -105,8 +105,15 @@ class FashionPreparation(NewsPreparation):
                     chosen.pop()
                 if len(chosen) < 2:
                     raise ValueError("FASHION_ARTICLE_TOO_SHORT")
+                # 16 Nov: points show the article's own photos (the one under a heading,
+                # else the next unused one), under the same automatic check; otherwise the
+                # story photo is reused.
+                spare = [u for u in row.get("pics", []) if u not in {item.get("image")}]
                 for point in chosen:
-                    # Reuse only this story's reviewed photo; no unreviewed inline images.
+                    url = point.get("pic") or (spare.pop(0) if spare else "")
+                    if url in spare:
+                        spare.remove(url)
+                    picture = self._point_picture(item, url, row)
                     scenes.append(
                         scene(
                             point["body"],
@@ -114,13 +121,45 @@ class FashionPreparation(NewsPreparation):
                             role="point",
                             head=point["head"],
                             translations=point.get("translations", {}),
-                            **common,
+                            **{**common, **picture},
                         )
                     )
             self.used(item["url"])
             if self.fashion_desk == "style" and self.key != "style":
                 self.used(item["url"], kind="style")
         return scenes
+
+    def _point_picture(self, item: dict[str, Any], url: str, row: dict[str, Any]) -> dict[str, Any]:
+        if not url:
+            return {}
+        try:
+            image = self.picture(url, item["url"], item["source"])
+            if image == row["image"]:
+                return {}
+            asset = next(a for a in self.assets if a["file"] == image)
+            ledger = self.db.parent / "fashion-image-reviews.jsonl"
+            if owner_rejected(ledger, asset["sha256"], asset["source_url"], item["url"]):
+                return {}
+            review = image_review(ledger, asset["sha256"], asset["source_url"], item["url"])
+            review = review or auto_review(
+                asset["sha256"],
+                asset["source_url"],
+                item["url"],
+                item.get("fashion_original_title", item["title"]) + " " + item["detail"],
+            )
+            if review is None:
+                return {}
+            proof = self.save(canonical(review), ".json", item["url"], "مراجعة احتشام الصورة")
+            return {"image": image, "fashion_review": proof}
+        except (
+            OSError,
+            ValueError,
+            KeyError,
+            StopIteration,
+            RuntimeError,
+            subprocess.SubprocessError,
+        ):
+            return {}
 
     def _fashion_select(
         self, candidates: list[dict[str, Any]], desk: str, failures: list[dict[str, Any]]
@@ -228,6 +267,11 @@ class FashionPreparation(NewsPreparation):
                         "review": proof,
                         "points": points,
                         "story": (detail, story_translations),
+                        "pics": [
+                            line[8:].strip()
+                            for line in text.split("\n")
+                            if line.startswith("[[IMG]]")
+                        ][:8],
                     }
                 )
                 topics.append(topic)
