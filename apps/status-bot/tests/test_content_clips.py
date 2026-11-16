@@ -284,7 +284,8 @@ def test_authenticated_content_command_sends_only_one_clip(fixture, key):
         assert process_one(f.outbox, transport, Mock(), f.runtime)
     send.assert_called_once()
     assert send.call_args.args[3] == key
-    transport.send_text.assert_not_called()
+    # Only the instant «⏳» notice is text; the clip is the answer.
+    assert [c.args[0][:1] for c in transport.send_text.call_args_list] in ([], ["⏳"])
 
 
 def test_window_rechecked_after_upload_and_halt_is_independent(fixture, tmp_path):
