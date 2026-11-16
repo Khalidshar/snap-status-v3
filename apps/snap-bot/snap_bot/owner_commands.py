@@ -170,6 +170,24 @@ def owner_messages(updates: Any, owner: str, now: float) -> tuple[int, list[str]
     return cursor, texts
 
 
+def stale_owner_text(update: Any, owner: str, now: float) -> str | None:
+    """The owner's private text that is only too old to run; None for everything else."""
+    message = (update.get("message") or {}) if isinstance(update, dict) else {}
+    chat, actor = message.get("chat") or {}, message.get("from") or {}
+    text, at = message.get("text"), message.get("date")
+    if (
+        chat.get("type") != "private"
+        or str(chat.get("id")) != owner
+        or str(actor.get("id")) != owner
+        or actor.get("is_bot")
+        or type(at) is not int
+        or not isinstance(text, str)
+        or now - at <= FRESH_SECONDS
+    ):
+        return None
+    return text
+
+
 def live_news() -> LiveNews:
     return LiveNews("snap-bot", ROOT / "config/snap/news.toml", STATE / "news-history.sqlite3")
 
@@ -571,7 +589,44 @@ def credentials() -> tuple[str, str, str]:
 def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: Any = api) -> int:
     body = json.dumps({"offset": offset, "timeout": 25, "allowed_updates": ["message"]}).encode()
     updates = transport(token, "getUpdates", body)
-    cursor, _ = owner_messages(updates, owner, time.time())
+    # 17 Nov: a command's age is judged when it is received, not when its turn comes; a clip
+    # ahead of it in the queue used to push it past FRESH_SECONDS and it vanished silently.
+    received = time.time()
+    cursor, _ = owner_messages(updates, owner, received)
+
+    def say(message: str) -> None:
+        transport(token, "sendMessage", json.dumps({"chat_id": owner, "text": message}).encode())
+
+    from studio_core.production import enabled as queue_enabled
+    from studio_core.production.model import TITLES as QUEUE_KINDS
+
+    queued = 0
+    for update in updates if isinstance(updates, list) else []:
+        uid = update.get("update_id") if isinstance(update, dict) else None
+        if type(uid) is not int or uid < offset:
+            continue
+        _, fresh = owner_messages([update], owner, received)
+        if not fresh:
+            old = stale_owner_text(update, owner, received)
+            command = menu.parse(old) if old else None
+            if command and command["kind"] == "command":
+                say("⌛ انتهت مدة أمر «" + command["command"].label + "»، أرسله من جديد.")
+            continue
+        command = menu.parse(fresh[0])
+        if (
+            command["kind"] == "command"
+            and queue_enabled(command["command"].key)
+            and command["command"].key in QUEUE_KINDS
+        ):
+            if queued:
+                say(
+                    "📥 استلمت «"
+                    + command["command"].label
+                    + "»، قبله "
+                    + str(queued).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+                    + " في الدور."
+                )
+            queued += 1
     # Preserve Telegram update IDs as durable idempotency keys, even after a crash
     # before the polling cursor is committed. Filtering stays owner-only above.
     news_enabled = os.environ.get("MADAR_LIVE_NEWS") == "1"
@@ -579,7 +634,7 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
         uid = update.get("update_id") if isinstance(update, dict) else None
         if type(uid) is not int or uid < offset:
             continue
-        _, accepted = owner_messages([update], owner, time.time())
+        _, accepted = owner_messages([update], owner, received)
         if not accepted:
             continue
         text = accepted[0]
