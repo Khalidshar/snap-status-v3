@@ -16,6 +16,21 @@ from . import parsing
 from .model import canonical, scene
 from .prepare_news import NewsPreparation
 
+SENTENCE_END = ".!?؟"
+
+
+def summary(text: str, limit: int) -> str:
+    """The feed summary cut at a sentence end; empty when no whole sentence of 8+ words fits."""
+    clean = parsing.clean(text)
+    if len(clean) > limit:
+        cut = clean[:limit]
+        end = max(cut.rfind(mark) for mark in SENTENCE_END)
+        clean = cut[: end + 1] if end >= 0 else ""
+    clean = clean.strip()
+    if len(clean.split()) < 8:
+        return ""
+    return clean
+
 
 class FashionPreparation(NewsPreparation):
     def fashion(self) -> list[dict[str, Any]]:
@@ -74,7 +89,14 @@ class FashionPreparation(NewsPreparation):
                         **common,
                     )
                 )
-                chosen = [p for p in row["points"] if p.get("body")][:4]
+                seen_bodies: set[str] = set()
+                chosen = [
+                    p
+                    for p in row["points"]
+                    if p.get("body")
+                    and p["body"] not in seen_bodies
+                    and not seen_bodies.add(p["body"])
+                ][:4]
                 while (
                     len(chosen) > 2
                     and sum(max(9.0, (len(p["body"]) + len(p["head"])) / 17 + 0.25) for p in chosen)
@@ -115,8 +137,8 @@ class FashionPreparation(NewsPreparation):
                 break
             if not matches_desk(desk, item["title"], item["detail"]):
                 continue
-            # A story scene shows the feed summary; a story without one cannot be bound to source.
-            if not parsing.clean(item["detail"], 230):
+            # A story scene shows the feed summary; it must be a complete sentence (16 Nov).
+            if not summary(item["detail"], 230):
                 continue
             if (
                 desk == "style"
@@ -185,11 +207,16 @@ class FashionPreparation(NewsPreparation):
                     ]
                 # Prepare the story-scene summary here, so a summary whose translation fails its
                 # fact check skips this story instead of failing the whole clip.
-                detail = parsing.clean(item["detail"], max(100, 230 - len(item["title"])))
+                detail = summary(item["detail"], max(100, 230 - len(item["title"])))
+                if not detail:
+                    continue
                 story_translations = item.get("translations", {})
                 if item.get("language") == "en":
                     source_detail = detail
                     detail = self.translate(source_detail)
+                    # The shown Arabic must also read as a whole sentence, not a fragment.
+                    if len(detail.split()) < 8:
+                        continue
                     story_translations = {
                         "head": story_translations["body"],
                         "body": self.translations[source_detail],

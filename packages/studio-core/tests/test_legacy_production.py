@@ -613,7 +613,10 @@ def test_english_article_translation_is_bound_to_full_source(tmp_path, audio, pi
                 import re
 
                 nums = re.findall(r"\d+", text)
-                target = "مجموعة أزياء شانيل وتفاصيل الأقمشة والفساتين الجديدة " + " ".join(nums)
+                target = (
+                    "مجموعة أزياء شانيل الجديدة وتفاصيل الأقمشة والفساتين الأنيقة في العرض "
+                    + " ".join(nums)
+                )
                 raw = json.dumps([[[target, text]]]).encode()
             elif "free-stock-music.com/music/" in url:
                 raw = audio
