@@ -35,7 +35,8 @@ KEYS=(
   /etc/madar/media.env
   /etc/madar/panel.env
 )
-TOOLS=(python3.12 ffmpeg ffprobe cloudflared git /opt/madar/node-runtime/bin/node)
+# The tunnel uses env: check its launcher and resolve cloudflared through PATH too.
+TOOLS=(python3.12 ffmpeg ffprobe /usr/bin/env cloudflared git /opt/madar/node-runtime/bin/node)
 DATA=(/var/lib/madar /var/lib/madar/snap /var/lib/madar/status /var/lib/madar/render-work
       /var/lib/madar/quran-snap /var/lib/madar/quran-status)
 OVERRIDES=(madar-v3-snap-render@ madar-v3-snap-render madar-v3-status-commands madar-v3-status-content@)
