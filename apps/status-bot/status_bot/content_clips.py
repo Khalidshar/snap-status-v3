@@ -445,6 +445,10 @@ def build(
                 detail = validate_diagnostic(failure["diagnostic"])
             except (OSError, ValueError, KeyError, DeliveryBlocked):
                 raise error from None
+            if detail["code"] == "FASHION_CONTENT_UNAVAILABLE":
+                from studio_core.production.fashion_policy import FashionUnavailable
+
+                raise FashionUnavailable() from None
             raise RenderWorkerFailure(detail) from None
         return json.loads(read_bound(directory, "result.json", 65536))
 
