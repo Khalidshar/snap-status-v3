@@ -90,13 +90,12 @@ class FashionPreparation(NewsPreparation):
                     )
                 )
                 seen_bodies: set[str] = set()
-                chosen = [
-                    p
-                    for p in row["points"]
-                    if p.get("body")
-                    and p["body"] not in seen_bodies
-                    and not seen_bodies.add(p["body"])
-                ][:4]
+                chosen = []
+                for point in row["points"]:
+                    if point.get("body") and point["body"] not in seen_bodies:
+                        seen_bodies.add(point["body"])
+                        chosen.append(point)
+                chosen = chosen[:4]
                 while (
                     len(chosen) > 2
                     and sum(max(9.0, (len(p["body"]) + len(p["head"])) / 17 + 0.25) for p in chosen)
