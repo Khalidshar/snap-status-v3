@@ -5,7 +5,7 @@ Requires=madar-v3-whatsapp-origin.service
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate run --token-file /etc/madar/whatsapp-v3-tunnel.token
+ExecStart=/usr/bin/env cloudflared tunnel --no-autoupdate run --token-file /etc/madar/whatsapp-v3-tunnel.token
 UMask=0077
 NoNewPrivileges=yes
 ProtectSystem=strict
