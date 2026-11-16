@@ -122,7 +122,8 @@ def shell(tmp_path, state):
     (base / "current").symlink_to(old)
     script = tmp_path / "upgrade.sh"
     script.write_text(
-        (OPS / "upgrade.sh").read_text()
+        (OPS / "upgrade.sh")
+        .read_text()
         .replace("/opt/madar", str(base))
         .replace("/root/v3-", str(root / "v3-"))
     )
@@ -132,7 +133,7 @@ def shell(tmp_path, state):
     log = tmp_path / "calls.jsonl"
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
-    fake = '''import json, os, pathlib, sys
+    fake = """import json, os, pathlib, sys
 name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 with open(os.environ["FAKE_LOG"], "a") as log:
@@ -152,7 +153,7 @@ elif name == "release.py" and "--activate-only" in args:
     current = pathlib.Path(os.environ["FAKE_BASE"]) / "current"
     current.unlink()
     current.symlink_to(current.parent / "releases" / args[args.index("--commit") + 1])
-'''
+"""
     for name in ("id", "systemctl", "git", "sleep"):
         path = bin_dir / name
         path.write_text("#!" + sys.executable + "\n" + fake)
@@ -204,7 +205,9 @@ def test_shell_refuses_live_lock_or_pending_clip_before_release(shell, state, ki
         ledger(state)
     else:
         database(
-            state, "command_videos", "state TEXT,code TEXT",
+            state,
+            "command_videos",
+            "state TEXT,code TEXT",
             "'BLOCKED','TRANSLATION_REVIEW_REQUIRED'",
         )
     result, calls = shell[0]()

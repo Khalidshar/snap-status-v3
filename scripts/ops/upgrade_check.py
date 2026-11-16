@@ -19,8 +19,10 @@ PENDING = "مقطع ينتظر موافقتك؛ النشر يلغيه"
 def state_root() -> Path:
     default = Path(__file__).resolve().parents[2] / "config/defaults.toml"
     config = Path(os.environ.get("STUDIO_CONFIG", str(default)))
-    value = tomllib.loads(config.read_text(encoding="utf-8")).get("runtime", {}).get(
-        "state_root", "/var/lib/madar"
+    value = (
+        tomllib.loads(config.read_text(encoding="utf-8"))
+        .get("runtime", {})
+        .get("state_root", "/var/lib/madar")
     )
     if not isinstance(value, str) or not Path(value).is_absolute() or ".." in Path(value).parts:
         raise ValueError("UPGRADE_STATE_ROOT_INVALID")
@@ -67,8 +69,13 @@ def snap_pending(root: Path, now: float) -> int:
     if not isinstance(cancelled, list):
         raise ValueError("UPGRADE_PENDING_STATE_INVALID")
     terminal = {
-        "INTENT", "ACK", "ACK_EVIDENCE_PENDING", "UNKNOWN", "PRE_NETWORK_BLOCKED",
-        "CANCELLED", "EXPIRED",
+        "INTENT",
+        "ACK",
+        "ACK_EVIDENCE_PENDING",
+        "UNKNOWN",
+        "PRE_NETWORK_BLOCKED",
+        "CANCELLED",
+        "EXPIRED",
     }
     closed = {e.get("video_sha") for e in records if e.get("kind") in terminal}
     count = 0
