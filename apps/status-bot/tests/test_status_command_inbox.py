@@ -143,3 +143,24 @@ def test_empty_urgent_sends_one_notice_and_consumes_command():
         assert case.rows()[0]["state"] == "ACK"
     finally:
         case.doCleanups()
+
+
+def test_fashion_without_a_story_sends_one_plain_notice():
+    from studio_core.production.fashion_policy import FashionUnavailable
+
+    case = CommandInboxTests()
+    case.setUp()
+    try:
+        case.post("أناقة المرأة")
+        transport = fixtures.OfflineTransport(case.identity)
+        transport.send_text = Mock(return_value=transport.send_video.return_value)
+        with (
+            patch("status_bot.owner_commands.production_content", return_value=True),
+            patch("status_bot.owner_commands.content_clips.send", side_effect=FashionUnavailable()),
+        ):
+            assert process_one(case.outbox, transport, None, None)
+        transport.send_text.assert_called_once_with("لا يوجد خبر أناقة جديد الآن")
+        transport.send_video.assert_not_called()
+        assert case.rows()[0]["state"] == "ACK"
+    finally:
+        case.doCleanups()

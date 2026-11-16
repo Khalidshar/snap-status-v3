@@ -110,11 +110,11 @@ except Exception as error:
             if isinstance(error, subprocess.CalledProcessError) and isinstance(error.stderr, bytes):
                 for line in error.stderr.splitlines():
                     match = re.fullmatch(
-                        rb"MADAR_RENDER_CODE=(NO_FRESH_CONTENT|SUBPROCESS_FAILED|TIMEOUT|PERMISSION_DENIED|FILE_MISSING|IMPORT_FAILED|OS_ERROR|VALIDATION_FAILED|UNEXPECTED_FAILURE)",
+                        rb"MADAR_RENDER_CODE=(NO_FRESH_CONTENT|FASHION_CONTENT_UNAVAILABLE|SUBPROCESS_FAILED|TIMEOUT|PERMISSION_DENIED|FILE_MISSING|IMPORT_FAILED|OS_ERROR|VALIDATION_FAILED|UNEXPECTED_FAILURE)",
                         line,
                     )
                     if match:
-                        if match[1] == b"NO_FRESH_CONTENT":
+                        if match[1] in (b"NO_FRESH_CONTENT", b"FASHION_CONTENT_UNAVAILABLE"):
                             raise NoFreshContent() from None
                         print(
                             "SNAP_PREVIEW_FAILURE stage=isolated_worker code="
@@ -645,7 +645,11 @@ def main() -> None:
             f"SNAP_PREVIEW_FAILURE stage={args.action} code={failure_code(error)}", file=sys.stderr
         )
         print("SERVER_PREVIEW_BLOCKED; inspect durable local evidence", file=sys.stderr)
-        raise SystemExit(3 if isinstance(error, NoFreshContent) else 1) from None
+        from studio_core.production.fashion_policy import FashionUnavailable
+
+        raise SystemExit(
+            3 if isinstance(error, (NoFreshContent, FashionUnavailable)) else 1
+        ) from None
 
 
 if __name__ == "__main__":

@@ -92,7 +92,15 @@ def run(outbox: Any, transport: Any, runtime: Any, path: Path, item: dict[str, A
     if action == "approve":
         return approve(outbox, transport, runtime, path, payload["preview"], payload["sha"])
     if action == "reject":
-        return True  # the panel already marked it REJECTED; nothing was sent
+        # The panel already marked it REJECTED; nothing was sent. Give its stories back.
+        try:
+            saved = json.loads(media(path, payload["preview"], ".json").read_text())
+        except (OSError, ValueError, KeyError):
+            return True
+        from studio_core.production.reservations import history_path, release_content
+
+        release_content(history_path("status-bot-v2"), saved.get("content"))
+        return True
     if action == "rate":
         with sqlite3.connect(path) as db:
             db.execute(

@@ -293,4 +293,12 @@ def prepare(app: str, key: str, job: str, root: Path, **kwargs: Any) -> dict[str
         if p["app"] != app or p["key"] != key:
             raise ValueError("LEGACY_CACHED_SCOPE_CHANGED")
         return cast(dict[str, Any], value)
-    return Factory(app, key, job, root, **kwargs).build()
+    factory = Factory(app, key, job, root, **kwargs)
+    try:
+        return factory.build()
+    except Exception:
+        if key in FASHION_KEYS:
+            from .reservations import release_job
+
+            release_job(factory.db, job)
+        raise

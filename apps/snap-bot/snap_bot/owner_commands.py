@@ -27,7 +27,10 @@ from typing import Any
 from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.observability.agent_registry import TOOL_IDS, status_text
-from studio_core.observability.failure_code import NO_FRESH_CONTENT_MESSAGE
+from studio_core.observability.failure_code import (
+    NO_FRESH_CONTENT_MESSAGE,
+    NO_FRESH_FASHION_MESSAGE,
+)
 from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
 from studio_core.production.publication import notice
 from studio_core.sources.live import LiveNews
@@ -325,6 +328,7 @@ class Studio:
             "category": content.get("category", ""),
             "expires_at": float(data["expires_at"]),
             "still": directory / "preview.png",
+            "content": content,
         }
 
     def describe(self, clip: dict[str, Any]) -> str:
@@ -348,12 +352,18 @@ class Studio:
         A pending clip of the same kind is sent instead of rendering another. «أوقف» keeps
         the clip waiting; «معاينة», «أرسل» and «ألغِ» still work on a waiting clip.
         """
+        from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
+
+        if kind in FASHION_KEYS:
+            self.release_unsent()
         clip = self.pending()
         if not clip or clip["kind"] != kind:
             unit = RENDER_UNIT if kind == "did_you_know" else KIND_RENDER_UNIT.format(kind=kind)
             status = self.start(unit)
             if kind == "urgent" and status == 3:
                 return NO_FRESH_CONTENT_MESSAGE
+            if kind in FASHION_KEYS and status == 3:
+                return NO_FRESH_FASHION_MESSAGE
             if status != 0:
                 return "⚠️ تعذّر صنع المقطع، ولم يُرسل شيء. افحص " + unit + " على السيرفر."
             clip = self.pending()
@@ -361,8 +371,6 @@ class Studio:
                 return "⚠️ انتهى الرندر بلا مقطع صالح، ولم يُرسل شيء."
         if safe_path(HALT).exists():
             return self.describe(clip) + "\n\n" + SEND_HALTED
-        from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
-
         if kind in FASHION_KEYS and clip.get("translated"):
             return self.describe(clip) + "\n\nراجع الترجمة في المعاينة ثم اكتب «أرسل» للموافقة."
         outcome = self.deliver(clip["sha"])
@@ -453,6 +461,21 @@ class Studio:
         self.save(state)
         return menu.confirm_text(menu.BY_KEY["send"]) + "\nالمقطع " + str(clip["sha"])[:8]
 
+    def release_unsent(self) -> None:
+        """Give back the stories of cancelled or expired fashion clips that were never sent."""
+        from studio_core.production.reservations import history_path, release_content
+
+        events = self.runtime.events()
+        cancelled = set(self.state()["cancelled"])
+        sent = {e.get("video_sha") for e in events if e.get("kind") in ("INTENT", "ACK", "UNKNOWN")}
+        for event in events:
+            sha = event.get("video_sha")
+            if event.get("kind") != "RENDERED" or sha in sent:
+                continue
+            clip = self.clip(event)
+            if clip and (sha in cancelled or clip["expires_at"] <= time.time()):
+                release_content(history_path("snap-bot-v2"), clip["content"])
+
     def cancel(self) -> str:
         clip = self.pending()
         state = self.state()
@@ -462,6 +485,9 @@ class Studio:
             return NO_CLIP
         state["cancelled"] = (state["cancelled"] + [clip["sha"]])[-200:]
         self.save(state)
+        from studio_core.production.reservations import history_path, release_content
+
+        release_content(history_path("snap-bot-v2"), clip.get("content"))
         return "❌ أُلغي المقطع " + str(clip["sha"])[:8] + ". لن يُرسل."
 
     def yes(self) -> str:

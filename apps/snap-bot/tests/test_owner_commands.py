@@ -585,3 +585,20 @@ def test_isolated_coordinator_propagates_only_exact_no_fresh_marker(tmp_path):
             stat.return_value = SimpleNamespace(st_uid=0, st_mode=0o40711)
             with unittest.TestCase().assertRaises(expected):
                 server_preview.render_bundle(tmp_path / "output", {"kind": "urgent"})
+
+
+def test_fashion_without_a_story_says_so_and_frees_unsent_clips(tmp_path):
+    from unittest.mock import Mock
+
+    runtime = FakeRuntime(root=tmp_path)
+    studio = listener.Studio(runtime=runtime, start=Mock(return_value=3))
+    with (
+        patch.object(studio, "pending", return_value=None),
+        patch.object(studio, "release_unsent") as release,
+        patch.object(studio, "deliver") as send,
+    ):
+        assert studio.make("style_women") == "لا يوجد خبر أناقة جديد الآن"
+        release.assert_called_once()
+        studio.start.return_value = 1
+        assert "تعذّر" in studio.make("style_women")
+        send.assert_not_called()

@@ -5,6 +5,7 @@ import subprocess
 from studio_core.production.fashion_policy import FashionUnavailable
 
 NO_FRESH_CONTENT_MESSAGE = "لا يوجد خبر عاجل الآن"
+NO_FRESH_FASHION_MESSAGE = "لا يوجد خبر أناقة جديد الآن"
 
 
 class NoFreshContent(ValueError):
