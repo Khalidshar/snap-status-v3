@@ -132,9 +132,9 @@ class Factory(FashionPreparation, VarietyPreparation):
                 ]
             for item in candidates:
                 try:
+                    # 17 Nov (owner): Muyassar alone. The Sa'di pages were walls of small
+                    # text cut mid-sentence; saadi() stays for a later, readable design.
                     scenes += self.quran(item["surah"], item["ayahs"])
-                    if not any(s.get("phrases") for s in scenes):
-                        scenes += self.saadi(item["surah"], item["ayahs"], scenes)
                     break
                 except ValueError:
                     continue
