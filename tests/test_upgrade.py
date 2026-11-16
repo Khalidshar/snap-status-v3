@@ -111,7 +111,8 @@ def test_expired_lock_does_not_block_and_database_is_read_only(state):
 
 @pytest.fixture
 def shell(tmp_path, state):
-    if sys.platform == "win32" or not shutil.which("bash"):
+    bash = shutil.which("bash")
+    if sys.platform == "win32" or not bash:
         pytest.skip("Linux bash integration; pure guard tests run on Windows too")
     root = tmp_path / "fake-root"
     root.mkdir()
@@ -167,7 +168,7 @@ elif name == "release.py" and "--activate-only" in args:
 
     def run(*args):
         result = subprocess.run(  # noqa: S603 - fixed repo script, isolated fake executables
-            ["bash", str(script), "d" * 40, *args],
+            [bash, str(script), "d" * 40, *args],
             env=env,
             capture_output=True,
             text=True,
@@ -181,9 +182,10 @@ elif name == "release.py" and "--activate-only" in args:
 
 
 def test_upgrade_bash_syntax():
-    if sys.platform == "win32" or not shutil.which("bash"):
+    bash = shutil.which("bash")
+    if sys.platform == "win32" or not bash:
         pytest.skip("Linux bash required")
-    subprocess.run(["bash", "-n", str(OPS / "upgrade.sh")], check=True)  # noqa: S603
+    subprocess.run([bash, "-n", str(OPS / "upgrade.sh")], check=True)  # noqa: S603
 
 
 def test_busy_service_blocks_before_clone_or_release(shell):

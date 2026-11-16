@@ -1,0 +1,24 @@
+name: Ops script checks
+on:
+  pull_request:
+    paths:
+      - 'scripts/ops/upgrade*'
+      - 'tests/test_upgrade.py'
+      - '.github/workflows/ops-checks.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-upgrade:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: '3.12'
+      - run: uv sync --all-packages
+      - run: uv run --frozen ruff check --diff scripts/ops/upgrade_check.py tests/test_upgrade.py
+      - if: always()
+        run: uv run --frozen ruff format --diff scripts/ops/upgrade_check.py tests/test_upgrade.py
+      - if: always()
+        run: uv run --frozen pytest tests/test_upgrade.py
