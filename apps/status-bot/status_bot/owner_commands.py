@@ -114,6 +114,13 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
         ):
             send(STOPPED)
         elif production_content(key):
+            from studio_core.observability.failure_code import WORKING_MESSAGE
+
+            # A courtesy notice outside the command's single recorded reply; never blocks.
+            try:
+                transport.send_text(WORKING_MESSAGE.format(label=parsed["command"].label))
+            except Exception:  # the clip itself is the answer
+                print("STATUS_WORKING_NOTICE_SKIPPED", file=sys.stderr)
             try:
                 content_clips.send(outbox, transport, item, str(key), runtime)
             except NoFreshContent:

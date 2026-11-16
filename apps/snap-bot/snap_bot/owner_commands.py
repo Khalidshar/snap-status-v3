@@ -592,6 +592,18 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
             and production_enabled(parsed["command"].key)
             and parsed["command"].key in PRODUCTION_KINDS
         ):
+            from studio_core.observability.failure_code import WORKING_MESSAGE
+
+            transport(
+                token,
+                "sendMessage",
+                json.dumps(
+                    {
+                        "chat_id": owner,
+                        "text": WORKING_MESSAGE.format(label=parsed["command"].label),
+                    }
+                ).encode(),
+            )
             reply = studio.make(
                 "did_you_know" if parsed["command"].key == "facts" else parsed["command"].key
             )

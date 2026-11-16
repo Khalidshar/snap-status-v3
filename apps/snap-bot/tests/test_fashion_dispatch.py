@@ -37,4 +37,4 @@ def test_telegram_fashion_uses_production_with_the_global_switch_off(tmp_path, m
         listener.poll_once("token", "77", studio, 0, transport)
     studio.make.assert_called_once_with(key)
     headline_reply.assert_not_called()
-    assert calls == ["getUpdates"]
+    assert calls == ["getUpdates", "sendMessage"]  # the instant «⏳» notice
