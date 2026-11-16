@@ -360,6 +360,11 @@ def bar(raw: bytes, box: dict[str, int], x: int, inward: int) -> str | None:
     means, spread = column(raw, box, x)
     if spread > 10:
         return None
+    # 16 Nov: a real padding bar is wider than a quarter of the probe distance; a pure black
+    # studio backdrop that meets the edge (Friday's prayer-beads footage) varies by then.
+    _, near_spread = column(raw, box, x + inward // 4)
+    if near_spread > 10:
+        return None
     inner, _ = column(raw, box, x + inward)
     if max(abs(a - b) for a, b in zip(means, inner, strict=True)) < 15:
         return None
