@@ -278,3 +278,15 @@ def test_owner_rejection_beats_the_auto_rule(tmp_path):
     assert not owner_rejected(ledger, image_sha, image, article)
     record_review(ledger, sample, image, article, approve=False, apply=True)
     assert owner_rejected(ledger, image_sha, image, article)
+
+
+def test_story_summary_is_a_whole_sentence_16_nov():
+    from studio_core.production.prepare_fashion import summary
+
+    whole = "Chanel opened a new boutique in Riyadh this week with a full jewelry collection."
+    assert summary(whole, 230) == whole
+    long = whole + " The house also showed bags, shoes and a short film about its history."
+    assert summary(long, 100) == whole
+    assert summary("with custom Prada, Y2K Undercover, and Lii", 230) == ""
+    assert summary("Prada queen", 230) == ""
+    assert summary("x" * 300, 100) == ""
