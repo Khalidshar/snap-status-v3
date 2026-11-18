@@ -29,7 +29,7 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
  // workers added nothing (65 s clip: 300 s with 2 workers, 293 s with 4).
  const launch=()=>chromium.launch({headless:true,...(process.env.MADAR_CHROMIUM?{executablePath:process.env.MADAR_CHROMIUM}:{}),args:['--no-sandbox','--disable-background-networking','--no-proxy-server']});
  const browsers=[];
- const reports=[];
+ const reports=[];let captured=null;
  try{
   const count=Math.ceil(p.duration*15),workers=Math.max(1,Math.min(8,parseInt(process.env.MADAR_RENDER_WORKERS||String(Math.max(2,require("node:os").cpus().length)),10)||2));
   await Promise.all(Array.from({length:workers},(_,worker)=>(async()=>{
@@ -143,10 +143,30 @@ const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
     return {scenes:output,bad,cut,overflow,tiny,empty:[...document.querySelectorAll('.scene')].filter(s=>!s.innerText.trim()).length,handle:document.querySelector('.cta .handle')?.innerText==='@rawwag_khalid'&&document.querySelector('.top .handle b')?.innerText==='@rawwag_khalid'};
    },{scenes:p.scenes,sacred,key:p.key,cards:(design.type&&design.type.cards)||[]});
    const {scenes:timeline,...report}=visual;
-   reports.push(report);if(report.overflow||report.empty||report.tiny)throw Error("overflow "+(report.bad||[]).join(" ")+" tiny "+report.tiny+" empty "+report.empty);
+   reports.push(report);
+   // 18 Nov (design card): the auditor compares what each scene actually shows with
+   // config/design/card.v1.json, so record the computed look once, after fitting.
+   if(worker===0)captured=await page.evaluate(()=>{
+    const pick=(root,sel)=>{const n=root.querySelector(sel);if(!n||!n.textContent.trim())return null;const c=getComputedStyle(n);return {family:c.fontFamily.split(',')[0].replace(/["']/g,'').trim(),size:Math.round(parseFloat(c.fontSize)*10)/10,color:c.color};};
+    const handle=pick(document,'.top .handle');
+    const scenes=[...document.querySelectorAll('section.scene')].map(sc=>{
+     const kind=sc.classList.contains('desk')?(sc.classList.contains('fashion')?'fashion_desk':'news_desk'):sc.classList.contains('tilawa')?'tilawa':sc.classList.contains('cta')?'cta':'plain';
+     const els=[...sc.querySelectorAll('h1,h2,p,.dsrc')].filter(n=>n.textContent.trim()&&n.getClientRects().length&&!n.classList.contains('phr'));
+     const rects=els.map(n=>n.getBoundingClientRect());let overlaps=0;
+     for(let a=0;a<rects.length;a++)for(let b=a+1;b<rects.length;b++){if(els[a].contains(els[b])||els[b].contains(els[a]))continue;const r=rects[a],q=rects[b];if(Math.min(r.right,q.right)-Math.max(r.left,q.left)>2&&Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top)>2)overlaps++;}
+     const card=sc.querySelector('.card'),cs=card?getComputedStyle(card):null;
+     return {index:+sc.dataset.i,kind,role:([...sc.classList].find(c=>c.startsWith('role-'))||'').slice(5),
+      text:{h1:pick(sc,'h1'),h2:pick(sc,'h2'),body:pick(sc,'.body'),dhead:pick(sc,'.dhead'),dbody:pick(sc,'.dbody'),dsrc:pick(sc,'.dsrc'),phr:pick(sc,'.phr'),tafsir:pick(sc,'.tafsir')},
+      card_padding:cs?[cs.paddingTop,cs.paddingRight,cs.paddingBottom,cs.paddingLeft].map(v=>Math.round(parseFloat(v))):null,overlaps};
+    });
+    return {canvas:[document.documentElement.clientWidth,document.documentElement.clientHeight],handle,scenes};
+   });
+   // Audit dry run (no frames): only the layout record is wanted.
+   if(process.env.MADAR_RENDER_STYLES_ONLY==='1'){await page.close();return;}
+   if(report.overflow||report.empty||report.tiny)throw Error("overflow "+(report.bad||[]).join(" ")+" tiny "+report.tiny+" empty "+report.empty);
    for(let i=worker;i<count;i+=workers){const t=i/15;await page.evaluate(({t,scenes,duration})=>{for(const [i,s]of scenes.entries()){const e=document.querySelector(`[data-i="${i}"]`),dt=t-s.at,visible=dt>=0&&dt<s.seconds;const fade=Math.min(1,Math.max(0,(s.seconds-dt)/.3));e.style.opacity=visible?fade:0;e.style.transform=`translateY(${(i===0||(e.classList.contains("withpic")&&!e.classList.contains("mix"))?0:Math.max(0,1-dt/.45)*45)}px)`;if(s.image){const q=Math.max(0,Math.min(1,dt/s.seconds));e.querySelector('.pic').style.transform=e.classList.contains('desk')?`scale(${1.04+q*.12}) translateX(${(q-.5)*-3}%)`:`scale(${1+q*.08})`;}if(s.phrases&&visible){const local=t-s.origin-.15,cycle=s.audio_duration+.6,k=Math.floor(local/cycle),lt=local-k*cycle;for(const ph of e.querySelectorAll('.phr')){const f=s.phrases[+ph.dataset.k],on=local>=0&&k<=(s.replays||0)&&lt>=f.start&&lt<f.end;ph.style.opacity=on?Math.min(1,(lt-f.start+.05)/.25,(f.end-lt)/.2):0;}}const b=visible&&e.querySelector('.body');if(b&&b.dataset.words){const ws=b.querySelectorAll('.w'),dc=t-s.card;if(s.voice_kind==='speech'&&s.audio_duration>0){const total=(s.body||'').length||1,c=(t-s.origin-.15)/s.audio_duration*total;for(const w of ws){const now=c>=+w.dataset.a&&c<+w.dataset.z,said=c>=+w.dataset.z||c>total;w.style.opacity=now||said?1:.55;w.style.color=now?(b.dataset.gold?'#ffffff':'#ffd36b'):'';}}else{const step=Math.min(.06,Math.max(.02,Math.min(1.2,s.seconds*.25)/Math.max(1,+b.dataset.words)));for(const w of ws){const d=+w.dataset.n*step;w.style.opacity=Math.max(0,Math.min(1,(dc-d)/.25));if(w.dataset.v){const q=Math.max(0,Math.min(1,(dc-d-.1)/.8)),ease=1-Math.pow(1-q,3);if(q>=1)w.textContent=w.dataset.o;else{let val=(+w.dataset.v*ease).toFixed(+w.dataset.d).replace('.',w.dataset.sep);if(w.dataset.ar)val=val.replace(/\d/g,x=>'٠١٢٣٤٥٦٧٨٩'[x]);w.textContent=w.dataset.pre+val+w.dataset.post;}w.style.transform=`scale(${1+.18*Math.sin(Math.PI*q)})`;}}}const tr=e.querySelector('.trend');if(tr){tr.style.opacity=Math.max(0,Math.min(1,dc/.4));tr.style.transform=`translateY(${(tr.classList.contains('up')?-1:1)*12*Math.abs(Math.sin(t*2.2))}px)`;}}if(s.countdown){const n=Math.floor(t-s.origin-(s.countdown_after||0));e.querySelector('.timer').textContent=n>=0&&n<5?String(5-n).replace(/\d/g,x=>'٠١٢٣٤٥٦٧٨٩'[x]):'';}if(s.punch)e.querySelector('.punch').style.opacity=t-s.origin>=(s.reveal_after||0)?1:0;if(s.levels){const v=s.levels[Math.max(0,Math.floor((t-s.origin)*15))]||0;for(const [k,bar]of [...e.querySelectorAll('.bars i')].entries()){const edge=Math.abs(k-20)/21;bar.style.height=(8+v*140*(1-edge*.65)*(.8+.2*Math.sin(k*1.7+t*6)))+'px';}}}document.querySelector('.progress').style.transform=`scaleX(${t/duration})`;const k=Math.abs(Math.sin(t*Math.PI/1.2));for(const g of document.querySelectorAll('.ghost'))g.style.transform=`translateY(${-24*k}px) rotate(${-6*k}deg)`;for(const u of document.querySelectorAll('.cta .user'))u.style.transform=`scale(${1+.06*k})`;const dot=document.querySelector('.kind .dot');if(dot)dot.style.opacity=Math.floor(t*2)%2?.15:1;},{t,scenes:timeline,duration:p.duration});await page.screenshot({path:path.join(out,String(i).padStart(5,'0')+'.png'),omitBackground:true});}
    await page.close();
   })()));
  }finally{await Promise.all(browsers.map(b=>b.close()));}
- await fs.writeFile(path.join(out,'layout.json'),JSON.stringify({overflow:reports.reduce((n,r)=>n+r.overflow,0),tiny:reports.reduce((n,r)=>n+r.tiny,0),empty:reports.reduce((n,r)=>n+r.empty,0),handle:reports.every(r=>r.handle),cut:(reports[0]&&reports[0].cut)||[],frames:Math.ceil(p.duration*15),fps:15}));
+ await fs.writeFile(path.join(out,'layout.json'),JSON.stringify({overflow:reports.reduce((n,r)=>n+r.overflow,0),tiny:reports.reduce((n,r)=>n+r.tiny,0),empty:reports.reduce((n,r)=>n+r.empty,0),handle:reports.every(r=>r.handle),cut:(reports[0]&&reports[0].cut)||[],frames:Math.ceil(p.duration*15),fps:15,styles:captured}));
 })().catch(e=>{process.stderr.write('LEGACY_CHROMIUM_RENDER_FAILED '+String(e.message).replace(/[^A-Za-z0-9 _-]/g,'').slice(0,100)+'\n');process.exitCode=1});

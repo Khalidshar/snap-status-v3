@@ -499,6 +499,15 @@ def render(
                     )
             if any(f["code"] == "BLACK_FRAMES" for f in findings):
                 raise ValueError("LEGACY_REVIEW_BLACK_FRAMES")
+            # Auditor gate (owner directive 18 Nov): the clip against the design card.
+            from .audit import audit, load_card
+
+            verdict = audit(p, layout, load_card())
+            (work / "audit.json").write_text(json.dumps(verdict, ensure_ascii=False, indent=2))
+            shutil.copyfile(work / "audit.json", destination / f"audit-{attempt}.json")
+            if not verdict["export_allowed"]:
+                owner = "WRITER" if "writer" in verdict["reject_to"] else "DESIGNER"
+                raise ValueError(f"AUDIT_REJECTED_{owner}: " + " ".join(verdict["checks"]))
             result = {
                 "schema": 1,
                 "app": p["app"],
@@ -513,6 +522,7 @@ def render(
                 "review": {"findings": findings, "fixes": design.get("fixes", [])},
                 "design": {k: v for k, v in design.items() if k != "footage_path"}
                 | {"inspection": inspection},
+                "audit": verdict,
                 "external_delivery": False,
             }
             (work / "report.json").write_text(json.dumps(result, ensure_ascii=False, indent=2))
@@ -528,6 +538,9 @@ def render(
         ) as error:
             errors.append(type(error).__name__ + ": " + str(error)[:160])
             shutil.rmtree(work / "frames", ignore_errors=True)
+            # A script error is the writer's: rendering it again cannot fix it.
+            if str(error).startswith("AUDIT_REJECTED_WRITER"):
+                break
     (destination / "failed.json").write_text(json.dumps({"errors": errors}))
     raise ValueError("LEGACY_QA_FAILED_AFTER_REBUILD: " + "; ".join(errors))
 

@@ -137,6 +137,11 @@ def plan() -> dict[Path, str]:
     files[UNITS / "madar-v3-snap-commands.service.d/live-news.conf"] = (
         "[Service]\nEnvironment=MADAR_LIVE_NEWS=1\n"
     )
+    # Owner 18 Nov 2026: every Snap command clip passes the 18 agents in order, as WhatsApp's
+    # already do; without this, Snap news used the agent-less live-news renderer.
+    files[UNITS / "madar-v3-snap-commands.service.d/production.conf"] = (
+        "[Service]\nEnvironment=MADAR_LEGACY_PRODUCTION=1\n"
+    )
     unit = (
         service(
             "snap",
