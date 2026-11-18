@@ -558,6 +558,10 @@ def deliver_built(
     lease: Any,
 ) -> None:
     """Upload and send one built clip once; the chat command and panel approval share it."""
+    # Owner 18 Nov 2026: all 18 agents, succeeded, in the approved order, or no send.
+    from studio_core.observability import chain_gate
+
+    chain_gate.verify(root / item["tag"] / "state/jobs.sqlite")  # symlinks refused inside
     description = None
     if content.get("legacy_production"):
         from studio_core.production.caption import platform_caption

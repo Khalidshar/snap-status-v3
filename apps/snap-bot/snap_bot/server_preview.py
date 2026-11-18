@@ -495,6 +495,10 @@ class Runtime:
             or data["render"]["content_hash"] != record["content_hash"]
         ):
             raise ValueError("Provenance changed")
+        # Owner 18 Nov 2026: all 18 agents, succeeded, in the approved order, or no send.
+        from studio_core.observability import chain_gate
+
+        chain_gate.verify(directory / "state/jobs.sqlite")
         return directory, record, verify_quality(directory, data, video_sha)
 
     def approve(self, video_sha: str, channel: str = "test", *, owner_chat: bool = False) -> Any:

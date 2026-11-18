@@ -27,6 +27,7 @@ status-bot = { workspace = true }
 [tool.pytest.ini_options]
 testpaths = ["tests", "packages/studio-core/tests", "apps/snap-bot/tests", "apps/status-bot/tests"]
 addopts = ["--import-mode=importlib", "--strict-markers", "-ra"]
+markers = ["real_chain_gate: keep the 18-agent send gate active"]
 
 [tool.coverage.run]
 branch = true

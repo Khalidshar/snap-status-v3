@@ -58,6 +58,17 @@ def test_fixer_changes_only_the_design():
 
 @pytest.mark.parametrize("persistent_black", [False, True])
 def test_render_retries_review_findings_once(tmp_path, monkeypatch, persistent_black):
+    # The design-card auditor has its own tests; this one is about the review loop.
+    monkeypatch.setattr(
+        "studio_core.production.audit.audit",
+        lambda p, layout, card: {
+            "export_allowed": True,
+            "verdict": "PASS",
+            "checks": [],
+            "errors": [],
+            "reject_to": [],
+        },
+    )
     source = tmp_path / "source"
     source.mkdir()
     content = {"content_hash": "a" * 64}

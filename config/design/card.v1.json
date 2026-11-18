@@ -1,0 +1,83 @@
+{
+  "schema": "design-card.v1",
+  "name": "هوية روّق مع خالد",
+  "decided": "2026-11-18 (owner directive; values taken from approved clips of both bots, sccc 08196fe)",
+  "brand_manifest_sha256": "ced8d49143d4707a74d73f5f0cac20b3c7d1b9f8a41c1c1f922fde1084b4700b",
+  "canvas": [1080, 1920],
+  "fps": 15,
+  "palette": {
+    "green": "#0B3D2E",
+    "gold": "#D6B26C",
+    "cream": "#F6EEDE",
+    "desk_text": "#E9E2CF",
+    "white": "#FFFFFF"
+  },
+  "handle": {"family": ["naskh"], "size": [58, 58], "color": ["rgb(255, 255, 255)"]},
+  "layouts": {
+    "plain": {
+      "card_padding": [[20, 20, 20, 20], [20, 46, 20, 46]],
+      "text": {
+        "body": {"family": ["body", "quran"], "size": [55, 130], "color": ["rgb(246, 238, 222)", "rgb(214, 178, 108)"]},
+        "h2": {"family": ["body"], "size": [75, 110], "color": ["rgb(246, 238, 222)"]},
+        "tafsir": {"family": ["naskh"], "size": [55, 110], "color": ["rgb(246, 238, 222)"]}
+      }
+    },
+    "tilawa": {
+      "card_padding": [[20, 20, 20, 20]],
+      "text": {
+        "phr": {"family": ["hafs"], "size": [104, 104], "color": ["rgb(244, 236, 216)"]}
+      }
+    },
+    "news_desk": {
+      "card_padding": [[0, 0, 0, 0]],
+      "text": {
+        "dhead": {"family": ["readex"], "size": [50, 80], "color": ["rgb(255, 255, 255)"]},
+        "h2": {"family": ["readex"], "size": [50, 80], "color": ["rgb(255, 255, 255)"]},
+        "dbody": {"family": ["readex"], "size": [46, 46], "color": ["rgb(233, 226, 207)"]},
+        "dsrc": {"family": ["readex"], "size": [36, 36], "color": ["rgb(11, 61, 46)"]}
+      }
+    },
+    "fashion_desk": {
+      "card_padding": [[0, 0, 0, 0]],
+      "text": {
+        "dhead": {"family": ["readex"], "size": [50, 80], "color": ["rgb(255, 255, 255)"]},
+        "h2": {"family": ["readex"], "size": [50, 80], "color": ["rgb(255, 255, 255)"]},
+        "dbody": {"family": ["readex"], "size": [46, 46], "color": ["rgb(233, 226, 207)"]},
+        "dsrc": {"family": ["readex"], "size": [36, 36], "color": ["rgb(11, 61, 46)"]}
+      }
+    },
+    "cta": {
+      "card_padding": [[20, 20, 20, 20]],
+      "text": {
+        "h1": {"family": ["body"], "size": [112, 112], "color": ["rgb(246, 238, 222)"]}
+      }
+    }
+  },
+  "allowed": {
+    "*": ["plain", "cta"],
+    "urgent": ["news_desk", "plain", "cta"],
+    "saudi": ["news_desk", "plain", "cta"],
+    "world": ["news_desk", "plain", "cta"],
+    "football": ["news_desk", "plain", "cta"],
+    "markets": ["news_desk", "plain", "cta"],
+    "news": ["news_desk", "plain", "cta"],
+    "news_noon": ["news_desk", "plain", "cta"],
+    "tech": ["news_desk", "plain", "cta"],
+    "style": ["fashion_desk", "plain", "cta"],
+    "style_women": ["fashion_desk", "plain", "cta"],
+    "style_men": ["fashion_desk", "plain", "cta"],
+    "style_perfume": ["fashion_desk", "plain", "cta"],
+    "style_couples": ["fashion_desk", "plain", "cta"],
+    "style_kids": ["fashion_desk", "plain", "cta"],
+    "verse": ["tilawa", "plain", "cta"],
+    "dua": ["tilawa", "plain", "cta"],
+    "friday": ["tilawa", "plain", "cta"],
+    "kahf": ["tilawa", "plain", "cta"],
+    "fast": ["tilawa", "plain", "cta"],
+    "isha": ["tilawa", "plain", "cta"],
+    "night": ["tilawa", "plain", "cta"],
+    "adhkar_am": ["tilawa", "plain", "cta"],
+    "adhkar_pm": ["tilawa", "plain", "cta"],
+    "hadith": ["tilawa", "plain", "cta"]
+  }
+}
