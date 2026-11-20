@@ -32,13 +32,44 @@ def desk_order(key: str, candidates: list[dict[str, Any]], hot: list[str]) -> li
         return any(t.strip() and t.strip().casefold() in text for t in hot[:25])
 
     def saudi(i: dict[str, Any]) -> bool:
-        return any(w in i["title"] + i["detail"][:150] for w in ("السعود", "الرياض", "المملكة"))
+        text = i["title"] + " " + i["detail"][:150]
+        for other in OTHER_KINGDOMS:
+            text = text.replace(other, " ")
+        return any(w in text for w in SAUDI_MARKERS)
 
     local = sorted((i for i in candidates if saudi(i)), key=lambda i: not trending(i))
     rest = sorted((i for i in candidates if not saudi(i)), key=lambda i: not trending(i))
     if key == "world":
         return country_cap(rest)
+    # Owner 21 Nov 2026: «أخبار السعودية» carries Saudi stories only (Alaska, Iran and an
+    # Egyptian singer had filled half of it under the Saudi badge).
+    if key == "saudi":
+        return local
     return local[:2] + rest[:2] + local[2:] + rest[2:]
+
+
+SAUDI_MARKERS = (
+    "السعود",
+    "الرياض",
+    "المملكة",
+    "جدة",
+    "مكة",
+    "المدينة المنورة",
+    "ولي العهد السعودي",
+    "محمد بن سلمان",
+    "نيوم",
+    "أرامكو",
+    "دوري روشن",
+    "رؤية 2030",
+)
+# «المملكة» alone means Saudi Arabia; these other kingdoms must not count.
+OTHER_KINGDOMS = (
+    "المملكة المتحدة",
+    "المملكة الأردنية",
+    "المملكة المغربية",
+    "مملكة البحرين",
+    "المملكة الهولندية",
+)
 
 
 # «العالم» تتنوّع: لا أكثر من خبرين من نفس الدولة في أول النشرة (owner 14 Nov 2026: أربعة
