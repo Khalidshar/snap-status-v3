@@ -26,8 +26,31 @@ def test_world_bulletin_has_no_saudi_story():
     ]
 
 
+def test_saudi_bulletin_is_saudi_only():
+    # Owner 21 Nov 2026: no foreign story under the Saudi badge; other kingdoms never count.
+    stories = [
+        *STORIES,
+        story("المملكة المتحدة ترفع الفائدة"),
+        story("ألاسكا تمنح الديمقراطيين"),
+        story("بعد 160 عاما.. ذكاء اصطناعي يحل لغزا في الرياضيات"),
+        story("نجم الرياضة الأول في العالم"),
+        # Owner 21 Nov 2026: sport belongs to the sports command, even when Saudi.
+        story("رئيس الاتحاد السعودي لكرة الطاولة: أولمبياد لوس أنجليس هدف رئيسي"),
+        story("توني مهاجم الأهلي يتصدر الهدافين في دوري روشن السعودي"),
+        story("المنتخب السعودي يستعد لمباراة الأحد في الرياض"),
+        story("جياد فيصل بن خالد تتألق في سباقات «موسم الرياض»"),
+        story("الرياض تجمع رياضات الشعوب في مهرجان الإثنوسبورت"),
+    ]
+    titles = [i["title"] for i in desk_order("saudi", stories, [])]
+    assert titles == [
+        "السعودية تعلن مشروعا جديدا في الرياض",
+        "المملكة تستضيف قمة دولية",
+        "أمير الرياض يفتتح معرضا",
+    ]
+
+
 def test_other_bulletins_keep_two_saudi_stories_first():
-    for key in ("saudi", "news", "news_noon", "football", "markets"):
+    for key in ("news", "news_noon", "football", "markets"):
         titles = [i["title"] for i in desk_order(key, STORIES, [])]
         assert titles[:2] == ["السعودية تعلن مشروعا جديدا في الرياض", "المملكة تستضيف قمة دولية"]
         assert titles[2:4] == ["فرنسا تعلن اتفاقا جديدا مع ألمانيا", "اليابان تطلق قمرا صناعيا"]

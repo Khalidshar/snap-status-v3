@@ -32,13 +32,95 @@ def desk_order(key: str, candidates: list[dict[str, Any]], hot: list[str]) -> li
         return any(t.strip() and t.strip().casefold() in text for t in hot[:25])
 
     def saudi(i: dict[str, Any]) -> bool:
-        return any(w in i["title"] + i["detail"][:150] for w in ("السعود", "الرياض", "المملكة"))
+        text = i["title"] + " " + i["detail"][:150]
+        for other in OTHER_KINGDOMS:
+            text = text.replace(other, " ")
+        return SAUDI.search(text) is not None
 
     local = sorted((i for i in candidates if saudi(i)), key=lambda i: not trending(i))
     rest = sorted((i for i in candidates if not saudi(i)), key=lambda i: not trending(i))
     if key == "world":
         return country_cap(rest)
+    # Owner 21 Nov 2026: «أخبار السعودية» carries Saudi stories only (Alaska, Iran and an
+    # Egyptian singer had filled half of it under the Saudi badge), and no sport: «المفترض
+    # الرياضه في اخبار الرياضه».
+    if key == "saudi":
+        return [i for i in local if not sport(i)]
     return local[:2] + rest[:2] + local[2:] + rest[2:]
+
+
+SAUDI_MARKERS = (
+    "السعود",
+    "الرياض",
+    "المملكة",
+    "جدة",
+    "مكة",
+    "المدينة المنورة",
+    "ولي العهد السعودي",
+    "محمد بن سلمان",
+    "نيوم",
+    "أرامكو",
+    "دوري روشن",
+    "رؤية 2030",
+)
+# Whole words, with a leading و/ف/ب/ل/ك allowed: «الرياض» never matches «الرياضيات» or
+# «الرياضة» (a maths story had passed as Saudi). «السعود» keeps its endings (السعودية…).
+SAUDI = re.compile(
+    r"(?<![ء-ي])[وفبلك]?(?:"
+    + "|".join(re.escape(w) + (r"[ء-ي]*" if w == "السعود" else "") for w in SAUDI_MARKERS)
+    + r")(?![ء-ي])"
+)
+SPORT_WORDS = (
+    "كرة القدم",
+    "كرة الطاولة",
+    "دوري",
+    "الدوري",
+    "دوري روشن",
+    "منتخب",
+    "مباراة",
+    "مباريات",
+    "لاعب",
+    "لاعبين",
+    "مدرب",
+    "مهاجم",
+    "حارس",
+    "الهدافين",
+    "نادي",
+    "أولمبياد",
+    "الأولمبية",
+    "بطولة",
+    "سباق",
+    "سباقات",
+    "جياد",
+    "خيل",
+    "الخيل",
+    "شوط",
+)
+SPORT = re.compile(
+    r"(?<![ء-ي])[وفبلك]?(?:ال|لل)?(?:"
+    # رياضة/رياضي/رياضية/رياضات/رياضيين…, never the city «الرياض» or «الرياضيات» (maths).
+    + r"رياض(?:ة|ه|ي|ية|يه|يا|يون|يين|ات)|"
+    + "|".join(re.escape(w) for w in SPORT_WORDS)
+    + r")(?![ء-ي])"
+)
+
+
+def sport(item: dict[str, Any]) -> bool:
+    """A sports story, kept for the sports command (football) and out of «السعودية»."""
+    from studio_core.sources.news import OTHER_SPORT
+
+    text = item["title"] + " " + item["detail"][:150]
+    return SPORT.search(text) is not None or OTHER_SPORT.search(text) is not None
+
+
+# «المملكة» alone means Saudi Arabia; these other kingdoms must not count.
+OTHER_KINGDOMS = (
+    "المملكة المتحدة",
+    "المملكة الأردنية",
+    "المملكة المغربية",
+    "مملكة البحرين",
+    "المملكة الهولندية",
+)
 
 
 # «العالم» تتنوّع: لا أكثر من خبرين من نفس الدولة في أول النشرة (owner 14 Nov 2026: أربعة
