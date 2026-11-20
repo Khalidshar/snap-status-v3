@@ -28,7 +28,13 @@ def test_world_bulletin_has_no_saudi_story():
 
 def test_saudi_bulletin_is_saudi_only():
     # Owner 21 Nov 2026: no foreign story under the Saudi badge; other kingdoms never count.
-    stories = [*STORIES, story("المملكة المتحدة ترفع الفائدة"), story("ألاسكا تمنح الديمقراطيين")]
+    stories = [
+        *STORIES,
+        story("المملكة المتحدة ترفع الفائدة"),
+        story("ألاسكا تمنح الديمقراطيين"),
+        story("بعد 160 عاما.. ذكاء اصطناعي يحل لغزا في الرياضيات"),
+        story("نجم الرياضة الأول في العالم"),
+    ]
     titles = [i["title"] for i in desk_order("saudi", stories, [])]
     assert titles == [
         "السعودية تعلن مشروعا جديدا في الرياض",

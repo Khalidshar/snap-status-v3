@@ -35,7 +35,7 @@ def desk_order(key: str, candidates: list[dict[str, Any]], hot: list[str]) -> li
         text = i["title"] + " " + i["detail"][:150]
         for other in OTHER_KINGDOMS:
             text = text.replace(other, " ")
-        return any(w in text for w in SAUDI_MARKERS)
+        return SAUDI.search(text) is not None
 
     local = sorted((i for i in candidates if saudi(i)), key=lambda i: not trending(i))
     rest = sorted((i for i in candidates if not saudi(i)), key=lambda i: not trending(i))
@@ -61,6 +61,13 @@ SAUDI_MARKERS = (
     "أرامكو",
     "دوري روشن",
     "رؤية 2030",
+)
+# Whole words, with a leading و/ف/ب/ل/ك allowed: «الرياض» never matches «الرياضيات» or
+# «الرياضة» (a maths story had passed as Saudi). «السعود» keeps its endings (السعودية…).
+SAUDI = re.compile(
+    r"(?<![ء-ي])[وفبلك]?(?:"
+    + "|".join(re.escape(w) + (r"[ء-ي]*" if w == "السعود" else "") for w in SAUDI_MARKERS)
+    + r")(?![ء-ي])"
 )
 # «المملكة» alone means Saudi Arabia; these other kingdoms must not count.
 OTHER_KINGDOMS = (
