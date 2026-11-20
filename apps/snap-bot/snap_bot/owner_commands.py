@@ -394,7 +394,10 @@ class Studio:
         outcome = self.deliver(clip["sha"])
         # The clip itself is the reply: a sent clip needs no text; any failure is reported.
         if outcome.startswith(SENT):
-            notes = [str(clip.get("publication_notice", ""))]
+            # Owner 21 Nov 2026: production clips carry the destination in their caption.
+            content = clip.get("content")
+            in_caption = isinstance(content, dict) and bool(content.get("legacy_production"))
+            notes = [] if in_caption else [str(clip.get("publication_notice", ""))]
             if clip.get("translated"):
                 notes.append(TRANSLATED_NOTE)
             return "\n".join(n for n in notes if n)

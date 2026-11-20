@@ -853,17 +853,24 @@ def test_article_cannot_escape_its_approved_publisher(tmp_path, audio):
 
 
 @pytest.mark.parametrize("app", ["snap-bot-v2", "status-bot-v2"])
-def test_production_caption_keeps_credits_and_article_links(tmp_path, audio, app):
-    from studio_core.production.caption import caption, platform_caption
+def test_production_caption_is_type_headline_when_where_without_links(tmp_path, audio, app):
+    from studio_core.production.caption import WHEN_DEFAULT, caption, platform_caption
+    from studio_core.production.publication import LABELS
 
     f = factory(tmp_path, "facts", Sources(audio), app)
     value = f.build()
     description = platform_caption(value)
-    assert "وجهة النشر" not in description and "وجهة النشر" not in caption(value)
-    assert value["publication_target"] in {"SPOTLIGHT", "PUBLIC_STORY"}
-    assert "@rawwag_khalid" in description and "Tech Corporate" in description
-    assert "creativecommons.org/licenses/by/4.0/" in description
+    # Owner 21 Nov 2026: type, short headline, when and where; no links at all.
+    rows = description.split("\n")
+    assert rows[0] == "🎬 النوع: " + value["title"]
+    assert rows[1].startswith("📝 العنوان: ") and len(rows[1]) <= len("📝 العنوان: ") + 81
+    assert rows[2] == "🕒 متى ينشر: " + WHEN_DEFAULT
+    assert rows[3] == "📍 وين ينشر: " + LABELS[value["publication_target"]]
+    assert "http" not in description and "creativecommons.org" not in description
+    # CC BY music stays credited (licence condition), without its link.
+    assert "Tech Corporate" in description
     assert "Tech Corporate" in caption(value)
+    assert "وجهة النشر" not in caption(value)
     wrong = copy.deepcopy(value)
     wrong["publication_target"] = (
         "PUBLIC_STORY" if value["publication_target"] == "SPOTLIGHT" else "SPOTLIGHT"
@@ -871,8 +878,14 @@ def test_production_caption_keeps_credits_and_article_links(tmp_path, audio, app
     wrong["content_hash"] = content_hash(wrong)
     with pytest.raises(ValueError, match="PUBLICATION_TARGET_CHANGED"):
         platform_caption(wrong)
+    # Long article links no longer reach the caption (the 18 Nov send failures).
+    linked = copy.deepcopy(value)
+    linked["legacy_production"]["scenes"][0]["source_url"] = "https://example.com/" + "%D8" * 400
+    assert "example.com" not in platform_caption(reseal(linked))
     changed = copy.deepcopy(value)
-    changed["legacy_production"]["scenes"][0]["source"] = "مصدر طويل " * 200
+    plan = changed["legacy_production"]
+    music = next(a for a in plan["assets"] if a["file"] == plan["music"])
+    music["credit"] = "مصدر طويل " * 200
     with pytest.raises(ValueError, match="CAPTION_TOO_LONG"):
         platform_caption(reseal(changed))
 

@@ -140,7 +140,8 @@ def test_translated_clip_is_followed_by_the_review_notice(
     delivered.assert_called_once()
     transport.send_text.assert_called_once()
     note = transport.send_text.call_args.args[0]
-    assert note.startswith("وجهة النشر: ") and note.endswith(TRANSLATED_NOTE)
+    # Owner 21 Nov 2026: the destination lives in the caption; only the review notice follows.
+    assert note == TRANSLATED_NOTE
 
     plain = Mock()
     transport.send_text = plain
