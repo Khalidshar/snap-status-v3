@@ -24,6 +24,7 @@ TITLES = {
     "world": "أخبار العالم",
     "news": "موجز الأخبار",
     "football": "كرة القدم",
+    "sports": "الرياضة",
     "markets": "الأسواق والاقتصاد",
     "tech": "التقنية",
     **FASHION_TITLES,
@@ -396,6 +397,10 @@ def matches(key: str, text: str) -> bool:
         return market_story(text)
     if key == "football":
         return football_story(text)
+    if key == "sports":
+        from studio_core.production.prepare_news import sport_text
+
+        return sport_text(text)
     if key == "urgent":
         security = (
             "صاروخ",

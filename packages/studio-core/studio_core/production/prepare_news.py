@@ -46,6 +46,10 @@ def desk_order(key: str, candidates: list[dict[str, Any]], hot: list[str]) -> li
     # الرياضه في اخبار الرياضه».
     if key == "saudi":
         return [i for i in local if not sport(i)]
+    if key in {"news", "news_noon"}:
+        # Owner 21 Nov 2026 («اعتمد»): the general bulletins leave sport to its command.
+        local = [i for i in local if not sport(i)]
+        rest = [i for i in rest if not sport(i)]
     return local[:2] + rest[:2] + local[2:] + rest[2:]
 
 
@@ -105,12 +109,19 @@ SPORT = re.compile(
 )
 
 
-def sport(item: dict[str, Any]) -> bool:
-    """A sports story, kept for the sports command (football) and out of «السعودية»."""
-    from studio_core.sources.news import OTHER_SPORT
+def sport_text(text: str) -> bool:
+    """Any sport: the «أخبار الرياضة» command takes it, the general bulletins leave it."""
+    from studio_core.sources.news import OTHER_SPORT, WORDS
 
-    text = item["title"] + " " + item["detail"][:150]
-    return SPORT.search(text) is not None or OTHER_SPORT.search(text) is not None
+    return (
+        SPORT.search(text) is not None
+        or OTHER_SPORT.search(text) is not None
+        or any(word in text for word in WORDS["football"])
+    )
+
+
+def sport(item: dict[str, Any]) -> bool:
+    return sport_text(item["title"] + " " + item["detail"][:150])
 
 
 # «المملكة» alone means Saudi Arabia; these other kingdoms must not count.
@@ -333,6 +344,8 @@ class NewsPreparation(PreparationBase):
         if language == "ar":
             if key == "football":
                 return football_story(text, detail)
+            if key == "sports":
+                return sport_text(text + " " + detail[:150])
             if key == "world":
                 return world_story(text, detail)
             if key == "markets" and source_id not in NewsPreparation.ECONOMY_FEEDS:

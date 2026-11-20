@@ -36,6 +36,8 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
         ("news", "📰 موجز الأخبار", ("موجز",), False),
         ("news_noon", "📰 أخبار الظهر", ("نشرة الظهر",), False),
         ("football", "⚽ ملخص كرة القدم", ("كرة القدم", "الكرة"), False),
+        # Owner 21 Nov 2026: every sport has a home (Saudi news carries none).
+        ("sports", "🏅 أخبار الرياضة", ("الرياضة", "رياضة"), False),
         ("markets", "📈 الأسواق والاقتصاد", ("الأسواق",), False),
     )),
     ("general", "💡 هل تعلم ومنوعات", (

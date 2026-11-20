@@ -55,3 +55,29 @@ def test_other_bulletins_keep_two_saudi_stories_first():
         assert titles[:2] == ["السعودية تعلن مشروعا جديدا في الرياض", "المملكة تستضيف قمة دولية"]
         assert titles[2:4] == ["فرنسا تعلن اتفاقا جديدا مع ألمانيا", "اليابان تطلق قمرا صناعيا"]
         assert len(titles) == len(STORIES)
+
+
+def test_general_bulletins_leave_sport_to_the_sports_command():
+    # Owner 21 Nov 2026 («اعتمد»): موجز الأخبار and أخبار الظهر carry no sport.
+    stories = [*STORIES, story("المنتخب السعودي يستعد لمباراة الأحد في الرياض")]
+    for key in ("news", "news_noon"):
+        titles = [i["title"] for i in desk_order(key, stories, [])]
+        assert "المنتخب السعودي يستعد لمباراة الأحد في الرياض" not in titles
+        assert "السعودية تعلن مشروعا جديدا في الرياض" in titles
+
+
+def test_sports_command_takes_every_sport_and_nothing_else():
+    from studio_core.production.prepare_news import NewsPreparation
+    from studio_core.sources.news import matches
+
+    match = NewsPreparation.editorial_match
+    for title in (
+        "رئيس الاتحاد السعودي لكرة الطاولة: أولمبياد لوس أنجليس هدف رئيسي",
+        "جياد فيصل بن خالد تتألق في سباقات موسم الرياض",
+        "الهلال يفوز في دوري روشن",
+        "الرياض تجمع رياضات الشعوب في مهرجان الإثنوسبورت",
+    ):
+        assert match("sports", title, "ar"), title
+        assert matches("sports", title), title
+    for title in ("مجلس الوزراء يقر نظاما جديدا في الرياض", "ذكاء اصطناعي يحل لغزا في الرياضيات"):
+        assert not match("sports", title, "ar"), title
