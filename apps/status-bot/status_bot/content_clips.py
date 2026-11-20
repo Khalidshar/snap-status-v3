@@ -35,7 +35,6 @@ from studio_core.presentation.did_you_know import (
 from studio_core.presentation.media_checks import check_media, check_voice
 from studio_core.production.caption import TRANSLATED_NOTE, machine_translated
 from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
-from studio_core.production.publication import notice
 from studio_core.religious.quran_pipeline import render as shared_render
 from studio_core.religious.quran_pipeline import stage as stage_quran
 from studio_core.renderer import write_once
@@ -699,7 +698,8 @@ def send(
             raise
     finally:
         locks.release(lease)
-    notes = [notice(content)] if content.get("legacy_production") else []
+    # Owner 21 Nov 2026: the destination is in the clip's own caption now (platform_caption).
+    notes = []
     if machine_translated(content):
         notes.append(TRANSLATED_NOTE)
     if notes:
