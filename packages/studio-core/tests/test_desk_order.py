@@ -54,7 +54,9 @@ def test_other_bulletins_keep_two_saudi_stories_first():
         titles = [i["title"] for i in desk_order(key, STORIES, [])]
         assert titles[:2] == ["السعودية تعلن مشروعا جديدا في الرياض", "المملكة تستضيف قمة دولية"]
         assert titles[2:4] == ["فرنسا تعلن اتفاقا جديدا مع ألمانيا", "اليابان تطلق قمرا صناعيا"]
-        assert len(titles) == len(STORIES)
+        # «البرازيل تفوز بالبطولة» is sport: the general bulletins leave it (21 Nov).
+        expected = len(STORIES) - (key in {"news", "news_noon"})
+        assert len(titles) == expected
 
 
 def test_general_bulletins_leave_sport_to_the_sports_command():

@@ -21,10 +21,10 @@ def test_all_existing_commands_are_inspectable_and_controls_have_no_sources():
         assert bool(result["sources"]) == (command.key in CONTENT_KEYS)
         assert result["publication_enabled"] is False
         assert result["live_feeds_enabled"] is False
-    assert len(CONTENT_KEYS) == 29
+    assert len(CONTENT_KEYS) == 30  # «أخبار الرياضة» joined on 21 Nov 2026
 
 
-@pytest.mark.parametrize("name", ["style", "جديد البراندات", "١٤", "14", "👗 الأناقة والجمال"])
+@pytest.mark.parametrize("name", ["style", "جديد البراندات", "١٥", "15", "👗 الأناقة والجمال"])
 def test_sources_follow_the_bots_existing_exact_command_matching(name):
     assert for_command(name) == for_command("style")
     assert for_command(name) != for_command("tech")
