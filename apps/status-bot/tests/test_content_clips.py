@@ -283,9 +283,8 @@ def test_authenticated_content_command_sends_only_one_clip(fixture, key):
         patch("status_bot.owner_commands.command_news.reply", side_effect=news_reply),
     ):
         assert process_one(f.outbox, transport, Mock(), f.runtime)
-    from studio_core.sources.news import TITLES
-
     from status_bot.owner_commands import production_content
+    from studio_core.sources.news import TITLES
 
     if key in TITLES and not production_content(key):  # 21 Nov: old news path locked
         send.assert_not_called()
