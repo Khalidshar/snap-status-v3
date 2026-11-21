@@ -59,7 +59,7 @@
         "snap-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
           "scope": "production_source_checks",
-          "command": null
+          "command": "snap_bot.tool_commands.execute"
         },
         "status-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
@@ -125,7 +125,7 @@
         "snap-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
           "scope": "production_source_checks",
-          "command": null
+          "command": "snap_bot.tool_commands.execute"
         },
         "status-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
@@ -158,7 +158,7 @@
         "snap-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
           "scope": "production_source_checks",
-          "command": null
+          "command": "snap_bot.tool_commands.execute"
         },
         "status-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
@@ -191,7 +191,7 @@
         "snap-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
           "scope": "production_source_checks",
-          "command": null
+          "command": "snap_bot.tool_commands.execute"
         },
         "status-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
@@ -290,7 +290,7 @@
         "snap-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
           "scope": "production_source_checks",
-          "command": null
+          "command": "snap_bot.tool_commands.execute"
         },
         "status-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
@@ -620,7 +620,7 @@
         "snap-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
           "scope": "production_source_checks",
-          "command": null
+          "command": "snap_bot.tool_commands.execute"
         },
         "status-bot-v2": {
           "pipeline": "studio_core.production.oversight.inspect",
