@@ -690,7 +690,8 @@ class NewsPreparation(PreparationBase):
                 )
                 continue
         if (
-            self.key not in {"tech", "style"} and len(selected) < (3 if self.key == "urgent" else 2)
+            # Owner 22 Nov 2026: one fresh conflict story is enough for «عاجل» (up to three).
+            self.key not in {"tech", "style"} and len(selected) < (1 if self.key == "urgent" else 2)
         ) or not selected:
             (self.root / "source-failures.json").write_bytes(canonical(failures))
             if self.key == "urgent":
