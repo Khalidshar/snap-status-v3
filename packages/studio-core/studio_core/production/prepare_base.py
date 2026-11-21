@@ -40,6 +40,29 @@ def cut_matches(seconds: float, references: list[float]) -> bool:
     return 0.6 * middle <= seconds <= 1.6 * middle
 
 
+def width(path: Path) -> int:
+    """Pixel width of a local picture (0 when it cannot be read)."""
+    result = run(
+        [
+            "/usr/bin/ffprobe",
+            "-v",
+            "error",
+            "-protocol_whitelist",
+            "file,pipe",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width",
+            "-of",
+            "csv=p=0",
+            str(path),
+        ],
+        30,
+    )
+    value = result.stdout.strip()
+    return int(value) if value.isdigit() else 0
+
+
 def duration(path: Path) -> float:
     result = run(
         [
@@ -170,7 +193,10 @@ class PreparationBase:
                 )
         return False
 
-    def picture(self, url: str, base: str, credit: str) -> str:
+    def picture(self, url: str, base: str, credit: str, min_width: int = 0) -> str:
+        """Fetch, check and normalize one picture. With min_width, a smaller picture is
+        refused before it becomes an asset (owner 21 Nov 2026: a 100 px thumbnail was
+        stretched across the news card)."""
         url = urljoin(base, html.unescape(url))
         raw = self.get(url)
         if not (
@@ -201,6 +227,8 @@ class PreparationBase:
             ],
             45,
         )
+        if min_width and width(normalized) < min_width:
+            raise ValueError("LEGACY_IMAGE_TOO_SMALL")
         return self.local(normalized, url, credit)
 
     def translate(self, text: str) -> str:

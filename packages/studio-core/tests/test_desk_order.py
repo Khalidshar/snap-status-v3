@@ -83,3 +83,15 @@ def test_sports_command_takes_every_sport_and_nothing_else():
         assert matches("sports", title), title
     for title in ("مجلس الوزراء يقر نظاما جديدا في الرياض", "ذكاء اصطناعي يحل لغزا في الرياضيات"):
         assert not match("sports", title, "ar"), title
+
+
+def test_thumbnail_links_ask_for_the_large_picture():
+    # Owner 21 Nov 2026: a 100 px Sky News thumbnail was stretched across the card.
+    from studio_core.production.prepare_news import sharper
+
+    sky = "https://images.skynewsarabia.com/images/v1/2026/11/21/1906152/95/53/1-1906152.jpg"
+    assert sharper(sky).endswith("/1906152/1200/670/1-1906152.jpg")
+    bbc = "https://ichef.bbci.co.uk/ace/ws/240/cpsprodpb/abc.jpg"
+    assert sharper(bbc) == "https://ichef.bbci.co.uk/ace/ws/1024/cpsprodpb/abc.jpg"
+    big = "https://s.france24.com/media/display/x/w:1024/p:16x9/a.jpg"
+    assert sharper(big) == big
