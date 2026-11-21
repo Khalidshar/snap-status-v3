@@ -143,8 +143,9 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertIn("🗓 مواعيد الجدولة اليوم", self.studio.answer("مواعيد الجدولة"))
 
     def test_commands_outside_the_clip_cycle_do_nothing_yet(self):
-        for text in ("أضف هل تعلم: نص", "خبر عاجل"):
-            self.assertIn("لم يصل إلى v3", self.studio.answer(text), text)
+        self.assertIn("لم يصل إلى v3", self.studio.answer("خبر عاجل"))
+        # Owner 21 Nov 2026: «أضف معلومة» joins a review queue; too short saves nothing.
+        self.assertIn("ما انحفظ شي", self.studio.answer("أضف هل تعلم: نص"))
         self.assertEqual(self.runtime.appended, [], "guard:read-only")
 
     def test_pause_and_resume_the_schedule(self):

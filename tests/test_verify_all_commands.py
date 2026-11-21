@@ -215,9 +215,19 @@ def test_raw_upstream_error_never_appears_in_report():
     assert verify.safe_error(ValueError("VERIFY_VIDEO_HASH")) == "VERIFY_VIDEO_HASH"
 
 
-def test_disabled_text_command_is_failure_not_a_green_menu(tmp_path):
+def test_disabled_text_command_is_failure_not_a_green_menu(tmp_path, monkeypatch):
+    from status_bot import owner_commands
+
+    # Every WhatsApp command has a path now; a disabled one must still fail, not pass.
+    disabled = "«لوحة التحكم» لا يملك مسار أوامر مكتملًا في الحالات بعد؛ لم يُنفّذ شيء."
+    monkeypatch.setattr(owner_commands, "answer", lambda *a, **k: disabled)
     with pytest.raises(ValueError, match="COMMAND_UNIMPLEMENTED"):
         verify.text_reply("status", "dash", tmp_path)
+
+
+def test_whatsapp_dash_and_approval_replies_are_proven(tmp_path):
+    for key in ("dash", "preview", "send", "cancel", "add_fact"):
+        assert verify.text_reply("status", key, tmp_path / key)["reply"]
 
 
 def test_news_attribution_requires_both_actual_rendered_labels(tmp_path):

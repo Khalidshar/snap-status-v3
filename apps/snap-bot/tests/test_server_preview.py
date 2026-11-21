@@ -464,7 +464,17 @@ class OwnerAuthorityTests(unittest.TestCase):
 )
 class ServerRealPreviewTests(unittest.TestCase):
     def test_root_controller_delegates_actual_render(self):
+        import shutil
         import subprocess
+
+        # Needs passwordless root (the server); a desktop without it cannot run this proof.
+        if (
+            not shutil.which("sudo")
+            or subprocess.run(
+                ["sudo", "-n", "env", "true"], capture_output=True, check=False
+            ).returncode
+        ):
+            self.skipTest("needs passwordless sudo (root integration on the server)")
 
         code = """
 import json, os, pwd, tempfile
