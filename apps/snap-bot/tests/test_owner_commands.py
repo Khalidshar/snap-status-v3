@@ -513,8 +513,10 @@ class LiveNewsPollingTests(unittest.TestCase):
             ),
         ):
             self.assertEqual(listener.poll_once("t", OWNER, studio, 10, transport), 14)
-        self.assertEqual(order, ["الحالة", ("saudi", "11"), "آخر مقطع"])
-        self.assertEqual(sent, ["تم", "خبر عربي", "تم"])
+        # Owner 21 Nov 2026: the pre-production news path is locked; order and owner filter hold.
+        self.assertEqual(order, ["الحالة", "آخر مقطع"])
+        self.assertEqual([sent[0], sent[2]], ["تم", "تم"])
+        self.assertIn("خط الإنتاج", sent[1])
 
 
 if __name__ == "__main__":

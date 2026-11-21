@@ -99,9 +99,9 @@ class CommandInboxTests(unittest.TestCase):
         ):
             self.assertTrue(process_one(self.outbox, transport, news, None))
         self.assertEqual(self.rows()[0]["state"], "ACK")
-        clip.assert_called_once()
-        self.assertEqual(clip.call_args.args[3], "saudi")
-        transport.send_text.assert_not_called()
+        # Owner 21 Nov 2026: news only through production; the old path answers locked.
+        clip.assert_not_called()
+        self.assertIn("خط الإنتاج", transport.send_text.call_args.args[0])
         transport.send_video.assert_not_called()
 
     def test_unimplemented_video_commands_do_not_issue_approvals(self):

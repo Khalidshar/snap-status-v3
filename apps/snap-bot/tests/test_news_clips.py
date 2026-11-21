@@ -89,7 +89,8 @@ def test_unknown_video_send_is_not_replayed(tmp_path):
         assert db.execute("SELECT state FROM replies").fetchone()[0] == "UNKNOWN"
 
 
-def test_listener_routes_live_news_to_video_and_honors_halt(tmp_path):
+def test_listener_locks_the_pre_production_news_path(tmp_path):
+    """Owner 21 Nov 2026: news goes out only through production (the 18 agents)."""
     svc = service(tmp_path)
     update = {
         "update_id": 12,
@@ -121,12 +122,8 @@ def test_listener_routes_live_news_to_video_and_honors_halt(tmp_path):
     ):
         # Preserve the real adapter before patching its name in the listener.
         owner_commands.poll_once("t", "77", SimpleNamespace(runtime=Mock()), 0, transport)
-        deliver.assert_called_once()
-        assert calls == ["getUpdates"]
-        halt.touch()
-        owner_commands.poll_once("t", "77", SimpleNamespace(runtime=Mock()), 0, transport)
-        assert calls[-1] == "sendMessage"
-        assert deliver.call_count == 1
+        deliver.assert_not_called()
+        assert calls == ["getUpdates", "sendMessage"]
 
 
 def test_delivery_requires_digest_and_owner_ack(tmp_path):
