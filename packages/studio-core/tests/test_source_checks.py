@@ -22,7 +22,7 @@ def feed(url, title, at):
 
 
 def test_every_command_has_a_direct_arabic_publisher_feed():
-    for key in (*TITLES, "news_noon", "brief"):
+    for key in (*TITLES, "news_noon"):
         feeds = news_sources(key)
         assert feeds, key
         assert all(urlsplit(s.url).hostname != "news.google.com" for s in feeds)

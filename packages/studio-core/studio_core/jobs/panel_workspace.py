@@ -214,11 +214,14 @@ def claim(path: Path) -> dict[str, Any] | None:
         return {**dict(row), "payload": json.loads(row["payload"])}
 
 
-def finish(path: Path, identifier: str, ok: bool, *, retry_preview: bool = False) -> None:
+def finish(
+    path: Path, identifier: str, ok: bool, *, retry_preview: bool = False, no_fresh: bool = False
+) -> None:
+    """``no_fresh``: nothing new to make (no fresh story) — an expected outcome, not a fault."""
     with database(path) as db:
         initialize(db)
         db.execute("BEGIN IMMEDIATE")
-        state = "DONE" if ok else "UNKNOWN"
+        state = "DONE" if ok else ("NO_FRESH" if no_fresh else "UNKNOWN")
         if retry_preview and not ok:
             action = db.execute(
                 "SELECT payload FROM panel_actions WHERE id=?"

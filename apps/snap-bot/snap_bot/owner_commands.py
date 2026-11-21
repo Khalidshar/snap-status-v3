@@ -95,7 +95,6 @@ KEYBOARD_ROWS = (
     ("dua", "fast", "preview"),
     ("verse", "adhkar_am", "adhkar_pm"),
     ("friday", "kahf", "riddle"),
-    ("brief",),
     ("send", "cancel", "status"),
     ("last",),
     ("halt", "unhalt"),
@@ -702,6 +701,22 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
                 transport(
                     token, "sendMessage", json.dumps({"chat_id": owner, "text": reply}).encode()
                 )
+            continue
+        if parsed["kind"] == "command" and parsed["command"].key in {"brief", *TITLES}:
+            from studio_core.observability.failure_code import LEGACY_LOCKED_MESSAGE
+
+            # Pre-production paths, locked (owner 21 Nov 2026): they send without the 18 agents.
+            print("OWNER_LEGACY_PATH_LOCKED", file=sys.stderr)
+            transport(
+                token,
+                "sendMessage",
+                json.dumps(
+                    {
+                        "chat_id": owner,
+                        "text": LEGACY_LOCKED_MESSAGE.format(label=parsed["command"].label),
+                    }
+                ).encode(),
+            )
             continue
         if parsed["kind"] == "command" and parsed["command"].key == "brief":
 

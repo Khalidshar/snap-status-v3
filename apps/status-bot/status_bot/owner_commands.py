@@ -26,7 +26,7 @@ from studio_core.production.fashion_policy import FashionUnavailable
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES, NewsUnavailable
 
-from . import content_clips, daily_brief, tool_commands
+from . import content_clips, tool_commands
 from .command_control import STOPPED, change, halted, status_text
 from .command_inbox import claim
 from .server_preview import GRAPH_VERSION, STATE, Runtime
@@ -159,8 +159,12 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
                 if key not in FASHION_KEYS:
                     raise
                 send(NO_FRESH_FASHION_MESSAGE)
-        elif key == "brief":
-            daily_brief.send(outbox, transport, news, item, runtime)
+        elif key == "brief" or key in TITLES:
+            from studio_core.observability.failure_code import LEGACY_LOCKED_MESSAGE
+
+            # Pre-production paths, locked (owner 21 Nov 2026): they send without the 18 agents.
+            print("STATUS_LEGACY_PATH_LOCKED", file=sys.stderr)
+            send(LEGACY_LOCKED_MESSAGE.format(label=parsed["command"].label))
         elif key == "agents":
             send(tool_commands.status(outbox))
         elif key in tool_commands.NAMES:

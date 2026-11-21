@@ -121,7 +121,7 @@ def tick(now: datetime | None = None) -> None:
                 if outcome["result"] == "SEND_DONE":
                     progress["radar"][day] = sent + 1
                     save(app, progress)
-                if outcome["result"] != "PRODUCE_FAILED":  # no fresh story: stay quiet
+                if outcome["result"] != "PRODUCE_NO_FRESH":  # no fresh story: stay quiet
                     report(outcome, "radar")
 
 

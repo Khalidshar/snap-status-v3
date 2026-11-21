@@ -1,6 +1,6 @@
 """The owner's command menu: one list, identical for the Snap and Status bots.
 
-Same names, same numbers, same sections on Telegram and WhatsApp. Seven sections keep
+Same names, same numbers, same sections on Telegram and WhatsApp. Eight sections keep
 every list within WhatsApp's 10-row limit. Matching is exact: a message runs a command
 only when it is that command's number, its name (with or without its emoji) or one of
 its listed spellings. Any other text shows the menu and runs nothing.
@@ -29,24 +29,25 @@ class Command:
 
 
 SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ...]], ...] = (
+    # Owner 10 Nov 2026 menu order, applied 21 Nov: Saudi first, the general bulletins after the
+    # topic desks, the world, then urgent; «يومك في دقيقة» is gone; «قبل النوم» is faith.
     ("news", "📰 أخبار", (
-        ("urgent", "🚨 خبر عاجل", ("عاجل",), False),
         ("saudi", "🇸🇦 أخبار السعودية", ("السعودية",), False),
-        ("world", "🌍 أخبار العالم", ("العالم",), False),
-        ("news", "📰 موجز الأخبار", ("موجز",), False),
-        ("news_noon", "📰 أخبار الظهر", ("نشرة الظهر",), False),
         ("football", "⚽ ملخص كرة القدم", ("كرة القدم", "الكرة"), False),
         # Owner 21 Nov 2026: every sport has a home (Saudi news carries none).
         ("sports", "🏅 أخبار الرياضة", ("الرياضة", "رياضة"), False),
         ("markets", "📈 الأسواق والاقتصاد", ("الأسواق",), False),
+        ("news", "📰 موجز الأخبار", ("موجز",), False),
+        ("news_noon", "📰 أخبار الظهر", ("نشرة الظهر",), False),
+        ("world", "🌍 أخبار العالم", ("العالم",), False),
+        ("urgent", "🚨 خبر عاجل", ("عاجل",), False),
     )),
     ("general", "💡 هل تعلم ومنوعات", (
         ("facts", "💡 هل تعلم", (), False),
+        ("history", "📜 حدث اليوم", ("في مثل هذا اليوم", "حدث اليوم"), False),
         ("tech", "📱 التقنية", ("تقنية",), False),
         ("riddle", "🧠 لغز اليوم", ("لغز",), False),
         ("funny", "😂 مواقف طريفة", ("طرائف",), False),
-        ("history", "📜 حدث اليوم", ("في مثل هذا اليوم", "حدث اليوم"), False),
-        ("night", "🌙 قبل النوم", (), False),
     )),
     # Owner 11 Nov 2026: fashion is its own section; its six commands join it when built.
     ("fashion", "👗 الأناقة", (
@@ -60,16 +61,14 @@ SECTIONS: tuple[tuple[str, str, tuple[tuple[str, str, tuple[str, ...], bool], ..
     ("faith", "🕌 أذكار ودين", (
         ("adhkar_am", "🌅 أذكار الصباح", ("اذكار الصباح",), False),
         ("adhkar_pm", "🌆 أذكار المساء", ("اذكار المساء",), False),
-        ("dua", "🤲 دعاء اليوم", ("دعاء",), False),
-        ("hadith", "🕌 حديث اليوم", ("حديث",), False),
         ("verse", "📖 آية اليوم", ("اية اليوم", "آية"), False),
+        ("hadith", "🕌 حديث اليوم", ("حديث",), False),
+        ("dua", "🤲 دعاء اليوم", ("دعاء",), False),
+        ("isha", "🌙 ليلة طيبة", ("ليلة طيبه",), False),
+        ("night", "🌙 قبل النوم", (), False),
         ("friday", "🕌 رسالة الجمعة", ("الجمعة",), False),
         ("kahf", "📖 سورة الكهف", ("الكهف",), False),
         ("fast", "🌙 تذكير الصيام", ("صيام",), False),
-        ("isha", "🌙 ليلة طيبة", ("ليلة طيبه",), False),
-    )),
-    ("brief", "⏱️ يومك في دقيقة", (
-        ("brief", "⏱️ يومك في دقيقة", ("يومك",), False),
     )),
     ("status", "📊 الحالة والتقارير", (
         ("status", "📡 الحالة", ("حالة الاستوديو",), False),
@@ -162,8 +161,6 @@ def parse(text: Any) -> dict[str, Any]:
         return {"kind": "command", "command": command}
     section = SECTION_INDEX.get(key)
     if section:
-        if section == "brief":
-            return {"kind": "command", "command": BY_KEY["brief"]}
         return {"kind": "section", "section": section}
     return {"kind": "menu"}
 

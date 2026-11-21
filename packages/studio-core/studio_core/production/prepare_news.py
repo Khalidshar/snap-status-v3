@@ -19,6 +19,30 @@ from .model import (
 )
 from .prepare_base import DIGITS, PreparationBase, safe_xml
 
+SENTENCE_END = ".!?؟"
+FEED_ELLIPSIS = re.compile(r"\s*(\[\s*(…|\.\.\.)\s*\]|…|\.\.\.)\s*$")
+
+
+def whole_sentences(text: str, limit: int) -> str:
+    """The summary ended at a sentence end, never mid-sentence with «…» (owner 21 Nov 2026).
+
+    Feeds often cut their own description with «…» or «[…]»; that tail is dropped too. Falls
+    back to the old clause cut only when no whole sentence of 8+ words fits, so a story is
+    never lost. The result stays a verbatim part of the source text.
+    """
+    clean = parsing.clean(text)
+    trimmed = FEED_ELLIPSIS.sub("", clean)
+    if trimmed != clean:
+        end = max(trimmed.rfind(mark) for mark in SENTENCE_END)
+        trimmed = trimmed[: end + 1] if end >= 0 else trimmed
+    if len(trimmed) <= limit and trimmed[-1:] in SENTENCE_END:
+        return trimmed
+    cut = trimmed[:limit]
+    end = max(cut.rfind(mark) for mark in SENTENCE_END)
+    if end >= 0 and len(cut[: end + 1].split()) >= 8:
+        return cut[: end + 1].strip()
+    return parsing.clean(text, limit)
+
 
 def desk_order(key: str, candidates: list[dict[str, Any]], hot: list[str]) -> list[dict[str, Any]]:
     """Order a bulletin's stories; what Saudi Arabia is searching comes first in each group.
@@ -607,7 +631,7 @@ class NewsPreparation(PreparationBase):
                         selected.clear()
                         continue
                 else:
-                    detail = parsing.clean(
+                    detail = whole_sentences(
                         item["detail"] or parsing.words_only(text),
                         # Owner decision 3 Nov 2026 (old bot build_news): detail up to 230 letters
                         # with the title, from the source text; restored 10 Nov («انقلها للجديد»).

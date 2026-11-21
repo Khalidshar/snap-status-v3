@@ -7,8 +7,7 @@ def test_menu_is_a_tappable_list_of_sections():
     rows = action["sections"][0]["rows"]
     assert action["button"] == "القائمة" and "القائمة" in text
     assert [r["title"] for r in rows] == [t[:24] for _, t, _ in menu.SECTIONS]
-    brief = menu.section_rows("brief")[0]
-    assert {"id": "c:" + str(brief.number), "title": "⏱️ يومك في دقيقة"} in rows
+    assert all("يومك في دقيقة" not in r["title"] for r in rows)  # removed 21 Nov
 
 
 def test_section_opens_its_commands_with_telegram_labels():

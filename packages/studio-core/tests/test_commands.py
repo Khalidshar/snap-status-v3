@@ -52,7 +52,8 @@ class MenuTests(unittest.TestCase):
         self.assertEqual(menu.parse("أخبار"), {"kind": "section", "section": "news"})
         for text in ("0", "/start", "القائمة", "مساعدة", "help"):
             self.assertEqual(menu.parse(text)["kind"], "menu")
-        self.assertEqual(menu.parse("يومك في دقيقة")["command"].key, "brief")
+        # «يومك في دقيقة» left the menu (owner 10 Nov, applied 21 Nov): it shows the menu.
+        self.assertEqual(menu.parse("يومك في دقيقة")["kind"], "menu")
 
     def test_confirmations_and_new_facts(self):
         self.assertTrue(menu.BY_KEY["send"].confirm and menu.BY_KEY["halt"].confirm)
@@ -74,8 +75,8 @@ class MenuTests(unittest.TestCase):
         text = menu.menu_text()
         for _, title, _ in menu.SECTIONS:
             self.assertIn(title, text)
-        self.assertIn("(30)", text)  # «أخبار الرياضة» joined the news section (21 Nov)
-        self.assertIn("37. ✅ أرسل (يحتاج نعم)", menu.section_text("control"))
+        self.assertIn("📊 الحالة والتقارير (30–34)", text)  # noqa: RUF001  # the menu's dash
+        self.assertIn("36. ✅ أرسل (يحتاج نعم)", menu.section_text("control"))
 
 
 if __name__ == "__main__":

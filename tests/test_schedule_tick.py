@@ -134,3 +134,16 @@ def test_radar_counts_only_sent_clips_up_to_the_cap(tmp_path, monkeypatch):
         tick.tick(at(2026, 11, 21, 14, 0) + timedelta(minutes=minute))
     saved = json.loads((tmp_path / "snap/schedule-done.json").read_text())
     assert saved["radar"]["20261121"] == 3
+
+
+def test_isha_is_120_minutes_after_maghrib_in_ramadan_only():
+    from datetime import date, timedelta
+
+    from studio_core.jobs import schedule
+
+    ramadan, normal = date(2027, 2, 20), date(2027, 3, 20)
+    for day, gap in ((ramadan, 120), (normal, 90)):
+        times = schedule.prayer_times(day)
+        assert times["isha"] - times["maghrib"] == timedelta(minutes=gap)
+    assert schedule.in_ramadan(date(2027, 2, 8)) and schedule.in_ramadan(date(2027, 3, 8))
+    assert not schedule.in_ramadan(date(2027, 3, 9))

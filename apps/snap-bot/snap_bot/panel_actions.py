@@ -34,7 +34,12 @@ def produce(studio: Any, path: Path, command: str) -> bool:
         return False
     kind = render_kind(command)
     unit = RENDER_UNIT if kind == "did_you_know" else KIND_RENDER_UNIT.format(kind=kind)
-    if studio.start(unit) != 0:
+    status = studio.start(unit)
+    if status == 3:  # the renderer found no fresh story (or no new fashion)
+        from studio_core.observability.failure_code import NoFreshContent
+
+        raise NoFreshContent()
+    if status != 0:
         return False
     clip = studio.pending()
     if not clip or clip["kind"] != kind or not re.fullmatch("[0-9a-f]{32}", clip["preview"]):
@@ -97,11 +102,15 @@ def process(studio: Any, path: Path) -> bool:
     item = workspace.claim(path)
     if item is None:
         return False
-    ok = False
+    from studio_core.observability.failure_code import NoFreshContent
+
+    ok = no_fresh = False
     try:
         ok = run(studio, path, item)
+    except NoFreshContent:
+        no_fresh = True
     except (OSError, ValueError, KeyError, TypeError, sqlite3.Error, json.JSONDecodeError):
         ok = False
     finally:
-        workspace.finish(path, item["id"], ok)
+        workspace.finish(path, item["id"], ok, no_fresh=no_fresh)
     return True

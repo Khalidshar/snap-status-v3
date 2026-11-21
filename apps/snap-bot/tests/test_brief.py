@@ -114,7 +114,8 @@ def test_no_recent_news_and_halt_do_not_send_video(tmp_path):
     video.assert_not_called()
 
 
-def test_telegram_command_routes_to_brief_without_text_reply(tmp_path):
+def test_removed_brief_command_never_reaches_the_old_brief(tmp_path):
+    """«يومك في دقيقة» left the menu (owner 10 Nov, applied 21 Nov); the old path is locked."""
     update = {
         "update_id": 1,
         "message": {
@@ -129,9 +130,10 @@ def test_telegram_command_routes_to_brief_without_text_reply(tmp_path):
         patch.object(owner_commands, "live_news", return_value=Mock()),
         patch.object(brief, "reply") as reply,
     ):
-        owner_commands.poll_once("t", "77", SimpleNamespace(runtime=Mock()), 0, transport)
-    reply.assert_called_once()
-    assert transport.call_count == 1
+        owner_commands.poll_once(
+            "t", "77", SimpleNamespace(runtime=Mock(), answer=Mock(return_value="")), 0, transport
+        )
+    reply.assert_not_called()
 
 
 def test_real_complete_brief_is_one_video_under_a_minute(tmp_path):
