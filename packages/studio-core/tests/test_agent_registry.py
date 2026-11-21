@@ -23,14 +23,17 @@ class AgentRegistryTests(unittest.TestCase):
         self.assertEqual([r["id"] for r in rows if r["chain"]], list(CHAIN))
 
     def test_unbound_command_is_not_promoted_by_old_success(self):
-        self.assertIsNone(command_binding("snap-bot-v2", "writer"))
+        # Owner 21 Nov 2026: the six tools are wired in both bots; a chain role has no command.
+        self.assertEqual(command_binding("snap-bot-v2", "writer"), "snap_bot.tool_commands.execute")
         self.assertIsNotNone(command_binding("status-bot-v2", "writer"))
-        rows = project("snap-bot-v2", {"writer": {"state": "SUCCEEDED", "at": 10}})
+        self.assertIsNone(command_binding("snap-bot-v2", "design"))
+        rows = project("snap-bot-v2", {"design": {"state": "SUCCEEDED", "at": 10}})
+        design = next(r for r in rows if r["id"] == "design")
+        self.assertEqual(design["command_binding"], "NOT_BOUND")
+        self.assertEqual(design["command_label"], "غير مربوط")
+        self.assertFalse(design["accepted"])
         writer = next(r for r in rows if r["id"] == "writer")
-        self.assertEqual(writer["command_binding"], "NOT_BOUND")
-        self.assertEqual(writer["command_label"], "غير مربوط")
-        self.assertEqual(writer["scope"], "production_source_checks")
-        self.assertFalse(writer["accepted"])
+        self.assertEqual(writer["command_label"], "مربوط")
 
     def test_binding_does_not_claim_run_and_apps_remain_isolated(self):
         snap = project("snap-bot-v2", {"design": {"state": "SUCCEEDED", "at": 10}})
