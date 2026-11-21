@@ -51,7 +51,16 @@ class InstallerTests(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.source = Path(temp.name)
         self.commit = commit_tree(self.source, layout())
+        real_exists = Path.exists
+
+        def exists(path: Path, *args, **kwargs) -> bool:
+            # The plan must not depend on units already installed on the test machine.
+            if path.parent == installer.UNIT_DIR:
+                return False
+            return real_exists(path, *args, **kwargs)
+
         for active in (
+            patch.object(Path, "exists", exists),
             patch.object(installer.pwd, "getpwnam", return_value=SimpleNamespace(pw_uid=1000)),
             patch.object(installer, "telegram_file", side_effect=lambda path: Path(path)),
         ):
