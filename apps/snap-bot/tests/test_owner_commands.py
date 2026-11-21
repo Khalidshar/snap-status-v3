@@ -90,9 +90,13 @@ class FakeRuntime:
 
 class OwnerCommandTests(unittest.TestCase):
     def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.schedule_root = Path(folder.name)
         for active in (
             patch.object(listener, "source_info", return_value=("2d0191a" + "0" * 33, 1000)),
             patch.object(listener, "channel_bot", return_value="khalid_s2ss_bot"),
+            patch.object(listener, "SCHEDULE_ROOT", self.schedule_root),
         ):
             active.start()
             self.addCleanup(active.stop)
@@ -131,16 +135,25 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertIn("khalid_s2ss_bot", self.studio.answer("الحالة"))
         self.assertIn("2d0191a", self.studio.answer("الحالة"))
         self.assertIn("رسالة 946", self.studio.answer("آخر مقطع"))
-        self.assertIn("غير مفعّلة", self.studio.answer("الحالة"))
+        self.assertIn("الجدولة: ▶️ شغالة", self.studio.answer("الحالة"))
         self.assertIn("إرسال: 1", self.studio.answer("تقرير اليوم"))
         self.assertIn("سبع محطات", self.studio.answer("حالة الوكلاء"))
         self.assertIn("غير مربوط", self.studio.answer("حالة الوكلاء"))
-        self.assertIn("لا توجد جدولة", self.studio.answer("مواعيد الجدولة"))
+        # Owner 21 Nov 2026: the old bot's schedule runs; the menu shows today's slots.
+        self.assertIn("🗓 مواعيد الجدولة اليوم", self.studio.answer("مواعيد الجدولة"))
 
     def test_commands_outside_the_clip_cycle_do_nothing_yet(self):
-        for text in ("أضف هل تعلم: نص", "خبر عاجل", "⏸ إيقاف الجدولة"):
+        for text in ("أضف هل تعلم: نص", "خبر عاجل"):
             self.assertIn("لم يصل إلى v3", self.studio.answer(text), text)
         self.assertEqual(self.runtime.appended, [], "guard:read-only")
+
+    def test_pause_and_resume_the_schedule(self):
+        self.assertIn("أوقفت جدولة سناب", self.studio.answer("⏸ إيقاف الجدولة"))
+        self.assertTrue((self.schedule_root / "SCHEDULE_PAUSED").exists())
+        self.assertIn("⏸ موقوفة", self.studio.answer("الحالة"))
+        self.assertIn("رجعت جدولة سناب", self.studio.answer("▶️ تشغيل الجدولة"))
+        self.assertFalse((self.schedule_root / "SCHEDULE_PAUSED").exists())
+        self.assertEqual(self.runtime.appended, [], "guard:no-clip-events")
 
     def test_unknown_text_shows_the_menu(self):
         self.assertIn("القائمة", self.studio.answer("لا توقف شي"))

@@ -44,6 +44,7 @@ from .telegram_egress import api
 OFFSET = STATE / "commands" / "offset.json"
 PENDING = STATE / "commands" / "pending.json"
 HALT = STATE / "HALT"
+SCHEDULE_ROOT = STATE  # where «إيقاف الجدولة» keeps its flag (owner 21 Nov 2026)
 SEND_HALTED = "الإرسال موقوف، اكتب «شغّل» لإعادته"
 FRESH_SECONDS = 900
 NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ شيء. يُضاف في إصدار قادم."
@@ -239,7 +240,9 @@ class Studio:
                 "📡 الحالة",
                 "الإصدار: " + commit[:7],
                 "البوت الأساسي: " + channel_bot("main"),
-                "الجدولة: غير مفعّلة (كل مقطع بطلبك)",
+                "الجدولة: "
+                + ("⏸ موقوفة" if (SCHEDULE_ROOT / "SCHEDULE_PAUSED").exists() else "▶️ شغالة")
+                + " (اكتب «مواعيد الجدولة»)",
                 "المقاطع المرسلة: " + str(len(acks)),
                 "آخر حدث: " + (describe_event(events[-1]) if events else "لا يوجد"),
             ]
@@ -258,18 +261,18 @@ class Studio:
 
         from studio_core.jobs import schedule
 
-        return schedule.schedule_text("snap", datetime.now(schedule.RIYADH), STATE)
+        return schedule.schedule_text("snap", datetime.now(schedule.RIYADH), SCHEDULE_ROOT)
 
     def pause(self) -> str:
         from studio_core.jobs import schedule
 
-        schedule.set_paused(STATE, True)
+        schedule.set_paused(SCHEDULE_ROOT, True)
         return "⏸ أوقفت جدولة سناب. أوامرك اليدوية شغالة. اكتب «تشغيل الجدولة» لترجع."
 
     def resume(self) -> str:
         from studio_core.jobs import schedule
 
-        schedule.set_paused(STATE, False)
+        schedule.set_paused(SCHEDULE_ROOT, False)
         return "▶️ رجعت جدولة سناب. اكتب «مواعيد الجدولة» تشوف مواعيد اليوم."
 
     def report(self) -> str:
