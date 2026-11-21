@@ -129,14 +129,19 @@ def process(outbox: Any, transport: Any, runtime: Any, path: Path) -> bool:
     item = workspace.claim(path)
     if item is None:
         return False
-    ok = retry_preview = False
+    from studio_core.observability.failure_code import NoFreshContent
+    from studio_core.production.fashion_policy import FashionUnavailable
+
+    ok = retry_preview = no_fresh = False
     try:
         ok = run(outbox, transport, runtime, path, item)
     except ApprovalBlockedBeforeSend:
         retry_preview = True
+    except (NoFreshContent, FashionUnavailable):
+        no_fresh = True  # nothing new to make: expected, not a fault
     except Exception as error:  # closes as UNKNOWN; never retried or replayed
         print("STATUS_PANEL_ACTION_FAILED " + type(error).__name__, flush=True)
         ok = False
     finally:
-        workspace.finish(path, item["id"], ok, retry_preview=retry_preview)
+        workspace.finish(path, item["id"], ok, retry_preview=retry_preview, no_fresh=no_fresh)
     return True
