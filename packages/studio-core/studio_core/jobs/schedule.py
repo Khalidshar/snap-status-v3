@@ -1,9 +1,11 @@
-"""The old bots' schedule, in V3 (owner 21 Nov 2026: «احتاج الجدوله نفس البوت السابق»).
+"""The daily posting plan (owner 21 Nov 2026: «برمجه» — the plan for 3,000 USD a month).
 
-Snap (old snap.py SLOTS): fixed daily times, each due for 90 minutes, plus the breaking-news
-radar (at most six a day, 06:00-24:00). WhatsApp (old status-bot run.due): prayer times in
-Riyadh (Umm al-Qura), each due from adhan+15 to adhan+75 minutes, plus fixed times. Old kinds
-map to today's commands. Each bot pauses its own schedule (a flag in its state folder).
+Snap: nine posts a day aimed at Riyadh's evening peak (8 pm-1 am): Stories for news, adhkar
+and the bedtime series (where Snap's mid-roll ads live), Spotlight for original formats
+(facts, riddles, funny, style, tech) in the peak hours, and the breaking-news radar (at most
+three a day). WhatsApp feeds Snap followers: three prayer-time clips (Umm al-Qura, Riyadh) and
+two evening ones. Every clip is made LEAD minutes before its posting time so Khalid can post on
+time. Each bot pauses its own schedule (a flag in its state folder).
 """
 
 import math
@@ -14,40 +16,36 @@ from zoneinfo import ZoneInfo
 RIYADH = ZoneInfo("Asia/Riyadh")
 LATITUDE, LONGITUDE = 24.7136, 46.6753  # Riyadh
 PAUSED = "SCHEDULE_PAUSED"
+LEAD = timedelta(minutes=30)  # made this long before its posting time
+WINDOW = timedelta(minutes=60)  # still made if the server catches up within an hour
+STORY, SPOTLIGHT = "القصص", "الأضواء"
 
-# Old snap.py SLOTS; «tadabbur» is today's «آية اليوم», «adhkar» the morning adhkar. The 23:00
-# text report is now the supervisor's morning report.
-SNAP_SLOTS: tuple[tuple[str, str], ...] = (
-    ("06:45", "adhkar_am"),
-    ("07:30", "hadith"),
-    ("08:00", "verse"),
-    ("09:00", "facts"),
-    ("10:00", "tech"),
-    ("12:00", "style"),
-    ("13:00", "funny"),
-    ("14:00", "riddle"),
-    ("16:00", "tech"),
-    ("17:00", "facts"),
-    ("18:00", "style"),
-    ("19:00", "funny"),
-    ("20:00", "tech"),
-    ("21:00", "style"),
-    ("22:00", "night"),
-)
-SNAP_WINDOW = timedelta(minutes=90)
+
+def snap_slots(day: date) -> list[tuple[str, str, str]]:
+    """(posting time, command, where) for one day. Spotlight kinds rotate daily and never
+    repeat within a day; news never goes to Spotlight (Snap policy)."""
+    n = day.toordinal()
+    peak = ("riddle", "funny")[n % 2]
+    late = "funny" if peak == "riddle" else "riddle"
+    return [
+        ("06:45", "adhkar_am", STORY),
+        ("07:30", "saudi", STORY),
+        ("13:00", "news_noon", STORY),
+        ("17:30", "facts", SPOTLIGHT),
+        ("20:00", ("world", "sports")[n % 2], STORY),
+        ("21:00", peak, SPOTLIGHT),
+        ("22:00", "night", STORY),
+        ("22:30", ("style", "tech")[n % 2], SPOTLIGHT),
+        ("23:30", late, SPOTLIGHT),
+    ]
+
+
 RADAR = "urgent"
-RADAR_CAP = 6
+RADAR_CAP = 3
 RADAR_HOURS = (6, 24)
 
-# Old status-bot run.due fixed times.
-STATUS_FIXED: tuple[tuple[str, str], ...] = (
-    ("07:00", "hadith"),
-    ("07:30", "brief"),
-    ("13:30", "news_noon"),
-    ("21:00", "news"),
-    ("22:00", "night"),
-)
-STATUS_WINDOW = timedelta(minutes=60)
+STATUS_PRAYERS = ("fajr", "dhuhr", "maghrib")
+STATUS_FIXED: tuple[tuple[str, str], ...] = (("21:00", "news"), ("22:00", "night"))
 AFTER, UNTIL = 15, 75  # minutes after the adhan
 PRAYER_NAMES = {
     "fajr": "الفجر",
@@ -135,24 +133,23 @@ def due(app: str, now: datetime, done: set[str]) -> list[tuple[str, str]]:
     stamp = day.strftime("%Y%m%d")
     found: list[tuple[str, str]] = []
     if app == "snap":
-        for clock, command in SNAP_SLOTS:
-            at = _at(day, clock)
-            key = f"{stamp}-{clock}-{command}"
-            if at <= now < at + SNAP_WINDOW and key not in done:
-                found.append((key, command))
+        fixed = [(clock, command) for clock, command, _ in snap_slots(day)]
     elif app == "status":
+        fixed = list(STATUS_FIXED)
         for prayer, adhan in prayer_times(day).items():
+            if prayer not in STATUS_PRAYERS:
+                continue
             if adhan + timedelta(minutes=AFTER) <= now < adhan + timedelta(minutes=UNTIL):
                 key = f"{stamp}-{prayer}"
                 if key not in done:
                     found.append((key, prayer_command(prayer, day)))
-        for clock, command in STATUS_FIXED:
-            at = _at(day, clock)
-            key = f"{stamp}-{command}"
-            if at <= now < at + STATUS_WINDOW and key not in done:
-                found.append((key, command))
     else:
         raise ValueError("UNKNOWN_APP")
+    for clock, command in fixed:
+        post = _at(day, clock)
+        key = f"{stamp}-{clock}-{command}"
+        if post - LEAD <= now < post - LEAD + WINDOW and key not in done:
+            found.append((key, command))
     return found
 
 
@@ -173,22 +170,29 @@ def set_paused(root: Path, value: bool) -> None:
         flag.unlink()
 
 
+def _digits(value: object) -> str:
+    return str(value).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+
+
 def _clock(value: datetime) -> str:
-    text = value.astimezone(RIYADH).strftime("%-I:%M")
+    local = value.astimezone(RIYADH)
+    text = f"{local.hour % 12 or 12}:{local.minute:02d}"
     return text.translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩")) + (
         " ص" if value.astimezone(RIYADH).hour < 12 else " م"
     )
 
 
 def schedule_text(app: str, now: datetime, root: Path) -> str:
-    """«مواعيد الجدولة» for one bot, today."""
+    """«مواعيد الجدولة» for one bot, today: posting times, and where on Snap."""
     from studio_core.commands import BY_KEY
 
     day = now.astimezone(RIYADH).date()
-    rows = []
     if app == "snap":
-        rows = [(_at(day, c), BY_KEY[k].label) for c, k in SNAP_SLOTS]
-        tail = f"\n🚨 رادار العاجل: حتى {RADAR_CAP} مقاطع يوميًا من ٦ ص إلى ١٢ ل، إذا فيه خبر جديد."
+        rows = [(_at(day, c), f"{BY_KEY[k].label} ({where})") for c, k, where in snap_slots(day)]
+        tail = (
+            f"\n🚨 العاجل: حتى {_digits(RADAR_CAP)} يوميًا من ٦ ص إلى ١٢ ل، إذا فيه خبر جديد."
+            "\nكل مقطع يجيك قبل موعده بنص ساعة."
+        )
     else:
         rows = [
             (
@@ -196,9 +200,10 @@ def schedule_text(app: str, now: datetime, root: Path) -> str:
                 BY_KEY[prayer_command(p, day)].label + f" (بعد {PRAYER_NAMES[p]})",
             )
             for p, adhan in prayer_times(day).items()
+            if p in STATUS_PRAYERS
         ]
         rows += [(_at(day, c), BY_KEY[k].label) for c, k in STATUS_FIXED]
-        tail = "\nواتساب يرسل فقط إذا راسلت البوت خلال آخر ٢٤ ساعة."
+        tail = "\nواتساب يرسل فقط إذا راسلت البوت خلال آخر ٢٤ ساعة. هدفه يجيب متابعين لسناب."
     rows.sort()
     state = "⏸ موقوفة — اكتب «تشغيل الجدولة»" if paused(root) else "▶️ شغالة"
     body = "\n".join(f"{_clock(at)} — {label}" for at, label in rows)
