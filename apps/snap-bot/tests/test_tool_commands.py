@@ -75,7 +75,7 @@ def test_writer_reviewer_and_fixer_use_the_latest_clip(tmp_path):
 
 
 def test_no_clip_yet_is_said_plainly(tmp_path):
-    assert "ما فيه مقطع صالح" in tools.execute("writer", tmp_path, [])
+    assert "ما فيه مقطع مصنوع بعد" in tools.execute("writer", tmp_path, [])
 
 
 def test_add_fact_in_snap_joins_the_review_queue(tmp_path):

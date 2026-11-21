@@ -21,7 +21,15 @@ def test_fixer_never_suggests_on_sacred_text():
 
 def test_run_records_failure_and_says_it(tmp_path):
     def broken() -> str:
-        raise ValueError("NO_CONTENT")
+        raise RuntimeError("boom")
 
     reply = tools.run("snap-bot-v2", "writer", tmp_path / "agents.sqlite", broken)
     assert reply.startswith("🤖 كاتب المحتوى") and "تعذر" in reply
+
+
+def test_run_with_no_clip_yet_is_not_a_failure(tmp_path):
+    def empty() -> str:
+        raise ValueError("NO_CONTENT")
+
+    reply = tools.run("snap-bot-v2", "writer", tmp_path / "agents.sqlite", empty)
+    assert "ما فيه مقطع مصنوع بعد" in reply and "تعذر" not in reply
