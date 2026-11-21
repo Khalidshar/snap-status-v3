@@ -1,0 +1,8 @@
+[Unit]
+Description=Madar supervisor watchdog hourly (installed disabled; owner enables)
+[Timer]
+OnCalendar=hourly
+Unit=madar-v3-supervisor-watchdog.service
+Persistent=false
+[Install]
+WantedBy=timers.target
