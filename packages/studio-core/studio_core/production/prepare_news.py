@@ -200,7 +200,9 @@ def sharper(url: str) -> str:
 
     Sky News Arabia: /images/v1/Y/M/D/ID/W/H/… (feeds give 95/53 or 100/56); BBC: /ace/ws/W/.
     """
-    sky = re.search(r"(images\.skynewsarabia\.com/images/v1/\d{4}/\d{2}/\d{2}/\d+/)(\d+)/(\d+)/", url)
+    sky = re.search(
+        r"(images\.skynewsarabia\.com/images/v1/\d{4}/\d{2}/\d{2}/\d+/)(\d+)/(\d+)/", url
+    )
     if sky and 0 < int(sky[2]) < 1000 and int(sky[3]) > 0:
         # Their pictures are 16:9; 1200/675 is the size checked against the site.
         ratio = int(sky[2]) / int(sky[3])
