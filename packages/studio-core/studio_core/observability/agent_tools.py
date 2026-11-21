@@ -116,6 +116,11 @@ def run(app: str, key: str, ledger: Path, work: Callable[[], str]) -> str:
         role_status.record(ledger, app, key, "RUNNING")
     try:
         text, state = work(), "SUCCEEDED"
+    except ValueError as error:
+        if str(error) != "NO_CONTENT":
+            text, state = "تعذر إكمال الأداة؛ ما فيه مقطع صالح أقرأه بعد.", "FAILED"
+        else:  # nothing made yet: an honest answer, not a fault
+            text, state = "ما فيه مقطع مصنوع بعد أقرأه. اطلب أي أمر محتوى وارجع.", "SUCCEEDED"
     except Exception:
         text, state = "تعذر إكمال الأداة؛ ما فيه مقطع صالح أقرأه بعد.", "FAILED"
     with contextlib.suppress(OSError, ValueError):
