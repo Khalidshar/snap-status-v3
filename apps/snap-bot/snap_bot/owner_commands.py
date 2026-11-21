@@ -50,6 +50,8 @@ NOT_YET = "⏳ «{label}» لم يصل إلى v3 بعد، فلم يُنفَّذ 
 COMMAND_ACTIONS = {"brief"}
 READ_ONLY = {"status", "last", "agents", "schedule", "report", "dash"}
 ACTIONS = {
+    "pause",
+    "resume",
     "halt",
     "unhalt",
     "facts",
@@ -252,7 +254,23 @@ class Studio:
         return status_text("snap-bot-v2", {})
 
     def schedule(self) -> str:
-        return "🗓 مواعيد الجدولة\nلا توجد جدولة مفعّلة في v3. كل مقطع يُصنع ويُرسل بطلبك."
+        from datetime import datetime
+
+        from studio_core.jobs import schedule
+
+        return schedule.schedule_text("snap", datetime.now(schedule.RIYADH), STATE)
+
+    def pause(self) -> str:
+        from studio_core.jobs import schedule
+
+        schedule.set_paused(STATE, True)
+        return "⏸ أوقفت جدولة سناب. أوامرك اليدوية شغالة. اكتب «تشغيل الجدولة» لترجع."
+
+    def resume(self) -> str:
+        from studio_core.jobs import schedule
+
+        schedule.set_paused(STATE, False)
+        return "▶️ رجعت جدولة سناب. اكتب «مواعيد الجدولة» تشوف مواعيد اليوم."
 
     def report(self) -> str:
         events = self.runtime.events()

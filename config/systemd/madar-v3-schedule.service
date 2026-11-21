@@ -1,11 +1,11 @@
 [Unit]
-Description=Madar scheduled clip %i in both bots (owner decision 9 Nov 2026)
+Description=Madar schedule tick: the old bots' schedule in both bots (owner 21 Nov 2026)
 After=madar-v3-snap-commands.service madar-v3-status-commands.service
 [Service]
 Type=oneshot
 User=root
 WorkingDirectory=/opt/madar/current
-ExecStart=/opt/madar/current/.venv/bin/python scripts/ops/schedule_tick.py %i
+ExecStart=/opt/madar/current/.venv/bin/python scripts/ops/schedule_tick.py tick
 Environment=PYTHONDONTWRITEBYTECODE=1
 UMask=0077
 NoNewPrivileges=yes
@@ -16,5 +16,5 @@ PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
 ReadWritePaths=/var/lib/madar/snap /var/lib/madar/status
-TimeoutStartSec=6000
+TimeoutStartSec=infinity
 MemoryMax=256M

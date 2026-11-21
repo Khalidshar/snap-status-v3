@@ -46,8 +46,18 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
     if parsed["kind"] != "command":
         return menu.menu_text()
     key = parsed["command"].key
-    if key == "schedule":
-        return "الجدولة غير مفعلة؛ كل طلب يصلك بناءً على أمرك."
+    if key in {"schedule", "pause", "resume"}:
+        from datetime import datetime
+
+        from studio_core.jobs import schedule
+
+        if key == "pause":
+            schedule.set_paused(STATE, True)
+            return "⏸ أوقفت جدولة واتساب. أوامرك اليدوية شغالة. اكتب «تشغيل الجدولة» لترجع."
+        if key == "resume":
+            schedule.set_paused(STATE, False)
+            return "▶️ رجعت جدولة واتساب. اكتب «مواعيد الجدولة» تشوف مواعيد اليوم."
+        return schedule.schedule_text("status", datetime.now(schedule.RIYADH), STATE)
     if key in {"status", "report", "last"}:
         events = runtime.events()
         accepted = sum(e.get("kind") == "ACK" for e in events)

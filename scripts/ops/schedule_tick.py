@@ -1,8 +1,10 @@
-"""One scheduled slot: produce and send the slot's clip in both bots (owner decision 9 Nov 2026).
+"""One schedule tick, every ten minutes (owner 21 Nov 2026: «احتاج الجدوله نفس البوت السابق»).
 
-Khalid: «تصنع وترسل»، ٣ مقاطع يوميًا للبوتين. The clip goes through the same panel actions as a
-manual «أنتج الحين» then «اعتماد», so every check, frame and send rule still applies. A HALT
-in either bot skips that bot. Times are Riyadh: morning 06:30, noon 13:00, night 21:30.
+Each bot's due clips (studio_core.jobs.schedule, the old bots' tables) go through the same
+panel actions as a manual «أنتج الحين» then «اعتماد», so every check, agent and send rule
+still applies and the clip reaches Khalid, who publishes it. Snap also runs the breaking-news
+radar (at most six a day). HALT or the bot's own «إيقاف الجدولة» skips that bot. Progress is
+kept per bot in <state>/<app>/schedule-done.json; a slot is attempted once.
 """
 
 import argparse
@@ -11,27 +13,16 @@ import sqlite3
 import sys
 import time
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "packages/studio-core"))
-from studio_core.jobs import panel_workspace
+from studio_core.jobs import panel_workspace, schedule
 
 STATE = Path("/var/lib/madar")
-RIYADH = ZoneInfo("Asia/Riyadh")
-NOON = ("facts", "tech", "markets", "style", "riddle", "funny", "history", "news")
 WAIT = 45 * 60
-
-
-def command_for(slot: str, day: date) -> str:
-    if slot == "morning":
-        return "kahf" if day.weekday() == 4 else "adhkar_am"  # Friday: سورة الكهف
-    if slot == "noon":
-        return NOON[day.toordinal() % len(NOON)]
-    if slot == "night":
-        return "isha" if day.toordinal() % 2 == 0 else "adhkar_pm"
-    raise ValueError("UNKNOWN_SLOT")
+APPS = ("snap", "status")
 
 
 def halted(app: str) -> bool:
@@ -41,7 +32,7 @@ def halted(app: str) -> bool:
 def state_of(db: Path, action: str) -> str:
     with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as conn:
         row = conn.execute("SELECT state FROM panel_actions WHERE id=?", (action,)).fetchone()
-    return row[0] if row else "NONE"
+    return str(row[0]) if row else "NONE"
 
 
 def wait(db: Path, action: str, deadline: float) -> str:
@@ -60,7 +51,7 @@ def preview_after(db: Path, command: str, since: float) -> tuple[str, str] | Non
             "ORDER BY at DESC LIMIT 1",
             (command, since - 5),
         ).fetchone()
-    return (row[0], row[1]) if row else None
+    return (str(row[0]), str(row[1])) if row else None
 
 
 def run(app: str, command: str) -> dict[str, str]:
@@ -80,18 +71,68 @@ def run(app: str, command: str) -> dict[str, str]:
     return {"app": app, "command": command, "result": "SEND_" + sent}
 
 
+def load(app: str) -> dict[str, Any]:
+    path = STATE / app / "schedule-done.json"
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        value = {}
+    value.setdefault("done", [])
+    value.setdefault("radar", {})
+    return value
+
+
+def save(app: str, value: dict[str, Any]) -> None:
+    value["done"] = value["done"][-300:]
+    value["radar"] = dict(sorted(value["radar"].items())[-7:])
+    path = STATE / app / "schedule-done.json"
+    temp = path.with_suffix(".tmp")
+    temp.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+    temp.replace(path)
+
+
+def report(outcome: dict[str, str], slot: str) -> None:
+    print("MADAR_SCHEDULE " + json.dumps(outcome | {"slot": slot}), flush=True)
+
+
+def safe_run(app: str, command: str) -> dict[str, str]:
+    try:
+        return run(app, command)
+    except (OSError, ValueError, sqlite3.Error) as error:
+        return {"app": app, "command": command, "result": "ERROR_" + type(error).__name__}
+
+
+def tick(now: datetime | None = None) -> None:
+    now = now or datetime.now(schedule.RIYADH)
+    for app in APPS:
+        if halted(app) or schedule.paused(STATE / app):
+            continue
+        progress = load(app)
+        for key, command in schedule.due(app, now, set(progress["done"])):
+            progress["done"].append(key)  # once per slot, even if it fails
+            save(app, progress)
+            report(safe_run(app, command), key)
+        if app == "snap":
+            day = now.astimezone(schedule.RIYADH).strftime("%Y%m%d")
+            sent = int(progress["radar"].get(day, 0))
+            if schedule.radar_open(now, sent):
+                outcome = safe_run(app, schedule.RADAR)
+                if outcome["result"] == "SEND_DONE":
+                    progress["radar"][day] = sent + 1
+                    save(app, progress)
+                if outcome["result"] != "PRODUCE_FAILED":  # no fresh story: stay quiet
+                    report(outcome, "radar")
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("slot", choices=("morning", "noon", "night"))
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("action", choices=("tick", "show"))
+    parser.add_argument("--app", choices=APPS, default="snap")
     args = parser.parse_args()
-    today = datetime.now(RIYADH).date()
-    command = command_for(args.slot, today)
-    for app in ("snap", "status"):
-        try:
-            outcome = run(app, command)
-        except (OSError, ValueError, sqlite3.Error) as error:
-            outcome = {"app": app, "command": command, "result": "ERROR_" + type(error).__name__}
-        print("MADAR_SCHEDULE " + json.dumps(outcome | {"slot": args.slot}), flush=True)
+    if args.action == "show":
+        print(schedule.schedule_text(args.app, datetime.now(schedule.RIYADH), STATE / args.app))
+    else:
+        tick()
     return 0
 
 
