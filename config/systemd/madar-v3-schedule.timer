@@ -1,0 +1,8 @@
+[Unit]
+Description=Madar schedule every ten minutes (installed disabled; owner enables)
+[Timer]
+OnCalendar=*:0/10
+Unit=madar-v3-schedule.service
+Persistent=false
+[Install]
+WantedBy=timers.target

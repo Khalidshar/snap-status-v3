@@ -33,6 +33,9 @@ def test_command_unit_templates_are_installed():
         "madar-v3-supervisor.timer",
         "madar-v3-supervisor-watchdog.service",
         "madar-v3-supervisor-watchdog.timer",
+        # The schedule (owner 9 Nov, switched on 21 Nov): installed by hand, docs/SCHEDULE.md.
+        "madar-v3-schedule.service",
+        "madar-v3-schedule.timer",
     }
 
 
