@@ -99,6 +99,12 @@ SPORT_WORDS = (
     "خيل",
     "الخيل",
     "شوط",
+    "هجولة",
+    "تفحيط",
+    "درفت",
+    "رالي",
+    "سباق سيارات",
+    "فورمولا",
 )
 SPORT = re.compile(
     r"(?<![ء-ي])[وفبلك]?(?:ال|لل)?(?:"
@@ -192,16 +198,43 @@ def country_cap(items: list[dict[str, Any]], limit: int = 2) -> list[dict[str, A
     return first + later
 
 
+SHARP_WIDTH = 480  # a news card picture is ~1000 px wide; smaller ones blur when stretched
+
+
+def sharper(url: str) -> str:
+    """The same picture at a larger size, for publishers whose feeds carry thumbnails.
+
+    Sky News Arabia: /images/v1/Y/M/D/ID/W/H/… (feeds give 95/53 or 100/56); BBC: /ace/ws/W/.
+    """
+    sky = re.search(
+        r"(images\.skynewsarabia\.com/images/v1/\d{4}/\d{2}/\d{2}/\d+/)(\d+)/(\d+)/", url
+    )
+    if sky and 0 < int(sky[2]) < 1000 and int(sky[3]) > 0:
+        # Their pictures are 16:9; 1200/675 is the size checked against the site.
+        ratio = int(sky[2]) / int(sky[3])
+        high = 675 if abs(ratio - 16 / 9) < 0.08 else round(1200 / ratio)
+        return url.replace(sky[0], f"{sky[1]}1200/{high}/", 1)
+    bbc = re.search(r"(ichef\.bbci\.co\.uk/(?:ace/ws|news))/(\d+)/", url)
+    if bbc and int(bbc[2]) < 1000:
+        return url.replace(bbc[0], f"{bbc[1]}/1024/", 1)
+    return url
+
+
 class NewsPreparation(PreparationBase):
     def news_picture(self, item: dict[str, Any]) -> str:
-        """Try the feed image, then the original article image."""
-        for url in dict.fromkeys((item.get("image", ""), item.get("og_image", ""))):
-            if not url:
-                continue
-            try:
-                return self.picture(url, item["url"], item["source"])
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
-                continue
+        """The feed image, then the original article image, each tried large first.
+
+        A sharp picture (at least SHARP_WIDTH wide) wins; only when none is found does the
+        largest-available one stand in, so a story is never dropped for its picture size.
+        """
+        urls = [u for u in (item.get("image", ""), item.get("og_image", "")) if u]
+        candidates = list(dict.fromkeys(c for u in urls for c in (sharper(u), u)))
+        for minimum in (SHARP_WIDTH, 0):
+            for url in candidates:
+                try:
+                    return self.picture(url, item["url"], item["source"], min_width=minimum)
+                except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+                    continue
         raise ValueError("LEGACY_EXACT_STORY_IMAGE_UNAVAILABLE")
 
     def article(self, item: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
@@ -549,7 +582,12 @@ class NewsPreparation(PreparationBase):
                         pic = image
                         if point.get("pic"):
                             try:
-                                pic = self.picture(point["pic"], item["url"], item["source"])
+                                pic = self.picture(
+                                    sharper(point["pic"]),
+                                    item["url"],
+                                    item["source"],
+                                    min_width=SHARP_WIDTH,
+                                )
                             except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
                                 pic = image
                         selected.append(

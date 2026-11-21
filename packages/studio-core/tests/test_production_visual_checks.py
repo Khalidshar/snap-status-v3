@@ -63,7 +63,7 @@ def test_news_picture_uses_only_feed_and_original_article_images():
     }
     calls = []
 
-    def picture(url, source_url, source):
+    def picture(url, source_url, source, min_width=0):
         calls.append(url)
         assert source_url == item["url"]
         assert source == item["source"]

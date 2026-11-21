@@ -82,7 +82,7 @@ class FashionSources:
 
 
 class FixtureFactory(Factory):
-    def picture(self, url, base, credit):
+    def picture(self, url, base, credit, min_width=0):
         # Image admission is exercised separately; tests never claim real image rendering.
         return self.save(IMAGE, ".jpg", url, credit)
 
