@@ -1,0 +1,15 @@
+[Unit]
+Description=Madar supervisor watchdog: tells the owner if the supervisor went silent
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/madar/current
+EnvironmentFile=/etc/madar/snap-telegram-main.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/madar/current/.venv/bin/python /opt/madar/current/scripts/ops/supervisor.py watchdog
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+TimeoutStartSec=90
+Restart=no

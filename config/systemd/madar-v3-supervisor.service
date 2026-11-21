@@ -1,0 +1,15 @@
+[Unit]
+Description=Madar supervisor: one pass over both bots (installed disabled; owner enables)
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/madar/current
+EnvironmentFile=/etc/madar/snap-telegram-main.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/madar/current/.venv/bin/python /opt/madar/current/scripts/ops/supervisor.py run
+UMask=0077
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+TimeoutStartSec=170
+Restart=no

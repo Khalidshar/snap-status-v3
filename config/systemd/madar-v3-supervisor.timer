@@ -1,0 +1,9 @@
+[Unit]
+Description=Madar supervisor every minute (installed disabled; owner enables)
+[Timer]
+OnActiveSec=60
+OnUnitInactiveSec=60
+Unit=madar-v3-supervisor.service
+Persistent=false
+[Install]
+WantedBy=timers.target
