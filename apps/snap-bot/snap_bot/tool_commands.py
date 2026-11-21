@@ -5,6 +5,7 @@ agent ledgers — and answers in one message. Read-only: nothing is rendered, se
 edited or retried, and sacred text is never touched.
 """
 
+import contextlib
 import json
 import time
 from collections import Counter
@@ -173,10 +174,8 @@ def execute(key: str, root: Path, events: list[dict[str, Any]], pending: Any = N
         raise ValueError("UNKNOWN_TOOL")
     ledger = root / "agent-status.sqlite"
     now = time.time()
-    try:
+    with contextlib.suppress(OSError, ValueError):
         role_status.record(ledger, "snap-bot-v2", key, "RUNNING")
-    except (OSError, ValueError):
-        pass
     try:
         if key == "manager":
             text = manager(root, events, pending)
@@ -197,8 +196,6 @@ def execute(key: str, root: Path, events: list[dict[str, Any]], pending: Any = N
     except Exception:
         text = "تعذر إكمال الأداة؛ ما فيه مقطع صالح أقرأه بعد."
         state = "FAILED"
-    try:
+    with contextlib.suppress(OSError, ValueError):
         role_status.record(ledger, "snap-bot-v2", key, state)
-    except (OSError, ValueError):
-        pass
     return "🤖 " + NAMES[key] + "\n" + text

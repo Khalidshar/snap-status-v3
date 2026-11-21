@@ -3,6 +3,8 @@
 import json
 import time
 
+import pytest
+
 from snap_bot import tool_commands as tools
 
 
@@ -57,6 +59,7 @@ def test_manager_analyst_and_repair_read_the_event_log(tmp_path):
     assert "انمنع ١ إرسال" in repair and "SERVER_SEND_FAILED" in repair
 
 
+@pytest.mark.real_chain_gate
 def test_writer_reviewer_and_fixer_use_the_latest_clip(tmp_path):
     events = setup(tmp_path)
     # The latest clip is a verse: sacred text is locked for the fixer.
