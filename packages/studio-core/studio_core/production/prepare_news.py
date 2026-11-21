@@ -19,7 +19,6 @@ from .model import (
 )
 from .prepare_base import DIGITS, PreparationBase, safe_xml
 
-
 SENTENCE_END = ".!?؟"
 FEED_ELLIPSIS = re.compile(r"\s*(\[\s*(…|\.\.\.)\s*\]|…|\.\.\.)\s*$")
 
