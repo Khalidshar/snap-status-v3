@@ -75,7 +75,7 @@ class MenuTests(unittest.TestCase):
         text = menu.menu_text()
         for _, title, _ in menu.SECTIONS:
             self.assertIn(title, text)
-        self.assertIn("📊 الحالة والتقارير (30–34)", text)  # menu order of 10 Nov, applied 21 Nov
+        self.assertIn("📊 الحالة والتقارير (30–34)", text)  # noqa: RUF001  # the menu's dash
         self.assertIn("36. ✅ أرسل (يحتاج نعم)", menu.section_text("control"))
 
 
