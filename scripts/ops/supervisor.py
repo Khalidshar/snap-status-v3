@@ -609,9 +609,11 @@ def deliver(messages: list[str], dry: bool) -> None:
             print("— رسالة —\n" + message + "\n")
         return
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps/snap-bot"))
-    from snap_bot.telegram_egress import api, channel_credentials, main_bot
+    from snap_bot.server_preview import channel_bot
+    from snap_bot.telegram_egress import api, channel_credentials
 
-    token, chat, _ = channel_credentials("main", main_bot(""))
+    # The main bot as the installer pinned it in the release manifest.
+    token, chat, _ = channel_credentials("main", channel_bot("main"))
     for message in messages:
         api(token, "sendMessage", json.dumps({"chat_id": chat, "text": message}).encode())
 
