@@ -111,9 +111,7 @@ def prayer_times(day: date) -> dict[str, datetime]:
     Isha 90 minutes after Maghrib (120 in Ramadan is not applied here)."""
     decl, eot = _sun(day)
     noon = 12 + 3 - LONGITUDE / 15 - eot / 60  # local solar noon in Riyadh time (UTC+3)
-    asr_alt = math.degrees(
-        math.atan(1 / (1 + math.tan(math.radians(abs(LATITUDE - decl)))))
-    )
+    asr_alt = math.degrees(math.atan(1 / (1 + math.tan(math.radians(abs(LATITUDE - decl))))))
     hours = {
         "fajr": noon - _hour_angle(-18.5, decl),
         "dhuhr": noon + 1 / 60,
@@ -193,7 +191,10 @@ def schedule_text(app: str, now: datetime, root: Path) -> str:
         tail = f"\n🚨 رادار العاجل: حتى {RADAR_CAP} مقاطع يوميًا من ٦ ص إلى ١٢ ل، إذا فيه خبر جديد."
     else:
         rows = [
-            (adhan + timedelta(minutes=AFTER), BY_KEY[prayer_command(p, day)].label + f" (بعد {PRAYER_NAMES[p]})")
+            (
+                adhan + timedelta(minutes=AFTER),
+                BY_KEY[prayer_command(p, day)].label + f" (بعد {PRAYER_NAMES[p]})",
+            )
             for p, adhan in prayer_times(day).items()
         ]
         rows += [(_at(day, c), BY_KEY[k].label) for c, k in STATUS_FIXED]

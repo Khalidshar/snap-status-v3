@@ -22,7 +22,7 @@ def at(y, mo, d, h, mi):
 
 
 def test_snap_keeps_the_old_daily_slots_and_each_runs_once():
-    assert [c for c, _ in schedule.SNAP_SLOTS][0] == "06:45"
+    assert schedule.SNAP_SLOTS[0][0] == "06:45"
     assert len(schedule.SNAP_SLOTS) == 15
     first = ("20261121-06:45-adhkar_am", "adhkar_am")
     assert schedule.due("snap", at(2026, 11, 21, 6, 50), set()) == [first]
@@ -44,7 +44,9 @@ def test_whatsapp_follows_prayer_times_with_the_old_mapping():
     for name, clock in expected.items():
         h, m = map(int, clock.split(":"))
         assert abs((times[name] - at(2026, 11, 21, h, m)).total_seconds()) <= 180, name
-    assert schedule.due("status", at(2026, 11, 21, 5, 20), set()) == [("20261121-fajr", "adhkar_am")]
+    assert schedule.due("status", at(2026, 11, 21, 5, 20), set()) == [
+        ("20261121-fajr", "adhkar_am")
+    ]
     assert schedule.due("status", at(2026, 11, 20, 5, 20), set())[0][1] == "friday"
     assert schedule.prayer_command("maghrib", date(2026, 11, 22)) == "fast"  # Sunday
     assert schedule.prayer_command("maghrib", date(2026, 11, 19)) == "kahf"  # Thursday
@@ -112,7 +114,10 @@ def test_radar_counts_only_sent_clips_up_to_the_cap(tmp_path, monkeypatch):
     folders(tmp_path, monkeypatch)
     monkeypatch.setattr(tick, "run", Recorder({}))
     for minute in range(0, 120, 10):
-        tick.tick(at(2026, 11, 21, 11, 0).replace(minute=0) .__class__.fromtimestamp(
-            at(2026, 11, 21, 11, 0).timestamp() + minute * 60, R))
+        tick.tick(
+            at(2026, 11, 21, 11, 0)
+            .replace(minute=0)
+            .__class__.fromtimestamp(at(2026, 11, 21, 11, 0).timestamp() + minute * 60, R)
+        )
     saved = json.loads((tmp_path / "snap/schedule-done.json").read_text())
     assert saved["radar"]["20261121"] == 6
