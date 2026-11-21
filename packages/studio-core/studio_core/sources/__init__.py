@@ -16,9 +16,10 @@ from studio_core.commands import BY_KEY, COMMANDS, INDEX, normalize
 from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
 
 CATALOG = Path(__file__).with_name("catalog.json")
+# «brief» left the menu (owner 10 Nov, applied 21 Nov) but stays a production kind with sources.
 CONTENT_KEYS = frozenset(
     c.key for c in COMMANDS if c.section in {"news", "general", "fashion", "faith", "brief"}
-)
+) | {"brief"}
 FAITH_KEYS = frozenset(c.key for c in COMMANDS if c.section == "faith")
 KINDS = {"rss", "website", "catalog", "reference", "human_audio", "weather"}
 STATUSES = {"approved", "candidate", "excluded", "reference"}
