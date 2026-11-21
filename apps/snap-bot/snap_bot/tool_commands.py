@@ -48,7 +48,9 @@ def label(kind: str) -> str:
 
 
 def content(root: Path, preview: str) -> dict[str, Any]:
-    for path in sorted((root / "previews" / preview / "state").glob("renders/*/input/content.json")):
+    for path in sorted(
+        (root / "previews" / preview / "state").glob("renders/*/input/content.json")
+    ):
         value = json.loads(path.read_text(encoding="utf-8"))
         return value if isinstance(value, dict) else {}
     return {}
@@ -122,9 +124,9 @@ def reviewer(root: Path, event: dict[str, Any], value: dict[str, Any]) -> str:
         chain_gate.verify(ledger)
         verdict = "✅ مرّ على الوكلاء الـ١٨ بالترتيب المعتمد."
     except ValueError as error:
-        verdict = "❌ " + ("سجل الوكلاء ناقص: " if "INCOMPLETE" in str(error) else "") + str(
-            error
-        )[:160]
+        verdict = (
+            "❌ " + ("سجل الوكلاء ناقص: " if "INCOMPLETE" in str(error) else "") + str(error)[:160]
+        )
     return "آخر مقطع: " + label(kind_of(value)) + "\n" + verdict
 
 
