@@ -285,7 +285,9 @@ def test_authenticated_content_command_sends_only_one_clip(fixture, key):
         assert process_one(f.outbox, transport, Mock(), f.runtime)
     from studio_core.sources.news import TITLES
 
-    if key in TITLES:  # owner 21 Nov 2026: news only through production; old path locked
+    from status_bot.owner_commands import production_content
+
+    if key in TITLES and not production_content(key):  # 21 Nov: old news path locked
         send.assert_not_called()
         assert "خط الإنتاج" in transport.send_text.call_args.args[0]
         return

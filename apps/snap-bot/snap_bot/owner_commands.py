@@ -95,7 +95,6 @@ KEYBOARD_ROWS = (
     ("dua", "fast", "preview"),
     ("verse", "adhkar_am", "adhkar_pm"),
     ("friday", "kahf", "riddle"),
-    ("brief",),
     ("send", "cancel", "status"),
     ("last",),
     ("halt", "unhalt"),

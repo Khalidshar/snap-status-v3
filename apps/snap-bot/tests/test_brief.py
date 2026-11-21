@@ -130,7 +130,9 @@ def test_removed_brief_command_never_reaches_the_old_brief(tmp_path):
         patch.object(owner_commands, "live_news", return_value=Mock()),
         patch.object(brief, "reply") as reply,
     ):
-        owner_commands.poll_once("t", "77", SimpleNamespace(runtime=Mock()), 0, transport)
+        owner_commands.poll_once(
+            "t", "77", SimpleNamespace(runtime=Mock(), answer=Mock(return_value="")), 0, transport
+        )
     reply.assert_not_called()
 
 
