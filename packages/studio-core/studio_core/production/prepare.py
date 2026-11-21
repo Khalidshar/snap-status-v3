@@ -141,7 +141,15 @@ class Factory(FashionPreparation, VarietyPreparation):
             else:
                 raise ValueError("LEGACY_NO_WHOLE_PASSAGE_WITHIN_BUDGET")
         elif key in {"adhkar_am", "adhkar_pm"}:
-            scenes += self.adhkar("am" if key.endswith("am") else "pm")
+            low, high, _ = budget(self.app, key)
+            frame = 3.2 + 4.5 + 0.5  # opening title, closing card, margin
+            scenes += self.adhkar_opener(day, high - frame)
+            used = sum(s["seconds"] for s in scenes[1:])
+            scenes += self.adhkar(
+                "am" if key.endswith("am") else "pm",
+                minimum=max(5.0, low - frame - used),
+                maximum=high - frame - used,
+            )
         elif key == "hadith":
             from studio_core.presentation import faith
 

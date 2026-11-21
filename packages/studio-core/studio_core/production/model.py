@@ -250,7 +250,8 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
         raise ValueError("LEGACY_SACRED_POLICY_CHANGED")
     if sacred and (p.get("music") or p.get("effects")):
         raise ValueError("LEGACY_RELIGIOUS_TONE_FORBIDDEN")
-    if p["key"] in QURAN | {"adhkar_am", "adhkar_pm", "night", "brief"} and not p.get("audio"):
+    # Adhkar are text since 21 Nov 2026 (their Quran opener carries the recitation when it fits).
+    if p["key"] in QURAN | {"night", "brief"} and not p.get("audio"):
         raise ValueError("LEGACY_HUMAN_AUDIO_REQUIRED")
     if p["key"] in {"facts", "did_you_know", "funny", "riddle"}:
         catalog = json.loads(
@@ -314,8 +315,15 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
                     or item.get("number")
                     != "التكرار: "
                     + str(row["REPEAT"]).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
-                    or recording is None
-                    or recording["source_url"] != row["AUDIO"].replace("http://", "https://", 1)
+                    or (
+                        # Text-only since 21 Nov 2026; a recorded dhikr still matches its source.
+                        item.get("audio") is not None
+                        and (
+                            recording is None
+                            or recording["source_url"]
+                            != row["AUDIO"].replace("http://", "https://", 1)
+                        )
+                    )
                 ):
                     raise ValueError("LEGACY_DHIKR_TEXT_AUDIO_CHANGED")
             if item.get("verse"):

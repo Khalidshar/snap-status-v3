@@ -406,10 +406,36 @@ class ReligiousPreparation(PreparationBase):
             for i in range(0, len(samples), 400)
         ]
 
+    # Owner 22 Nov 2026 («بالتناوب»): one recited portion opens each morning/evening adhkar
+    # clip, rotating daily; the dhikr text follows.
+    OPENERS: tuple[tuple[tuple[int, list[int]], ...], ...] = (
+        ((2, [255]),),  # آية الكرسي
+        ((2, [285, 286]),),  # خواتيم البقرة
+        ((112, [1, 2, 3, 4]), (113, [1, 2, 3, 4, 5]), (114, [1, 2, 3, 4, 5, 6])),  # المعوذات
+    )
+
+    def adhkar_opener(self, day: date, room: float) -> list[dict[str, Any]]:
+        """Today's recited portion, or the next one that fits ``room`` seconds (WhatsApp)."""
+        start = day.toordinal() % len(self.OPENERS)
+        for part in self.OPENERS[start:] + self.OPENERS[:start]:
+            scenes: list[dict[str, Any]] = []
+            try:
+                for surah, ayahs in part:
+                    scenes += self.quran(surah, ayahs, background=True)
+            except ValueError:
+                pass
+            whole = len(scenes) == sum(len(ayahs) for _, ayahs in part)
+            if whole and sum(s["seconds"] for s in scenes) <= room:
+                return scenes
+            # A portion that does not fit leaves no audio behind in the plan.
+            dropped = {s.get("audio") for s in scenes}
+            self.assets = [a for a in self.assets if a["file"] not in dropped]
+        return []
+
     def adhkar(
         self, period: str, *, minimum: float = 44, maximum: float = 50
     ) -> list[dict[str, Any]]:
-        """One official human recording per exact dhikr; no guessed archive timings."""
+        """The exact dhikr text from Hisn al-Muslim with its count, shown without audio."""
         chapter = 28 if period == "night" else 27
         url = f"https://www.hisnmuslim.com/api/ar/{chapter}.json"
         response = self.json(url)
@@ -439,33 +465,25 @@ class ReligiousPreparation(PreparationBase):
             # records with variants/instructions: their audio is not a single text.
             if any(token in text for token in ("\ufd3f", "[", "إذا", "أصبح", "أمسى", "أمسيت")):
                 continue
-            audio_url = row["AUDIO"].replace("http://", "https://", 1)
-            if not re.fullmatch(r"https://www\.hisnmuslim\.com/audio/ar/[0-9]+\.mp3", audio_url):
-                raise ValueError("LEGACY_DHIKR_AUDIO_SOURCE_INVALID")
-            try:
-                audio = self.save(self.get(audio_url), ".mp3", audio_url, "حصن المسلم — تسجيل بشري")
-                seconds = duration(self.root / audio)
-                if total + seconds + 0.3 > maximum:
-                    continue
-                selected.append(
-                    scene(
-                        text,
-                        seconds + 0.3,
-                        role="adhkar",
-                        source="حصن المسلم",
-                        number="التكرار: " + str(row["REPEAT"]).translate(DIGITS),
-                        dhikr_id=row["ID"],
-                        dhikr_chapter=chapter,
-                        levels=self.audio_levels(self.root / audio),
-                        audio=audio,
-                        audio_duration=seconds,
-                    )
-                )
-                total += seconds + 0.3
-                if total >= minimum:
-                    return selected
-                if len(selected) >= 16:
-                    break
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+            # Owner 21 Nov 2026: audio only for Quran recitation; the dhikr is shown as text,
+            # with its count, for its reading time (about 1.8 words a second, at least 5 s).
+            seconds = round(max(5.0, len(text.split()) / 1.8 + 1.5), 2)
+            if total + seconds > maximum:
                 continue
+            selected.append(
+                scene(
+                    text,
+                    seconds,
+                    role="adhkar",
+                    source="حصن المسلم",
+                    number="التكرار: " + str(row["REPEAT"]).translate(DIGITS),
+                    dhikr_id=row["ID"],
+                    dhikr_chapter=chapter,
+                )
+            )
+            total += seconds
+            if total >= minimum:
+                return selected
+            if len(selected) >= 16:
+                break
         raise ValueError("LEGACY_MATCHED_HUMAN_ADHKAR_UNAVAILABLE")
