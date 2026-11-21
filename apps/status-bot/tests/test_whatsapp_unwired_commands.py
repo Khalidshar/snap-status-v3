@@ -8,7 +8,9 @@ def test_preview_send_cancel_dash_and_add_fact_answer(tmp_path, monkeypatch):
     for text in ("👁 معاينة", "✅ أرسل", "❌ ألغِ"):
         assert "تخص بوت سناب" in oc.answer(text, None), text
     assert "لوحة التحكم" in oc.answer("🖥️ لوحة التحكم", None)
-    assert "أضف هل تعلم:" in oc.answer("➕ أضف معلومة", None)
+    from studio_core.commands import BY_KEY
+
+    assert "أضف هل تعلم:" in oc.answer(BY_KEY["add_fact"].label, None)
     assert "قائمة المراجعة" in oc.answer("أضف هل تعلم: النحل يرقص ليدل على الزهور", None)
     assert (tmp_path / "owner-facts.jsonl").is_file()
 

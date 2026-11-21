@@ -141,9 +141,9 @@ def add_fact(root: Path, text: str, now: float | None = None) -> str:
     text = " ".join(text.split())
     low, high = FACT_LIMITS
     if not low <= len(text) <= high:
-        return f"➕ المعلومة لازم تكون بين {ar(low)} و{ar(high)} حرف. ما انحفظ شي."
+        return f"✍️ المعلومة لازم تكون بين {ar(low)} و{ar(high)} حرف. ما انحفظ شي."
     if any(item["text"] == text for item in queued_facts(root)):
-        return "➕ هذي المعلومة محفوظة من قبل في قائمة المراجعة."
+        return "✍️ هذي المعلومة محفوظة من قبل في قائمة المراجعة."
     record = {"text": text, "at": time.time() if now is None else now}
     with (root / FACTS).open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -154,4 +154,4 @@ def add_fact(root: Path, text: str, now: float | None = None) -> str:
     )
 
 
-FACT_HELP = "➕ أضف معلومة: اكتب «أضف هل تعلم: » وبعدها المعلومة في نفس الرسالة."
+FACT_HELP = "✍️ أضف معلومة: اكتب «أضف هل تعلم: » وبعدها المعلومة في نفس الرسالة."
