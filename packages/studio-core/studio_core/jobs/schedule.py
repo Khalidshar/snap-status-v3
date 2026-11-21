@@ -104,9 +104,17 @@ def _hour_angle(altitude: float, decl: float) -> float:
     return math.degrees(math.acos(max(-1.0, min(1.0, value)))) / 15  # hours
 
 
+# Umm al-Qura Ramadan, first and last day (inclusive). Add each year once it is published.
+RAMADAN: tuple[tuple[date, date], ...] = ((date(2027, 2, 8), date(2027, 3, 8)),)  # 1448
+
+
+def in_ramadan(day: date) -> bool:
+    return any(first <= day <= last for first, last in RAMADAN)
+
+
 def prayer_times(day: date) -> dict[str, datetime]:
     """Riyadh prayer times by Umm al-Qura rules: Fajr at 18.5°, Asr at one shadow length,
-    Isha 90 minutes after Maghrib (120 in Ramadan is not applied here)."""
+    Isha 90 minutes after Maghrib, 120 in Ramadan."""
     decl, eot = _sun(day)
     noon = 12 + 3 - LONGITUDE / 15 - eot / 60  # local solar noon in Riyadh time (UTC+3)
     asr_alt = math.degrees(math.atan(1 / (1 + math.tan(math.radians(abs(LATITUDE - decl))))))
@@ -116,7 +124,7 @@ def prayer_times(day: date) -> dict[str, datetime]:
         "asr": noon + _hour_angle(asr_alt, decl),
         "maghrib": noon + _hour_angle(-0.833, decl) + 1 / 60,
     }
-    hours["isha"] = hours["maghrib"] + 1.5
+    hours["isha"] = hours["maghrib"] + (2.0 if in_ramadan(day) else 1.5)
     start = datetime.combine(day, time(0), RIYADH)
     return {name: start + timedelta(hours=value) for name, value in hours.items()}
 
