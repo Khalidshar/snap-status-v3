@@ -28,6 +28,11 @@ def test_command_unit_templates_are_installed():
         "madar-v3-whatsapp-origin.service",
         "madar-v3-whatsapp-tunnel.service",
         "madar-v3-panel.service",
+        # مشرف روّق: installed and enabled only with the owner's approval (docs/SUPERVISOR.md).
+        "madar-v3-supervisor.service",
+        "madar-v3-supervisor.timer",
+        "madar-v3-supervisor-watchdog.service",
+        "madar-v3-supervisor-watchdog.timer",
     }
 
 
