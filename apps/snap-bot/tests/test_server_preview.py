@@ -469,7 +469,7 @@ class ServerRealPreviewTests(unittest.TestCase):
 
         # Needs passwordless root (the server); a desktop without it cannot run this proof.
         if not shutil.which("sudo") or subprocess.run(
-            ["sudo", "-n", "true"], capture_output=True, check=False
+            ["sudo", "-n", "env", "true"], capture_output=True, check=False
         ).returncode:
             self.skipTest("needs passwordless sudo (root integration on the server)")
 
