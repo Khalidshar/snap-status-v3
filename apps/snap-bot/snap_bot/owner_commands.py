@@ -579,9 +579,16 @@ class Studio:
                 return tool_commands.execute(
                     command.key, self.runtime.root, self.runtime.events(), self.pending()
                 )
+            if command.key == "add_fact":
+                from studio_core.observability.agent_tools import FACT_HELP
+
+                return FACT_HELP
             return NOT_YET.format(label=command.label)
         if kind == "add_fact":
-            return NOT_YET.format(label=menu.BY_KEY["add_fact"].label)
+            # Owner 21 Nov 2026: the fact joins a review queue; nothing is published.
+            from studio_core.observability.agent_tools import add_fact
+
+            return add_fact(self.runtime.root, str(parsed["text"]))
         if kind == "yes":
             return self.yes()
         return menu.menu_text()

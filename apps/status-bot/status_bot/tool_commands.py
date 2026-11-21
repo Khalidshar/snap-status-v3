@@ -1,26 +1,28 @@
-"""Owner-requested local tools. No rendering, network, approval or replay."""
+"""«أدوات الوكلاء» in the WhatsApp bot, on WhatsApp's own evidence (owner 21 Nov 2026).
+
+The six tools used to run the old weather helpers (a weather sentence, a review for Riyadh).
+They now read the WhatsApp command queue, the clips' content and their agent ledgers, and
+answer like the Snap bot (shared wording in studio_core.observability.agent_tools).
+Read-only: nothing is rendered, sent, edited or retried, and sacred text is never touched.
+"""
 
 import json
 import sqlite3
+import time
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from studio_core.observability import agent_tools as shared
 from studio_core.observability import role_status
 from studio_core.observability.agent_registry import status_text
-from studio_core.repair.maintenance import diagnose
+from studio_core.observability.agent_tools import DAY, NAMES, ar, label
 
-from . import oversight
-from .agents import LOCAL_TOOLS
+from .server_preview import STATE
 
-NAMES = {
-    "manager": "مدير المحتوى",
-    "analyst": "محلل الأداء",
-    "writer": "كاتب المحتوى",
-    "reviewer": "مراجع المحتوى",
-    "fixer": "مصلح المسودة",
-    "content_repair": "إصلاح المحتوى",
-}
-STATES = {"UNKNOWN": "غير معروف", "RUNNING": "يعمل الآن", "SUCCEEDED": "نجح", "FAILED": "فشل"}
+__all__ = ["NAMES", "execute", "ledger", "status"]
+# Expected outcomes, not faults: no fresh story, nothing new in fashion.
+BENIGN = ("NO_FRESH", "FASHION_UNAVAILABLE")
 
 
 def ledger(outbox: Any) -> Path:
@@ -32,61 +34,100 @@ def status(outbox: Any) -> str:
     return status_text("status-bot-v2", {r["id"]: r for r in rows})
 
 
-def latest(outbox: Any) -> dict[str, Any]:
+def clips(outbox: Any) -> list[dict[str, Any]]:
+    """The owner's WhatsApp clip requests, oldest first."""
     with outbox.repo.connect() as db:
         try:
-            row = db.execute(
-                "SELECT content_json FROM command_videos WHERE binding=? AND content_json IS NOT NULL ORDER BY at DESC LIMIT 1",
+            cursor = db.execute(
+                "SELECT tag, kind, state, at, code, content_json FROM command_videos"
+                " WHERE binding=? ORDER BY at",
                 (outbox.identity.binding,),
-            ).fetchone()
+            )
         except sqlite3.OperationalError:
-            row = None
-    if row is None:
-        raise ValueError("NO_CONTENT")
-    return dict(json.loads(row[0]))
+            return []
+        names = [c[0] for c in cursor.description]
+        return [dict(zip(names, row, strict=True)) for row in cursor.fetchall()]
+
+
+def latest(outbox: Any) -> dict[str, Any]:
+    for row in reversed(clips(outbox)):
+        if row.get("content_json"):
+            value = dict(json.loads(row["content_json"]))
+            value.setdefault("_tag", row["tag"])
+            return value
+    raise ValueError("NO_CONTENT")
+
+
+def failed(row: dict[str, Any]) -> bool:
+    state, code = str(row.get("state") or ""), str(row.get("code") or "")
+    return ("BLOCK" in state or "FAIL" in state) and not any(b in code for b in BENIGN)
+
+
+def manager(outbox: Any) -> str:
+    working = [r for r in clips(outbox) if r.get("state") == "WORKING"]
+    first = (
+        "⏳ فيه مقطع قيد الصنع: " + label(str(working[-1]["kind"]))
+        if working
+        else "✅ جاهز لتلقي الأوامر؛ ما فيه مقطع قيد الصنع."
+    )
+    return "\n".join([first, *shared.status_lines(STATE)])
+
+
+def analyst(outbox: Any, now: float) -> str:
+    rows = clips(outbox)
+
+    def made(since: float) -> list[dict[str, Any]]:
+        return [r for r in rows if float(r.get("at") or 0) >= since]
+
+    def sent(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [r for r in items if r.get("state") == "API_ACCEPTED"]
+
+    today, week = made(now - DAY), made(now - 7 * DAY)
+    kinds = Counter(label(str(r["kind"])) for r in sent(week))
+    lines = [
+        f"اليوم: طُلب {ar(len(today))} · أُرسل {ar(len(sent(today)))}"
+        f" · فشل {ar(sum(failed(r) for r in today))}",
+        f"آخر ٧ أيام: طُلب {ar(len(week))} · أُرسل {ar(len(sent(week)))}",
+    ]
+    if kinds:
+        lines.append("المرسَل حسب النوع (٧ أيام):")
+        lines += [f"• {name}: {ar(n)}" for name, n in kinds.most_common(10)]
+    return "\n".join(lines)
+
+
+def reviewer(outbox: Any) -> str:
+    value = latest(outbox)
+    folder = STATE / "content-clips" / str(value.get("_tag", ""))
+    found = sorted(folder.glob("**/jobs.sqlite")) if value.get("_tag") else []
+    ledger_path = found[0] if found else folder / "jobs.sqlite"
+    return shared.reviewer(ledger_path, value)
+
+
+def content_repair(outbox: Any, now: float) -> str:
+    bad = [r for r in clips(outbox) if float(r.get("at") or 0) >= now - 7 * DAY and failed(r)]
+    if not bad:
+        return "ما فيه مقطع واتساب فشل خلال ٧ أيام. لم يُعد إرسال أي مقطع."
+    lines = [f"فشل {ar(len(bad))} مقطع خلال ٧ أيام (لم يُعد إرسال أي مقطع):"]
+    for row in bad[-6:]:
+        when = time.strftime("%m-%d %H:%M", time.localtime(float(row.get("at") or 0)))
+        code = str(row.get("code") or row.get("state") or "")
+        lines.append(f"• {when} {label(str(row['kind']))}" + (f" — {code}" if code else ""))
+    return "\n".join(lines)
 
 
 def execute(key: str, outbox: Any) -> str:
-    if key not in LOCAL_TOOLS:
-        raise ValueError("UNKNOWN_TOOL")
-    path = ledger(outbox)
-    role_status.record(path, "status-bot-v2", key, "RUNNING")
-    try:
-        if key in {"manager", "analyst"}:
-            with outbox.repo.connect() as db:
-                value = oversight.plan(db) if key == "manager" else {"runs": 0}
-            if key == "analyst":
-                with sqlite3.connect(path) as db:
-                    value["runs"] = db.execute(
-                        "SELECT count(*) FROM runs WHERE state IN ('SUCCEEDED','FAILED')"
-                    ).fetchone()[0]
-            text = (
-                (
-                    "جاهز لتلقي الأوامر"
-                    if value.get("decision") == "READY"
-                    else "توجد مهمة قيد التنفيذ"
-                )
-                if key == "manager"
-                else "عدد تشغيلات الوكلاء: " + str(value["runs"])
-            )
-        elif key == "content_repair":
-            value = diagnose(outbox.repo)
-            items: Any = value.get("items", [])
-            count = len(items) if isinstance(items, list) else 0
-            text = "اكتمل تشخيص فرص إصلاح المحتوى؛ لم يُعد إرسال أي مقطع.\n" + str(count)
-        else:
-            content = latest(outbox)
-            if key == "writer":
-                text = oversight.write(content)
-            elif key == "reviewer":
-                value = oversight.review(content, "الرياض")
-                text = "المراجعة: " + ("اجتاز" if value["decision"] == "PASS" else "لم يجتز")
-            else:
-                if content.get("sacred"):
-                    raise ValueError("SACRED_TEXT_LOCKED")
-                text = oversight.fix(oversight.write(content))["text"]
-        role_status.record(path, "status-bot-v2", key, "SUCCEEDED")
-        return NAMES[key] + "\n" + str(text)
-    except Exception:
-        role_status.record(path, "status-bot-v2", key, "FAILED")
-        return NAMES[key] + "\nتعذر إكمال الأداة؛ يلزم محتوى صالح، ولا يُعدّل النص الديني المقفل."
+    now = time.time()
+
+    def work() -> str:
+        if key == "manager":
+            return manager(outbox)
+        if key == "analyst":
+            return analyst(outbox, now)
+        if key == "content_repair":
+            return content_repair(outbox, now)
+        if key == "reviewer":
+            return reviewer(outbox)
+        value = latest(outbox)
+        return shared.writer(value) if key == "writer" else shared.fixer(value)
+
+    return shared.run("status-bot-v2", key, ledger(outbox), work)

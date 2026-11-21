@@ -76,3 +76,12 @@ def test_writer_reviewer_and_fixer_use_the_latest_clip(tmp_path):
 
 def test_no_clip_yet_is_said_plainly(tmp_path):
     assert "ما فيه مقطع صالح" in tools.execute("writer", tmp_path, [])
+
+
+def test_add_fact_in_snap_joins_the_review_queue(tmp_path):
+    from studio_core.observability.agent_tools import add_fact, queued_facts
+
+    assert "قائمة المراجعة" in add_fact(tmp_path, "قلب الحوت الأزرق بحجم سيارة صغيرة")
+    assert len(queued_facts(tmp_path)) == 1
+    events = setup(tmp_path)
+    assert "تنتظر التحقق" in tools.execute("manager", tmp_path, events)

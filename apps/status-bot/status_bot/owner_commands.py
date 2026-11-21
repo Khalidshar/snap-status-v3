@@ -43,9 +43,27 @@ def answer(text: str, runtime: Any, *, outbox: Any = None) -> str:
         return menu.section_text(text[2:])
     if parsed["kind"] == "section":
         return menu.section_text(parsed["section"])
+    if parsed["kind"] == "add_fact":
+        # Owner 21 Nov 2026: the fact joins a review queue; nothing is published.
+        from studio_core.observability.agent_tools import add_fact
+
+        return add_fact(STATE, str(parsed["text"]))
     if parsed["kind"] != "command":
         return menu.menu_text()
     key = parsed["command"].key
+    if key == "add_fact":
+        from studio_core.observability.agent_tools import FACT_HELP
+
+        return FACT_HELP
+    if key in {"preview", "send", "cancel"}:
+        # WhatsApp has no waiting clip: each clip reaches the owner as soon as it passes
+        # the 18 agents and the auditor (owner decision); the approval cycle is Snap's.
+        return (
+            "في واتساب ما فيه مقطع ينتظر موافقة: كل مقطع يوصلك مباشرة بعد ما يمر على"
+            " الوكلاء الـ١٨ والمدقق.\n«معاينة» و«أرسل» و«ألغِ» تخص بوت سناب."
+        )
+    if key == "dash":
+        return "🖥️ لوحة التحكم: «غرفة قيادة مدار» في Claude (خاصة بك)."
     if key in {"schedule", "pause", "resume"}:
         from datetime import datetime
 

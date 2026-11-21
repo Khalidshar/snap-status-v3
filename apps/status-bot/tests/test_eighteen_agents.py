@@ -72,13 +72,14 @@ def test_sacred_text_fixer_is_blocked_and_recorded():
             patch.object(tool_commands, "latest", return_value={"sacred": True}),
             patch("status_bot.oversight.fix") as fix,
         ):
-            assert "المقفل" in tool_commands.execute("fixer", case.outbox)
+            # Owner 21 Nov 2026: the fixer declines sacred text plainly; nothing is changed.
+            assert "مقفل" in tool_commands.execute("fixer", case.outbox)
             fix.assert_not_called()
         rows = {
             r["id"]: r["state"]
             for r in role_status.snapshot(tool_commands.ledger(case.outbox), "status-bot-v2")
         }
-        assert rows["fixer"] == "FAILED"
+        assert rows["fixer"] == "SUCCEEDED"
     finally:
         case.doCleanups()
 
