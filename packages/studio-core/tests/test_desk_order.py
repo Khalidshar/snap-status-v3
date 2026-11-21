@@ -40,6 +40,7 @@ def test_saudi_bulletin_is_saudi_only():
         story("المنتخب السعودي يستعد لمباراة الأحد في الرياض"),
         story("جياد فيصل بن خالد تتألق في سباقات «موسم الرياض»"),
         story("الرياض تجمع رياضات الشعوب في مهرجان الإثنوسبورت"),
+        story("20 سائقاً يستعرضون مهاراتهم في «هجولة» الرياض"),
     ]
     titles = [i["title"] for i in desk_order("saudi", stories, [])]
     assert titles == [
