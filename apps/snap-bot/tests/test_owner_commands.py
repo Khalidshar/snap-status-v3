@@ -138,7 +138,10 @@ class OwnerCommandTests(unittest.TestCase):
         self.assertIn("الجدولة: ▶️ شغالة", self.studio.answer("الحالة"))
         self.assertIn("إرسال: 1", self.studio.answer("تقرير اليوم"))
         self.assertIn("سبع محطات", self.studio.answer("حالة الوكلاء"))
-        self.assertIn("غير مربوط", self.studio.answer("حالة الوكلاء"))
+        # Owner 22 Nov 2026: the six Snap tools are wired; none shows «غير مربوط».
+        agents = self.studio.answer("حالة الوكلاء")
+        self.assertIn("أداة الأوامر: مربوط", agents)
+        self.assertNotIn("غير مربوط", agents)
         # Owner 21 Nov 2026: the old bot's schedule runs; the menu shows today's slots.
         self.assertIn("🗓 مواعيد الجدولة اليوم", self.studio.answer("مواعيد الجدولة"))
 
