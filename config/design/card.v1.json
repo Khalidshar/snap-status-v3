@@ -59,6 +59,7 @@
     "saudi": ["news_desk", "plain", "cta"],
     "world": ["news_desk", "plain", "cta"],
     "football": ["news_desk", "plain", "cta"],
+    "sports": ["news_desk", "plain", "cta"],
     "markets": ["news_desk", "plain", "cta"],
     "news": ["news_desk", "plain", "cta"],
     "news_noon": ["news_desk", "plain", "cta"],

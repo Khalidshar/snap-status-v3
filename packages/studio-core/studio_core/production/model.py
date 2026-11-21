@@ -36,7 +36,7 @@ def budget(app: str, key: str = "") -> tuple[float, float, int]:
     return 32.0, 58.0, 16_000_000
 
 
-NEWS = {"urgent", "saudi", "world", "football", "markets", "news", "news_noon"}
+NEWS = {"urgent", "saudi", "world", "football", "sports", "markets", "news", "news_noon"}
 QURAN = {"verse", "dua", "friday", "kahf", "fast", "isha"}
 SACRED = QURAN | {"adhkar_am", "adhkar_pm", "hadith", "night", "brief"}
 # Owner 8 Nov 2026: «لابد من ذكر قال رسول الله» — shown and said before every hadith.
@@ -46,6 +46,7 @@ TITLES = {
     "saudi": "أخبار السعودية",
     "world": "أخبار العالم",
     "football": "ملخص كرة القدم",
+    "sports": "أخبار الرياضة",
     "markets": "الأسواق والاقتصاد",
     "news": "وش صار اليوم؟",
     "news_noon": "أخبار الظهر",

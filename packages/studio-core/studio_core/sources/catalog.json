@@ -12,6 +12,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -98,7 +99,8 @@
       "name": "الشرق الأوسط",
       "url": "https://aawsat.com/feed/sport",
       "commands": [
-        "football"
+        "football",
+        "sports"
       ],
       "kind": "rss",
       "language": "ar",
@@ -150,6 +152,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -166,7 +169,8 @@
       "name": "بي بي سي عربي",
       "url": "https://feeds.bbci.co.uk/arabic/sports/rss.xml",
       "commands": [
-        "football"
+        "football",
+        "sports"
       ],
       "kind": "rss",
       "language": "ar",
@@ -241,6 +245,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -257,7 +262,8 @@
       "name": "فرانس ٢٤ عربي",
       "url": "https://www.france24.com/ar/%D8%B1%D9%8A%D8%A7%D8%B6%D8%A9/rss",
       "commands": [
-        "football"
+        "football",
+        "sports"
       ],
       "kind": "rss",
       "language": "ar",
@@ -276,6 +282,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -292,7 +299,8 @@
       "name": "سكاي نيوز عربية",
       "url": "https://www.skynewsarabia.com/rss/sport.xml",
       "commands": [
-        "football"
+        "football",
+        "sports"
       ],
       "kind": "rss",
       "language": "ar",
@@ -427,7 +435,8 @@
       "name": "الرياضية",
       "url": "https://arriyadiyah.com/rss",
       "commands": [
-        "football"
+        "football",
+        "sports"
       ],
       "kind": "rss",
       "language": "ar",
@@ -474,6 +483,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -495,6 +505,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -516,6 +527,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -537,6 +549,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -558,6 +571,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"
@@ -579,6 +593,7 @@
         "world",
         "news",
         "football",
+        "sports",
         "markets",
         "brief",
         "news_noon"

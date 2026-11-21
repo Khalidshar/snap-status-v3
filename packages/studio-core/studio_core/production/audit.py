@@ -16,7 +16,7 @@ from .model import budget
 
 ROOT = Path(__file__).resolve().parents[4]
 CARD_PATH = ROOT / "config/design/card.v1.json"
-CARD_SHA256 = "3e7578a7b4600f052341c1b2f00588f1505ac6cf8350610a7ba9bf7eba6b442c"
+CARD_SHA256 = "df412b641c7b2ee1542e2aba921baffe8a0a6d4fd35e5ea1f19ff07ccd3aadc5"
 BRAND_MANIFEST = ROOT / "assets/brand/rawwag/manifest.json"
 FORBIDDEN_IN_CONTENT = re.compile(
     r"(?<![\w])(?:تابعني|تابعونا|تابعنا|تابع الحساب|شاركها|شاركه|شاركوها|شاركوه"

@@ -27,7 +27,7 @@ class MenuTests(unittest.TestCase):
             self.assertTrue(all(len(r["title"]) <= 24 for r in rows))
 
     def test_number_name_emoji_and_spelling_variants_match(self):
-        for text in ("8", "٨", "هل تعلم", "💡 هل تعلم", "  هل تعلم  "):
+        for text in ("9", "٩", "هل تعلم", "💡 هل تعلم", "  هل تعلم  "):  # 9 since sports (21 Nov)
             parsed = menu.parse(text)
             self.assertEqual((parsed["kind"], parsed["command"].key), ("command", "facts"))
         self.assertEqual(menu.parse("اذكار الصباح")["command"].key, "adhkar_am")
@@ -74,8 +74,8 @@ class MenuTests(unittest.TestCase):
         text = menu.menu_text()
         for _, title, _ in menu.SECTIONS:
             self.assertIn(title, text)
-        self.assertIn("(29)", text)
-        self.assertIn("36. ✅ أرسل (يحتاج نعم)", menu.section_text("control"))
+        self.assertIn("(30)", text)  # «أخبار الرياضة» joined the news section (21 Nov)
+        self.assertIn("37. ✅ أرسل (يحتاج نعم)", menu.section_text("control"))
 
 
 if __name__ == "__main__":

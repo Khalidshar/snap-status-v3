@@ -75,7 +75,7 @@ THEMES = {
 
 THEME_OF = {
     **dict.fromkeys(
-        ("urgent", "saudi", "world", "football", "markets", "news", "news_noon"), "news"
+        ("urgent", "saudi", "world", "football", "sports", "markets", "news", "news_noon"), "news"
     ),
     **dict.fromkeys(("tech", "facts", "did_you_know"), "tech"),
     "funny": "funny",
