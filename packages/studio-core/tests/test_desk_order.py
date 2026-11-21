@@ -90,7 +90,7 @@ def test_thumbnail_links_ask_for_the_large_picture():
     from studio_core.production.prepare_news import sharper
 
     sky = "https://images.skynewsarabia.com/images/v1/2026/11/21/1906152/95/53/1-1906152.jpg"
-    assert sharper(sky).endswith("/1906152/1200/670/1-1906152.jpg")
+    assert sharper(sky).endswith("/1906152/1200/675/1-1906152.jpg")
     bbc = "https://ichef.bbci.co.uk/ace/ws/240/cpsprodpb/abc.jpg"
     assert sharper(bbc) == "https://ichef.bbci.co.uk/ace/ws/1024/cpsprodpb/abc.jpg"
     big = "https://s.france24.com/media/display/x/w:1024/p:16x9/a.jpg"

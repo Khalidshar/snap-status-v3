@@ -526,7 +526,7 @@ def test_source_image_falls_back_to_og_before_google(tmp_path, monkeypatch, app)
     )
     attempts = []
 
-    def picture(url, base, credit):
+    def picture(url, base, credit, min_width=0):
         attempts.append(url)
         if url == "https://publisher.example/broken.jpg":
             raise ValueError("unavailable")
