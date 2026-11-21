@@ -73,9 +73,10 @@ def run(app: str, command: str) -> dict[str, str]:
 
 def load(app: str) -> dict[str, Any]:
     path = STATE / app / "schedule-done.json"
+    value: dict[str, Any]
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        value = dict(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, ValueError, TypeError):
         value = {}
     value.setdefault("done", [])
     value.setdefault("radar", {})
