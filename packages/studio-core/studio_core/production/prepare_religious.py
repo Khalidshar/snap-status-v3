@@ -424,6 +424,14 @@ class ReligiousPreparation(PreparationBase):
                     scenes += self.quran(surah, ayahs, background=True)
             except ValueError:
                 pass
+            for item in scenes:
+                if not item.get("phrases"):
+                    # No word timing: the ayah and its tafsir show whole, so both need time.
+                    item["seconds"] = max(
+                        item["seconds"],
+                        len(item.get("tafsir", "")) / 17 + 1,
+                        item.get("audio_duration", 0) + 0.15,
+                    )
             whole = len(scenes) == sum(len(ayahs) for _, ayahs in part)
             if whole and sum(s["seconds"] for s in scenes) <= room:
                 return scenes
