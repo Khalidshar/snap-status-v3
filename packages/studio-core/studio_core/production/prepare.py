@@ -143,7 +143,7 @@ class Factory(FashionPreparation, VarietyPreparation):
         elif key in {"adhkar_am", "adhkar_pm"}:
             low, high, _ = budget(self.app, key)
             frame = 3.2 + 4.5 + 0.5  # opening title, closing card, margin
-            scenes += self.adhkar_opener(day, high - frame)
+            scenes += self.adhkar_opener(day, high - frame - 10.0)  # room for one dhikr
             used = sum(s["seconds"] for s in scenes[1:])
             scenes += self.adhkar(
                 "am" if key.endswith("am") else "pm",
