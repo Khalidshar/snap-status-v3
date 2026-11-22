@@ -420,7 +420,7 @@ def test_daily_brief_uses_both_weather_providers_and_fails_on_disagreement(tmp_p
         other.build()
 
 
-def test_each_dhikr_is_bound_to_its_human_recording_and_count(tmp_path, audio):
+def test_each_dhikr_is_bound_to_its_exact_text_and_count(tmp_path, audio):
     recording = tmp_path / "synthetic-dhikr-test-only.wav"
     subprocess.run(  # noqa: S603 — fixed local test-only audio argv
         [
@@ -456,15 +456,14 @@ def test_each_dhikr_is_bound_to_its_human_recording_and_count(tmp_path, audio):
     f = factory(tmp_path, "adhkar_am", Recording(audio))
     value = f.build()
     p = validate(value, assets=f.root)
-    segments = p["scenes"][1:-1]
-    # Selection window is on the recordings; Snap may then hold each card longer.
-    assert 44 <= sum(s["audio_duration"] + 0.3 for s in segments) <= 50
-    assert all(s["seconds"] >= s["audio_duration"] + 0.3 - 1e-9 for s in segments)
+    # Owner 21 Nov 2026: the dhikr is text with its count, without audio.
+    segments = [s for s in p["scenes"] if s.get("role") == "adhkar"]
+    assert segments
     assert all(s["body"] == rows[s["dhikr_id"] - 1]["ARABIC_TEXT"] for s in segments)
     assert all(s["number"] == "التكرار: ٣" for s in segments)
-    assert all(s["levels"] and max(s["levels"]) > 0 for s in segments)
+    assert all(not s.get("audio") and s["seconds"] >= 5.0 for s in segments)
     assert p["music"] is None and not p["effects"]
-    for field in ("body", "number", "audio"):
+    for field in ("body", "number"):
         changed = copy.deepcopy(value)
         changed["legacy_production"]["scenes"][1][field] = "changed"
         with pytest.raises(ValueError):
