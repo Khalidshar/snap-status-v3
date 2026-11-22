@@ -41,3 +41,12 @@ def test_failure_reason_is_only_an_internal_code():
     assert failure_reason(ValueError("LEGACY_BULLETIN_INCOMPLETE")) == "LEGACY_BULLETIN_INCOMPLETE"
     for unsafe in ("/var/lib/madar/x missing", "token=abc", "Invalid source", ""):
         assert failure_reason(ValueError(unsafe)) == ""
+
+
+def test_thirty_daily_hadiths_load_verbatim_with_narrators():
+    from studio_core.presentation import faith
+
+    daily = faith.load("hadith_daily")
+    assert len(daily) == 30
+    assert all(i["narrator"] and i["narrator_url"].startswith("https://sunnah.com/") for i in daily)
+    assert daily[0]["text"] == "الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ، وَكُلُّ خَطْوَةٍ يَخْطُوهَا إِلَى الصَّلاَةِ صَدَقَةٌ، وَيُمِيطُ الأَذَى عَنِ الطَّرِيقِ صَدَقَةٌ"

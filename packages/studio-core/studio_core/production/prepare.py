@@ -153,7 +153,8 @@ class Factory(FashionPreparation, VarietyPreparation):
         elif key == "hadith":
             from studio_core.presentation import faith
 
-            scenes += self.hadiths(faith.load("hadith"), day)
+            # Owner 22 Nov 2026: «حديث لكل يوم» starts from the 30 approved hadiths.
+            scenes += self.hadiths(faith.load("hadith_daily") + faith.load("hadith"), day)
         elif key == "night":
             from studio_core.presentation import faith
 

@@ -212,7 +212,8 @@ class ReligiousPreparation(PreparationBase):
 
         Owner report 8 Nov 2026: one 27-letter hadith stretched over 53 silent seconds.
         """
-        pool = sorted((i for i in items if i["grade"] == "صحيح"), key=lambda i: i["id"])
+        # The approved order (the 30 daily hadiths first), one new lead hadith each day.
+        pool = [i for i in items if i["grade"] == "صحيح"]
         if not pool:
             raise ValueError("LEGACY_HADITH_UNAVAILABLE")
         start = day.toordinal() % len(pool)
