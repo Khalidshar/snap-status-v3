@@ -791,6 +791,16 @@ def photo_body(chat: str, photo: bytes, caption: str) -> tuple[bytes, str]:
     return b"".join(parts), "multipart/form-data; boundary=" + boundary
 
 
+def transient_telegram(error: Exception) -> bool:
+    """A Telegram server error (5xx) or a dropped connection, not a refused request."""
+    if isinstance(error, RuntimeError):
+        return bool(re.fullmatch(r"Telegram rejected request: 5\d\d", str(error)))
+    return isinstance(error, (TimeoutError, ConnectionError)) or type(error).__name__ in {
+        "URLError",
+        "RemoteDisconnected",
+    }
+
+
 def main() -> None:
     try:
         if os.geteuid() != 0:
@@ -808,7 +818,16 @@ def main() -> None:
             from .panel_actions import process as process_actions
 
             process_actions(studio, STATE / "panel-commands.sqlite")
-            next_offset = poll_once(token, owner, studio, offset)
+            try:
+                next_offset = poll_once(token, owner, studio, offset)
+            except (RuntimeError, OSError) as error:
+                if not transient_telegram(error):
+                    raise
+                # Owner 22 Nov 2026: a brief Telegram outage (502 at 03:38) stopped the bot.
+                # Reading commands waits and tries again; nothing already sent is resent.
+                print("OWNER_COMMANDS_TELEGRAM_TRANSIENT", file=sys.stderr, flush=True)
+                time.sleep(5)
+                continue
             if next_offset != offset:
                 save_offset(next_offset)
                 offset = next_offset

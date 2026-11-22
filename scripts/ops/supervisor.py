@@ -639,7 +639,21 @@ def run(args: argparse.Namespace, probe: Probe | None = None) -> list[str]:
     ledger.set_mark("heartbeat", now)
     ledger.commit()
     if not args.dry_run or args.print:
-        deliver(messages, args.dry_run)
+        # Owner 22 Nov 2026: a brief Telegram outage must not lose an alert or crash the run.
+        pending = home / "undelivered.json"
+        waiting: list[str] = []
+        if not args.dry_run and pending.is_file():
+            try:
+                waiting = [str(m) for m in json.loads(pending.read_text(encoding="utf-8"))]
+            except (OSError, ValueError):
+                waiting = []
+        try:
+            deliver(waiting + messages, args.dry_run)
+            if waiting:
+                pending.unlink(missing_ok=True)
+        except (RuntimeError, OSError):
+            print("SUPERVISOR_DELIVER_DEFERRED", file=sys.stderr, flush=True)
+            pending.write_text(json.dumps((waiting + messages)[-20:], ensure_ascii=False))
     return messages
 
 

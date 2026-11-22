@@ -274,3 +274,19 @@ def test_events_keep_their_real_time_for_merging_and_the_report(env):
     assert text.count("🚨 بوت تيليجرام طاح ورجع") == 3 and "تكرر" not in text
     assert "(2026-11-15" in text  # an old event says when it happened
     assert "بوت تيليجرام طاح ورجع: ١" in sent[-1]  # only today's crash is in the 24-hour report
+
+
+def test_a_telegram_outage_defers_the_alert_to_the_next_run(env, monkeypatch):
+    home, state, host, sent = env
+    host.down.add("madar-v3-snap-commands.service")
+
+    def outage(messages, dry):
+        raise RuntimeError("Telegram rejected request: 502")
+
+    monkeypatch.setattr(sv, "deliver", outage)
+    sv.run(args(home, state), host)  # no crash
+    assert (home / "undelivered.json").is_file()
+    monkeypatch.setattr(sv, "deliver", lambda messages, dry: sent.extend(messages))
+    sv.run(args(home, state, NOW + 60), host)
+    assert any("خدمة واقفة" in m for m in sent)
+    assert not (home / "undelivered.json").exists()
