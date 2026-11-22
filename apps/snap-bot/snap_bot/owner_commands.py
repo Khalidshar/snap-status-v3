@@ -24,7 +24,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.observability.agent_registry import TOOL_IDS, status_text
 from studio_core.observability.failure_code import (
@@ -36,7 +35,6 @@ from studio_core.production.publication import notice
 from studio_core.sources.live import LiveNews
 from studio_core.sources.news import TITLES
 
-from . import brief, news_clips
 from .actions_preview import ROOT
 from .server_preview import STATE, Runtime, channel_bot, safe_path, source_info
 from .telegram_egress import api
@@ -664,7 +662,6 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
             queued += 1
     # Preserve Telegram update IDs as durable idempotency keys, even after a crash
     # before the polling cursor is committed. Filtering stays owner-only above.
-    news_enabled = os.environ.get("MADAR_LIVE_NEWS") == "1"
     for update in updates if isinstance(updates, list) else []:
         uid = update.get("update_id") if isinstance(update, dict) else None
         if type(uid) is not int or uid < offset:
@@ -718,54 +715,7 @@ def poll_once(token: str, owner: str, studio: Studio, offset: int, transport: An
                 ).encode(),
             )
             continue
-        if parsed["kind"] == "command" and parsed["command"].key == "brief":
-
-            def text_reply(message: str) -> None:
-                transport(
-                    token, "sendMessage", json.dumps({"chat_id": owner, "text": message}).encode()
-                )
-
-            def video_reply(raw: bytes) -> None:
-                from studio_core.delivery.evidence import multipart
-
-                body, kind = multipart(owner, raw, "", "brief.mp4")
-                result = transport(token, "sendVideo", body, kind)
-                if (
-                    str(result.get("chat", {}).get("id")) != owner
-                    or type(result.get("message_id")) is not int
-                ):
-                    raise ValueError("Brief send unconfirmed")
-
-            try:
-                brief.reply(live_news(), str(uid), text_reply, video_reply, studio.runtime, HALT)
-            except Exception:
-                print("OWNER_BRIEF_BLOCKED_OR_UNKNOWN", file=sys.stderr)
-            continue
-        if news_enabled and parsed["kind"] == "command" and parsed["command"].key in TITLES:
-
-            def send_news(text: str) -> None:
-                transport(
-                    token, "sendMessage", json.dumps({"chat_id": owner, "text": text}).encode()
-                )
-
-            def send_clip(content: dict[str, Any], event: str = str(uid)) -> None:
-                news_clips.deliver(content, event, token, owner, transport, studio.runtime, HALT)
-
-            try:
-                if HALT.exists():
-                    send_news(SEND_HALTED)
-                    continue
-                command_news.reply(
-                    live_news(),
-                    parsed["command"].key,
-                    str(uid),
-                    send_news,
-                    send_clip,
-                )
-            except Exception:
-                # No replay of a possibly accepted response, and no silent catalog fallback.
-                print("OWNER_NEWS_BLOCKED_OR_UNKNOWN", file=sys.stderr)
-            continue
+        # Owner 22 Nov 2026 («كل القديم»): the old brief and news delivery paths are gone.
         reply = studio.answer(text)
         if not reply:
             continue  # the sent clip was the whole answer
