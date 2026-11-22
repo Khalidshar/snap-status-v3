@@ -22,6 +22,15 @@ class NoFreshContent(ValueError):
         super().__init__("NO_FRESH_CONTENT")
 
 
+def failure_reason(error: Exception) -> str:
+    """The internal reason code (e.g. LEGACY_BULLETIN_INCOMPLETE) when the message is exactly
+    one; never free text, paths or arguments (owner 22 Nov 2026: know why a clip failed)."""
+    import re
+
+    text = str(error)
+    return text if re.fullmatch(r"[A-Z][A-Z0-9_]{2,63}", text) else ""
+
+
 def failure_code(error: Exception) -> str:
     """Classify failures without emitting exception messages or command arguments."""
     if isinstance(error, FashionUnavailable):

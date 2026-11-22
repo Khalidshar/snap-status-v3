@@ -433,6 +433,9 @@ def eyes(probe: Probe, ledger: Ledger, now: float, first_since: float) -> list[F
             code_match = re.search(r"code=(\w+)", message)
             stage_name = stage.group(1) if stage else ""
             code_name = code_match.group(1) if code_match else "غير معروف"
+            # Owner 22 Nov 2026: the internal reason code, when the worker gave one.
+            reason_match = re.search(r"reason=([A-Z][A-Z0-9_]{2,63})", message)
+            reason = " — السبب: " + reason_match.group(1) if reason_match else ""
             # A blocked send is reported from the Snap event log; no story is not a fault.
             if stage_name == "send" or code_name in BENIGN:
                 continue
@@ -441,7 +444,7 @@ def eyes(probe: Probe, ledger: Ledger, now: float, first_since: float) -> list[F
                     f"clip_fail:{code_name}",
                     "event",
                     "فشل صنع مقطع سناب",
-                    f"المرحلة {stage_name or '—'} — {code_name}",
+                    f"المرحلة {stage_name or '—'} — {code_name}{reason}",
                     request=True,
                     at=row["at"],
                 )
