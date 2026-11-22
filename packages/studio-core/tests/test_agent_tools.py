@@ -49,4 +49,10 @@ def test_thirty_daily_hadiths_load_verbatim_with_narrators():
     daily = faith.load("hadith_daily")
     assert len(daily) == 30
     assert all(i["narrator"] and i["narrator_url"].startswith("https://sunnah.com/") for i in daily)
-    assert daily[0]["text"] == "الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ، وَكُلُّ خَطْوَةٍ يَخْطُوهَا إِلَى الصَّلاَةِ صَدَقَةٌ، وَيُمِيطُ الأَذَى عَنِ الطَّرِيقِ صَدَقَةٌ"
+    # Verbatim: the text Khalid approved in docs/HADITH-BATCH1-20261111.md, letter for letter.
+    import re
+    from pathlib import Path
+
+    sheet = Path(__file__).resolve().parents[3] / "docs" / "HADITH-BATCH1-20261111.md"
+    approved = re.findall(r"^> (.+)$", sheet.read_text(encoding="utf-8"), re.M)
+    assert [i["text"] for i in daily] == [t.strip() for t in approved]
