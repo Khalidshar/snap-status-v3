@@ -27,7 +27,15 @@ OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F
 PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
 QURAN_SUBSET_SHA256 = "75daf530731089ed4128870dd1e08c4e0ee70f2409e89fadde0c318e526c97a2"
 KINDS = (
-    "adhkar_am", "adhkar_pm", "hadith", "hadith_daily", "dua", "verse", "friday", "kahf", "fast"
+    "adhkar_am",
+    "adhkar_pm",
+    "hadith",
+    "hadith_daily",
+    "dua",
+    "verse",
+    "friday",
+    "kahf",
+    "fast",
 )
 GRADES = ("صحيح", "حسن صحيح", "حسن")
 
