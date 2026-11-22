@@ -71,9 +71,9 @@ def installer(tmp_path, monkeypatch):
     return module
 
 
-def test_all_five_released_memory_units_are_backed_up_and_replaced(installer):
+def test_all_four_released_memory_units_are_backed_up_and_replaced(installer):
+    # «يومك في دقيقة» and its unit left on 22 Nov 2026.
     names = (
-        "madar-v3-snap-brief@.service",
         "madar-v3-snap-quran-render@.service",
         "madar-v3-status-commands.service.d/memory.conf",
         "madar-v3-status-content@.service",
@@ -101,7 +101,7 @@ def test_all_five_released_memory_units_are_backed_up_and_replaced(installer):
 
 def test_preflight_refuses_other_bytes_even_if_recognized_for_another_unit(installer):
     files = installer.plan()
-    brief = installer.UNITS / "madar-v3-snap-brief@.service"
+    brief = installer.UNITS / "madar-v3-snap-quran-render@.service"
     status = installer.UNITS / "madar-v3-status-content@.service"
     brief.parent.mkdir()
     old_brief = files[brief].replace("MemoryMax=3G", "MemoryMax=1536M").encode()
@@ -115,7 +115,7 @@ def test_preflight_refuses_other_bytes_even_if_recognized_for_another_unit(insta
 
 def test_install_does_not_overwrite_a_unit_changed_after_preflight(installer):
     files = installer.plan()
-    path = installer.UNITS / "madar-v3-snap-brief@.service"
+    path = installer.UNITS / "madar-v3-snap-quran-render@.service"
     path.parent.mkdir()
     path.write_text(files[path].replace("MemoryMax=3G", "MemoryMax=1536M"))
     old = installer.unit_changes(files)[path]

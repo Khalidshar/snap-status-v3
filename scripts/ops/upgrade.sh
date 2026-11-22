@@ -23,6 +23,8 @@ UNITS=(
   madar-v3-production-egress@snap madar-v3-production-egress@status
   madar-v3-snap-video madar-v3-status-video madar-v3-status-command-webhook
   madar-v3-snap-commands madar-v3-status-commands madar-v3-panel
+  # Owner 22 Nov 2026: the Quran egress ran a week-old (deleted) release; it updates too.
+  madar-v3-quran-egress@snap madar-v3-quran-egress@status
 )
 
 report() {
@@ -68,3 +70,11 @@ case "$(readlink -f /opt/madar/current)" in
 esac
 systemctl restart "${UNITS[@]}"
 sleep 5
+# Owner 22 Nov 2026 («نظفي جميع الاكواد المكررة»): no code copies pile up. The installed
+# release and the one before it (the ROLLBACK line) stay; the clone and older releases go.
+rm -rf -- "$CLONE"
+for old_release in /opt/madar/releases/*; do
+  name=${old_release##*/}
+  [[ "$name" =~ ^[0-9a-f]{40}$ ]] || continue
+  [ "$name" = "$C" ] || [ "$name" = "$OLD_COMMIT" ] || rm -rf -- "$old_release"
+done

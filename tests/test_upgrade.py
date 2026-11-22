@@ -215,7 +215,7 @@ def test_shell_refuses_live_lock_or_pending_clip_before_release(shell, state, ki
     assert not any(call[0] in {"git", "release.py"} for call in calls)
 
 
-def test_install_then_activate_exact_commit_and_restart_ten_services(shell, state):
+def test_install_then_activate_exact_commit_and_restart_twelve_services(shell, state):
     ledger(state)
     result, calls = shell[0]("--force-pending")
     assert result.returncode == 0, result.stdout + result.stderr
@@ -232,6 +232,7 @@ def test_install_then_activate_exact_commit_and_restart_ten_services(shell, stat
     }.items():
         assert first[first.index(flag) + 1] == value
     restarts = [call for call in calls if call[:2] == ["systemctl", "restart"]]
-    assert len(restarts) == 1 and len(restarts[0][2:]) == 10
+    # Owner 22 Nov 2026: the two Quran egress services restart with the rest.
+    assert len(restarts) == 1 and len(restarts[0][2:]) == 12
     assert "OLD=" in result.stdout and "CURRENT=" in result.stdout and "FAILED=0" in result.stdout
     assert "--activate-only --commit " + "c" * 40 in result.stdout
