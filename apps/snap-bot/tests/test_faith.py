@@ -26,6 +26,7 @@ def test_bundled_kind(kind: str) -> None:
             "adhkar_am": 9,
             "adhkar_pm": 11,
             "hadith": 8,
+            "hadith_daily": 30,
             "dua": 5,
             "fast": 7,
             "verse": 46,
@@ -41,7 +42,7 @@ def test_bundled_kind(kind: str) -> None:
 def synthetic_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Exercise all paths without inventing or accepting any religious text."""
     original = faith.DATA
-    for filename in ("adhkar.json", "hadith.json", "duas.json", "fast.json"):
+    for filename in ("adhkar.json", "hadith.json", "hadith_daily.json", "duas.json", "fast.json"):
         (tmp_path / filename).write_bytes((original / filename).read_bytes())
     adhkar = json.loads((tmp_path / "adhkar.json").read_text())
     refs = {(i["surah"], a) for i in adhkar["items"] if i["type"] == "quran" for a in i["ayahs"]}

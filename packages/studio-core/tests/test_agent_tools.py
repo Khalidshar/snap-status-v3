@@ -41,3 +41,18 @@ def test_failure_reason_is_only_an_internal_code():
     assert failure_reason(ValueError("LEGACY_BULLETIN_INCOMPLETE")) == "LEGACY_BULLETIN_INCOMPLETE"
     for unsafe in ("/var/lib/madar/x missing", "token=abc", "Invalid source", ""):
         assert failure_reason(ValueError(unsafe)) == ""
+
+
+def test_thirty_daily_hadiths_load_verbatim_with_narrators():
+    from studio_core.presentation import faith
+
+    daily = faith.load("hadith_daily")
+    assert len(daily) == 30
+    assert all(i["narrator"] and i["narrator_url"].startswith("https://sunnah.com/") for i in daily)
+    # Verbatim: the text Khalid approved in docs/HADITH-BATCH1-20261111.md, letter for letter.
+    import re
+    from pathlib import Path
+
+    sheet = Path(__file__).resolve().parents[3] / "docs" / "HADITH-BATCH1-20261111.md"
+    approved = re.findall(r"^> (.+)$", sheet.read_text(encoding="utf-8"), re.M)
+    assert [i["text"] for i in daily] == [t.strip() for t in approved]

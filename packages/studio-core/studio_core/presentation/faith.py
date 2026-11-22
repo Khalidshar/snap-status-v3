@@ -20,11 +20,23 @@ from urllib.parse import urlsplit
 DATA = Path(__file__).with_name("data") / "faith"
 SOURCE_REPO = "Khalidshar/status-bot@b445281"
 FAST_SOURCE_REPO = "Khalidshar/snap-status-v3"
+# Owner 21-22 Nov 2026: 30 hadiths approved verbatim, then their narrators (sunnah.com links).
+DAILY_SOURCE_REPO = "fawazahmed0/hadith-api@1"
 OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v30.zip"
 OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
 PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
 QURAN_SUBSET_SHA256 = "75daf530731089ed4128870dd1e08c4e0ee70f2409e89fadde0c318e526c97a2"
-KINDS = ("adhkar_am", "adhkar_pm", "hadith", "dua", "verse", "friday", "kahf", "fast")
+KINDS = (
+    "adhkar_am",
+    "adhkar_pm",
+    "hadith",
+    "hadith_daily",
+    "dua",
+    "verse",
+    "friday",
+    "kahf",
+    "fast",
+)
 GRADES = ("صحيح", "حسن صحيح", "حسن")
 
 
@@ -62,7 +74,8 @@ def _document(filename: str, kind: str) -> dict[str, Any]:
         or obj.get("language") != "ar"
         or obj.get("sacred") is not True
         or obj.get("kind") != kind
-        or obj.get("source_repo") != (FAST_SOURCE_REPO if kind == "fast" else SOURCE_REPO)
+        or obj.get("source_repo")
+        != {"fast": FAST_SOURCE_REPO, "hadith_daily": DAILY_SOURCE_REPO}.get(kind, SOURCE_REPO)
         or not isinstance(obj.get("items"), list)
         or not obj["items"]
     ):
@@ -198,7 +211,8 @@ def load(kind: str) -> list[dict[str, Any]]:
     filename = "duas.json" if catalog == "dua" else catalog + ".json"
     items: list[dict[str, Any]] = _document(filename, catalog)["items"]
     _ids(items)
-    if len(items) != {"adhkar": 20, "hadith": 8, "dua": 5, "fast": 7}[catalog]:
+    counts = {"adhkar": 20, "hadith": 8, "hadith_daily": 30, "dua": 5, "fast": 7}
+    if len(items) != counts[catalog]:
         raise ValueError("Incomplete faith catalog")
     index = _subset()[0] if catalog == "adhkar" else {}
     for item in items:
@@ -244,7 +258,7 @@ def load(kind: str) -> list[dict[str, Any]]:
             else:
                 _verified(item)
         else:
-            if catalog == "hadith":
+            if catalog in {"hadith", "hadith_daily"}:
                 narrator = _safe(item.get("narrator"))
                 if not narrator.strip():
                     raise ValueError("Missing hadith narrator")

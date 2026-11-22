@@ -237,7 +237,12 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
             from studio_core.presentation import faith
 
             hadith = next(
-                (i for i in faith.load("hadith") if i["id"] == item.get("hadith_id")), None
+                (
+                    i
+                    for i in faith.load("hadith_daily") + faith.load("hadith")
+                    if i["id"] == item.get("hadith_id")
+                ),
+                None,
             )
             if (
                 hadith is None
