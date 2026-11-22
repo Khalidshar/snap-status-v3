@@ -110,7 +110,9 @@ except Exception as error:
             )
         except (OSError, subprocess.SubprocessError) as error:
             if isinstance(error, subprocess.CalledProcessError) and isinstance(error.stderr, bytes):
-                found = re.search(rb"^MADAR_RENDER_REASON=([A-Z][A-Z0-9_]{2,63})$", error.stderr, re.M)
+                found = re.search(
+                    rb"^MADAR_RENDER_REASON=([A-Z][A-Z0-9_]{2,63})$", error.stderr, re.M
+                )
                 reason = (" reason=" + found[1].decode("ascii")) if found else ""
                 for line in error.stderr.splitlines():
                     match = re.fullmatch(
