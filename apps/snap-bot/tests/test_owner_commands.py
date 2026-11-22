@@ -620,3 +620,12 @@ def test_fashion_without_a_story_says_so_and_frees_unsent_clips(tmp_path):
         studio.start.return_value = 1
         assert "تعذّر" in studio.make("style_women")
         send.assert_not_called()
+
+
+def test_only_telegram_server_errors_count_as_transient():
+    from snap_bot.owner_commands import transient_telegram
+
+    assert transient_telegram(RuntimeError("Telegram rejected request: 502"))
+    assert transient_telegram(TimeoutError())
+    assert not transient_telegram(RuntimeError("Telegram rejected request: 401"))
+    assert not transient_telegram(RuntimeError("Wrong main bot"))

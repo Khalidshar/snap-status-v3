@@ -109,11 +109,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def reply(self, status: int, value: Any) -> None:
         body = json.dumps(value).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            # Owner 22 Nov 2026: the caller already gave up; nothing to answer, no traceback.
+            print(json_line("network.caller_gone", status=status), flush=True)
 
     def do_POST(self) -> None:
         try:
