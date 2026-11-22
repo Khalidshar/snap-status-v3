@@ -542,6 +542,8 @@ class NewsPreparation(PreparationBase):
         publishers: dict[str, int] = {}
         # Snap bulletins carry one more story to pass the one-minute Spotlight floor.
         count = 1 if self.key in {"tech", "style"} else (4 if self.app == "snap-bot-v2" else 3)
+        if self.key == "urgent":
+            count = 3  # «عاجل» carries one to three stories
         attempts = 0
         for item in diverse(candidates, publishers):
             topic = item["title"] + " " + item["detail"][:120]
@@ -690,7 +692,8 @@ class NewsPreparation(PreparationBase):
                 )
                 continue
         if (
-            self.key not in {"tech", "style"} and len(selected) < (3 if self.key == "urgent" else 2)
+            # Owner 22 Nov 2026: one fresh conflict story is enough for «عاجل» (up to three).
+            self.key not in {"tech", "style"} and len(selected) < (1 if self.key == "urgent" else 2)
         ) or not selected:
             (self.root / "source-failures.json").write_bytes(canonical(failures))
             if self.key == "urgent":
