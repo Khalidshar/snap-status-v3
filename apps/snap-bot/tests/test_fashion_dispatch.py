@@ -33,7 +33,7 @@ def test_telegram_fashion_uses_production_with_the_global_switch_off(tmp_path, m
             json.loads(body)
         return [update] if method == "getUpdates" else {}
 
-    with patch.object(listener.command_news, "reply") as headline_reply:
+    with patch("studio_core.command_news.reply") as headline_reply:
         listener.poll_once("token", "77", studio, 0, transport)
     studio.make.assert_called_once_with(key)
     headline_reply.assert_not_called()

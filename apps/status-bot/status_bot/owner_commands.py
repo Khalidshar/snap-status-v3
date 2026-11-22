@@ -12,7 +12,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-from studio_core import command_news
 from studio_core import commands as menu
 from studio_core.config import Config
 from studio_core.jobs import Repository
@@ -24,7 +23,7 @@ from studio_core.observability.failure_code import (
 from studio_core.production.fashion_policy import KEYS as FASHION_KEYS
 from studio_core.production.fashion_policy import FashionUnavailable
 from studio_core.sources.live import LiveNews
-from studio_core.sources.news import TITLES, NewsUnavailable
+from studio_core.sources.news import TITLES
 
 from . import content_clips, tool_commands
 from .command_control import STOPPED, change, halted, status_text
@@ -169,21 +168,6 @@ def process_one(outbox: Any, transport: Any, news: Any, runtime: Any) -> bool:
             send(tool_commands.status(outbox))
         elif key in tool_commands.NAMES:
             send(tool_commands.execute(key, outbox))
-        elif key in TITLES:
-            try:
-                sent = command_news.reply(
-                    news,
-                    key,
-                    item["tag"],
-                    send,
-                    lambda content: content_clips.send(
-                        outbox, transport, item, key, runtime, source=content
-                    ),
-                )
-                if not sent:
-                    raise ValueError("Command already consumed")
-            except NewsUnavailable:
-                send("لا يوجد خبر عربي حديث مناسب الآن؛ لم يُستبدل بمحتوى قديم.")
         elif key in content_clips.KINDS:
             content_clips.send(outbox, transport, item, key, runtime)
         else:

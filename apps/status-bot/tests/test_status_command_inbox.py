@@ -90,7 +90,7 @@ class CommandInboxTests(unittest.TestCase):
         news = SimpleNamespace(reply=lambda command, event, send: send("عنوان عربي") or True)
         with (
             patch(
-                "status_bot.owner_commands.command_news.reply",
+                "studio_core.command_news.reply",
                 side_effect=lambda svc, key, event, text, clip: (
                     clip({"headline": "عنوان عربي"}) or True
                 ),
