@@ -53,13 +53,15 @@ def render_bundle(output: Path, provenance: Any) -> Any:
         bundle = work / "bundle"
         code = """
 import json, os, sys
-from studio_core.observability.failure_code import failure_code
+from studio_core.observability.failure_code import failure_code, failure_reason
 try:
     assert os.geteuid() != 0
     from snap_bot.actions_preview import render_bundle
     render_bundle(sys.argv[1], json.loads(sys.argv[2]))
 except Exception as error:
     print("MADAR_RENDER_CODE=" + failure_code(error), file=sys.stderr)
+    if failure_reason(error):
+        print("MADAR_RENDER_REASON=" + failure_reason(error), file=sys.stderr)
     raise SystemExit(1) from None
 """
         env = {"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1"}
@@ -108,6 +110,8 @@ except Exception as error:
             )
         except (OSError, subprocess.SubprocessError) as error:
             if isinstance(error, subprocess.CalledProcessError) and isinstance(error.stderr, bytes):
+                found = re.search(rb"^MADAR_RENDER_REASON=([A-Z][A-Z0-9_]{2,63})$", error.stderr, re.M)
+                reason = (" reason=" + found[1].decode("ascii")) if found else ""
                 for line in error.stderr.splitlines():
                     match = re.fullmatch(
                         rb"MADAR_RENDER_CODE=(NO_FRESH_CONTENT|FASHION_CONTENT_UNAVAILABLE|SUBPROCESS_FAILED|TIMEOUT|PERMISSION_DENIED|FILE_MISSING|IMPORT_FAILED|OS_ERROR|VALIDATION_FAILED|UNEXPECTED_FAILURE)",
@@ -118,7 +122,8 @@ except Exception as error:
                             raise NoFreshContent() from None
                         print(
                             "SNAP_PREVIEW_FAILURE stage=isolated_worker code="
-                            + match[1].decode("ascii"),
+                            + match[1].decode("ascii")
+                            + reason,
                             file=sys.stderr,
                         )
                         break

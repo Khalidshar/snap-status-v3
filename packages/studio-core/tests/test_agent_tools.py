@@ -33,3 +33,11 @@ def test_run_with_no_clip_yet_is_not_a_failure(tmp_path):
 
     reply = tools.run("snap-bot-v2", "writer", tmp_path / "agents.sqlite", empty)
     assert "ما فيه مقطع مصنوع بعد" in reply and "تعذر" not in reply
+
+
+def test_failure_reason_is_only_an_internal_code():
+    from studio_core.observability.failure_code import failure_reason
+
+    assert failure_reason(ValueError("LEGACY_BULLETIN_INCOMPLETE")) == "LEGACY_BULLETIN_INCOMPLETE"
+    for unsafe in ("/var/lib/madar/x missing", "token=abc", "Invalid source", ""):
+        assert failure_reason(ValueError(unsafe)) == ""
