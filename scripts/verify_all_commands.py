@@ -743,8 +743,6 @@ def render_worker(app: str, route: str, tag: str, work: Path) -> int:
     install_guards(app)
     if route == "status" and app == "status":
         from status_bot.content_clips import render_event
-    elif route == "brief" and app == "snap":
-        from snap_bot.brief import render_event
     elif route == "news" and app == "snap":
         from snap_bot.news_clips import render_event
     else:

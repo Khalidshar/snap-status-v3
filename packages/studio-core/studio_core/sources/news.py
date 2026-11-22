@@ -31,7 +31,8 @@ TITLES = {
 }
 MAX_AGE = (
     {key: 86400 for key in TITLES}
-    | {"urgent": 3600, "tech": 259200}
+    # Owner 22 Nov 2026 («دايما يرد بانه مافي خبر عاجل»): six hours, not one.
+    | {"urgent": 21600, "tech": 259200}
     | dict.fromkeys(FASHION_KEYS, 604800)
 )
 WORDS = {

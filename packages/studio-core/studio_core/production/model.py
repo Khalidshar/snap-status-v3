@@ -194,7 +194,9 @@ def validate(value: dict[str, Any], *, assets: Path | None = None) -> dict[str, 
         raise ValueError("LEGACY_FOLLOW_CARD_MISSING")
     if p["key"] in NEWS:
         stories = [s for s in scenes if s.get("role") == "story"]
-        if not 2 <= len(stories) <= 4 or (p["key"] == "urgent" and len(stories) != 3):
+        # Owner 22 Nov 2026: «عاجل» goes out with one to three fresh stories.
+        least, most = (1, 3) if p["key"] == "urgent" else (2, 4)
+        if not least <= len(stories) <= most:
             raise ValueError("LEGACY_BULLETIN_INCOMPLETE")
         if any(
             not s.get("image") or not s.get("source") or not s.get("published_label")

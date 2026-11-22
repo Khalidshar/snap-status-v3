@@ -509,9 +509,8 @@ class LiveNewsPollingTests(unittest.TestCase):
         with (
             patch.dict("os.environ", {"MADAR_LIVE_NEWS": "1"}),
             patch.object(listener, "live_news", return_value=news),
-            patch.object(
-                listener.command_news,
-                "reply",
+            patch(
+                "studio_core.command_news.reply",
                 side_effect=lambda svc, key, event, send, clip: news.reply(key, event, send),
             ),
         ):

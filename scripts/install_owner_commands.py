@@ -159,9 +159,8 @@ def plan() -> dict[Path, str]:
     files[UNITS / "madar-v3-snap-news-clip@.service"] = unit
     templates = ROOT / "config/systemd"
     for name in (
-        # Each WhatsApp clip and each requested Snap brief runs in one of these.
+        # Each WhatsApp clip runs in one of these («يومك في دقيقة» left 22 Nov 2026).
         "madar-v3-status-content@.service",
-        "madar-v3-snap-brief@.service",
         "madar-v3-quran-egress@.service",
         "madar-v3-production-egress@.service",
         "madar-v3-quran-retention@.service",
