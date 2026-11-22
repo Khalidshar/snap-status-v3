@@ -218,13 +218,17 @@ class ReligiousPreparation(PreparationBase):
             raise ValueError("LEGACY_HADITH_UNAVAILABLE")
         start = day.toordinal() % len(pool)
         target = budget(self.app, self.key)[0] - 3.2 - 5.0
+        room = budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
         found: list[dict[str, Any]] = []
         for item in pool[start:] + pool[:start]:
             # Owner 21 Nov 2026: hadith is text for now; reading time of the lead and the text.
+            seconds = hadith_seconds(item["text"])
+            if sum(s["seconds"] for s in found) + seconds > room:
+                continue  # a long hadith waits for a day it fits (WhatsApp is 58 s)
             found.append(
                 scene(
                     item["text"],
-                    hadith_seconds(item["text"]),
+                    seconds,
                     role="hadith",
                     head=HADITH_LEAD,
                     source=item["source"] + " • " + item["grade"],
