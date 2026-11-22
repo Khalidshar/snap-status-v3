@@ -280,7 +280,7 @@ def test_authenticated_content_command_sends_only_one_clip(fixture, key):
 
     with (
         patch("status_bot.owner_commands.content_clips.send") as send,
-        patch("status_bot.owner_commands.command_news.reply", side_effect=news_reply),
+        patch("studio_core.command_news.reply", side_effect=news_reply),
     ):
         assert process_one(f.outbox, transport, Mock(), f.runtime)
     from status_bot.owner_commands import production_content
@@ -468,7 +468,7 @@ def test_fashion_commands_use_production_instead_of_the_headline_reply(fixture, 
     transport = fixtures.OfflineTransport(f.identity)
     with (
         patch("status_bot.owner_commands.content_clips.send") as deliver,
-        patch("status_bot.owner_commands.command_news.reply") as headline,
+        patch("studio_core.command_news.reply") as headline,
     ):
         assert process_one(f.outbox, transport, Mock(), f.runtime)
     deliver.assert_called_once()

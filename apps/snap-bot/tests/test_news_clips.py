@@ -117,8 +117,8 @@ def test_listener_locks_the_pre_production_news_path(tmp_path):
         patch.dict("os.environ", {"MADAR_LIVE_NEWS": "1"}),
         patch.object(owner_commands, "HALT", halt),
         patch.object(owner_commands, "live_news", return_value=svc),
-        patch.object(owner_commands.command_news, "reply", side_effect=reply),
-        patch.object(owner_commands.news_clips, "deliver") as deliver,
+        patch("studio_core.command_news.reply", side_effect=reply),
+        patch("snap_bot.news_clips.deliver") as deliver,
     ):
         # Preserve the real adapter before patching its name in the listener.
         owner_commands.poll_once("t", "77", SimpleNamespace(runtime=Mock()), 0, transport)
