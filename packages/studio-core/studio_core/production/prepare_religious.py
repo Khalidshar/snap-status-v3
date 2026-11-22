@@ -31,6 +31,11 @@ from .model import (
 from .prepare_base import DIGITS, PreparationBase, cut_matches, duration, network_client
 
 
+def hadith_seconds(text: str) -> float:
+    """Reading time of «قال رسول الله ﷺ» and the hadith (about 1.8 words a second)."""
+    return round(max(6.0, (len(HADITH_LEAD.split()) + len(text.split())) / 1.8 + 1.5), 2)
+
+
 class ReligiousPreparation(PreparationBase):
     def quran(
         self, surah: int, ayahs: list[int], *, background: bool = False
@@ -198,7 +203,7 @@ class ReligiousPreparation(PreparationBase):
         """
         return budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
 
-    def hadith_voice(self, text: str) -> tuple[str, float]:
+    def hadith_voice(self, text: str) -> tuple[str, float]:  # unused since 21 Nov 2026
         """Owner 8 Nov 2026: «لابد من ذكر قال رسول الله» — said before the unchanged text."""
         return self.spoken(HADITH_LEAD + " " + text, "hadith")
 
@@ -214,20 +219,16 @@ class ReligiousPreparation(PreparationBase):
         target = budget(self.app, self.key)[0] - 3.2 - 5.0
         found: list[dict[str, Any]] = []
         for item in pool[start:] + pool[:start]:
-            spoken, length = self.hadith_voice(item["text"])
+            # Owner 21 Nov 2026: hadith is text for now; reading time of the lead and the text.
             found.append(
                 scene(
                     item["text"],
-                    max(length + 1.0, len(item["text"]) / 17 + 1),
+                    hadith_seconds(item["text"]),
                     role="hadith",
                     head=HADITH_LEAD,
-                    spoken_lead=len(HADITH_LEAD) + 1,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
-                    audio=spoken,
-                    audio_duration=length,
-                    voice_kind="speech",
                 )
             )
             if sum(s["seconds"] for s in found) >= target:
@@ -406,10 +407,44 @@ class ReligiousPreparation(PreparationBase):
             for i in range(0, len(samples), 400)
         ]
 
+    # Owner 22 Nov 2026 («بالتناوب»): one recited portion opens each morning/evening adhkar
+    # clip, rotating daily; the dhikr text follows.
+    OPENERS: tuple[tuple[tuple[int, list[int]], ...], ...] = (
+        ((2, [255]),),  # آية الكرسي
+        ((2, [285, 286]),),  # خواتيم البقرة
+        ((112, [1, 2, 3, 4]), (113, [1, 2, 3, 4, 5]), (114, [1, 2, 3, 4, 5, 6])),  # المعوذات
+    )
+
+    def adhkar_opener(self, day: date, room: float) -> list[dict[str, Any]]:
+        """Today's recited portion, or the next one that fits ``room`` seconds (WhatsApp)."""
+        start = day.toordinal() % len(self.OPENERS)
+        for part in self.OPENERS[start:] + self.OPENERS[:start]:
+            scenes: list[dict[str, Any]] = []
+            try:
+                for surah, ayahs in part:
+                    scenes += self.quran(surah, ayahs, background=True)
+            except ValueError:
+                pass
+            for item in scenes:
+                if not item.get("phrases"):
+                    # No word timing: the ayah and its tafsir show whole, so both need time.
+                    item["seconds"] = max(
+                        item["seconds"],
+                        len(item.get("tafsir", "")) / 17 + 1,
+                        item.get("audio_duration", 0) + 0.15,
+                    )
+            whole = len(scenes) == sum(len(ayahs) for _, ayahs in part)
+            if whole and sum(s["seconds"] for s in scenes) <= room:
+                return scenes
+            # A portion that does not fit leaves no audio behind in the plan.
+            dropped = {s.get("audio") for s in scenes}
+            self.assets = [a for a in self.assets if a["file"] not in dropped]
+        return []
+
     def adhkar(
         self, period: str, *, minimum: float = 44, maximum: float = 50
     ) -> list[dict[str, Any]]:
-        """One official human recording per exact dhikr; no guessed archive timings."""
+        """The exact dhikr text from Hisn al-Muslim with its count, shown without audio."""
         chapter = 28 if period == "night" else 27
         url = f"https://www.hisnmuslim.com/api/ar/{chapter}.json"
         response = self.json(url)
@@ -439,33 +474,25 @@ class ReligiousPreparation(PreparationBase):
             # records with variants/instructions: their audio is not a single text.
             if any(token in text for token in ("\ufd3f", "[", "إذا", "أصبح", "أمسى", "أمسيت")):
                 continue
-            audio_url = row["AUDIO"].replace("http://", "https://", 1)
-            if not re.fullmatch(r"https://www\.hisnmuslim\.com/audio/ar/[0-9]+\.mp3", audio_url):
-                raise ValueError("LEGACY_DHIKR_AUDIO_SOURCE_INVALID")
-            try:
-                audio = self.save(self.get(audio_url), ".mp3", audio_url, "حصن المسلم — تسجيل بشري")
-                seconds = duration(self.root / audio)
-                if total + seconds + 0.3 > maximum:
-                    continue
-                selected.append(
-                    scene(
-                        text,
-                        seconds + 0.3,
-                        role="adhkar",
-                        source="حصن المسلم",
-                        number="التكرار: " + str(row["REPEAT"]).translate(DIGITS),
-                        dhikr_id=row["ID"],
-                        dhikr_chapter=chapter,
-                        levels=self.audio_levels(self.root / audio),
-                        audio=audio,
-                        audio_duration=seconds,
-                    )
-                )
-                total += seconds + 0.3
-                if total >= minimum:
-                    return selected
-                if len(selected) >= 16:
-                    break
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError):
+            # Owner 21 Nov 2026: audio only for Quran recitation; the dhikr is shown as text,
+            # with its count, for its reading time (about 1.8 words a second, at least 5 s).
+            seconds = round(max(5.0, len(text.split()) / 1.8 + 1.5), 2)
+            if total + seconds > maximum:
                 continue
+            selected.append(
+                scene(
+                    text,
+                    seconds,
+                    role="adhkar",
+                    source="حصن المسلم",
+                    number="التكرار: " + str(row["REPEAT"]).translate(DIGITS),
+                    dhikr_id=row["ID"],
+                    dhikr_chapter=chapter,
+                )
+            )
+            total += seconds
+            if total >= minimum:
+                return selected
+            if len(selected) >= 16:
+                break
         raise ValueError("LEGACY_MATCHED_HUMAN_ADHKAR_UNAVAILABLE")

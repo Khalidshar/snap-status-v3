@@ -141,7 +141,15 @@ class Factory(FashionPreparation, VarietyPreparation):
             else:
                 raise ValueError("LEGACY_NO_WHOLE_PASSAGE_WITHIN_BUDGET")
         elif key in {"adhkar_am", "adhkar_pm"}:
-            scenes += self.adhkar("am" if key.endswith("am") else "pm")
+            low, high, _ = budget(self.app, key)
+            frame = 3.2 + 4.5 + 0.5  # opening title, closing card, margin
+            scenes += self.adhkar_opener(day, high - frame - 10.0)  # room for one dhikr
+            used = sum(s["seconds"] for s in scenes[1:])
+            scenes += self.adhkar(
+                "am" if key.endswith("am") else "pm",
+                minimum=max(5.0, low - frame - used),
+                maximum=high - frame - used,
+            )
         elif key == "hadith":
             from studio_core.presentation import faith
 
@@ -154,17 +162,15 @@ class Factory(FashionPreparation, VarietyPreparation):
                 (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
                 key=lambda i: len(i["text"]),
             )
-            spoken, length = self.hadith_voice(item["text"])
+            # Owner 21 Nov 2026: hadith is text for now (audio only for Quran recitation).
+            from .prepare_religious import hadith_seconds
+
             scenes.append(
                 scene(
                     item["text"],
-                    max(6.0, length + 0.3, len(item["text"]) / 17),
-                    audio=spoken,
-                    audio_duration=length,
-                    voice_kind="speech",
+                    hadith_seconds(item["text"]),
                     role="hadith",
                     head=HADITH_LEAD,
-                    spoken_lead=len(HADITH_LEAD) + 1,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
