@@ -463,9 +463,10 @@ def test_each_dhikr_is_bound_to_its_exact_text_and_count(tmp_path, audio):
     assert all(s["number"] == "التكرار: ٣" for s in segments)
     assert all(not s.get("audio") and s["seconds"] >= 5.0 for s in segments)
     assert p["music"] is None and not p["effects"]
+    first = next(i for i, s in enumerate(p["scenes"]) if s.get("role") == "adhkar")
     for field in ("body", "number"):
         changed = copy.deepcopy(value)
-        changed["legacy_production"]["scenes"][1][field] = "changed"
+        changed["legacy_production"]["scenes"][first][field] = "changed"
         with pytest.raises(ValueError):
             validate(reseal(changed), assets=f.root)
 
