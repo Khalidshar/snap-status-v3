@@ -31,6 +31,11 @@ from .model import (
 from .prepare_base import DIGITS, PreparationBase, cut_matches, duration, network_client
 
 
+def hadith_seconds(text: str) -> float:
+    """Reading time of «قال رسول الله ﷺ» and the hadith (about 1.8 words a second)."""
+    return round(max(6.0, (len(HADITH_LEAD.split()) + len(text.split())) / 1.8 + 1.5), 2)
+
+
 class ReligiousPreparation(PreparationBase):
     def quran(
         self, surah: int, ayahs: list[int], *, background: bool = False
@@ -198,7 +203,7 @@ class ReligiousPreparation(PreparationBase):
         """
         return budget(self.app, self.key)[1] - 3.2 - 5.0 - 0.3
 
-    def hadith_voice(self, text: str) -> tuple[str, float]:
+    def hadith_voice(self, text: str) -> tuple[str, float]:  # unused since 21 Nov 2026
         """Owner 8 Nov 2026: «لابد من ذكر قال رسول الله» — said before the unchanged text."""
         return self.spoken(HADITH_LEAD + " " + text, "hadith")
 
@@ -214,20 +219,16 @@ class ReligiousPreparation(PreparationBase):
         target = budget(self.app, self.key)[0] - 3.2 - 5.0
         found: list[dict[str, Any]] = []
         for item in pool[start:] + pool[:start]:
-            spoken, length = self.hadith_voice(item["text"])
+            # Owner 21 Nov 2026: hadith is text for now; reading time of the lead and the text.
             found.append(
                 scene(
                     item["text"],
-                    max(length + 1.0, len(item["text"]) / 17 + 1),
+                    hadith_seconds(item["text"]),
                     role="hadith",
                     head=HADITH_LEAD,
-                    spoken_lead=len(HADITH_LEAD) + 1,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
-                    audio=spoken,
-                    audio_duration=length,
-                    voice_kind="speech",
                 )
             )
             if sum(s["seconds"] for s in found) >= target:

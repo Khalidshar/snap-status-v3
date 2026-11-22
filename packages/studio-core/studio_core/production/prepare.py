@@ -162,17 +162,15 @@ class Factory(FashionPreparation, VarietyPreparation):
                 (i for i in faith.load("hadith") if i["grade"] == "صحيح"),
                 key=lambda i: len(i["text"]),
             )
-            spoken, length = self.hadith_voice(item["text"])
+            # Owner 21 Nov 2026: hadith is text for now (audio only for Quran recitation).
+            from .prepare_religious import hadith_seconds
+
             scenes.append(
                 scene(
                     item["text"],
-                    max(6.0, length + 0.3, len(item["text"]) / 17),
-                    audio=spoken,
-                    audio_duration=length,
-                    voice_kind="speech",
+                    hadith_seconds(item["text"]),
                     role="hadith",
                     head=HADITH_LEAD,
-                    spoken_lead=len(HADITH_LEAD) + 1,
                     source=item["source"] + " • " + item["grade"],
                     hadith_id=item["id"],
                     grade=item["grade"],
