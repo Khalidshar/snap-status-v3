@@ -193,6 +193,22 @@ class PreparationBase:
                 )
         return False
 
+    def last_used(self, fingerprint: str) -> float:
+        """When this kind last used the item; 0 if never (oldest first when reusing)."""
+        with sqlite3.connect(self.db) as db:
+            row = db.execute(
+                "SELECT at FROM used WHERE kind=? AND fingerprint=?", (self.key, fingerprint)
+            ).fetchone()
+        return float(row[0]) if row else 0.0
+
+    def mark_used(self, fingerprint: str) -> None:
+        """Record a reuse now, even inside the window (only for an exhausted catalog)."""
+        with sqlite3.connect(self.db) as db:
+            db.execute(
+                "INSERT OR REPLACE INTO used VALUES(?,?,?,?)",
+                (self.key, fingerprint, self.job, time.time()),
+            )
+
     def picture(self, url: str, base: str, credit: str, min_width: int = 0) -> str:
         """Fetch, check and normalize one picture. With min_width, a smaller picture is
         refused before it becomes an asset (owner 21 Nov 2026: a 100 px thumbnail was
