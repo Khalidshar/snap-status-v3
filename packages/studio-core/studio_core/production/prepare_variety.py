@@ -110,6 +110,8 @@ class VarietyPreparation(ReligiousPreparation):
         )
         # Snap runs 65 s+: more items instead of one item left on screen for half a minute.
         need = 3 if key == "riddle" else (6 if self.app == "snap-bot-v2" else 4)
+        if len(items) < need:
+            raise ValueError("LEGACY_CATALOG_EXHAUSTED")
         selected = []
         for item in items:
             identity = sha(canonical(item))
@@ -119,8 +121,15 @@ class VarietyPreparation(ReligiousPreparation):
             self.used(identity)
             if len(selected) == need:
                 break
-        if len(selected) != need:
-            raise ValueError("LEGACY_CATALOG_EXHAUSTED")
+        if len(selected) < need:
+            # Every item was used inside the 30-day window: the ones shown longest ago come
+            # back instead of a failed clip (owner 28 Nov 2026: facts and funny failed daily).
+            chosen = {sha(canonical(item)) for item in selected}
+            rest = [item for item in items if sha(canonical(item)) not in chosen]
+            rest.sort(key=lambda item: self.last_used(sha(canonical(item))))
+            for item in rest[: need - len(selected)]:
+                self.mark_used(sha(canonical(item)))
+                selected.append(item)
         scenes = []
         for n, item in enumerate(selected, 1):
             number = str(n).translate(DIGITS)

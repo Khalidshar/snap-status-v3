@@ -177,6 +177,37 @@ def test_30_day_dedupe_is_persistent_and_app_scoped(tmp_path, audio):
         )
 
 
+@pytest.mark.parametrize("key", ["facts", "funny", "riddle"])
+def test_exhausted_catalog_reuses_oldest_items_instead_of_failing(tmp_path, audio, key):
+    """Owner 28 Nov 2026: facts and funny failed daily once the 30-day window was full."""
+    catalog = json.loads((DATA / ("riddles.json" if key == "riddle" else f"{key}.json")).read_text())
+    need = 3 if key == "riddle" else 6
+    assert len(catalog) >= 25 * need  # close to a month of daily clips before any reuse
+    rounds = []
+    for n in range(len(catalog) // need + 2):
+        f = Factory(
+            "snap-bot-v2",
+            key,
+            uuid.uuid4().hex,
+            tmp_path / f"{key}-{n}",
+            client=Sources(audio),
+            state=tmp_path / "ledger",
+        )
+        f.spoken = lambda text, kind: ("assets/none.wav", 1.0)  # no voice in this test
+        scenes = f.variety()
+        bodies = [s["body"] for s in scenes if s["role"] != "answer"]
+        assert len(bodies) == need and len(set(bodies)) == need
+        rounds.append(bodies)
+    full = len(catalog) // need
+    fresh = [b for r in rounds[:full] for b in r]
+    assert len(fresh) == len(set(fresh))  # nothing repeats while unused items remain
+    every = {i if key == "facts" else i["a" if key == "funny" else "q"] for i in catalog}
+    unused = every - set(fresh)
+    later = {b for r in rounds[full:] for b in r}
+    # After the catalog is spent, the items shown longest ago come back first.
+    assert later - unused <= set(rounds[0]) | set(rounds[1])
+
+
 def test_asset_paths_xml_and_network_fail_closed(tmp_path):
     for name in ("/etc/passwd", "assets/../x", "assets/link/x", "assets/a?x"):
         with pytest.raises(ValueError):
