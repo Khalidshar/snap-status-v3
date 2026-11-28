@@ -91,12 +91,16 @@ def test_production_tafsir_reference_covers_reviewed_subset():
     expected = {f"{row['surah']}:{row['ayah']}" for row in subset}
     assert "33:56" in expected
     assert reference["schema"] == 1
-    assert reference["not_matching"] == ["33:56"]
+    # 33:56 since 4 Nov; the 15 of the 16 verses added 28 Nov whose QF text differs from
+    # QuranEnc (punctuation, a tanween, a line break) stay off until a person reviews them.
+    differ = {"2:183", "2:185", "2:187", "9:40", "18:46", "18:109", "18:110", "33:35", "33:56"}
+    differ |= {"48:4", "67:1", "67:2", "67:14", "67:15", "67:19", "67:22"}
+    assert set(reference["not_matching"]) == differ
     sources = reference["sources"]
     assert set(sources) == {"ar-tafsir-muyassar"}
     muyassar = sources["ar-tafsir-muyassar"]
     assert muyassar["resource_id"] == 16
-    assert set(muyassar["verses"]) == expected - {"33:56"}
+    assert set(muyassar["verses"]) == expected - differ
     assert all(re.fullmatch(r"[0-9a-f]{64}", digest) for digest in muyassar["verses"].values())
 
 
