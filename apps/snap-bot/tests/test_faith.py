@@ -47,8 +47,8 @@ def synthetic_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     adhkar = json.loads((tmp_path / "adhkar.json").read_text())
     refs = {(i["surah"], a) for i in adhkar["items"] if i["type"] == "quran" for a in i["ayahs"]}
     refs.update((18, a) for a in range(1, 11))
-    refs.update((1, a) for a in range(1, 91 - len(refs)))
-    assert len(refs) == 90
+    refs.update((2, a) for a in range(1, faith.SUBSET_AYAHS + 1 - len(refs)))
+    assert len(refs) == faith.SUBSET_AYAHS
     items = [
         {
             "surah": s,
@@ -71,7 +71,7 @@ def synthetic_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         "source_repo": faith.SOURCE_REPO,
         "zip_url": faith.OFFICIAL_URL,
         "zip_sha256": faith.OFFICIAL_SHA256,
-        "publication_date": "2026-09-30",
+        "publication_date": faith.PUBLICATION_DATE,
         "previous_zip_sha256": faith.PREVIOUS_SHA256,
         "checksum_note": "synthetic metadata fixture",
         "package_version": "kfgqpc_hafs_v30",
@@ -100,9 +100,9 @@ def test_subset_hashes_are_verified_once_for_a_complete_verse_load(synthetic_dat
         items = faith.load("verse")
         for item in items:
             assert faith.text(item) == "synthetic test fixture"
-        assert verified.call_count == 90
+        assert verified.call_count == faith.SUBSET_AYAHS
         assert faith.load("verse") == items
-        assert verified.call_count == 90
+        assert verified.call_count == faith.SUBSET_AYAHS
 
 
 @pytest.mark.parametrize("change", ("same_size", "new_size", "restored_mtime"))
