@@ -22,10 +22,13 @@ SOURCE_REPO = "Khalidshar/status-bot@b445281"
 FAST_SOURCE_REPO = "Khalidshar/snap-status-v3"
 # Owner 21-22 Nov 2026: 30 hadiths approved verbatim, then their narrators (sunnah.com links).
 DAILY_SOURCE_REPO = "fawazahmed0/hadith-api@1"
-OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v30.zip"
-OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
-PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
-QURAN_SUBSET_SHA256 = "75daf530731089ed4128870dd1e08c4e0ee70f2409e89fadde0c318e526c97a2"
+# Owner 28 Nov 2026: the Complex's new-site package; the 90 old verses matched it exactly.
+OFFICIAL_URL = "https://qurancomplex.gov.sa/files/fonts/hafs-3.0.zip"
+OFFICIAL_SHA256 = "DB6329E457B912E012160EC1EAA5CF15BD2116F47EA0F466A6C8951EA5F95C29"
+PREVIOUS_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
+PUBLICATION_DATE = "2026-11-26"
+SUBSET_AYAHS = 106
+QURAN_SUBSET_SHA256 = "81cd15052960b0f1ba32e3ff8c738b7d4e9bb7ee6195c70d565d9c78977171eb"
 KINDS = (
     "adhkar_am",
     "adhkar_pm",
@@ -155,7 +158,7 @@ def _validated_subset(stamp: SubsetStamp) -> tuple[Mapping[tuple[int, int], str]
     if (
         obj.get("zip_url") != OFFICIAL_URL
         or obj.get("zip_sha256") != OFFICIAL_SHA256
-        or obj.get("publication_date") != "2026-09-30"
+        or obj.get("publication_date") != PUBLICATION_DATE
         or obj.get("previous_zip_sha256") != PREVIOUS_SHA256
         or not isinstance(obj.get("checksum_note"), str)
         or not obj["checksum_note"]
@@ -178,7 +181,7 @@ def _validated_subset(stamp: SubsetStamp) -> tuple[Mapping[tuple[int, int], str]
         if (surah, ayah) in index:
             raise ValueError("Duplicate subset ayah")
         index[(surah, ayah)] = _verified(item, quran=True)
-    if len(index) != 90:
+    if len(index) != SUBSET_AYAHS:
         raise ValueError("Incomplete Quran subset")
     collections = obj.get("collections")
     if not isinstance(collections, dict) or set(collections) != {"verse", "friday", "kahf"}:

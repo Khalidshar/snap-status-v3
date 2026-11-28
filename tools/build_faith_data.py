@@ -3,24 +3,36 @@
 Run manually once; CI must never download. A local --zip permits offline checks
 of the same bytes. A mismatch stops before reading any text or writing output.
 
-Owner authorized the republished 2026-09-30 package on 2026-10-28.
-The previous checksum belongs to an earlier package version.
+Owner authorized the republished 2026-09-30 package on 2026-10-28, and the package on the
+Complex's new site (published 2026-11-26) on 2026-11-28; the previous checksum is the old one.
 """
 
 import argparse
 import hashlib
 import io
 import json
+import re
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
 
-OFFICIAL_URL = "https://download.qurancomplex.gov.sa/resources_dev/kfgqpc_hafs_v30.zip"
-OFFICIAL_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
-PREVIOUS_SHA256 = "6D4B6B2B6A290BDA1D8E3179BC6AAB7D49F6FAEDD3F2D31F7D589D5E6E99F8F4"
-PUBLICATION_DATE = "2026-09-30"
+# Owner 28 Nov 2026: the Complex moved its Hafs V30 package to the new site. It now holds the
+# font and the full Mushaf as a Word document (no JSON). The 90 verses built from the old
+# package must come out of it byte for byte, or nothing is written.
+OFFICIAL_URL = "https://qurancomplex.gov.sa/files/fonts/hafs-3.0.zip"
+OFFICIAL_SHA256 = "DB6329E457B912E012160EC1EAA5CF15BD2116F47EA0F466A6C8951EA5F95C29"
+PREVIOUS_SHA256 = "227E6B1564D980F2BD09C2C35EBFB0330AC268C79A7C247CD1AB665BC635F245"
+PUBLICATION_DATE = "2026-11-26"
+DOCX_MEMBER = "hafs-3.0/KFGQPC Hafs V30.docx"
+# The only two basmala lines in that document (110 plain; 2 with shadda on the ba').
+_BASMALA = (
+    "بِسۡمِ ٱللَّهِ"
+    " ٱلرَّحۡمَٰنِ"
+    " ٱلرَّحِيمِ"
+)
+BASMALA_LINES = {_BASMALA, _BASMALA[:1] + "ّ" + _BASMALA[1:]}
 OUTPUT = (
     Path(__file__).resolve().parents[1]
     / "packages/studio-core/studio_core/presentation/data/faith/quran_subset.json"
@@ -214,11 +226,59 @@ def rows_from_json(raw: bytes) -> list[dict[str, Any]] | None:
     return rows
 
 
+def rows_from_docx(raw: bytes) -> list[dict[str, Any]]:
+    """Read the Mushaf from the official Word document without editing a letter.
+
+    Layout of the document, not text: a «سُورَةُ …» heading per surah, then a basmala line
+    with no ayah marker (except al-Fatiha, where it is ayah 1, and at-Tawbah, which has
+    none), then ayahs that each end in NO-BREAK SPACE + U+06DD + Arabic digits. The old
+    package wrote an ordinary space after the ۞ hizb sign where this one has NO-BREAK SPACE.
+    """
+    xml = zipfile.ZipFile(io.BytesIO(raw)).read("word/document.xml").decode("utf-8")
+    paragraphs = [
+        "".join(re.findall(r"<w:t(?: [^>]*)?>([^<]*)</w:t>", p))
+        for p in re.findall(r"<w:p[ >].*?</w:p>", xml, flags=re.S)
+    ]
+    surahs: list[list[str]] = []
+    basmalas = 0
+    after_heading = False
+    for paragraph in (p for p in paragraphs if p.strip()):
+        if paragraph.startswith("سُورَةُ") and "۝" not in paragraph:
+            surahs.append([])
+            after_heading = True
+            continue
+        if not surahs:
+            raise ValueError("Mushaf text before the first surah heading")
+        if after_heading and "۝" not in paragraph:
+            if paragraph not in BASMALA_LINES:
+                raise ValueError("Unexpected line after a surah heading")
+            basmalas += 1
+        else:
+            surahs[-1].append(paragraph)
+        after_heading = False
+    if len(surahs) != 114 or basmalas != 112:
+        raise ValueError("Unexpected Mushaf layout")
+    digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+    rows = []
+    for surah, lines in enumerate(surahs, 1):
+        found = re.findall(r"\s*(.*?)\xa0۝([٠-٩]+)", " ".join(lines))
+        for ayah, (body, number) in enumerate(found, 1):
+            if int(number.translate(digits)) != ayah:
+                raise ValueError("Ayah numbering broken")
+            text = body.replace("۞\xa0", "۞ ") + " ۝" + number
+            rows.append({"sura_no": surah, "aya_no": ayah, "aya_text_unicode": text})
+    return rows
+
+
 def read_package(raw: bytes) -> dict[tuple[int, int], str]:
     digest = hashlib.sha256(raw).hexdigest().upper()
     if digest != OFFICIAL_SHA256:
         raise ValueError(f"KFGQPC SHA-256 mismatch: expected {OFFICIAL_SHA256}; got {digest}")
     rows = rows_from_json(raw)
+    if rows is None:
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            if DOCX_MEMBER in archive.namelist():
+                rows = rows_from_docx(archive.read(DOCX_MEMBER))
     if rows is None:
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             names = [n for n in archive.namelist() if n.lower().endswith(".json")]
@@ -247,6 +307,11 @@ def read_package(raw: bytes) -> dict[tuple[int, int], str]:
 
 def build(raw: bytes, output: Path) -> None:
     index = read_package(raw)
+    if output.exists():
+        # Verses already approved must be identical in the new package, byte for byte.
+        for old in json.loads(output.read_text(encoding="utf-8"))["items"]:
+            if index.get((old["surah"], old["ayah"])) != old["text"]:
+                raise ValueError(f"Approved ayah changed: {old['surah']}:{old['ayah']}")
     items = []
     for surah, ayah in MANIFEST["references"]:
         value = index[(surah, ayah)]
@@ -269,7 +334,8 @@ def build(raw: bytes, output: Path) -> None:
         "publication_date": PUBLICATION_DATE,
         "previous_zip_sha256": PREVIOUS_SHA256,
         "checksum_note": (
-            "البصمة القديمة تخص نسخة سابقة؛ اعتمد المالك بصمة إعادة النشر بتاريخ 2026-09-30."
+            "البصمة السابقة تخص حزمة 2026-09-30 من الموقع القديم؛ اعتمد المالك حزمة الموقع"
+            " الجديد بتاريخ 2026-11-28 بعد مطابقة الآيات التسعين حرفًا بحرف."
         ),
         "package_version": "kfgqpc_hafs_v30",
         "build_date": datetime.now(UTC).date().isoformat(),
