@@ -180,7 +180,8 @@ def test_30_day_dedupe_is_persistent_and_app_scoped(tmp_path, audio):
 @pytest.mark.parametrize("key", ["facts", "funny", "riddle"])
 def test_exhausted_catalog_reuses_oldest_items_instead_of_failing(tmp_path, audio, key):
     """Owner 28 Nov 2026: facts and funny failed daily once the 30-day window was full."""
-    catalog = json.loads((DATA / ("riddles.json" if key == "riddle" else f"{key}.json")).read_text())
+    name = "riddles.json" if key == "riddle" else f"{key}.json"
+    catalog = json.loads((DATA / name).read_text())
     need = 3 if key == "riddle" else 6
     assert len(catalog) >= 25 * need  # close to a month of daily clips before any reuse
     rounds = []
